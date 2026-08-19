@@ -369,6 +369,17 @@ $tracking_code = $grn_no;
     font-weight: 700;
 }
 
+.status-progress .step.partial-delivery-done .node {
+    background: #1dbf73 !important;
+    border-color: #1dbf73 !important;
+    color: #fff !important;
+}
+
+.status-progress .step.partial-delivery-done .step-label {
+    color: #1a7a4c !important;
+    font-weight: 700;
+}
+
 .status-progress .step .step-label small {
     display: block;
     margin-top: 4px;
@@ -728,7 +739,7 @@ $tracking_code = $grn_no;
                                         $log_check_result = mysqli_query($conn, $log_check_query);
 
                                         if (mysqli_num_rows($log_check_result) > 0) {
-                                            $count = 1;
+                                            $found_consignment = false;
                                             $tbl = $tbl_inv = '';
                                             $tracking_row = mysqli_fetch_assoc($log_check_result);
                                             $grn_no = $tracking_row['grn_no'];
@@ -747,7 +758,7 @@ $tracking_code = $grn_no;
                                                 $grnr = mysqli_fetch_array($result);
 
                                                 if (mysqli_num_rows($result) > 0) {
-                                                    $count++;
+                                                    $found_consignment = true;
                                                     echo '<div class="track-result-title">
                                                                 <h2>Tracking Status</h2>
                                                                 <small>GCN No. ' . htmlspecialchars($grn_no) . '</small>
@@ -765,7 +776,6 @@ $tracking_code = $grn_no;
                                                         if (!in_array($row['to_status'], $status))
                                                             array_push($status, $row['to_status']);
                                                     }
-                                                    $count = 1;
                                                     $max = max($status);
                                                     $remarks = get_cong_remarks($conn, $max, $grn_no);
                                                 
@@ -781,29 +791,57 @@ $total_packages = (int)($row3['no_of_pkge'] ?? 0);
 $delivery_type = '';
 $delivered_packages = 0;
 
+$delivery_events = array();
+$delivery_by_sheet = array();
+$partial_events = array();
+$safe_grn = mysqli_real_escape_string($conn, $grn_no);
+
 $delivery_q = mysqli_query(
     $conn,
-    "SELECT delivery_type, delivered_packages, total_packages
+    "SELECT sheet_id, delivery_type, delivered_packages, total_packages
      FROM transaction_status_log
-     WHERE grn_no='" . mysqli_real_escape_string($conn, $grn_no) . "'
+     WHERE grn_no='$safe_grn'
        AND to_status='8'
-     ORDER BY sheet_id DESC
-     LIMIT 1"
+     ORDER BY sheet_id ASC"
 );
 
 if ($delivery_q && mysqli_num_rows($delivery_q) > 0) {
 
-    $delivery_r = mysqli_fetch_assoc($delivery_q);
+    while ($delivery_r = mysqli_fetch_assoc($delivery_q)) {
 
-    $delivery_type = strtolower(trim($delivery_r['delivery_type'] ?? ''));
+        $event_type = strtolower(trim($delivery_r['delivery_type'] ?? ''));
+        $event_delivered = (int)($delivery_r['delivered_packages'] ?? 0);
+        $event_total = (int)($delivery_r['total_packages'] ?? 0);
+        if ($event_total <= 0) {
+            $event_total = $total_packages;
+        }
 
-    $delivered_packages = (int)($delivery_r['delivered_packages'] ?? 0);
+        $event = array(
+            'sheet_id' => (int)$delivery_r['sheet_id'],
+            'delivery_type' => $event_type,
+            'delivered_packages' => $event_delivered,
+            'total_packages' => $event_total,
+        );
 
-    // Always use actual invoice package count
+        $delivery_events[] = $event;
+        $delivery_by_sheet[$event['sheet_id']] = $event;
+
+        if ($event_type === 'partial' && $event_delivered > 0 && ($event_total <= 0 || $event_delivered < $event_total)) {
+            $partial_events[] = $event;
+        }
+    }
+
+    $delivery_r = end($delivery_events);
+
+    $delivery_type = $delivery_r['delivery_type'];
+    $delivered_packages = $delivery_r['delivered_packages'];
+
     if ($total_packages <= 0) {
-        $total_packages = (int)($delivery_r['total_packages'] ?? 0);
+        $total_packages = $delivery_r['total_packages'];
     }
 }
+
+$had_partial_delivery = !empty($partial_events);
 
 // Safety
 if ($delivered_packages < 0) {
@@ -1035,13 +1073,31 @@ for ($i = 1; $i < 9; $i++) {
 
         </div>
     ';
+
+    if ($i == 7 && $is_full_delivery && $had_partial_delivery) {
+        foreach ($partial_events as $partial_step) {
+            $partial_label =
+                'Partial Delivery<br>' .
+                '<small>' .
+                $partial_step['delivered_packages'] . '/' . $partial_step['total_packages'] .
+                ' Packages Delivered</small>';
+
+            echo '
+                <div class="step done partial-delivery-done">
+                    <span class="connector"></span>
+                    <span class="node">&#10003;</span>
+                    <span class="step-label">' . $partial_label . '</span>
+                </div>
+            ';
+        }
+    }
 }
 
 echo '</div>';
 ?>
                            <?php                         
 
-                                                    $trans_status = "SELECT * FROM `transaction_status` WHERE sheet_id IN(select sheet_id from transaction_status_log where grn_no='$grn_no')";
+                                                    $trans_status = "SELECT * FROM `transaction_status` WHERE sheet_id IN(select sheet_id from transaction_status_log where grn_no='$grn_no') ORDER BY created_at ASC, sheet_id ASC";
                                                     $res = mysqli_query($conn, $trans_status);
                                                     // Pull every scan row up front so we know which one is the
                                                     // most recent — that's the only row we mark as "current".
@@ -1083,21 +1139,64 @@ echo '</div>';
                                                             $tempRow['active_status'] = $re;
 
                                                             $remarks = get_tracking_message($conn, $tempRow);
+
+                                                            $scan_sheet_id = (int)($result_status['sheet_id'] ?? 0);
+                                                            $scan_delivery = isset($delivery_by_sheet[$scan_sheet_id])
+                                                                ? $delivery_by_sheet[$scan_sheet_id]
+                                                                : null;
+
+                                                            $scan_delivery_type = $scan_delivery
+                                                                ? $scan_delivery['delivery_type']
+                                                                : '';
+                                                            $scan_delivered = $scan_delivery
+                                                                ? (int)$scan_delivery['delivered_packages']
+                                                                : $delivered_packages;
+                                                            $scan_total = $scan_delivery
+                                                                ? (int)$scan_delivery['total_packages']
+                                                                : $total_packages;
+                                                            if ($scan_total <= 0) {
+                                                                $scan_total = $total_packages;
+                                                            }
+                                                            $scan_pending = max(0, $scan_total - $scan_delivered);
+
+                                                            $scan_is_partial = (
+                                                                (int)$re === 8 &&
+                                                                $scan_delivery_type === 'partial' &&
+                                                                $scan_delivered > 0 &&
+                                                                ($scan_total <= 0 || $scan_delivered < $scan_total)
+                                                            );
+                                                            $scan_is_full = (
+                                                                (int)$re === 8 &&
+                                                                (
+                                                                    $scan_delivery_type === 'full' ||
+                                                                    ($scan_total > 0 && $scan_delivered >= $scan_total)
+                                                                )
+                                                            );
+
                                                         // ------------------------------------------------------------
-// Partial delivery message override
+// Delivery message override for this scan row
 // ------------------------------------------------------------
 
-if ($re == 8 && $is_partial_delivery) {
+if ($scan_is_partial) {
 
     $remarks =
         "Your consignment <strong style=\"color:#000;\">$grn_no</strong> " .
         "has been partially delivered. " .
         "<strong style=\"color:#000;\">" .
-        $delivered_packages . '/' . $total_packages .
+        $scan_delivered . '/' . $scan_total .
         " packages</strong> have been delivered successfully. " .
         "<strong style=\"color:#DD111E;\">" .
-        $pending_packages .
+        $scan_pending .
         " packages are still pending.</strong>";
+
+} elseif ($scan_is_full && $had_partial_delivery) {
+
+    $remarks =
+        "Your consignment <strong style=\"color:#000;\">$grn_no</strong> " .
+        "has been fully delivered. " .
+        "<strong style=\"color:#000;\">" .
+        $scan_total . '/' . $scan_total .
+        " packages</strong> have been delivered successfully.";
 }
 
                                                             $timestamp = strtotime($date_data);
@@ -1110,18 +1209,18 @@ if ($re == 8 && $is_partial_delivery) {
                                                             <div class="scan-card<?php echo $is_latest ? ' latest' : ''; ?>">
                                                                 <div class="sc-top">
                                                                     <span class="sc-badge"><i class="fa fa-check"></i> <?php
-if ($re == 8 && $is_partial_delivery) {
+if ($scan_is_partial) {
 
     echo 'Partial Delivery – ' .
-         $delivered_packages . '/' .
-         $total_packages .
+         $scan_delivered . '/' .
+         $scan_total .
          ' Packages Delivered';
 
-} elseif ($re == 8 && $is_full_delivery) {
+} elseif ($scan_is_full) {
 
     echo 'Fully Delivered – ' .
-         $total_packages . '/' .
-         $total_packages .
+         $scan_total . '/' .
+         $scan_total .
          ' Packages';
 
 } else {
@@ -1142,13 +1241,12 @@ if ($re == 8 && $is_partial_delivery) {
                                                 }
                                             }
 
-                                            if ($count == 1)
+                                            if (!$found_consignment) {
                                                 echo '<p class="track-plain-msg">Incorrect GCN No or Booking Cancelled. Please check and try again!</p>';
+                                            }
                                         } else {
                                             echo '<p class="track-plain-msg">Invalid GCN or PNR number. Please check and try again!</p>';
                                         }
-                                    } else {
-                                        echo '<p class="track-plain-msg">Please enter either GCN No or PNR Number to track your consignment.</p>';
                                     }
                                     ?>
                                 </form>

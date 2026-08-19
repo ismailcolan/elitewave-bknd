@@ -102,37 +102,59 @@ $delivery_type = '';
 $delivered_packages = 0;
 
 // Get latest delivery information
+$delivery_events = array();
+$delivery_by_sheet = array();
+$partial_events = array();
+
 $delivery_query = "
-    SELECT delivery_type, delivered_packages, total_packages
+    SELECT sheet_id, delivery_type, delivered_packages, total_packages
     FROM transaction_status_log
     WHERE grn_no = '$grn_no'
       AND to_status = '8'
-    ORDER BY sheet_id DESC
-    LIMIT 1
+    ORDER BY sheet_id ASC
 ";
 
 $delivery_result = mysqli_query($conn, $delivery_query);
 
 if ($delivery_result) {
 
-    $delivery_row = mysqli_fetch_assoc($delivery_result);
+    while ($delivery_row = mysqli_fetch_assoc($delivery_result)) {
 
-    if ($delivery_row) {
+        $event_type = strtolower(trim($delivery_row['delivery_type'] ?? ''));
+        $event_delivered = (int)($delivery_row['delivered_packages'] ?? 0);
+        $event_total = (int)($delivery_row['total_packages'] ?? 0);
+        if ($event_total <= 0) {
+            $event_total = $total_packages;
+        }
 
-        $delivery_type = strtolower(
-            trim($delivery_row['delivery_type'] ?? '')
+        $event = array(
+            'sheet_id' => (int)$delivery_row['sheet_id'],
+            'delivery_type' => $event_type,
+            'delivered_packages' => $event_delivered,
+            'total_packages' => $event_total,
         );
 
-        $delivered_packages =
-            (int)($delivery_row['delivered_packages'] ?? 0);
+        $delivery_events[] = $event;
+        $delivery_by_sheet[$event['sheet_id']] = $event;
 
-        // Use stored total only if invoice total is unavailable
+        if ($event_type === 'partial' && $event_delivered > 0 && ($event_total <= 0 || $event_delivered < $event_total)) {
+            $partial_events[] = $event;
+        }
+    }
+
+    if (!empty($delivery_events)) {
+        $delivery_row = end($delivery_events);
+
+        $delivery_type = $delivery_row['delivery_type'];
+        $delivered_packages = $delivery_row['delivered_packages'];
+
         if ($total_packages <= 0) {
-            $total_packages =
-                (int)($delivery_row['total_packages'] ?? 0);
+            $total_packages = $delivery_row['total_packages'];
         }
     }
 }
+
+$had_partial_delivery = !empty($partial_events);
 
 // Calculate pending packages
 $pending_packages =
@@ -247,14 +269,60 @@ if($r = mysqli_fetch_assoc($q)){
                         $time = '';
                     }
 
+                    $history_status_id = (int) $result_status['status'];
+                    $history_status = get_trans_status($result_status['status']);
+                    $history_details = $result_status['remarks'];
+                    $history_sheet_id = (int)($result_status['sheet_id'] ?? 0);
+                    $history_is_partial = false;
+                    $history_is_full = false;
+
+                    if ($history_status_id === 8 && isset($delivery_by_sheet[$history_sheet_id])) {
+                        $history_delivery = $delivery_by_sheet[$history_sheet_id];
+                        $history_delivered = (int)$history_delivery['delivered_packages'];
+                        $history_total = (int)$history_delivery['total_packages'];
+                        if ($history_total <= 0) {
+                            $history_total = $total_packages;
+                        }
+                        $history_pending = max(0, $history_total - $history_delivered);
+
+                        if (
+                            $history_delivery['delivery_type'] === 'partial' &&
+                            $history_delivered > 0 &&
+                            ($history_total <= 0 || $history_delivered < $history_total)
+                        ) {
+                            $history_is_partial = true;
+                            $history_status =
+                                'Partial Delivery - ' .
+                                $history_delivered . '/' .
+                                $history_total .
+                                ' Packages Delivered';
+                            $history_details =
+                                "Your consignment $grn_no has been partially delivered. " .
+                                "$history_delivered/$history_total packages have been delivered successfully. " .
+                                "$history_pending packages are still pending.";
+                        } elseif (
+                            $history_delivery['delivery_type'] === 'full' ||
+                            ($history_total > 0 && $history_delivered >= $history_total)
+                        ) {
+                            $history_is_full = true;
+                            $history_status =
+                                'Fully Delivered - ' .
+                                $history_total . '/' .
+                                $history_total .
+                                ' Packages';
+                        }
+                    }
+
                     $tracking_history[] = array(
-                        'status'      => get_trans_status($result_status['status']),
-                        'status_id'   => (int) $result_status['status'],
-                        'details'     => $result_status['remarks'],
+                        'status'      => $history_status,
+                        'status_id'   => $history_status_id,
+                        'details'     => $history_details,
                         'date'        => $date,
                         'time'        => $time,
                         'origin'      => get_city_name($conn, $result_status['origin']),
                         'destination' => get_city_name($conn, $result_status['destination']),
+                        'is_partial'  => $history_is_partial,
+                        'is_full'     => $history_is_full,
                     );
                 }
             }
@@ -352,7 +420,11 @@ elseif ($is_full_delivery) {
 
         'is_partial' => $is_partial_delivery,
 
-        'is_full' => $is_full_delivery
+        'is_full' => $is_full_delivery,
+
+        'had_partial' => $had_partial_delivery,
+
+        'delivery_events' => $delivery_events
     )
 );
         }
