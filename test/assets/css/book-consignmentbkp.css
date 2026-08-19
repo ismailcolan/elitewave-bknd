@@ -1,0 +1,159 @@
+/* Common css starts */
+.decor-1{
+    margin-top: 25px;
+}
+body{
+    --gracious-color : #223f9a;
+}
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+.py-0{
+    padding-left: 0;
+    padding-right: 0;
+}
+.parent-block h6{
+    font-weight: 900 !important;
+}
+.parent-block{
+    width : 60%;
+    margin : 0 auto;
+    text-align: center;
+}
+.cust-padding-margin{
+    /* padding-right: 8px;
+    padding-left: 8px; */
+    margin-top: 10px;
+    margin-bottom: 50px;
+}
+.active{
+    border : 3px solid var(--gracious-color) !important;
+    border-radius : 5px;
+}
+.cust-padding-margin:hover{
+    cursor: pointer;
+}
+.sub-block{
+    text-align: center;
+    box-shadow: 0 0.1rem 0.4rem 0 rgb(50 50 50 / 50%);
+    padding-top : 10px;
+    padding-bottom: 10px;
+    border : 3px solid transparent;
+    float: left;
+    width: 100%;
+}
+.sub-block i{
+    display: none;
+}
+.active i{
+    display: inline-block !important;
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gracious-color);
+    font-weight: 900;
+}
+.custom-icon-size{
+    font-size: 42px !important;
+    color : var(--gracious-color);
+}
+label{
+    display: block;
+    text-align: left;
+}
+#select-shipping, #select-payment-mode, #select-sender-dtl, #contact-expert, #visit-login-page{
+    display: none;
+}
+/* Common css ends */
+
+/* Select Shipping css starts */
+#select-shipping .col-sm-2{
+    width: 20%;
+}
+#select-shipping .sub-block{
+    height: 120px;
+}
+/* Select Shipping css ends */
+
+/* select-sender-dtl css starts*/
+.send-rcv-dtl{
+    float: left;
+    width: 100%;
+    background: #eee;
+    padding: 10px 5px;
+    border-left: 3px solid blue;
+    margin-bottom: 35px;
+}
+#select-sender-dtl .details-hdr{
+    display: flex;
+    align-items: center;
+    width: 100%;
+    float:left;
+    margin-bottom: 10px;
+}
+.disabled{
+    opacity: 0.6;
+    pointer-events: none;
+}
+.disabled input{
+
+}
+.disabled:hover{
+    cursor : not-allowed !important;
+}
+#select-sender-dtl .sub-block{
+    padding-right: 25px;
+    padding-left: 25px;
+}
+#select-sender-dtl .form-group{
+    margin-bottom : 0;
+}
+#sender-details, #reciever-details, #supporting-document{
+    width : 100%;
+    float : left;
+}
+.package-wgt .input-group-addon{
+    border-right: 1px solid #ccc;
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    background: #fff;
+}
+
+/* select-sender-dtl css ends*/
+
+/* Contact expert css starts */
+#contact-expert h5{
+    margin-bottom: 30px;
+}
+#contact-expert .cust-padding-margin{
+    padding-right: 0;
+    padding-left: 0;
+}
+/* Contact expert css ends */
+
+/* Portal login page css starts */
+#visit-login-page a{
+    width: 95%;
+    padding: 10px;
+    margin-bottom: 25px;
+}
+/* Portal login page css ends */
+
+/*  */
+.swal-text {
+    text-align : center;
+    font-size : 15px;
+}
+.swal-footer{
+    text-align: center;
+    margin-top: 0;
+}

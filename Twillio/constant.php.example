@@ -1,0 +1,5 @@
+<?php
+define("SID","YOUR_TWILIO_SID");
+define("Auth","YOUR_TWILIO_AUTH_TOKEN");
+define("Phone","YOUR_TWILIO_PHONE");
+?>

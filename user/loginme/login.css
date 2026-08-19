@@ -1,0 +1,199 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+#login h1 {
+    font-size: 21px;
+    color: #FFF;
+    text-align: center;
+    padding-top: 20px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    pointer-events: none;
+    font-family: 'Raleway', sans-serif;
+}
+.message{
+	
+	text-align: center;
+    padding-top: 26px;
+    color: #fff;
+    font-weight: bold;
+}
+.input {
+    border-bottom: 1px solid #d9d9d9;
+    padding: 10px;
+    margin-top: 4px;
+    border: 1px solid #d6d6d6;
+    border-radius: 6px;
+    background: #fff;
+    height: 42px;
+}
+input {
+    width: 100%;
+	border: none;
+    outline: 0;
+    color: #333;
+    font-size: 16px;
+    background: transparent;
+}
+::placeholder {
+    color: #bfbfbf;
+    font-size: 16px;
+}
+
+:-ms-input-placeholder { /* Internet Explorer 10-11 */
+   color: #bfbfbf;
+    font-size: 16px;
+}
+
+::-ms-input-placeholder { /* Microsoft Edge */
+  color: #bfbfbf;
+    font-size: 16px;
+}
+#footer {
+    width: 182px;
+    margin: 0 auto;
+    padding: 30px 0;
+}
+#footer span {
+    font-size: 17px;
+    color: #5c7883;
+    display: block;
+    margin-top: -21px;
+    margin-left: 25px;
+}
+#footer input {
+    width: 20px;
+    height: 20px;
+}
+#login {
+    padding: 30px;
+    width: 350px;
+    height: 350px;
+    border-radius: 50px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -175px;
+    margin-left: -175px;
+}
+#logo {
+    margin: 0 auto;
+    width: 85px;
+    height: 85px;
+    background: url("GE_Small_Logo.png") no-repeat;
+}
+.btn {
+        width: 26px;
+    height: 26px;
+    right: 5px;
+    top: 7px;
+    position: absolute;
+    background: url("submit.png")  no-repeat;
+}
+.btn:hover {
+    background: url("download.png")  no-repeat;
+}
+#fundo {
+    position: absolute;
+    top: 250px !important;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+.separator {
+    margin-top: 25px;
+    margin-bottom: 10px;
+    background-image: url(HR_gradient_light.png);
+    background-size: cover;
+    width: 100%;
+    max-width: 328px;
+    height: 1px;
+}
+
+.topnav {
+  overflow: hidden;
+}
+
+.topnav a {
+  float: left;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+
+#footer span a{
+       color: #fff;
+    text-decoration: none;
+    font-family: 'Raleway', sans-serif;
+}
+
+.topnav-right {
+  float: right;
+}
+#remember-me {
+    position: absolute;
+	    margin-left: -89px;
+}
+#remember-me-label {
+    position: absolute;
+    margin-left: 69px;
+    color: #fff;
+}
+.si-remember-password {
+  
+    margin: 0 auto !important;
+    padding: 14px;
+    padding-top: 60px;
+    font-family: 'Raleway', sans-serif;
+}
+.message.error {
+    margin-top: 10px;
+    color: #FFEB3B;
+}
+
+/* Start slider CSS */
+#sliderContainer {
+	position:absolute;
+	top:20px;
+	right:20px;
+	background-color:#fff;
+	background-image:linear-gradient(to bottom, #fff, #eee);
+	border-radius:5px;
+	padding:10px;
+	box-shadow:0 5px 5px rgba(0, 0, 0, .2);
+	text-shadow:0 1px #fff;
+	opacity:0.2;
+	transition:opacity linear 0.25s;
+	font-family:Arial, sans-serif;
+}
+#sliderContainer:hover {
+	opacity:1;
+}
+#sliderContainer h3 {
+	margin:0;
+	text-align:center;
+}
+#sliderContainer strong {
+	width:115px;
+	display:inline-block;
+}
+#sliderContainer input {
+	width:200px;
+	margin:0;
+}
+#sliderContainer span {
+	padding:5px 0;
+	width:5%;
+}
+#sliderContainer hr {
+	background:#999;
+	box-shadow:0 1px #fff;
+	border:0;
+	height:1px;
+}
+/* End slider CSS */

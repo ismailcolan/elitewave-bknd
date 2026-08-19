@@ -1,0 +1,690 @@
+/* Common css starts */
+.decor-1{
+    margin-top: 25px;
+}
+body{
+    --gracious-color : #223f9a;
+}
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+.py-0{
+    padding-left: 0;
+    padding-right: 0;
+}
+.parent-block h6{
+    font-weight: 900 !important;
+}
+.parent-block{
+    width : 60%;
+    margin : 0 auto;
+    text-align: center;
+}
+.cust-padding-margin{
+    /* padding-right: 8px;
+    padding-left: 8px; */
+    margin-top: 10px;
+    margin-bottom: 50px;
+}
+.parent-block .active{
+    /* border : 3px solid var(--gracious-color) !important; */
+    background-color : var(--gracious-color) !important;
+    border-radius : 5px;
+    color : #fff;
+}
+.active .custom-icon-size, .active h6 {
+    color : #fff !important;
+}
+.cust-padding-margin:hover{
+    cursor: pointer;
+}
+
+.sub-block{
+    text-align: center;
+    box-shadow: 0 0.1rem 0.4rem 0 rgb(50 50 50 / 50%);
+    padding-top : 10px;
+    padding-bottom: 10px;
+    border : 3px solid transparent;
+    float: left;
+    width: 100%;
+}
+.sub-block i{
+    display: none;
+}
+.active i{
+    display: inline-block !important;
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    /* color: var(--gracious-color); */
+    font-weight: 900;
+}
+.custom-icon-size{
+    font-size: 42px !important;
+    color : var(--gracious-color);
+    margin-bottom: 18px;
+}
+label{
+    display: block;
+    text-align: left;
+}
+#select-shipping, #select-payment-mode, #select-sender-dtl, #contact-expert, #visit-login-page, #select-load, #select-truck,#select-train{
+    display: none;
+}
+/* Common css ends */
+
+/* Select Shipping css starts */
+#select-shipping .col-sm-2{
+    width: 20%;
+}
+#select-shipping h6{
+    margin-bottom: 0px;
+}
+#select-shipping .sub-block{
+    height: 120px;
+}
+/* Select Shipping css ends */
+
+#select-payment-mode .sub-block{
+    height: 86px;
+}
+
+/* select-sender-dtl css starts*/
+.send-rcv-dtl{
+    float: left;
+    width: 100%;
+    background: #eee;
+    padding: 10px 5px;
+    border-left: 3px solid blue;
+    margin-bottom: 35px;
+}
+.send-rcv-dtl .volumetric-input-boxes{
+    display: flex;
+    align-items: center;
+}
+.send-rcv-dtl .volumetric-input-boxes .form-control{
+    padding :1px 0px 2px;
+}
+  
+.send-rcv-dtl .volumetric-input-boxes span{
+    margin-top: -18px;
+    margin-right: 5px;
+    margin-left: 5px;
+}
+
+#select-sender-dtl .details-hdr{
+    display: flex;
+    align-items: center;
+    width: 100%;
+    float:left;
+    margin-bottom: 10px;
+}
+.disabled{
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.disabled:hover{
+    cursor : not-allowed !important;
+}
+#select-sender-dtl .sub-block{
+    padding-right: 25px;
+    padding-left: 25px;
+}
+#select-sender-dtl .form-group{
+    margin-bottom : 0;
+}
+#sender-details, #package-details, #reciever-details, #supporting-document, #Attachements, #payment-info, #declaration{
+    width : 100%;
+    float : left;
+}
+.package-wgt .input-group-addon{
+    border-right: 1px solid #ccc;
+    border-top: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    background: #fff;
+}
+
+/* select-sender-dtl css ends*/
+
+/* Contact expert css starts */
+#contact-expert h5{
+    margin-bottom: 30px;
+}
+#contact-expert .cust-padding-margin{
+    padding-right: 0;
+    padding-left: 0;
+}
+/* Contact expert css ends */
+
+/* Portal login page css starts */
+#visit-login-page a{
+    width: 95%;
+    padding: 10px;
+    margin-bottom: 25px;
+}
+/* Portal login page css ends */
+
+/*  */
+.swal-text {
+    text-align : center;
+    font-size : 15px;
+}
+.swal-footer{
+    text-align: center;
+    margin-top: 0;
+}
+
+/***************************** USER DASHBOARD CSS *****************************/
+.user-dashboard{
+    background: #edf1f5;
+    min-height: 100vh;
+    width: 100%;
+    float : left;
+}
+.fixed-navigation{
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+    height : 50px;
+    width : 100%;
+    float : left;
+    border : 1px solid red;
+    background: #fff;
+    margin-bottom : 25px;
+}
+.nav-menu{
+    display: flex;
+    flex-direction: row;
+}
+.dashboard-header, .dashboard-charts{
+    width : 100%;
+    float : left;
+}
+.dashboard-summary, .pending-consignee, .user-book-consignment{
+    width : 100%;
+    float : left;
+    margin-bottom : 15px;
+    padding-right : 30px;
+    padding-left: 30px;
+}
+.bg-info{
+    background : #17a2b8!important;
+    padding : unset !important;
+}
+.bg-success{
+    background : #28a745!important;
+}
+.bg-warning{
+    background : #ffc107!important;
+}
+.bg-danger{
+    background : #dc3545!important;
+}
+/* .dashboard-boxes .col-sm-2{
+    width : 20%;
+} */
+.dashboard-boxes .white-box{
+    color : #fff;
+    color: #fff;
+    text-align: center;
+    height: 120px;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom : 15px;
+}
+.dashboard-boxes a:hover{
+    text-decoration: none;
+}
+.dashboard-boxes .white-box h5{
+    color : #fff;
+    font-weight: 500;
+}
+.dashboard-boxes .white-box i {
+    color : rgba(0,0,0, 0.1);
+    transition: transform .3s linear,-webkit-transform .3s linear;
+    margin-top : 8px;
+}
+.dashboard-boxes .white-box:hover i{
+    transform: scale(1.5);
+}
+.ds-white-cover{
+    background: #fff;
+    width : 100%;
+    float : left;
+}
+.ds-white-cover h4{
+    margin : 20px 0px;
+}
+.ds-sub-box{
+    display: flex;
+    align-items: center;
+    background: #eee;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    padding: 6px 15px;
+}
+.ds-icon{
+    /* background: #17a2b8; */
+    padding-right: 15px;
+    padding-left : 15px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    color: #fff;
+    border-radius: 5px;
+}
+.ds-msg{
+    padding-left : 15px;
+    font-weight: 600 !important;
+}
+.ds-msg h6{
+    font-weight: 600;
+}
+.dc-chart{
+    background: #fff;
+    margin-bottom: 15px;
+    padding: 25px 0px;
+    height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.pc-white-cover{
+    background: #fff;
+    width: 98%;
+    margin : 0 auto;
+}
+.pending-consignee th{
+    padding : 18px 20px !important;
+}
+.pending-consignee h4{
+    padding: 12px 0px;
+    border-bottom: 4px solid #000;
+    margin-top : 0;
+}
+
+/***************************** USER BOOK CONSIGNMENT CSS *****************************/
+.user-book-consignment .block{
+    /* width : 60%;
+    margin : 0 auto; */
+    /* text-align: center; */
+}
+.user-book-consignment #select-shipping h5{
+    margin-top: 25px;
+}
+#select-truck,#select-train{
+    margin-bottom: 50px;
+}
+#select-truck .cust-padding-margin{
+    margin-bottom: 0px !important;
+}
+#select-truck .sub-block{
+    height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+#select-truck .cust-padding-margin h6{
+    font-size: 14px;
+}
+#select-truck .cust-padding-margin small{
+    font-size: 11px;
+}
+#sel-consignee{
+    margin-bottom: 5px;
+}
+#consignee-address label{
+    font-weight: 100;
+    font-size: 12px;
+}
+#consignee-address p{
+    font-weight: bold;
+}
+#consignee-address .table > tbody > tr > td{
+    border-bottom: 1px solid #e4dede;
+    text-align: left;
+}
+#consignee-address .table > tbody > tr > td:last-child{
+    font-weight: bold;
+}
+.user-book-consignment #reciever-details .btn,.user-book-consignment #supporting-document .btn, .user-book-consignment #declaration .btn,
+.user-book-consignment #Attachements .btn, #package-details .btn{
+    padding: 8px 24px !important;
+}
+#volum-info{
+    margin-top :0px;
+    margin-right: 15px;
+}
+.user-book-consignment .send-rcv-dtl .volumetric-input-boxes .form-control {
+    padding: 1px 5px 2px;
+}
+#package-info1{
+    border-top: none !important;
+}
+#package-info1 .btn-danger{
+    pointer-events: none;
+    opacity: 0.3;
+}
+.package-info{
+    width : 100%;
+    float : left;
+    border-top : 3px solid #ccc;
+    padding-top: 15px;
+}
+.package-info .col-sm-3{
+    padding-right: 4px;
+    padding-left : 4px;
+}
+.package-info select{
+    padding : 1px 10px 2px !important
+}
+#Attachements .send-rcv-dtl .image-uploader {
+    display: flex;
+}
+#payment-info .table > thead > tr > th{
+    padding : 10px 5px;
+    /* text-align: left; */
+}
+#payment-info .table > tbody > tr > td{
+    padding: 0px 5px;
+}
+#payment-info .table > tbody > tr > td:first-child{
+    text-align: left;
+    padding: 12px;
+    width: 33%;
+}
+#payment-info .table > tbody > tr > td:nth-child(2){
+    /* width: 33%; */
+}
+#payment-info .table > tbody .freight span{
+    margin-top: 14px;
+    display: block;
+    padding: 0px 5px;
+    width : 5%;
+}
+#payment-info .table > tbody .freight{
+    display: flex;
+    width:100%;
+    float : left;
+}
+#payment-info .table > tbody .freight .freight-wgt, #payment-info .table > tbody .freight .freight-rate, #payment-info .table > tbody .freight .freight-amt {
+    width : 30%;
+}
+#payment-info .table > tbody .payment-info-cust-inp{
+    width : 65%;
+    float : right;
+}
+#payment-info .table > tbody .freight input{
+    padding : 5px;
+}
+#payment-info .table .form-control{
+    margin-bottom: 5px;
+}
+#declaration .declaration-group{
+    display: flex;
+}
+#declaration .declaration-group input{
+    margin-right : 8px;
+    margin-top : 5px;
+}
+#payment-info .send-rcv-dtl .table{
+   width: 80%;
+   margin : 0 auto;
+}
+
+/* CSS FOR IMAGE ADDING */
+
+.box {
+    display: block;
+    /* min-width: 300px; */
+    width: 100%;
+    margin: 0 0 25px;
+    height: 170px;
+    /* margin: 10px; */
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    overflow: hidden;
+  }
+  
+
+
+
+  /* JQUERY IMAGE UPLOAD CSS */
+  .avatar-upload, .avatar-upload-g {
+    position: relative;
+    /* max-width: 205px;
+    margin: 50px auto; */
+  }
+  .avatar-upload .avatar-edit {
+    /* position: absolute;
+    right: 12px;
+    z-index: 1;
+    top: 10px; */
+    
+  }
+  .avatar-upload .avatar-edit input {
+    /* display: none; */
+  }
+  .avatar-upload .avatar-edit input + label {
+    display: inline-block;
+    width: 29px;
+    height: 29px;
+    margin-bottom: 0;
+    border-radius: 100%;
+    background: #f35252;
+    border: 1px solid transparent;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    font-weight: normal;
+    transition: all 0.2s ease-in-out;
+    position: absolute;
+    right: 1px;
+    top: 0px;
+    z-index: 1;
+  }
+  .avatar-upload .avatar-edit input + label:hover {
+    background: #f1f1f1;
+    border-color: #d6d6d6;
+  }
+  .avatar-upload .avatar-edit input + label:after {
+    content: "\f00d";
+    font-family: 'FontAwesome';
+    color: #fff;
+    position: absolute;
+    top: 1px;
+    font-size: 14px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    margin: auto;
+
+  }
+  .avatar-upload-g .avatar-preview {
+    height: 147px;
+    position: relative;
+    border-radius: 100%;
+    border: 6px solid #F8F8F8;
+    box-shadow: 0px 2px 4px 0px rgb(0 0 0 / 10%);
+  }
+  .avatar-upload .avatar-preview {
+    /* width: 192px; */
+    height: 147px;
+    position: relative;
+    border-radius: 100%;
+    border: 6px solid #F8F8F8;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.1);
+  }
+  .avatar-upload .avatar-preview > div {
+    width: 100%;
+    height: 100%;
+    /* border-radius: 100%; */
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  .avatar-upload-g #imagePreview{
+    background-image: url(images/doc.png);
+    height: 100px;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 100%;
+    height: 100%;
+    margin-top: -7px;
+  }
+
+
+
+
+
+/* Extra small devices (portrait phones, less than 576px) */
+@media (max-width: 575.98px) { 
+    .parent-block{
+        width : 90%;
+    }
+    .cust-padding-margin{
+        padding-right: 6px;
+        padding-left : 6px;
+    }
+    #select-shipping .sub-block{
+        height: 120px;
+    }
+    .custom-icon-size{
+        font-size: 32px !important;
+    }
+    #select-shipping h6{
+        font-size: 13px             ;
+    }
+    #select-shipping p{
+        font-size: 11px;
+    }
+    .pending-consignee .table thead th{
+        font-size: 8px;
+        padding : 10px 0px !important;
+    }
+    .pending-consignee .table tbody td{
+        font-size: 8px;
+        padding: 10px 5px 15px;
+    }
+    .dc-chart{
+        height : 250px;
+    }
+    .dashboard-boxes .white-box h5{
+        font-size: 16px;
+    }
+    .ds-msg h6, .ds-msg p{
+        font-weight: 500;
+    }
+    #user-book-consignment .dashboard-header{
+        padding-right: 6px;
+        padding-left : 6px;
+    }
+    #user-book-consignment .custom-col{
+        padding-right: 0px;
+        padding-left: 0px;
+    }
+    .user-book-consignment {
+        padding-right: 6px;
+        padding-left : 6px;
+    }
+    #user-book-consignment h5{
+        font-size: 15px;
+    }
+    #user-book-consignment p, #user-book-consignment label{
+        font-size: 11px;
+    }
+    #user-book-consignment #select-payment-mode .sub-block p{
+        font-size: 11px;
+    }
+    #consignee-address .table > tbody > tr > td{
+        font-size: 11px ;
+        padding : 10px 9px 15px;
+    }
+    .package-info .btn-danger{
+        margin-bottom: 15px;
+    }
+    .package-info-add-del-btns .btn{
+
+    }
+    #payment-info .table > tbody > tr > td:first-child{
+        font-size: 11px;
+        padding: 12px 0px;
+    }
+    #payment-info .table > thead > tr > th{
+        font-size: 11px;
+    }
+    .user-book-consignment #reciever-details .btn, .user-book-consignment #supporting-document .btn, .user-book-consignment #declaration .btn, 
+    .user-book-consignment #Attachements .btn{
+        padding: 8px 10px !important;
+        font-size: 12px;
+    }
+    #payment-info .send-rcv-dtl .table{
+        width: 100%;
+     }
+     #Attachements .send-rcv-dtl .image-uploader{
+         flex-direction: column;
+     }
+     #Attachements .box{
+        width: 95%;
+        margin: 9px 2.5%;
+     }
+    
+ }
+
+/* Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) and (max-width: 767.98px) { 
+    .parent-block{
+        width : 80%;
+    }
+    .ubc-parent-block{
+        width: 85%;
+    }
+    .pending-consignee .table thead th{
+        font-size: 12px;
+    }
+    .pending-consignee .table tbody td{
+        font-size: 12px;
+    }
+    #payment-info .send-rcv-dtl .table{
+       width: 100%;
+    }
+  
+ }
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) and (max-width: 991.98px) { 
+    .parent-block{
+        width : 80%;
+    }
+ 
+ }
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) and (max-width: 1199.98px) { 
+    .dashboard-boxes .col-lg-2{
+        width : 20%;
+    }
+ }
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) { 
+    .dashboard-boxes .col-lg-2{
+        width : 20%;
+    }
+ }

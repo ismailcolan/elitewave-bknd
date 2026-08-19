@@ -1,0 +1,17 @@
+<?php
+error_reporting(0);
+date_default_timezone_set("Asia/Kolkata");
+if($_SERVER["SERVER_NAME"] == 'localhost'){
+    $dbserver    =   "localhost";
+    $dbuser      =   "YOUR_DB_USER";
+    $dbpass      =   "YOUR_DB_PASSWORD";
+    $dbname      =   "YOUR_DB_NAME";
+} else {
+    $dbserver    =   "localhost";
+    $dbuser      =   "YOUR_DB_USER";
+    $dbpass      =   "YOUR_DB_PASSWORD";
+    $dbname      =   "YOUR_DB_NAME";
+}
+$conn = mysqli_connect($dbserver, $dbuser, $dbpass, $dbname);
+
+?>

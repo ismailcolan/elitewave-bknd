@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+    <!-- Bobules -->
+    <link rel="stylesheet" href="movingbubbles.css" type="text/css" />
+    <link rel="stylesheet" href="login.css" type="text/css" />
+    <title>Gracious Express Login</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
+
+  <script>
+  window.console = window.console || function(t) {};
+  if (document.location.search.match(/type=embed/gi)) {
+    window.parent.postMessage("resize", "*");
+  }
+</script>
+   
+</head>
+
+<body translate="no" >
+<div class="topnav">
+  <a href="#"><img width="250px" src="logo-full.png"></a>
+ <div class="topnav-right">
+  
+  </div>
+</div>
+
+
+  <div id="fundo">
+    <div id="login">
+        <div id="logo"></div>
+         <!-- <h1>Sign in to iCloud</h1> -->
+        <br/><br/>
+        <div class="input">
+            <input type="text" placeholder="Username" />
+        </div>
+        <div class="input">
+            <input type="text" placeholder="Password" />
+            <div class="btn"></div>
+        </div>
+        <div class="separator "></div>
+        <div id="footer">
+            <label>
+                <span><a href="#">Forgot Username or password?</a></span>
+
+            </label>
+        </div>
+    </div>
+</div>
+  
+  
+  <script src="movingbubbles.js" type="text/javascript"></script>
+        <script type="text/javascript">
+        	
+        	function sliderUpdate(slider, bubbleSetting) {
+        		var value = parseFloat(slider.value);
+        		
+        		if(bubbleSetting == 'ratio' ||
+        		   (bubbleSetting == 'maxBubbles' && bubbleOptions.bubbles.length > value)) {
+        			var bubbleContainer = document.getElementById('bubbleContainer');
+        			if(bubbleContainer) {
+        				document.body.removeChild(bubbleContainer);
+        				bubbleOptions.bubbles = [];
+        			}
+        		}
+        		slider.title = value + " - bubbleOptions."+bubbleSetting;
+        		bubbleOptions[bubbleSetting] = value;
+        		//Turn the ratio slider into an inverse 100-20 scale
+        		if(bubbleSetting == 'ratio') {
+        			slider.title = "Pixel to Bubble Ratio: 1:"+value+" - bubbleOptions.ratio";
+        			value = (120000 - value) / 1000;
+        		}
+        		document.getElementById(bubbleSetting + "Slider").innerHTML = value;
+        		bubbleOptions.update();
+        	}
+        </script>
+</body>
+
+</html>
+ 

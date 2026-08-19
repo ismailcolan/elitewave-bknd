@@ -1,0 +1,123 @@
+# Migration Blueprint – Gracious Express → Laravel 11
+
+## 1. Project‑wide Inventory
+| Area | What to audit | Where to find it |
+|------|---------------|------------------|
+| **PHP entry points** | `index.php`‑style files, form handlers, AJAX endpoints | `web/transactions.php`, `web/save_details.php`, `web/fetch_details.php`, `web/include/*.php`, `db_describe.php` |
+| **Database** | Table names, column types, primary/foreign keys, indexes, sample data | Live MySQL schema (`SHOW CREATE TABLE …`) or `db_describe.php` |
+| **Business logic** | GRN generation (party‑wise / company‑wise), transaction logging, role‑based UI, PDF generation, reporting queries | The three PHP files above plus any `*.php` in `user/` and `web/include/` |
+| **Authentication** | Login, password‑reset, “remember me” cookie, session variables (`$_SESSION['role']`, `$_SESSION['company_id']`, etc.) | `save_details.php` (login), possibly a `recover` block |
+| **Front‑end** | HTML + CSS + JS assets, jQuery version, UI layout, custom check‑boxes, Ajax calls | `web/*.php` (inline HTML), `web/css/`, `web/js/`, images |
+| **PDF/Reports** | Scripts that generate PDFs, Excel, CSV | Look for `dompdf`, `tcpdf`, or `PHPExcel` usage |
+| **User roles** | Role values stored in `users.role`, role‑based hiding/showing of UI elements | In UI code (`if ($row['role']==…)`) |
+
+## 2. Set Up a Fresh Laravel 11 Boilerplate
+```bash
+composer create-project laravel/laravel gracious-express --prefer-dist "11.*"
+cd gracious-express
+```
+Add packages: `laravel/breeze`, `barryvdh/laravel-dompdf`, optional `spatie/laravel-permission`, `maatwebsite/excel`.
+
+## 3. Extract the Database Schema
+Run `SHOW CREATE TABLE <table>` for every table, then create a migration for each preserving columns, keys, indexes, timestamps.
+
+## 4. Create Core Eloquent Models
+| Table | Model | Relationships |
+|-------|--------|-------------------|
+| `users` | `User` | `hasMany(TransactionLog::class, 'client_id')`, `belongsTo(Company::class, 'company_id')` |
+| `client` | `Client` | `hasMany(TransactionLog::class, 'client_id')` |
+| `company` | `Company` | `hasMany(TransactionLog::class, 'company_id')` |
+| `transaction_log` | `TransactionLog` | `belongsTo(Client::class, 'client_id')`, `belongsTo(Company::class, 'company_id')` |
+Add `$fillable` and accessors for GRN formatting.
+
+## 5. Convert Authentication & Session
+Replace manual login with `Auth::attempt` inside a `LoginController`. Store extra fields (`role`, `company_id`) on the authenticated user. Use Laravel’s “remember me” flag instead of custom cookie.
+
+## 6. Migrate UI – Blade Layouts & Views
+* Extract header/footer → `resources/views/layouts/app.blade.php`.
+* Convert each legacy view (`transactions.php`, `user-book-consignment.php`, …) to Blade, replacing `<?php echo $var; ?>` with `{{ $var }}` and control structures with Blade directives. Keep original HTML/CSS/JS.
+* Move static assets to `public/` and update paths.
+* Add `@csrf` to all forms.
+
+## 7. Transform Business‑Logic Scripts to Controllers / Services
+| Legacy file | New Laravel component |
+|-------------|----------------------|
+| `transactions.php` | `TransactionController` (`create()`, `store()`) |
+| `save_details.php` | `AuthController` (login) and possibly `UserController` |
+| `fetch_details.php` | API Controllers (`GrnController`, `ReportController`, …) |
+| PDF generation code | `PdfController` (uses `barryvdh/laravel-dompdf`) |
+| Repeated SQL snippets | Service classes (`GrnService`, `ReportService`) |
+Convert raw `mysqli_*` to Eloquent/Query Builder, preserve exact business rules.
+
+## 8. Define Routes
+**Web (`routes/web.php`)**
+```php
+Route::get('/', [HomeController::class, 'index']);
+Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('login', [AuthController::class, 'login']);
+Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::middleware('auth')->group(function () {
+    Route::get('booking/create', [TransactionController::class, 'create']);
+    Route::post('booking', [TransactionController::class, 'store']);
+    // other UI routes …
+});
+```
+**API (`routes/api.php`)**
+```php
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('grn-number', [GrnController::class, 'getNumber']);
+    Route::get('arrival-report', [ReportController::class, 'arrivalReport']);
+    // other AJAX commands …
+});
+```
+
+## 9. Middleware & Permissions
+Create a `RoleMiddleware` (or use `spatie/laravel-permission`) to guard routes based on `Auth::user()->role`.
+
+## 10. Handling PDFs & Exports
+Move old PDF code into a Blade view rendered by `PdfController`. Return `$pdf->download('file.pdf')`.
+
+## 11. Identify Incompatible / Risky Code
+| Issue | Why problematic | Recommendation |
+|-------|----------------|----------------|
+| Direct `mysqli_*` calls | Bypass Laravel DB layer, no logging | Replace with Eloquent or `DB::` queries |
+| Manual `$_SESSION` usage | Conflicts with Laravel session | Migrate data to Laravel session or user model |
+| Custom “remember me” cookie | Laravel provides secure remember token | Remove custom cookie, use `Auth::attempt($creds, $remember)` |
+| Hard‑coded paths | Laravel serves from `public/` | Update to `asset()` helpers |
+| Global `$conn` variable | Laravel uses DB facade | Eliminate `$conn` |
+| `echo 1; echo 0;` for Ajax | Should return JSON with proper HTTP status | Return `response()->json([...])` |
+| Mixed HTML+PHP | Hard to split into Blade+Controller | Refactor into MVC |
+
+## 12. Migration‑Phase Timeline (≈ 2 weeks)
+| Phase | Tasks | Effort |
+|------|-------|--------|
+| 0 – Prep | Clone repo, verify on XAMPP, export DB, list files | 0.5 day |
+| 1 – Laravel scaffolding | Install Laravel 11, Breeze, extra packages | 0.5 day |
+| 2 – DB migration | Write migrations, run `php artisan migrate:fresh` | 1 day |
+| 3 – Core models | Generate models, define relationships, test via tinker | 1 day |
+| 4 – Auth conversion | Build `AuthController`, replace login logic | 1 day |
+| 5 – UI conversion | Convert all legacy views to Blade, move assets | 2 days |
+| 6 – Business logic | Port transaction handling, GRN, reports to Controllers/Services | 2‑3 days |
+| 7 – API layer | Convert `fetch_details.php` commands to API controllers | 1 day |
+| 8 – Middleware & roles | Implement role checks | 0.5 day |
+| 9 – PDFs & exports | Move PDF generation to `PdfController` | 0.5 day |
+| 10 – Testing & QA | Unit/feature tests, manual regression, GRN sequence validation | 1‑2 days |
+| 11 – Documentation & Deploy | Write README, migration steps, CI notes | 0.5 day |
+**Total ≈ 12‑14 working days**
+
+## 13. Final Checklist Before Go‑Live
+- [ ] All migrations run cleanly on a fresh DB.
+- [ ] Home page loads without PHP errors.
+- [ ] Login works, role & company ID attached to `Auth::user()`.
+- [ ] GRN numbers follow the exact legacy series.
+- [ ] AJAX calls return correct JSON; UI updates GRN field.
+- [ ] PDFs match old PDFs.
+- [ ] Role‑based UI elements behave as before.
+- [ ] No `mysqli_*` or raw `$_SESSION` left.
+- [ ] Unit/feature tests cover login, booking, GRN fetching, PDF, role restrictions.
+
+---
+**Next steps**
+1. Provide the full project folder (zip) so I can catalog every file & exact DB schema.
+2. Approve this mapping; then I will start generating the actual Laravel code (migrations, models, controllers, Blade views, etc.).

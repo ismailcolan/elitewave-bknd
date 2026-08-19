@@ -1,0 +1,16 @@
+
+<br />
+<b>Warning</b>:  chr() expects parameter 1 to be int, string given in <b>/home/elitewave360/public_html/php/web/tcpdf/include/tcpdf_fonts.php</b> on line <b>1671</b><br />
+<br />
+<b>Notice</b>:  Undefined variable: chk_ftl in <b>/home/elitewave360/public_html/php/web/transaction_pdf.php</b> on line <b>360</b><br />
+<br />
+<b>Notice</b>:  Undefined variable: chk_exp in <b>/home/elitewave360/public_html/php/web/transaction_pdf.php</b> on line <b>397</b><br />
+<br />
+<b>Notice</b>:  Undefined variable: chk_road in <b>/home/elitewave360/public_html/php/web/transaction_pdf.php</b> on line <b>411</b><br />
+<br />
+<b>Notice</b>:  Undefined variable: chk_air in <b>/home/elitewave360/public_html/php/web/transaction_pdf.php</b> on line <b>422</b><br />
+<br />
+<b>Notice</b>:  Undefined variable: chk_rail in <b>/home/elitewave360/public_html/php/web/transaction_pdf.php</b> on line <b>442</b><br />
+<br />
+<b>Deprecated</b>:  The each() function is deprecated. This message will be suppressed on further calls in <b>/home/elitewave360/public_html/php/web/tcpdf/tcpdf.php</b> on line <b>16542</b><br />
+<strong>TCPDF ERROR: </strong>Some data has already been output, can't send PDF file

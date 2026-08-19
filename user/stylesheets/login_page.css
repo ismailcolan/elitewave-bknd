@@ -1,0 +1,70 @@
+.login1 {
+    background: url(../images/banner.jpg) no-repeat fixed;
+    background-size: 100% 100%;
+}
+.login-container {
+    width: 300px;
+    margin: auto;
+    margin-top: 12%;
+    padding: 34px;
+    background: white;
+    border-radius: 2%;
+  /*  box-shadow: 0px 0px 10px #000; */
+}
+.logo-title {
+    text-align: center;
+}
+.application-name {
+    margin: 0px;
+    font-family: arial;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+}
+.form-control {
+    width: 90%;
+    padding: 10px;
+    margin-bottom: 5px;
+    margin-top: 5px;
+    border: solid 1px #2B3C96;
+    border-radius: 5px;
+}
+.btn-login {
+    background: #1D286A;
+    border: none;
+    color: #FFF;
+    padding: 10px 15px;
+    font-size: 12px;
+    text-transform: uppercase;
+    border-radius: 3px;
+  /*  border-bottom: solid 4px #7F8EE8; */
+	cursor: pointer;
+	box-shadow: 0px 0px 2px #000;
+margin-top: 6% !important;
+}
+.btn-login:hover {
+	box-shadow: 0px 0px 5px #000;
+    background: #2D42A7;
+}
+.form-actions {
+    text-align: right;
+    padding-right: 15px;
+}
+.pull-right {
+    text-decoration: none;
+    color: #868383;
+}
+.pull-right:hover {
+    color: #1D286A;
+}
+.forget_password img {
+    width: 75% !important;
+    margin-bottom: 10% !important;
+}
+.message {
+    color: #F00;
+    font-size: 12px;
+    font-family: arial;
+    padding-bottom: 10px;
+}

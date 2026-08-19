@@ -1,0 +1,45 @@
+# Backups and archives (GitHub rejects files over 100MB)
+*.tar.gz
+*.zip
+18.8-bkp.tar.gz
+web/images/pdf.zip
+
+# Database dumps and logs
+*.sql
+error_log
+**/error_log
+
+# User uploads
+uploads/
+pod_uploads/
+
+# Composer dependencies
+**/vendor/
+
+# Local credentials (keep on the server only)
+config.ini.php
+connec.php
+includes/connect.php
+user/include/connect.php
+web/include/connect.php
+web/mcon.php
+web/db_backup.php
+user/razorpay/config.php
+secure_payment/config.php
+Twillio/constant.php
+
+# Customer data
+client.csv
+
+# Info disclosure
+phpinfo.php
+1info.php
+info.php
+
+# Nested git metadata / empty leftover repo
+**/.git/
+web/lalithairways/
+
+# OS
+.DS_Store
+Thumbs.db
