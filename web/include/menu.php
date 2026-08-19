@@ -47,6 +47,7 @@ $count_read = mysqli_num_rows($read_status);
     transition: width 0.28s cubic-bezier(.4,0,.2,1);
     overflow: hidden;
     box-shadow: 4px 0 24px rgba(4,20,38,.14);
+    transform: none;
   }
   .sidebar.collapsed { width: var(--sidebar-collapsed); }
 
@@ -305,6 +306,64 @@ $count_read = mysqli_num_rows($read_status);
     transition: margin-left 0.28s cubic-bezier(.4,0,.2,1);
   }
   .main-content.collapsed { margin-left: var(--sidebar-collapsed); }
+
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  @media (max-width: 767px) {
+    .sidebar,
+    .sidebar.collapsed {
+      width: min(280px, 86vw);
+      transform: translateX(-100%);
+      pointer-events: none;
+      box-shadow: none;
+      transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+    }
+    .sidebar.mobile-open,
+    .sidebar.collapsed.mobile-open {
+      transform: translateX(0);
+      pointer-events: auto;
+      box-shadow: 8px 0 28px rgba(4,20,38,.28);
+    }
+    .sidebar.collapsed .sidebar-label,
+    .sidebar.collapsed .nav-text,
+    .sidebar.collapsed .nav-arrow,
+    .sidebar.collapsed .nav-badge,
+    .sidebar.collapsed .nav-waypoint {
+      display: block;
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .sidebar.collapsed .nav-link {
+      justify-content: flex-start;
+      padding: 10px 18px;
+      margin: 2px 10px;
+    }
+    .sidebar.collapsed .submenu { display: none; }
+    .sidebar.collapsed .nav-item.open .submenu { display: block; }
+    .sidebar.collapsed .nav-item:hover::after { display: none; }
+    .main-content,
+    .main-content.collapsed {
+      margin-left: 0 !important;
+    }
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      top: var(--top-bar-h);
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(10, 20, 32, .45);
+      z-index: 999;
+    }
+    body.sidebar-mobile-open {
+      overflow: hidden;
+    }
+    body.sidebar-mobile-open .sidebar-backdrop {
+      display: block;
+    }
+  }
 </style>
 
 <div class="sidebar" id="sidebar">
@@ -456,13 +515,35 @@ $count_read = mysqli_num_rows($read_status);
 
   </div>
 </div>
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
 
 <script>
+  function isMobileNav() {
+    return window.matchMedia('(max-width: 767px)').matches;
+  }
+
+  function closeMobileSidebar() {
+    const sb = document.getElementById('sidebar');
+    const hamburger = document.getElementById('hamburgerBtn');
+    if (sb) sb.classList.remove('mobile-open');
+    document.body.classList.remove('sidebar-mobile-open');
+    if (hamburger) hamburger.classList.remove('is-open');
+  }
+
   function toggleSidebar() {
     const sb  = document.getElementById('sidebar');
     const tb  = document.getElementById('topBar');
     const mc  = document.querySelector('.main-content');
     const hamburger = document.getElementById('hamburgerBtn');
+
+    if (isMobileNav()) {
+      const opening = !sb.classList.contains('mobile-open');
+      sb.classList.toggle('mobile-open', opening);
+      document.body.classList.toggle('sidebar-mobile-open', opening);
+      if (hamburger) hamburger.classList.toggle('is-open', opening);
+      return;
+    }
+
     const isCollapsing = !sb.classList.contains('collapsed');
 
     sb.classList.toggle('collapsed');
@@ -486,7 +567,7 @@ $count_read = mysqli_num_rows($read_status);
 
   function toggleMenu(id) {
     const sb = document.getElementById('sidebar');
-    if (sb.classList.contains('collapsed')) { toggleSidebar(); return; }
+    if (!isMobileNav() && sb.classList.contains('collapsed')) { toggleSidebar(); return; }
     const item = document.getElementById('item-' + id);
     const wasOpen = item.classList.contains('open');
     document.querySelectorAll('.nav-item.open').forEach(el => el.classList.remove('open'));
@@ -549,6 +630,21 @@ $count_read = mysqli_num_rows($read_status);
       if (mc) mc.classList.add('collapsed');
       if (hb) hb.classList.remove('is-open');
     }
+    if (isMobileNav()) {
+      closeMobileSidebar();
+    }
+    window.addEventListener('resize', function () {
+      if (!isMobileNav()) {
+        closeMobileSidebar();
+      } else {
+        closeMobileSidebar();
+      }
+    });
+    document.querySelectorAll('.sidebar .nav-link[href]').forEach(function (link) {
+      link.addEventListener('click', function () {
+        if (isMobileNav()) closeMobileSidebar();
+      });
+    });
   })();
 
   (function () {
