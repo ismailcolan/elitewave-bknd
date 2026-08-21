@@ -255,7 +255,7 @@ if($r = mysqli_fetch_assoc($q)){
             );
 
             $tracking_history = array();
-            $trans_status_query = "SELECT * FROM `transaction_status` WHERE sheet_id IN (select sheet_id from transaction_status_log where grn_no='$grn_no')";
+            $trans_status_query = "SELECT * FROM `transaction_status` WHERE sheet_id IN (select sheet_id from transaction_status_log where grn_no='$grn_no') ORDER BY created_at ASC, sheet_id ASC";
             $res_status = mysqli_query($conn, $trans_status_query);
 
             if ($res_status) {
@@ -271,10 +271,17 @@ if($r = mysqli_fetch_assoc($q)){
 
                     $history_status_id = (int) $result_status['status'];
                     $history_status = get_trans_status($result_status['status']);
-                    $history_details = $result_status['remarks'];
+                    $tempRow = $grnr;
+                    $tempRow['active_status'] = $history_status_id;
+                    $history_details = function_exists('get_tracking_message')
+                        ? get_tracking_message($conn, $tempRow)
+                        : ($result_status['remarks'] ?? '');
                     $history_sheet_id = (int)($result_status['sheet_id'] ?? 0);
                     $history_is_partial = false;
                     $history_is_full = false;
+                    $history_delivered = null;
+                    $history_pending = null;
+                    $history_total = $total_packages;
 
                     if ($history_status_id === 8 && isset($delivery_by_sheet[$history_sheet_id])) {
                         $history_delivery = $delivery_by_sheet[$history_sheet_id];
@@ -292,37 +299,54 @@ if($r = mysqli_fetch_assoc($q)){
                         ) {
                             $history_is_partial = true;
                             $history_status =
-                                'Partial Delivery - ' .
+                                'Partial Delivery – ' .
                                 $history_delivered . '/' .
                                 $history_total .
                                 ' Packages Delivered';
                             $history_details =
-                                "Your consignment $grn_no has been partially delivered. " .
-                                "$history_delivered/$history_total packages have been delivered successfully. " .
-                                "$history_pending packages are still pending.";
+                                "Your consignment <strong style=\"color:#000;\">$grn_no</strong> " .
+                                "has been partially delivered. " .
+                                "<strong style=\"color:#000;\">" .
+                                $history_delivered . '/' . $history_total .
+                                " packages</strong> have been delivered successfully. " .
+                                "<strong style=\"color:#DD111E;\">" .
+                                $history_pending .
+                                " packages are still pending.</strong>";
                         } elseif (
                             $history_delivery['delivery_type'] === 'full' ||
                             ($history_total > 0 && $history_delivered >= $history_total)
                         ) {
                             $history_is_full = true;
                             $history_status =
-                                'Fully Delivered - ' .
+                                'Fully Delivered – ' .
                                 $history_total . '/' .
                                 $history_total .
                                 ' Packages';
+                            if ($had_partial_delivery) {
+                                $history_details =
+                                    "Your consignment <strong style=\"color:#000;\">$grn_no</strong> " .
+                                    "has been fully delivered. " .
+                                    "<strong style=\"color:#000;\">" .
+                                    $history_total . '/' . $history_total .
+                                    " packages</strong> have been delivered successfully.";
+                            }
                         }
                     }
 
                     $tracking_history[] = array(
-                        'status'      => $history_status,
-                        'status_id'   => $history_status_id,
-                        'details'     => $history_details,
-                        'date'        => $date,
-                        'time'        => $time,
-                        'origin'      => get_city_name($conn, $result_status['origin']),
-                        'destination' => get_city_name($conn, $result_status['destination']),
-                        'is_partial'  => $history_is_partial,
-                        'is_full'     => $history_is_full,
+                        'status'              => $history_status,
+                        'status_name'         => $history_status,
+                        'status_id'           => $history_status_id,
+                        'details'             => $history_details,
+                        'date'                => $date,
+                        'time'                => $time,
+                        'origin'              => get_city_name($conn, $result_status['origin']),
+                        'destination'         => get_city_name($conn, $result_status['destination']),
+                        'is_partial'          => $history_is_partial,
+                        'is_full'             => $history_is_full,
+                        'delivered_packages'  => $history_delivered,
+                        'pending_packages'    => $history_pending,
+                        'total_packages'      => $history_total,
                     );
                 }
             }
