@@ -538,7 +538,7 @@ if ($scan_is_partial) {
                                                                 $hist_title = get_trans_status($re);
                                                             }
                                                             ?>
-                                                            <div class="hist-item<?php echo $is_latest ? ' latest' : ''; ?>">
+                                                            <div class="hist-item<?php echo $is_latest ? ' latest' : ''; ?><?php echo $scan_is_partial ? ' partial' : ''; ?>">
                                                                 <span class="hist-dot"><i class="fa fa-check"></i></span>
                                                                 <div class="hist-time"><?php echo $date; ?><?php echo $time ? ' at ' . $time : ''; ?></div>
                                                                 <div class="hist-title"><?php echo htmlspecialchars($hist_title); ?></div>
