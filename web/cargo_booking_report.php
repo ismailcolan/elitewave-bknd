@@ -51,8 +51,8 @@ if ($cities_q) {
 			width: 100% !important;
 			height: 38px !important;
 			min-height: 38px;
-			border: 1px solid #8E8D8D;
-			border-radius: 4px;
+			border: 1px solid #D8DDE5;
+			border-radius: 8px;
 			background: #fff;
 			padding: 4px 8px;
 		}
@@ -69,8 +69,8 @@ if ($cities_q) {
 			overflow-x: auto !important;
 			overflow-y: hidden !important;
 			white-space: nowrap !important;
-			border: 1px solid #8E8D8D;
-			border-radius: 4px;
+			border: 1px solid #D8DDE5;
+			border-radius: 8px;
 			background: #fff;
 			padding: 3px 6px !important;
 		}

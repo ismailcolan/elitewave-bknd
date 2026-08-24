@@ -490,7 +490,7 @@ $count_read = mysqli_num_rows($read_status);
           <a class="nav-link" href="consignment_report.php"><span class="nav-waypoint"></span>My Booking Report</a>
           <a class="nav-link" href="client_arrival_report.php"><span class="nav-waypoint"></span>My Arrival Report</a>
         <?php else: ?>
-          <a class="nav-link" href="consignment_report.php"><span class="nav-waypoint"></span>Booking Report</a>
+          <a class="nav-link" href="consignment_report.php"><span class="nav-waypoint"></span>Booking Status Report</a>
          <a class="nav-link" href="cargo_booking_report.php"><span class="nav-waypoint"></span>Cargo Booking Report</a>
           <a class="nav-link" href="client_payment_transactions.php"><span class="nav-waypoint"></span>Payment History</a>
         <?php endif; ?>
