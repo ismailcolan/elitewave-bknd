@@ -346,7 +346,7 @@ $sheet->getStyle('A1:' . $lastCol . '3')->applyFromArray(array(
         'color' => array('rgb' => $titleFill),
     ),
     'alignment' => array(
-        'horizontal' => Alignment::HORIZONTAL_CENTER,
+        'horizontal' => Alignment::HORIZONTAL_LEFT,
         'vertical' => Alignment::VERTICAL_CENTER,
     ),
     'borders' => array(
@@ -365,7 +365,7 @@ $sheet->getStyle('A2')->applyFromArray(array(
 $sheet->getStyle('A3')->applyFromArray(array(
     'font' => array('bold' => true, 'size' => 10, 'color' => array('rgb' => $navyText), 'name' => 'Calibri'),
     'alignment' => array(
-        'horizontal' => Alignment::HORIZONTAL_CENTER,
+        'horizontal' => Alignment::HORIZONTAL_LEFT,
         'vertical' => Alignment::VERTICAL_CENTER,
         'wrapText' => true,
     ),
@@ -394,7 +394,7 @@ $sheet->getStyle('A' . $headerRow . ':' . $lastCol . $headerRow)->applyFromArray
         ),
     ),
     'alignment' => array(
-        'horizontal' => Alignment::HORIZONTAL_CENTER,
+        'horizontal' => Alignment::HORIZONTAL_LEFT,
         'vertical' => Alignment::VERTICAL_CENTER,
         'wrapText' => true,
     ),

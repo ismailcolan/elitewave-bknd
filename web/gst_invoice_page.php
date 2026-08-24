@@ -103,7 +103,7 @@ $consignee_gst_prefix = substr($consignee_gst, 0, 2);
 $company_gst_prefix   = substr($company_gstin, 0, 2);
 $is_same_state = ($consignee_gst_prefix == $company_gst_prefix);
 
-$gst_rate_full = ($mode_of_transportation == '1' || $mode_of_transportation == '2' || $mode_of_transportation == '3') ? 18 : 12;
+$gst_rate_full = ($mode_of_transportation == '1' || $mode_of_transportation == '2' || $mode_of_transportation == '3') ? 12 : 18;
 
 // ─── current date for stamp ──────────────────────────────────
 $current_date = date('Y.m.d H:i:s O');
