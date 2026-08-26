@@ -7,9 +7,8 @@
     background: #fff;
     border-top: 1px solid #e2e8f0;
     text-align: center;
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
+    position: relative;
+    z-index: 1;
   }
   .ew-footer p {
     margin: 0;

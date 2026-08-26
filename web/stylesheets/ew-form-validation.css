@@ -1,0 +1,71 @@
+/* EliteWave360 — global form validation + required field markers (all screens) */
+
+.req-star,
+.required-star,
+.filter-label .required-star,
+.filter-label .req-star,
+.control-label .req-star,
+.control-label .required-star,
+label .req-star,
+label .required-star,
+th .req-star,
+.heading .req-star {
+	color: #b03d3d !important;
+	font-weight: 700;
+}
+
+/* Legacy inline red asterisks */
+label.control-label span[style*="color:red"],
+label.control-label span[style*="color: red"],
+label.filter-label span[style*="color:red"],
+label.filter-label span[style*="color: red"],
+label span[style*="color:red"],
+label span[style*="color: red"],
+.control-label span[style*="color:red"],
+.control-label span[style*="color: red"] {
+	color: #b03d3d !important;
+}
+
+input.error,
+select.error,
+textarea.error,
+.form-control.error {
+	border: 1px solid #b03d3d !important;
+	box-shadow: none !important;
+	background-color: #fff !important;
+	color: #1e293b !important;
+}
+
+label.error,
+label.field-inline-error {
+	display: block !important;
+	color: #b03d3d !important;
+	font-size: 12px !important;
+	font-weight: 500 !important;
+	margin: 4px 0 0 !important;
+	padding: 0 !important;
+	position: static !important;
+	top: auto !important;
+	left: auto !important;
+	line-height: 1.35 !important;
+	text-align: left !important;
+	white-space: normal !important;
+}
+
+td label.error,
+td label.field-inline-error {
+	margin-top: 4px !important;
+}
+
+.date-input-inside + label.error,
+.date-input-inside + label.field-inline-error {
+	margin-top: 4px !important;
+}
+
+/* Hide legacy top banners — toasts replace them */
+#alert-container.alert-success,
+#alert-container.alert-danger,
+#alert-container.alert-warning {
+	visibility: hidden !important;
+	pointer-events: none !important;
+}

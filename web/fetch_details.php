@@ -240,6 +240,13 @@ if ($cmd == 'get_transaction_month_details') {
 			} else {
 				$edit_btn = '<a title="Edit" href="transactions.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $dt[1] . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
 			}
+			if ((int) $status === 8) {
+				if ($row['book_manual'] == 2) {
+					$edit_btn = '<a title="Edit Payment / Billing" href="transactions_manual.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $dt[1] . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
+				} else {
+					$edit_btn = '<a title="Edit Payment / Billing" href="transactions.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $dt[1] . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
+				}
+			}
 			if ($booking == '1')
 				$out_put .= "
 			\t    <a title=\"Info\" href=\"#cancel_grn_popup\" class=\"table-actions show_info_popup\"  data-toggle=\"modal\" data-remarks=\"" . $remarks . '" data-createdby="' . $cancelled_by . '" data-createdat="' . $updated_at . '" id="' . $row['transaction_id'] . '" ><i class="fa fa-exclamation-circle"></i></a>
@@ -249,11 +256,14 @@ if ($cmd == 'get_transaction_month_details') {
                     <a class="table-actions send_invoices disable_action" href="javascript:void(0)" title="Send Invoice" id="send_invoice_d" data-month="' . $m1 . '" data-year="' . $dt[1] . '" data-id="' . $row['transaction_id'] . '" > <i class="fa fa-envelope"></i></a>
                     <a title="Cancel" href="javascript:void(0) disable_action" class="table-actions cancel_booking disable_action" id="' . $row['transaction_id'] . '" ><i  class="fa fa-ban"></i></a>
                     <a title="E-way Attachments" href="javascript:void(0) disable_action" class="table-actions btn-eways disable_action" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
-			else if ($consignment_mode == '3' || $status > 6)
-				$out_put .= '<a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>';
-			else
-				// $out_put .= '<a title="Edit" href="transactions.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $dt[1] . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
-				$out_put .= $edit_btn . '<span class="table-actions dropdown"><i class="fa fa-print"></i>
+			else {
+				// Pay-at-booking or Out for Delivery: lock edit. Delivered (8): allow payment/billing edit.
+				if ($consignment_mode == '3' || ((int) $status > 6 && (int) $status !== 8)) {
+					$out_put .= '<a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>';
+				} else {
+					$out_put .= $edit_btn;
+				}
+				$out_put .= '<span class="table-actions dropdown"><i class="fa fa-print"></i>
 						<ul class="dropdown-menu">
 							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=consignor" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">Consignor GR</a></li>
 							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=consignee" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">Consignee GR</a></li>
@@ -262,6 +272,7 @@ if ($cmd == 'get_transaction_month_details') {
 						</ul>
 					</span>
                     <a class="table-actions " target="BLANK" href="gst_invoice_page.php?month=' . $m1 . '&year=' . $dt[1] . '&id=' . $row['transaction_id'] . '" data-status="' . $row['status'] . '" title="Invoice" id="' . $row['transaction_id'] . '"><i class="fa fa-file"></i></a>';
+			}
 			if ($consignment_mode == '1' || $consignment_mode == '4') {
 				$restricted = check_invoice_restricted($conn, $row['consignee']);
 				$pay_at_book = 0;
@@ -528,6 +539,7 @@ if ($cmd == 'get_client_details_consignment') {
 	$query = "select * from client where client_id='$tbl_id'";
 	$result = mysqli_query($conn, $query) or die(mysqli_error($conn));
 	$row = mysqli_fetch_assoc($result);
+	$row['state_id'] = (int) ($row['state'] ?? 0);
 	$row['state'] = $row['state'] > 0 ? get_statename($conn, $row['state']) : '';
 	$row['city_name'] = $row['city'] > 0 ? get_city_name($conn, $row['city']) : '';
 	$row['grn_no'] = strtoupper($grn_no);
@@ -610,7 +622,7 @@ if ($cmd == 'get_destination') {
 	$city_query = "select * from city where status=0 and city_id!='$tbl_id' order by city_name";
 	$city_result = mysqli_query($conn, $city_query);
 	while ($city_row = mysqli_fetch_array($city_result)) {
-		$out_put .= '<option value=' . $city_row['city_id'] . '>' . $city_row['city_name'] . '</option>';
+		$out_put .= '<option value="' . $city_row['city_id'] . '" data-state="' . (int) $city_row['state'] . '">' . $city_row['city_name'] . '</option>';
 	}
 	echo $out_put;
 }
@@ -623,7 +635,7 @@ if ($cmd == 'get_destination_consignor') {
 	$city_query = "SELECT * FROM city WHERE status=0 ORDER BY city_name ASC";
 	$city_result = mysqli_query($conn, $city_query);
 	while ($city_row = mysqli_fetch_array($city_result)) {
-		$out_put .= '<option value=' . $city_row['city_id'] . '>' . $city_row['city_name'] . '</option>';
+		$out_put .= '<option value="' . $city_row['city_id'] . '" data-state="' . (int) $city_row['state'] . '">' . $city_row['city_name'] . '</option>';
 	}
 	$res_val['destination'] = $out_put;
 
@@ -1706,6 +1718,10 @@ if ($cmd == "get_branch_details") {
 
     $row = mysqli_fetch_assoc($query);
 
+    if ($row) {
+        $row['state_id'] = (int) ($row['state'] ?? 0);
+    }
+
     echo json_encode($row);
     exit;
 }
@@ -1970,5 +1986,45 @@ if ($cmd == 'get_cargo_booking_filters') {
     }
 
     echo json_encode($result);
+    exit;
+}
+
+if ($cmd == 'get_gst_tax_details') {
+    require_once('include/gst_tax_functions.php');
+    ensure_gst_tax_master_table($conn);
+    header('Content-Type: application/json; charset=utf-8');
+    $tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
+    $q = mysqli_query($conn, "SELECT * FROM gst_tax_master WHERE gst_tax_id='$tbl_id' LIMIT 1");
+    $row = mysqli_fetch_assoc($q);
+    echo json_encode($row ? $row : array());
+    exit;
+}
+
+if ($cmd == 'get_active_gst_tax_profiles') {
+    require_once('include/gst_tax_functions.php');
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(gst_tax_get_active_profiles($conn));
+    exit;
+}
+
+if ($cmd == 'determine_gst_type') {
+    require_once('include/gst_tax_functions.php');
+    header('Content-Type: application/json; charset=utf-8');
+
+    $origin_state_id = (int) ($_REQUEST['origin_state_id'] ?? 0);
+    $destination_state_id = (int) ($_REQUEST['destination_state_id'] ?? 0);
+    if ($origin_state_id <= 0 && !empty($_REQUEST['origin'])) {
+        $origin_state_id = gst_tax_get_city_state_id($conn, $_REQUEST['origin']);
+    }
+    if ($destination_state_id <= 0 && !empty($_REQUEST['destination'])) {
+        $destination_state_id = gst_tax_get_city_state_id($conn, $_REQUEST['destination']);
+    }
+    $gst_type = gst_tax_determine_type_from_route($origin_state_id, $destination_state_id);
+
+    echo json_encode(array(
+        'gst_type' => $gst_type,
+        'origin_state_id' => $origin_state_id,
+        'destination_state_id' => $destination_state_id,
+    ));
     exit;
 }

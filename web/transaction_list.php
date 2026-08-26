@@ -530,20 +530,23 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                         } else {
                                                     ?>
                                                         <?php
-                                                        if ($consignment_mode == '3' || $status > 6) {
+                                                        // Allow edit after delivery (status 8) for payment/billing correction only.
+                                                        // Keep edit locked for Out for Delivery (7) and Pay-at-Booking mode (3).
+                                                        if ($consignment_mode == '3' || ((int) $status > 6 && (int) $status !== 8)) {
                                                             ?>
                                                         <a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="<?php echo $row['transaction_id']; ?>" readonly><i class="fa fa-pencil"></i></a>
                                                             <!-- <a title="Pay at Booking" href="#" class="table-actions btn-edit edit_disabled" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a> -->
 
                                                         <?php
                                                         } else {
+                                                            $edit_title = ((int) $status === 8) ? 'Edit Payment / Billing' : 'Edit';
                                                             if ($row['book_manual'] == 2) {
                                                                 ?>
-                                                            <a title="Edit" href="transactions_manual.php?key=<?php echo md5($row['transaction_id']); ?>&m=<?php echo $m1; ?>&y=<?php echo $dt[2] ?>" class="table-actions btn-edit" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                            <a title="<?php echo $edit_title; ?>" href="transactions_manual.php?key=<?php echo md5($row['transaction_id']); ?>&m=<?php echo $m1; ?>&y=<?php echo $dt[2] ?>" class="table-actions btn-edit" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a>
                                                         <?php
                                                             } else {
                                                         ?>
-                                                            <a title="Edit" href="transactions.php?key=<?php echo md5($row['transaction_id']); ?>&m=<?php echo $m1; ?>&y=<?php echo $dt[2] ?>" class="table-actions btn-edit" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                            <a title="<?php echo $edit_title; ?>" href="transactions.php?key=<?php echo md5($row['transaction_id']); ?>&m=<?php echo $m1; ?>&y=<?php echo $dt[2] ?>" class="table-actions btn-edit" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a>
 
                                                         <?php
                                                             }

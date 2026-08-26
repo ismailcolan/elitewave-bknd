@@ -33,6 +33,8 @@
 	
 	<!-- Modern UI Layer (loaded last to override legacy styles) -->
 	<link href="stylesheets/modern-ui.css" media="all" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/ew-datepicker.css" media="all" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/ew-form-validation.css" media="all" rel="stylesheet" type="text/css" />
 	
 	
 	
@@ -101,15 +103,57 @@
 	<script src="javascripts/bootstrap-multiselect.js" type="text/javascript"></script>
 	<script src="javascripts/jquery.timepicker.js" type="text/javascript"></script>
 	<script src="javascripts/duplicate_check.js" type="text/javascript"></script>
+	<script src="javascripts/ew-datepicker.js" type="text/javascript"></script>
+	<script src="javascripts/ew-form-validation.js" type="text/javascript"></script>
 	
 	<!-- Modern UI Toast Notification System -->
 	<style>
-	#ewToastWrap{position:fixed;bottom:24px;right:24px;z-index:999999;display:flex;flex-direction:column;gap:12px;pointer-events:none;}
-	.ew-toast{min-width:280px;max-width:420px;background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 10px 40px rgba(11,20,55,.18);border-left:4px solid var(--ew-teal,#0f6659);display:flex;align-items:flex-start;gap:12px;font-size:0.85rem;color:var(--ew-text,#1e293b);font-weight:600;opacity:0;transform:translateX(20px);transition:opacity .3s ease,transform .3s ease;pointer-events:auto;font-family:'Inter',sans-serif;}
-	.ew-toast.show{opacity:1;transform:translateX(0);}
-	.ew-toast.error{border-left-color:var(--ew-accent,#DD111E);}
-	.ew-toast.warning{border-left-color:var(--ew-orange,#f2542d);}
-	.ew-toast.info{border-left-color:#2563eb;}
+	#ewToastWrap{
+		position:fixed !important;
+		bottom:88px !important;
+		left:50% !important;
+		right:auto !important;
+		transform:translateX(-50%) !important;
+		z-index:1000001 !important;
+		display:flex;
+		flex-direction:column;
+		gap:12px;
+		pointer-events:none;
+		align-items:center;
+		width:auto;
+		max-width:calc(100vw - 24px);
+		margin:0 !important;
+		padding:0 !important;
+		background:transparent !important;
+		border:none !important;
+		box-shadow:none !important;
+	}
+	.ew-toast{
+		min-width:320px;
+		max-width:560px;
+		background:#fff !important;
+		border-radius:12px;
+		padding:16px 20px;
+		box-shadow:0 10px 40px rgba(11,20,55,.22) !important;
+		border:none !important;
+		border-left:4px solid var(--ew-teal,#0f6659) !important;
+		display:flex;
+		align-items:center;
+		gap:14px;
+		font-size:0.95rem;
+		color:var(--ew-text,#1e293b);
+		font-weight:600;
+		opacity:0;
+		transform:translateY(16px);
+		transition:opacity .3s ease,transform .3s ease;
+		pointer-events:auto;
+		font-family:'Inter',sans-serif;
+		line-height:1.55;
+	}
+	.ew-toast.show{opacity:1;transform:translateY(0);}
+	.ew-toast.error{border-left-color:var(--ew-accent,#DD111E) !important;}
+	.ew-toast.warning{border-left-color:var(--ew-orange,#f2542d) !important;}
+	.ew-toast.info{border-left-color:#2563eb !important;}
 	.ew-toast i{font-size:18px;margin-top:1px;flex-shrink:0;}
 	.ew-toast.success i{color:var(--ew-teal,#0f6659);}
 	.ew-toast.error i{color:var(--ew-accent,#DD111E);}
@@ -118,19 +162,48 @@
 	.ew-toast .ew-toast-close{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--ew-text-muted,#64748b);font-size:16px;padding:0;line-height:1;}
 	.ew-toast .ew-toast-close:hover{color:var(--ew-text,#1e293b);}
 	</style>
-	<div id="ewToastWrap"></div>
 	<script>
-	if(typeof ewToast==='undefined'){
-	  window.ewToast=function(msg,type,duration){
-	    type=type||'success';duration=duration||4000;
-	    var icons={success:'fa-check-circle',error:'fa-exclamation-circle',warning:'fa-exclamation-triangle',info:'fa-info-circle'};
-	    var t=document.createElement('div');
-	    t.className='ew-toast '+type;
-	    t.innerHTML='<i class="fa '+icons[type]+'"></i><span>'+msg+'</span><button class="ew-toast-close" onclick="this.parentElement.remove()">&times;</button>';
-	    document.getElementById('ewToastWrap').appendChild(t);
-	    requestAnimationFrame(function(){t.classList.add('show');});
-	    setTimeout(function(){t.classList.remove('show');setTimeout(function(){if(t.parentNode)t.remove();},300);},duration);
-	  };
-	}
-	if(typeof window.show==='undefined'){window.show=ewToast;}
+	(function(){
+	  function ensureToastWrap(){
+	    var wrap=document.getElementById('ewToastWrap');
+	    if(!wrap){
+	      wrap=document.createElement('div');
+	      wrap.id='ewToastWrap';
+	    }
+	    if(wrap.parentNode!==document.body && document.body){
+	      document.body.appendChild(wrap);
+	    }
+	    return wrap;
+	  }
+	  if(document.body){ ensureToastWrap(); }
+	  else { document.addEventListener('DOMContentLoaded', ensureToastWrap); }
+
+	  if(typeof window.ewToast==='undefined'){
+	    window.ewToast=function(msg,type,duration){
+	      msg=String(msg==null?'':msg).replace(/\s+/g,' ').trim();
+	      if(!msg) return;
+	      type=type||'success'; duration=duration||4000;
+	      var wrap=ensureToastWrap();
+	      // Avoid stacked duplicate toasts
+	      var existing=wrap.querySelectorAll('.ew-toast');
+	      for(var i=0;i<existing.length;i++){
+	        var span=existing[i].querySelector('span');
+	        if(span && span.textContent===msg){ existing[i].remove(); }
+	      }
+	      var icons={success:'fa-check-circle',error:'fa-exclamation-circle',warning:'fa-exclamation-triangle',info:'fa-info-circle'};
+	      var t=document.createElement('div');
+	      t.className='ew-toast '+type;
+	      t.innerHTML='<i class="fa '+(icons[type]||icons.info)+'"></i><span></span><button type="button" class="ew-toast-close" aria-label="Close">&times;</button>';
+	      t.querySelector('span').textContent=msg;
+	      t.querySelector('.ew-toast-close').onclick=function(){ if(t.parentNode) t.remove(); };
+	      wrap.appendChild(t);
+	      requestAnimationFrame(function(){ t.classList.add('show'); });
+	      setTimeout(function(){
+	        t.classList.remove('show');
+	        setTimeout(function(){ if(t.parentNode) t.remove(); },300);
+	      }, duration);
+	    };
+	  }
+	  if(typeof window.show==='undefined'){ window.show=window.ewToast; }
+	})();
 	</script>

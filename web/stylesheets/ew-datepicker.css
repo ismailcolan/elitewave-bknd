@@ -1,0 +1,32 @@
+/* EliteWave360 — shared date input with inside calendar icon */
+.date-input-inside {
+	position: relative;
+	width: 100%;
+}
+
+.date-input-inside .form-control {
+	padding-right: 34px;
+	width: 100%;
+}
+
+.date-input-inside .date-field-icon {
+	position: absolute;
+	right: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #64748b;
+	font-size: 14px;
+	cursor: pointer;
+	z-index: 2;
+	line-height: 1;
+	pointer-events: auto;
+}
+
+.date-input-inside .date-field-icon:hover {
+	color: #0B1437;
+}
+
+/* Hide legacy separate addon once upgraded */
+.date-input-inside.ew-date-upgraded > .input-group-addon {
+	display: none !important;
+}

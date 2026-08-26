@@ -702,4 +702,48 @@ $data = array(
 return tracking_template($status, $data);
 }
 
+/**
+ * Shared date input with calendar icon inside the field.
+ *
+ * Options: id, name, value, class, required, readonly, autocomplete,
+ *          format (dd-mm-yyyy), start_date, end_date ('today' or date string), attrs
+ */
+function ew_date_input($opts = array())
+{
+	$id = isset($opts['id']) ? (string) $opts['id'] : '';
+	$name = isset($opts['name']) ? (string) $opts['name'] : $id;
+	$value = isset($opts['value']) ? (string) $opts['value'] : '';
+	$class = 'form-control ew-date-field';
+	if (!empty($opts['class'])) {
+		$class .= ' ' . $opts['class'];
+	}
+
+	$required = !empty($opts['required']) ? ' required' : '';
+	$readonly = !empty($opts['readonly']) ? ' readonly' : '';
+	$autocomplete = isset($opts['autocomplete']) ? (string) $opts['autocomplete'] : 'off';
+	$format = isset($opts['format']) ? (string) $opts['format'] : 'dd-mm-yyyy';
+	$extra = isset($opts['attrs']) ? ' ' . $opts['attrs'] : '';
+
+	$idAttr = $id !== '' ? ' id="' . htmlspecialchars($id, ENT_QUOTES, 'UTF-8') . '"' : '';
+	$nameAttr = $name !== '' ? ' name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '"' : '';
+
+	$dataAttrs = ' data-ew-datepicker="1" data-date-format="' . htmlspecialchars($format, ENT_QUOTES, 'UTF-8') . '"';
+	if (!empty($opts['end_date'])) {
+		$dataAttrs .= ' data-end-date="' . htmlspecialchars($opts['end_date'], ENT_QUOTES, 'UTF-8') . '"';
+	}
+	if (!empty($opts['start_date'])) {
+		$dataAttrs .= ' data-start-date="' . htmlspecialchars($opts['start_date'], ENT_QUOTES, 'UTF-8') . '"';
+	}
+
+	return '<div class="date-input-inside">'
+		. '<input type="text"' . $idAttr . $nameAttr
+		. ' class="' . htmlspecialchars(trim($class), ENT_QUOTES, 'UTF-8') . '"'
+		. ' value="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '"'
+		. $required . $readonly
+		. ' autocomplete="' . htmlspecialchars($autocomplete, ENT_QUOTES, 'UTF-8') . '"'
+		. $dataAttrs . $extra . '>'
+		. '<i class="fa fa-calendar date-field-icon" aria-hidden="true"></i>'
+		. '</div>';
+}
+
 ?>

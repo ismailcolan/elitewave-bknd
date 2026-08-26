@@ -69,9 +69,6 @@ if ($cities_q) {
 			overflow-x: auto !important;
 			overflow-y: hidden !important;
 			white-space: nowrap !important;
-			border: 1px solid #D8DDE5;
-			border-radius: 8px;
-			background: #fff;
 			padding: 3px 6px !important;
 		}
 		.filter-section .select2-container-multi .select2-choices li {
@@ -258,19 +255,25 @@ font-weight: 600;
 								<div class="col-md-6 col-sm-6">
 									<div class="form-group">
 										<label class="filter-label">From Date <span class="required-star">*</span> : </label>
-										<div class="input-group date date-picker" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-											<input class="form-control" type="text" id="from_date" name="from_date" value="<?php echo $default_from; ?>" readonly required>
-											<span class="input-group-addon" style="cursor:pointer;"><i class="fa fa-calendar"></i></span>
-										</div>
+										<?php echo ew_date_input(array(
+											'id' => 'from_date',
+											'name' => 'from_date',
+											'value' => $default_from,
+											'required' => true,
+											'readonly' => true,
+										)); ?>
 									</div>
 								</div>
 								<div class="col-md-6 col-sm-6">
 									<div class="form-group">
 										<label class="filter-label">To Date <span class="required-star">*</span> :</label>
-										<div class="input-group date date-picker" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-											<input class="form-control" type="text" id="to_date" name="to_date" value="<?php echo $c_date; ?>" readonly required>
-											<span class="input-group-addon" style="cursor:pointer;"><i class="fa fa-calendar"></i></span>
-										</div>
+										<?php echo ew_date_input(array(
+											'id' => 'to_date',
+											'name' => 'to_date',
+											'value' => $c_date,
+											'required' => true,
+											'readonly' => true,
+										)); ?>
 									</div>
 								</div>
 							</div>
@@ -380,7 +383,7 @@ font-weight: 600;
 		var from = $('#from_date').val();
 		var to = $('#to_date').val();
 		if (!from || !to) {
-			alert('Please select From Date and To Date.');
+			ewFormToast('Please select From Date and To Date.', 'error', 5000);
 			return;
 		}
 
@@ -528,7 +531,7 @@ font-weight: 600;
 			var from = $('#from_date').val();
 			var to = $('#to_date').val();
 			if (!from || !to) {
-				alert('Please select From Date and To Date.');
+				ewFormToast('Please select From Date and To Date.', 'error', 5000);
 				return;
 			}
 			function getSelectedValues(selector) {
@@ -543,13 +546,6 @@ font-weight: 600;
 				'&origins=' + encodeURIComponent(getSelectedValues('#origins')) +
 				'&destinations=' + encodeURIComponent(getSelectedValues('#destinations')) +
 				'&payment_modes=' + encodeURIComponent(getSelectedValues('#payment_modes'));
-		});
-
-		$('.date-picker').datepicker({
-			changeMonth: true,
-			changeYear: true,
-			format: 'dd-mm-yyyy',
-			autoclose: true
 		});
 	});
 

@@ -399,6 +399,7 @@ $count_read = mysqli_num_rows($read_status);
         <a class="nav-link" href="city.php"><span class="nav-waypoint"></span>City</a>
         <a class="nav-link" href="hub.php"><span class="nav-waypoint"></span>Hub</a>
         <a class="nav-link" href="mode_of_transportation.php"><span class="nav-waypoint"></span>Mode of Transport</a>
+        <a class="nav-link" href="gst_tax_master.php"><span class="nav-waypoint"></span>GST Tax Master</a>
         <a class="nav-link" href="client.php"><span class="nav-waypoint"></span>Client</a>
         <a class="nav-link" href="client_branch.php"><span class="nav-waypoint"></span>Client Branch</a>
         <a class="nav-link" href="rate_calculator_form.php"><span class="nav-waypoint"></span>Rate Calculator</a>
@@ -466,6 +467,8 @@ $count_read = mysqli_num_rows($read_status);
         <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
           <a class="nav-link" href="status_sheet.php"><span class="nav-waypoint"></span>Consignment Status Sheet</a>
           <a class="nav-link" href="transaction_status.php"><span class="nav-waypoint"></span>Transaction Status</a>
+          <a class="nav-link" href="create_invoice.php"><span class="nav-waypoint"></span>Create Invoice</a>
+          <a class="nav-link" href="invoice_list.php"><span class="nav-waypoint"></span>Invoice List</a>
         <?php endif; ?>
         <?php if ($_SESSION['role'] == 'AD'): ?>
           <a class="nav-link" href="transactions_manual.php"><span class="nav-waypoint"></span>Book Manual Consignment</a>
@@ -492,6 +495,7 @@ $count_read = mysqli_num_rows($read_status);
         <?php else: ?>
           <a class="nav-link" href="consignment_report.php"><span class="nav-waypoint"></span>Booking Status Report</a>
          <a class="nav-link" href="cargo_booking_report.php"><span class="nav-waypoint"></span>Cargo Booking Report</a>
+          <a class="nav-link" href="gst_tax_report.php"><span class="nav-waypoint"></span>GST Tax Report</a>
           <a class="nav-link" href="client_payment_transactions.php"><span class="nav-waypoint"></span>Payment History</a>
         <?php endif; ?>
       </div>

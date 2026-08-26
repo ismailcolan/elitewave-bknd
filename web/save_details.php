@@ -1858,6 +1858,29 @@ if ($form_name == 'add_new_consignment') {
         $table0 = $tables[0];
         $booking_time = date('H:i:s');
 
+        require_once('include/gst_tax_functions.php');
+        ensure_transaction_gst_columns($conn, $table0);
+        $company_state_q = mysqli_query($conn, 'SELECT state FROM company WHERE status=0 LIMIT 1');
+        $company_state_row = mysqli_fetch_assoc($company_state_q);
+        $company_state_id = (int) ($company_state_row['state'] ?? 0);
+        $gst_snapshot = gst_tax_build_booking_snapshot($conn, $_POST, $company_state_id);
+        $gst_type = mysqli_real_escape_string($conn, $gst_snapshot['gst_type'] ?? '');
+        $gst_tax_id = (int) ($gst_snapshot['gst_tax_id'] ?? 0);
+        $gst_tax_code = mysqli_real_escape_string($conn, $gst_snapshot['gst_tax_code'] ?? '');
+        $cgst_rate = (float) ($gst_snapshot['cgst_rate'] ?? 0);
+        $sgst_rate = (float) ($gst_snapshot['sgst_rate'] ?? 0);
+        $igst_rate = (float) ($gst_snapshot['igst_rate'] ?? 0);
+        $cess_rate = (float) ($gst_snapshot['cess_rate'] ?? 0);
+        $cgst_amount = (float) ($gst_snapshot['cgst_amount'] ?? 0);
+        $sgst_amount = (float) ($gst_snapshot['sgst_amount'] ?? 0);
+        $igst_amount = (float) ($gst_snapshot['igst_amount'] ?? 0);
+        $cess_amount = (float) ($gst_snapshot['cess_amount'] ?? 0);
+        $taxable_value = (float) ($gst_snapshot['taxable_value'] ?? 0);
+        $bill_to_state_id = (int) ($gst_snapshot['bill_to_state_id'] ?? 0);
+        $gst_rate = (float) ($gst_snapshot['gst_rate'] ?? 0);
+        $gst_amount = (float) ($gst_snapshot['gst_amount'] ?? 0);
+        $total = (float) ($gst_snapshot['grand_total'] ?? $total);
+
         $chk_dup = mysqli_query($conn, "SELECT transaction_id FROM $table0 WHERE grn_no = '$grn_num1'");
         if (mysqli_num_rows($chk_dup) > 0) {
             $out_put['result'] = '0';
@@ -1870,7 +1893,7 @@ if ($form_name == 'add_new_consignment') {
         $query = "insert into $table0 (grn_no,grn_id,grn_date,booking_time,mode_of_transportation,train_type,ftl_type,origin,destination,mode_of_consignment,consigner,address1,address2,city,pincode,state,phone,gst_no,consignee,con_address1,con_address2,shipping_address,shipping_address_name, shipping_gst_no, shipping_phone,con_city,con_state,con_pincode,con_phone,con_gst_no,goods_dedared_value,bill_to,
 supplier_invoice_value,
 description_of_goods,octroi,dimension1,dimension2,dimension3,dimension4,volumetric_weight,consignment_weight,frieght_rate,frieght_amount,loading_unloading_rate,
-            loading_unloading_amount, crane_fork_lift_rate, crane_fork_lift_amount,cod_rate,cod_amount,fov_rate,fov_amount,doc_charges,doc_amount,cartage_rate,cartage_amount,labour_handling_rate,labour_handling_amount,octroi_rate,octroi_amount,other_charge_rate,other_charge_amount,rajdhani_charges,gst_rate,gst_amount,total,paid_amount, balance, paid_status,total_words,note1,note2,truck,vehicle_purchase_contact_person,
+            loading_unloading_amount, crane_fork_lift_rate, crane_fork_lift_amount,cod_rate,cod_amount,fov_rate,fov_amount,doc_charges,doc_amount,cartage_rate,cartage_amount,labour_handling_rate,labour_handling_amount,octroi_rate,octroi_amount,other_charge_rate,other_charge_amount,rajdhani_charges,gst_rate,gst_amount,gst_type,gst_tax_id,gst_tax_code,cgst_rate,sgst_rate,igst_rate,cess_rate,cgst_amount,sgst_amount,igst_amount,cess_amount,taxable_value,bill_to_state_id,total,paid_amount, balance, paid_status,total_words,note1,note2,truck,vehicle_purchase_contact_person,
 quotation_approval,
 highload_challan,consigner_signature,client_id,created_at,created_by,updated_at,updated_by,status,eway_number,eway_expirydate,vehicle_type,
 freight_paid_by,
@@ -1881,7 +1904,7 @@ mamul_charge,
 vehicle_halting_charge,
 vehicle_loading_unloading,other_train_name) values('" . $grn_num1 . "','" . $id_01 . "','" . $grn_date . "','" . $booking_time . "','" . $mode_of_trasport . "','$train_name','$ftl_type','" . $origin . "','" . $destination . "','" . $mode_of_consignment . "','" . $consignor . "','" . $address1 . "','" . $address2 . "','" . $city . "','" . $pincode . "','" . $state . "','" . $phone . "','" . $gst_no . "','" . $consignee . "','" . $con_address1 . "','" . $con_address2 . "','$ship_address','$shipping_address_name', '$shipping_gst_no', '$shipping_phone','" . $con_city . "','" . $con_state . "','" . $con_pincode . "','" . $con_phone . "','" . $con_gst . "','" . $goods_dedared_value . "','" . $bill_to . "',
 '" . $supplier_invoice_value . "',
-'" . $description_of_goods . "','" . $octroi . "','$len','$wid','$hei','$quanti','$volumetric_weight','$vlm_wei','" . $frieght_rate . "','" . $frieght_amount . "','" . $loading_unload_rate . "','" . $loading_unload_chrg . "','" . $crane_forklift_rate . "','" . $crane_forklift_chrg . "','" . $cod_rate . "','" . $cod_amount . "','" . $fov_rate . "','" . $fov_amount . "','" . $doc_rate . "','" . $doc_amount . "','" . $cartage_rate . "','" . $cartage_amount . "','" . $labour_rate . "','" . $labour_amount . "','" . $octroi_rate . "','" . $octroi_amount . "','" . $other_rate . "','" . $other_amount . "','$rajdhani_charges','" . $gst_rate . "','" . $gst_amount . "','" . $total . "','0','" . $total . "','0','" . $amount_in_words . "','" . $note1 . "','" . $note2 . "','" . $vehicle_no . "','" . $vehicle_purchase_contact_person . "',
+'" . $description_of_goods . "','" . $octroi . "','$len','$wid','$hei','$quanti','$volumetric_weight','$vlm_wei','" . $frieght_rate . "','" . $frieght_amount . "','" . $loading_unload_rate . "','" . $loading_unload_chrg . "','" . $crane_forklift_rate . "','" . $crane_forklift_chrg . "','" . $cod_rate . "','" . $cod_amount . "','" . $fov_rate . "','" . $fov_amount . "','" . $doc_rate . "','" . $doc_amount . "','" . $cartage_rate . "','" . $cartage_amount . "','" . $labour_rate . "','" . $labour_amount . "','" . $octroi_rate . "','" . $octroi_amount . "','" . $other_rate . "','" . $other_amount . "','$rajdhani_charges','" . $gst_rate . "','" . $gst_amount . "','$gst_type','$gst_tax_id','$gst_tax_code','$cgst_rate','$sgst_rate','$igst_rate','$cess_rate','$cgst_amount','$sgst_amount','$igst_amount','$cess_amount','$taxable_value','$bill_to_state_id','" . $total . "','0','" . $total . "','0','" . $amount_in_words . "','" . $note1 . "','" . $note2 . "','" . $vehicle_no . "','" . $vehicle_purchase_contact_person . "',
 '" . $quotation_approval . "',
 '" . $highload_challan . "','" . $signature . "','" . $consignor . "','" . $created_at . "','" . $created_by . "','" . $updated_at . "','" . $updated_by . "','1','" . $eway_number . "','$eway_expiryDate','$vehicle_type',
 '$freight_paid_by',
@@ -3438,10 +3461,102 @@ if ($form_name == 'edit_consignment_details') {
     $volumetric_weight = isset($_POST['volumetric_weight']) ? $_POST['volumetric_weight'] : '';
     $description_of_goods = isset($_POST['description_of_goods']) ? $_POST['description_of_goods'] : '';
 
+    require_once('include/gst_tax_functions.php');
+    ensure_transaction_gst_columns($conn, $tables[0]);
+    $company_state_q = mysqli_query($conn, 'SELECT state FROM company WHERE status=0 LIMIT 1');
+    $company_state_row = mysqli_fetch_assoc($company_state_q);
+    $company_state_id = (int) ($company_state_row['state'] ?? 0);
+    $gst_snapshot = gst_tax_build_booking_snapshot($conn, $_POST, $company_state_id);
+    $gst_type = mysqli_real_escape_string($conn, $gst_snapshot['gst_type'] ?? '');
+    $gst_tax_id = (int) ($gst_snapshot['gst_tax_id'] ?? 0);
+    $gst_tax_code = mysqli_real_escape_string($conn, $gst_snapshot['gst_tax_code'] ?? '');
+    $cgst_rate = (float) ($gst_snapshot['cgst_rate'] ?? 0);
+    $sgst_rate = (float) ($gst_snapshot['sgst_rate'] ?? 0);
+    $igst_rate = (float) ($gst_snapshot['igst_rate'] ?? 0);
+    $cess_rate = (float) ($gst_snapshot['cess_rate'] ?? 0);
+    $cgst_amount = (float) ($gst_snapshot['cgst_amount'] ?? 0);
+    $sgst_amount = (float) ($gst_snapshot['sgst_amount'] ?? 0);
+    $igst_amount = (float) ($gst_snapshot['igst_amount'] ?? 0);
+    $cess_amount = (float) ($gst_snapshot['cess_amount'] ?? 0);
+    $taxable_value = (float) ($gst_snapshot['taxable_value'] ?? 0);
+    $bill_to_state_id = (int) ($gst_snapshot['bill_to_state_id'] ?? 0);
+    $gst_rate = (float) ($gst_snapshot['gst_rate'] ?? 0);
+    $gst_amount = (float) ($gst_snapshot['gst_amount'] ?? 0);
+    $total = (float) ($gst_snapshot['grand_total'] ?? $total);
+
+    $billing_only_edit = isset($_POST['billing_only_edit']) && (string) $_POST['billing_only_edit'] === '1';
+
+    // After delivery: update payment/billing + GST amounts only — never clear origin/destination/parties
+    if ($billing_only_edit) {
+        $existing_q = mysqli_query($conn, "SELECT gst_tax_id, gst_type, gst_tax_code, origin, destination, consigner, consignee FROM {$tables[0]} WHERE transaction_id='" . mysqli_real_escape_string($conn, $edit_id) . "' LIMIT 1");
+        $existing_row = mysqli_fetch_assoc($existing_q);
+        if ($existing_row) {
+            if (empty($gst_tax_id) && !empty($existing_row['gst_tax_id'])) {
+                $gst_tax_id = (int) $existing_row['gst_tax_id'];
+            }
+            if ($gst_type === '' && !empty($existing_row['gst_type'])) {
+                $gst_type = mysqli_real_escape_string($conn, $existing_row['gst_type']);
+            }
+            if ($gst_tax_code === '' && !empty($existing_row['gst_tax_code'])) {
+                $gst_tax_code = mysqli_real_escape_string($conn, $existing_row['gst_tax_code']);
+            }
+        }
+
+        $frieght_rate = mysqli_real_escape_string($conn, isset($frieght_rate) ? $frieght_rate : '');
+        $frieght_amount = mysqli_real_escape_string($conn, isset($frieght_amount) ? $frieght_amount : '');
+        $doc_rate = mysqli_real_escape_string($conn, isset($doc_rate) ? $doc_rate : '');
+        $doc_amount = mysqli_real_escape_string($conn, isset($doc_amount) ? $doc_amount : '');
+        $other_rate = mysqli_real_escape_string($conn, isset($other_rate) ? $other_rate : '');
+        $other_amount = mysqli_real_escape_string($conn, isset($other_amount) ? $other_amount : '');
+        $rajdhani_charges = mysqli_real_escape_string($conn, isset($rajdhani_charges) ? $rajdhani_charges : '');
+        $amount_in_words = mysqli_real_escape_string($conn, isset($amount_in_words) ? $amount_in_words : '');
+        $mamul_charge = mysqli_real_escape_string($conn, $mamul_charge);
+        $vehicle_halting_charge = mysqli_real_escape_string($conn, $vehicle_halting_charge);
+        $vehicle_loading_unloading = mysqli_real_escape_string($conn, $vehicle_loading_unloading);
+
+        $query = "UPDATE {$tables[0]} SET
+            frieght_rate='$frieght_rate',
+            frieght_amount='$frieght_amount',
+            doc_charges='$doc_rate',
+            doc_amount='$doc_amount',
+            other_charge_rate='$other_rate',
+            other_charge_amount='$other_amount',
+            rajdhani_charges='$rajdhani_charges',
+            mamul_charge='$mamul_charge',
+            vehicle_halting_charge='$vehicle_halting_charge',
+            vehicle_loading_unloading='$vehicle_loading_unloading',
+            gst_rate='$gst_rate',
+            gst_amount='$gst_amount',
+            gst_type='$gst_type',
+            gst_tax_id='$gst_tax_id',
+            gst_tax_code='$gst_tax_code',
+            cgst_rate='$cgst_rate',
+            sgst_rate='$sgst_rate',
+            igst_rate='$igst_rate',
+            cess_rate='$cess_rate',
+            cgst_amount='$cgst_amount',
+            sgst_amount='$sgst_amount',
+            igst_amount='$igst_amount',
+            cess_amount='$cess_amount',
+            taxable_value='$taxable_value',
+            bill_to_state_id='$bill_to_state_id',
+            total='$total',
+            balance='$total',
+            total_words='$amount_in_words',
+            updated_at='$updated_at',
+            updated_by='$updated_by'
+            WHERE transaction_id='" . mysqli_real_escape_string($conn, $edit_id) . "'";
+        $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
+        $out_put['result'] = 1;
+        $out_put['data'] = isset($grn_no) ? $grn_no : '';
+        echo json_encode($out_put);
+        exit;
+    }
+
     $query = "update $tables[0] set mode_of_transportation='" . $mode_of_trasport . "',train_type = '$train_name',ftl_type = '$ftl_type',origin='" . $origin . "',destination='" . $destination . "',mode_of_consignment='" . $mode_of_consignment . "',consigner='" . $consignor . "',address1='$address1',address2='$address2',city='$city',pincode='$pincode',state='$state',phone='$phone',gst_no='$gst_no',consignee='$consignee',con_address1='$con_address1',con_address2='$con_address2',shipping_address='$ship_address',shipping_address_name='$shipping_address_name',
 shipping_gst_no='$shipping_gst_no',
 shipping_phone='$shipping_phone',bill_to='$bill_to',con_city='$con_city',con_state='$con_state',con_pincode='$con_pincode',con_phone='$con_phone',con_gst_no='" . $con_gst . "',goods_dedared_value='$goods_dedared_value',supplier_invoice_value='$supplier_invoice_value',
-description_of_goods='$description_of_goods',octroi='$octroi',dimension1='$len',dimension2='$wid',dimension3='$hei',dimension4='$quanti',volumetric_weight='$volumetric_weight',consignment_weight='$vlm_wei',frieght_rate='$frieght_rate',frieght_amount='$frieght_amount',`loading_unloading_rate`='" . $loading_unload_rate . "',`loading_unloading_amount`='" . $loading_unload_chrg . "',`crane_fork_lift_rate`='" . $crane_forklift_rate . "',`crane_fork_lift_amount`='" . $crane_forklift_chrg . "',cod_rate='$cod_rate',cod_amount='$cod_amount',fov_rate='$fov_rate',fov_amount='$fov_amount',doc_charges='" . $doc_rate . "',doc_amount='" . $doc_amount . "',cartage_rate='$cartage_rate',cartage_amount='$cartage_amount',labour_handling_rate='" . $labour_rate . "',labour_handling_amount='" . $labour_amount . "',octroi_rate='$octroi_rate',octroi_amount='$octroi_amount',other_charge_rate='" . $other_rate . "',other_charge_amount='" . $other_amount . "',rajdhani_charges='$rajdhani_charges',gst_rate='$gst_rate',gst_amount='$gst_amount',total='$total',
+description_of_goods='$description_of_goods',octroi='$octroi',dimension1='$len',dimension2='$wid',dimension3='$hei',dimension4='$quanti',volumetric_weight='$volumetric_weight',consignment_weight='$vlm_wei',frieght_rate='$frieght_rate',frieght_amount='$frieght_amount',`loading_unloading_rate`='" . $loading_unload_rate . "',`loading_unloading_amount`='" . $loading_unload_chrg . "',`crane_fork_lift_rate`='" . $crane_forklift_rate . "',`crane_fork_lift_amount`='" . $crane_forklift_chrg . "',cod_rate='$cod_rate',cod_amount='$cod_amount',fov_rate='$fov_rate',fov_amount='$fov_amount',doc_charges='" . $doc_rate . "',doc_amount='" . $doc_amount . "',cartage_rate='$cartage_rate',cartage_amount='$cartage_amount',labour_handling_rate='" . $labour_rate . "',labour_handling_amount='" . $labour_amount . "',octroi_rate='$octroi_rate',octroi_amount='$octroi_amount',other_charge_rate='" . $other_rate . "',other_charge_amount='" . $other_amount . "',rajdhani_charges='$rajdhani_charges',gst_rate='$gst_rate',gst_amount='$gst_amount',gst_type='$gst_type',gst_tax_id='$gst_tax_id',gst_tax_code='$gst_tax_code',cgst_rate='$cgst_rate',sgst_rate='$sgst_rate',igst_rate='$igst_rate',cess_rate='$cess_rate',cgst_amount='$cgst_amount',sgst_amount='$sgst_amount',igst_amount='$igst_amount',cess_amount='$cess_amount',taxable_value='$taxable_value',bill_to_state_id='$bill_to_state_id',total='$total',
     paid_amount = '0', balance = '$total',paid_status = '0' ,total_words='" . $amount_in_words . "',note1='$note1',note2='$note2',truck='" . $vehicle_no . "',
     vehicle_purchase_contact_person='$vehicle_purchase_contact_person',
 quotation_approval='$quotation_approval',
@@ -7158,4 +7273,131 @@ VALUES
 
     // FIX 2 + 3: single, clean response — replaces the broken "if (!$matched)" block
     echo $updated ? 1 : 0;
+}
+
+if ($form_name == 'add_gst_tax_master' || $form_name == 'edit_gst_tax_master') {
+    require_once('include/gst_tax_functions.php');
+    ensure_gst_tax_master_table($conn);
+    header('Content-Type: application/json; charset=utf-8');
+
+    $tax_code = strtoupper(trim($_POST['tax_code'] ?? ''));
+    $tax_name = trim($_POST['tax_name'] ?? '');
+    $gst_rate = (float) ($_POST['gst_rate'] ?? 0);
+    $cgst_rate = (float) ($_POST['cgst_rate'] ?? 0);
+    $sgst_rate = (float) ($_POST['sgst_rate'] ?? 0);
+    $igst_rate = (float) ($_POST['igst_rate'] ?? 0);
+    $cess_rate = (float) ($_POST['cess_rate'] ?? 0);
+    $status = isset($_POST['status']) && (int) $_POST['status'] === 0 ? 0 : 1;
+    $edit_id = (int) ($_POST['edit_id'] ?? 0);
+
+    if ($tax_code === '' || $tax_name === '') {
+        echo json_encode(array('status' => 0, 'message' => 'Tax Code and Tax Name are required.'));
+        exit;
+    }
+
+    $validation_error = gst_tax_validate_payload($gst_rate, $cgst_rate, $sgst_rate, $igst_rate, $cess_rate);
+    if ($validation_error !== '') {
+        echo json_encode(array('status' => 0, 'message' => $validation_error));
+        exit;
+    }
+
+    if (gst_tax_code_exists($conn, $tax_code, $form_name == 'edit_gst_tax_master' ? $edit_id : 0)) {
+        echo json_encode(array('status' => 0, 'message' => 'Tax Code already exists.'));
+        exit;
+    }
+
+    $tax_code_sql = mysqli_real_escape_string($conn, $tax_code);
+    $tax_name_sql = mysqli_real_escape_string($conn, $tax_name);
+
+    if ($form_name == 'add_gst_tax_master') {
+        $sql = "INSERT INTO gst_tax_master
+            (tax_code, tax_name, gst_rate, cgst_rate, sgst_rate, igst_rate, cess_rate, status, is_deleted, created_at, created_by)
+            VALUES (
+                '$tax_code_sql', '$tax_name_sql',
+                '$gst_rate', '$cgst_rate', '$sgst_rate', '$igst_rate', '$cess_rate',
+                '$status', 0, '$created_at', '$created_by'
+            )";
+        $ok = mysqli_query($conn, $sql);
+        echo json_encode(array(
+            'status' => $ok ? 1 : 0,
+            'message' => $ok ? 'GST tax profile added successfully.' : 'Unable to add GST tax profile.',
+        ));
+        exit;
+    }
+
+    if ($edit_id <= 0) {
+        echo json_encode(array('status' => 0, 'message' => 'Invalid record for update.'));
+        exit;
+    }
+
+    $sql = "UPDATE gst_tax_master SET
+        tax_code='$tax_code_sql',
+        tax_name='$tax_name_sql',
+        gst_rate='$gst_rate',
+        cgst_rate='$cgst_rate',
+        sgst_rate='$sgst_rate',
+        igst_rate='$igst_rate',
+        cess_rate='$cess_rate',
+        status='$status',
+        updated_at='$updated_at',
+        updated_by='$updated_by'
+        WHERE gst_tax_id='$edit_id' AND is_deleted=0";
+    $ok = mysqli_query($conn, $sql);
+    echo json_encode(array(
+        'status' => $ok ? 1 : 0,
+        'message' => $ok ? 'GST tax profile updated successfully.' : 'Unable to update GST tax profile.',
+    ));
+    exit;
+}
+
+if ($form_name == 'toggle_gst_tax_status') {
+    require_once('include/gst_tax_functions.php');
+    header('Content-Type: application/json; charset=utf-8');
+    $tbl_id = (int) ($_POST['tbl_id'] ?? 0);
+    $status = isset($_POST['status']) && (int) $_POST['status'] === 0 ? 0 : 1;
+    if ($tbl_id <= 0) {
+        echo json_encode(array('status' => 0, 'message' => 'Invalid record.'));
+        exit;
+    }
+    $ok = mysqli_query($conn, "UPDATE gst_tax_master SET status='$status', updated_at='$updated_at', updated_by='$updated_by'
+        WHERE gst_tax_id='$tbl_id' AND is_deleted=0");
+    echo json_encode(array(
+        'status' => $ok ? 1 : 0,
+        'message' => $ok ? ($status ? 'Tax profile activated.' : 'Tax profile deactivated.') : 'Status update failed.',
+    ));
+    exit;
+}
+
+if ($form_name == 'soft_delete_gst_tax_master') {
+    require_once('include/gst_tax_functions.php');
+    header('Content-Type: application/json; charset=utf-8');
+    $tbl_id = (int) ($_POST['tbl_id'] ?? 0);
+    if ($tbl_id <= 0) {
+        echo json_encode(array('status' => 0, 'message' => 'Invalid record.'));
+        exit;
+    }
+    $ok = mysqli_query($conn, "UPDATE gst_tax_master SET is_deleted=1, status=0, updated_at='$updated_at', updated_by='$updated_by'
+        WHERE gst_tax_id='$tbl_id' AND is_deleted=0");
+    echo json_encode(array(
+        'status' => $ok ? 1 : 0,
+        'message' => $ok ? 'GST tax profile deleted (soft delete).' : 'Delete failed.',
+    ));
+    exit;
+}
+
+if ($form_name == 'restore_gst_tax_master') {
+    require_once('include/gst_tax_functions.php');
+    header('Content-Type: application/json; charset=utf-8');
+    $tbl_id = (int) ($_POST['tbl_id'] ?? 0);
+    if ($tbl_id <= 0) {
+        echo json_encode(array('status' => 0, 'message' => 'Invalid record.'));
+        exit;
+    }
+    $ok = mysqli_query($conn, "UPDATE gst_tax_master SET is_deleted=0, status=1, updated_at='$updated_at', updated_by='$updated_by'
+        WHERE gst_tax_id='$tbl_id' AND is_deleted=1");
+    echo json_encode(array(
+        'status' => $ok ? 1 : 0,
+        'message' => $ok ? 'GST tax profile restored.' : 'Restore failed.',
+    ));
+    exit;
 }
