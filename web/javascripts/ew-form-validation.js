@@ -238,7 +238,7 @@
 			}
 			var opts = {};
 			if ($form.attr('data-ew-ignore') === 'none' || $form.attr('id') === 'grn_details') {
-				opts.ignore = ':disabled';
+				opts.ignore = ':disabled, :hidden:not(#consignor):not(#consignee)';
 			}
 			$form.validate(opts);
 		});

@@ -416,6 +416,21 @@ $count_read = mysqli_num_rows($read_status);
       </div>
     </div>
 
+    <!-- Extra Expense -->
+    <div class="nav-item" data-tooltip="Extra Expense" id="item-extra-expense">
+      <div class="nav-link" onclick="toggleMenu('extra-expense')">
+        <span class="nav-waypoint"></span>
+        <img src="./images/master2.png" class="nav-icon" alt="">
+        <span class="nav-text">Extra Expense</span>
+        <i class="fa fa-chevron-right nav-arrow"></i>
+      </div>
+      <div class="submenu" id="menu-extra-expense">
+        <a class="nav-link" href="expense.php"><span class="nav-waypoint"></span>Add Expense</a>
+        <a class="nav-link" href="expense_list.php"><span class="nav-waypoint"></span>Expense List</a>
+        <a class="nav-link" href="expense_report.php"><span class="nav-waypoint"></span>GCN Expense Report</a>
+      </div>
+    </div>
+
     <!-- User Management -->
     <div class="nav-item" data-tooltip="User" id="item-user">
       <div class="nav-link" onclick="toggleMenu('user')">

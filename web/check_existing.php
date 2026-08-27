@@ -411,6 +411,20 @@ if($cmd == "chk_vehicle_no"){
 	echo json_encode($out_put);
 }
 
+if ($cmd == 'chk_expense_category_code') {
+	$category_code = strtoupper(trim($_REQUEST['category_code'] ?? ''));
+	$edit_id = (int) ($_REQUEST['edit_id'] ?? 0);
+	$edit_id_check = $edit_id > 0 ? " AND category_id!='$edit_id' " : ' ';
+	$out_put = array('0', 'Valid details');
+	$category_code = mysqli_real_escape_string($conn, $category_code);
+	$query = "SELECT category_id FROM expense_category WHERE category_code='$category_code' $edit_id_check LIMIT 1";
+	$result = mysqli_query($conn, $query);
+	if ($result && mysqli_num_rows($result) > 0) {
+		$out_put = array('1', 'Category code already exists. Try another...');
+	}
+	echo json_encode($out_put);
+}
+
 
 
 ?>

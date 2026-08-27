@@ -336,8 +336,8 @@ $tax_profiles = gst_tax_fetch_list($conn, array(
 
 	<script type="text/javascript">
 	function updateGstSelectedCount() {
-		var total = $('#gst_report_table tbody .row-check').length;
-		var checked = $('#gst_report_table tbody .row-check:checked').length;
+		var total = window.gstReportRowData ? window.gstReportRowData.length : 0;
+		var checked = window.gstReportSelectedGrns ? window.gstReportSelectedGrns.size : 0;
 		var $all = $('#select_all_rows_th');
 		if ($all.length) {
 			$all.prop('checked', total > 0 && checked === total);
@@ -345,13 +345,22 @@ $tax_profiles = gst_tax_fetch_list($conn, array(
 		}
 	}
 
-	window.getSelectedGstGrnNos = function() {
-		var nos = [];
-		$('#gst_report_table tbody .row-check:checked').each(function() {
+	function syncGstRowCheckboxesFromSelection() {
+		if (!window.gstReportSelectedGrns) {
+			return;
+		}
+		$('#gst_report_table tbody .row-check').each(function() {
 			var grn = $(this).val();
-			if (grn) nos.push(grn);
+			$(this).prop('checked', window.gstReportSelectedGrns.has(grn));
 		});
-		return nos;
+		updateGstSelectedCount();
+	}
+
+	window.getSelectedGstGrnNos = function() {
+		if (window.gstReportSelectedGrns && window.gstReportSelectedGrns.size) {
+			return Array.from(window.gstReportSelectedGrns);
+		}
+		return [];
 	};
 
 	window.loadGstTaxReport = function() {
@@ -401,6 +410,13 @@ $tax_profiles = gst_tax_fetch_list($conn, array(
 
 			var data = resp.data || [];
 			var summary = resp.summary || {};
+			window.gstReportRowData = data;
+			window.gstReportSelectedGrns = new Set();
+			$.each(data, function(i, r) {
+				if (r.grn_no) {
+					window.gstReportSelectedGrns.add(String(r.grn_no));
+				}
+			});
 			$('#table_div').show();
 
 			if (data.length === 0) {
@@ -457,6 +473,7 @@ $tax_profiles = gst_tax_fetch_list($conn, array(
 					pageLength: 25,
 					scrollX: true,
 					order: [[1, 'asc']],
+					deferRender: true,
 					aoColumnDefs: [
 						{ bSortable: false, aTargets: [0], sClass: 'chk-col' }
 					],
@@ -464,11 +481,15 @@ $tax_profiles = gst_tax_fetch_list($conn, array(
 						{ orderable: false, targets: 0, className: 'chk-col' }
 					]
 				});
+				window.gstReportTable.on('draw.dt', function() {
+					syncGstRowCheckboxesFromSelection();
+				});
 				// Ensure checkbox header never gets sort classes/icons
 				$('#gst_report_table thead th.chk-col')
 					.removeClass('sorting sorting_asc sorting_desc')
 					.addClass('sorting_disabled');
 			}
+			syncGstRowCheckboxesFromSelection();
 		}
 
 		var payload = {
@@ -520,11 +541,30 @@ $tax_profiles = gst_tax_fetch_list($conn, array(
 
 		$(document).on('change', '#select_all_rows_th', function() {
 			var checked = $(this).prop('checked');
-			$('#gst_report_table tbody .row-check').prop('checked', checked);
-			$(this).prop('indeterminate', false);
+			if (!window.gstReportSelectedGrns || !window.gstReportRowData) {
+				return;
+			}
+			window.gstReportSelectedGrns.clear();
+			if (checked) {
+				$.each(window.gstReportRowData, function(i, row) {
+					if (row.grn_no) {
+						window.gstReportSelectedGrns.add(String(row.grn_no));
+					}
+				});
+			}
+			syncGstRowCheckboxesFromSelection();
 		});
 
 		$(document).on('change', '#gst_report_table tbody .row-check', function() {
+			var grn = String($(this).val() || '');
+			if (!window.gstReportSelectedGrns || !grn) {
+				return;
+			}
+			if ($(this).prop('checked')) {
+				window.gstReportSelectedGrns.add(grn);
+			} else {
+				window.gstReportSelectedGrns.delete(grn);
+			}
 			updateGstSelectedCount();
 		});
 
@@ -559,12 +599,17 @@ $tax_profiles = gst_tax_fetch_list($conn, array(
 				}
 				return String(vals);
 			}
-			window.location.href = 'gst_tax_report_pdf.php?from_date=' + encodeURIComponent(from) +
+			var totalRows = window.gstReportRowData ? window.gstReportRowData.length : 0;
+			var exportAll = totalRows > 0 && selected.length === totalRows;
+			var pdfUrl = 'gst_tax_report_pdf.php?from_date=' + encodeURIComponent(from) +
 				'&to_date=' + encodeURIComponent(to) +
 				'&customers=' + encodeURIComponent(getSelectedCustomers()) +
 				'&gst_type=' + encodeURIComponent($('#gst_type').val() || 'all') +
-				'&tax_code=' + encodeURIComponent($('#tax_code').val() || 'all') +
-				'&grn_nos=' + encodeURIComponent(selected.join(','));
+				'&tax_code=' + encodeURIComponent($('#tax_code').val() || 'all');
+			if (!exportAll) {
+				pdfUrl += '&grn_nos=' + encodeURIComponent(selected.join(','));
+			}
+			window.location.href = pdfUrl;
 		});
 	});
 	</script>

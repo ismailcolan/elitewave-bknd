@@ -262,8 +262,8 @@ if ($cmd == 'get_transaction_month_details') {
                     <a title="Cancel" href="javascript:void(0) disable_action" class="table-actions cancel_booking disable_action" id="' . $row['transaction_id'] . '" ><i  class="fa fa-ban"></i></a>
                     <a title="E-way Attachments" href="javascript:void(0) disable_action" class="table-actions btn-eways disable_action" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
 			else {
-				// Pay-at-booking or Out for Delivery: lock edit. Delivered (8): allow payment/billing edit.
-				if ($consignment_mode == '3' || ((int) $status > 6 && (int) $status !== 8)) {
+				// Pay-at-booking: lock edit. Submitted / in-transit: full edit. Delivered (8): payment/billing edit.
+				if ($consignment_mode == '3') {
 					$out_put .= '<a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>';
 				} else {
 					$out_put .= $edit_btn;
@@ -576,6 +576,31 @@ if ($cmd == 'get_package_details') {
 	$result = mysqli_query($conn, $query) or die(mysqli_error($conn));
 	$row = mysqli_fetch_array($result);
 	echo json_encode($row);
+}
+if ($cmd == 'get_expense_category_details') {
+	$tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
+	$query = "SELECT * FROM expense_category WHERE category_id='$tbl_id'";
+	$result = mysqli_query($conn, $query);
+	$row = $result ? mysqli_fetch_assoc($result) : array();
+	echo json_encode($row);
+}
+if ($cmd == 'get_expense_vendor_details') {
+	$tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
+	$query = "SELECT * FROM expense_vendor WHERE vendor_id='$tbl_id'";
+	$result = mysqli_query($conn, $query);
+	$row = $result ? mysqli_fetch_assoc($result) : array();
+	echo json_encode($row);
+}
+if ($cmd == 'get_grn_for_extra_expense') {
+	require_once __DIR__ . '/include/expense_functions.php';
+	$grn_no = trim($_REQUEST['grn_no'] ?? '');
+	$exclude_expense_id = (int) ($_REQUEST['exclude_expense_id'] ?? 0);
+	$result = expense_lookup_grn($conn, $grn_no);
+	if ($result['status'] == 1 && isset($result['data'])) {
+		$result['data']['extra_paid_total'] = round(expense_sum_by_grn($conn, $grn_no, $exclude_expense_id));
+	}
+	echo json_encode($result);
+	exit;
 }
 if ($cmd == 'get_consignee') {
 	$tbl_id = $_REQUEST['id'];

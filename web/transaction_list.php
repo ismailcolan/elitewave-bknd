@@ -533,9 +533,9 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                         } else {
                                                     ?>
                                                         <?php
-                                                        // Allow edit after delivery (status 8) for payment/billing correction only.
-                                                        // Keep edit locked for Out for Delivery (7) and Pay-at-Booking mode (3).
-                                                        if ($consignment_mode == '3' || ((int) $status > 6 && (int) $status !== 8)) {
+                                                        // Full edit for submitted bookings (status 1–7). Pay-at-Booking mode (3) stays locked.
+                                                        // After delivery (status 8): payment/billing edit only until invoiced.
+                                                        if ($consignment_mode == '3') {
                                                             ?>
                                                         <a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="<?php echo $row['transaction_id']; ?>" readonly><i class="fa fa-pencil"></i></a>
                                                             <!-- <a title="Pay at Booking" href="#" class="table-actions btn-edit edit_disabled" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a> -->

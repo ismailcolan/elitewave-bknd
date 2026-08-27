@@ -774,7 +774,8 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 							$booking_status = (int) ($row['status'] ?? 0);
 							$trans_table_name = 'transaction_' . $m . '_' . $y;
 							$gcn_billed = ($transaction_id > 0) && booking_is_gcn_billed($conn, $trans_table_name, $transaction_id);
-							$billing_only_edit = ($form_name === 'edit_consignment_details' && $booking_status >= 8 && !$gcn_billed);
+							// Billing-only lock applies only after delivery (status 8), not on submitted bookings.
+							$billing_only_edit = ($form_name === 'edit_consignment_details' && $booking_status === 8 && !$gcn_billed);
 							$form_fully_locked = ($form_name === 'edit_consignment_details' && $gcn_billed);
 							$booking_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
 							$grn_date_val = !empty($row['grn_date']) ? $row['grn_date'] : date('d-m-Y');
@@ -929,7 +930,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 												<label class="control-label col-sm-4">FTL Type <span class="req-star">*</span></label>
 												<div class="col-lg-8">
 
-													<select class="dropp form-control" role="menu" aria-labelledby="menu1" id="dropp" required>
+													<select class="dropp form-control" role="menu" aria-labelledby="menu1" id="dropp">
 														<option value="" selected="true" disabled="disabled">Select Truck Type...</option>
 														<option value="Single Axle Vehicle: 07MT" <?php if ('Single Axle Vehicle: 07MT' == $row['ftl_type']) echo 'selected'; ?>>Single Axle Vehicle: 07MT</option>
 														<option value="Multi Axle Vehicle : 10MT/14MT/17MT" <?php if ('Multi Axle Vehicle : 10MT/14MT/17MT' == $row['ftl_type']) echo 'selected'; ?>>Multi Axle Vehicle : 10MT/14MT/17MT</option>
@@ -946,7 +947,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 												<label class="control-label col-sm-4">Train Type <span class="req-star">*</span></label>
 												<div class="col-lg-8">
 
-													<select name="train_name" class="train_type form-control" role="menu" aria-labelledby="menu1" id="train_type_sel" required>
+													<select name="train_name" class="train_type form-control" role="menu" aria-labelledby="menu1" id="train_type_sel">
 														<option value="" selected="true" disabled="disabled">Select Train Type...</option>
 														<option value="1" <?php if ('1' == $row['train_type']) echo 'selected'; ?>>Rajdhani Express</option>
 														<option value="2" <?php if ('2' == $row['train_type']) echo 'selected'; ?>>Others</option>
@@ -1283,8 +1284,8 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 														?>
 															<tr>
 																<td class="text-center"><?php echo $i; ?></td>
-																<td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg<?php echo $i; ?>" class="form-control num_only text-right" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-																<td id="typ_req"><select type="text" name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control" required> <?php echo $pkg_option; ?> </select></td>
+																<td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg<?php echo $i; ?>" class="form-control num_only text-right pkg-row-input" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+																<td id="typ_req"><select type="text" name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control pkg-row-select"<?php echo ($i === 1) ? ' required' : ''; ?>> <?php echo $pkg_option; ?> </select></td>
 																<td id="inv_req"><input type="text" name="party_invoice[]" id="party_invoice<?php echo $i; ?>" class="form-control" onchange="party_invoice_details();" onkeyup="party_invoice_details();" autocomplete="off"></td>
 																<td><?php echo ew_date_input(array(
 																	'id' => 'party_invoice_date' . $i,
@@ -2364,8 +2365,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 				$("#rajdhani_ex").hide();
 				$('#other_train_field').empty();
 			}
-
-
+			syncTransportRequiredFields();
 			// $('#truck_type').val(sel_ids);
 			// $('#select-payment-mode').addClass('show')
 
@@ -2866,6 +2866,49 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 			}
 		}
 
+		function syncTransportRequiredFields() {
+			var mode = $('#mode_of_trasport :selected').val();
+			var $ftl = $('#dropp');
+			var $train = $('#train_type_sel');
+			$ftl.removeAttr('required').removeClass('error');
+			$train.removeAttr('required').removeClass('error');
+			$('label.error[for="dropp"], label.error[for="train_type_sel"]').remove();
+			if (mode === '7') {
+				$ftl.attr('required', 'required');
+			} else if (mode === '2') {
+				$train.attr('required', 'required');
+			}
+		}
+
+		function syncPackageRowRequired() {
+			for (var i = 1; i <= 5; i++) {
+				var $pkg = $('#no_of_pkg' + i);
+				var $type = $('#type_of_pkg' + i);
+				var $inv = $('#party_invoice' + i);
+				var $charged = $('#charged' + i);
+				if (!$pkg.length) {
+					continue;
+				}
+				var hasRow = $.trim($pkg.val()) !== '' ||
+					$.trim($inv.val()) !== '' ||
+					$.trim($('#content' + i).val() || '') !== '' ||
+					$.trim($('#gross' + i).val() || '') !== '' ||
+					$.trim($charged.val() || '') !== '';
+				if (i === 1 || hasRow) {
+					if (i === 1) {
+						$pkg.attr('required', 'required');
+						$type.attr('required', 'required');
+						$inv.attr('required', 'required');
+					} else if (hasRow) {
+						$type.attr('required', 'required');
+					}
+				} else {
+					$type.removeAttr('required').removeClass('error');
+					$('label.error[for="type_of_pkg' + i + '"]').remove();
+				}
+			}
+		}
+
 		//End
 
 		$(document).ready(function() {
@@ -2873,7 +2916,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 $("#consignee_branch_div").hide();
 
 			$("#grn_details").validate({
-				ignore: ':disabled',
+				ignore: ':disabled, :hidden:not(#consignor):not(#consignee)',
 				invalidHandler: function(event, validator) {
 					ewFormToast('Please fill all mandatory fields.', 'error', 5000);
 					if (validator.errorList.length) {
@@ -2882,6 +2925,10 @@ $("#consignee_branch_div").hide();
 							$first = $('#consignor_name');
 						} else if ($first.attr('id') === 'consignee') {
 							$first = $('#consignee_name');
+						} else if (($first.attr('id') || '').indexOf('type_of_pkg') === 0) {
+							$first.closest('td').length ? $first = $first.closest('td') : $first;
+						} else if (($first.attr('id') || '').indexOf('dropp') === 0 || $first.attr('id') === 'train_type_sel') {
+							$first = $first.closest('.form-group');
 						}
 						if ($first.length && $first.offset()) {
 							$('html, body').animate({
@@ -2895,7 +2942,7 @@ $("#consignee_branch_div").hide();
 			// Ensure settings apply even if global auto-validate already initialized the form
 			var grnValidator = $('#grn_details').data('validator');
 			if (grnValidator) {
-				grnValidator.settings.ignore = ':disabled';
+				grnValidator.settings.ignore = ':disabled, :hidden:not(#consignor):not(#consignee)';
 				grnValidator.settings.invalidHandler = function(event, validator) {
 					ewFormToast('Please fill all mandatory fields.', 'error', 5000);
 					if (validator.errorList && validator.errorList.length) {
@@ -2904,6 +2951,10 @@ $("#consignee_branch_div").hide();
 							$first = $('#consignor_name');
 						} else if ($first.attr('id') === 'consignee') {
 							$first = $('#consignee_name');
+						} else if (($first.attr('id') || '').indexOf('type_of_pkg') === 0) {
+							$first.closest('td').length ? $first = $first.closest('td') : $first;
+						} else if (($first.attr('id') || '').indexOf('dropp') === 0 || $first.attr('id') === 'train_type_sel') {
+							$first = $first.closest('.form-group');
 						}
 						if ($first.length && $first.offset()) {
 							$('html, body').animate({
@@ -2917,6 +2968,7 @@ $("#consignee_branch_div").hide();
 
 			applyFormFullyLocked();
 			applyBillingOnlyEditMode();
+			syncTransportRequiredFields();
 
 			var form_name = $("#form_name").val();
 			load_party_inv = new Array();
@@ -2937,6 +2989,7 @@ $("#consignee_branch_div").hide();
 				} else {
 					$("#ftl_menu").hide();
 				}
+				syncTransportRequiredFields();
 				//Payment AutoFetch Function
 				load_payment_info()
 				// $('#truck_type').val(sel_ids);
@@ -3803,6 +3856,8 @@ $("input[name='file_receipt[]']").each(function () {
 						isFormValid = false;
 					}
 				} else {
+					syncTransportRequiredFields();
+					syncPackageRowRequired();
 					isFormValid = $('#grn_details').valid();
 				}
 
@@ -3821,6 +3876,46 @@ $("input[name='file_receipt[]']").each(function () {
 					if (party_invoice_validate.length == 0) {
 						$(".loading-page").show();
 						$(this).prop("disabled", true);
+
+						function handleBookingSaveResponse(result) {
+							if (result && result['result'] == 1) {
+								$(".loading-page").hide();
+								if (edit_id == '') {
+									$('.grn_no_popup').show();
+									$('#show_grn_no').text(result['data']);
+									if (result['tracking_code']) {
+										$('#show_tracking_code').text(result['tracking_code']);
+										$('#show_tracking_code_label').show();
+										$('#show_tracking_code').show();
+									} else {
+										$('#show_tracking_code_label').hide();
+										$('#show_tracking_code').hide();
+									}
+								} else {
+									$(".form-data-saving").hide();
+									ewFormToast('Saved Successfully', 'success', 5000);
+									setTimeout(function() {
+										window.location.href = "transaction_list.php";
+									}, 1200);
+								}
+								return true;
+							}
+							if (result && result['logout'] == 1) {
+								$(".form-data-saving").hide();
+								ewFormToast('Your session is expired! Please Log in again to continue.', 'error', 5000);
+								setTimeout(function() {
+									location.href = "logout.php";
+								}, 1500);
+								return true;
+							}
+							if (result) {
+								$(".form-data-saving").hide();
+								ewFormToast('Booking Failed', 'error', 5000);
+								return true;
+							}
+							return false;
+						}
+
 						$.ajax({
 							url: "save_details.php?id=" + attachment_id,
 							type: "post",
@@ -3830,43 +3925,21 @@ $("input[name='file_receipt[]']").each(function () {
 							contentType: false,
 							success: function(result) {
 								console.log(result);
-								if (result['result'] == 1) {
-									$(".loading-page").hide();
-									if (edit_id == '') {
-										$('.grn_no_popup').show();
-										$('#show_grn_no').text(result['data']);
-										if (result['tracking_code']) {
-											$('#show_tracking_code').text(result['tracking_code']);
-											$('#show_tracking_code_label').show();
-											$('#show_tracking_code').show();
-										} else {
-											$('#show_tracking_code_label').hide();
-											$('#show_tracking_code').hide();
-										}
-									} else {
-										$(".form-data-saving").hide();
-										ewFormToast('Saved Successfully', 'success', 5000);
-										setTimeout(function() {
-											window.location.href = "transaction_list.php";
-										}, 1200);
-									}
-
-								} else if (result['logout'] == 1) {
-									$(".form-data-saving").hide();
-									ewFormToast('Your session is expired! Please Log in again to continue.', 'error', 5000);
-									setTimeout(function() {
-										location.href = "logout.php";
-									}, 1500);
-								} else {
-									$(".form-data-saving").hide();
-									ewFormToast('Booking Failed', 'error', 5000);
-								}
-
+								handleBookingSaveResponse(result);
 							},
 							error: function(jqxhr) {
 								$(".loading-page").hide();
 								$('#save').prop("disabled", false);
 								console.log(jqxhr.responseText);
+								var result = null;
+								try {
+									if (jqxhr.responseText) {
+										result = JSON.parse(jqxhr.responseText);
+									}
+								} catch (e) {}
+								if (handleBookingSaveResponse(result)) {
+									return;
+								}
 								ewFormToast('A network error occurred. Please check the Transaction List to confirm whether this booking was saved before trying again.', 'warning', 6000);
 							}
 						});

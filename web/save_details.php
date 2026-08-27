@@ -19,6 +19,28 @@ $company_id = $_SESSION['company_id'];
 
 use Twilio\Rest\Client;
 
+function ew_send_booking_json_success($payload)
+{
+    static $sent = false;
+    if ($sent) {
+        return;
+    }
+    $sent = true;
+    $GLOBALS['ew_booking_json_sent'] = true;
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    echo json_encode($payload);
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        flush();
+    }
+}
+
 // sms setup
 // require '../plivo_sms/vendor/autoload.php';
 // use Plivo\RestClient;
@@ -1262,6 +1284,164 @@ if ($form_name == 'inacv_package') {
         echo 0;
 }
 
+// expense category master
+if ($form_name == 'add_expense_category') {
+    $category_code = strtoupper(trim($_POST['category_code'] ?? ''));
+    $category_name = trim($_POST['category_name'] ?? '');
+    $category_code = mysqli_real_escape_string($conn, $category_code);
+    $category_name = mysqli_real_escape_string($conn, $category_name);
+    $query = "INSERT INTO expense_category (category_code, category_name, created_at, created_by, status)
+        VALUES ('$category_code', '$category_name', '$created_at', '$created_by', 0)";
+    $result = mysqli_query($conn, $query);
+    echo $result ? 1 : 0;
+}
+if ($form_name == 'edit_expense_category') {
+    $edit_id = (int) ($_POST['edit_id'] ?? 0);
+    $category_code = strtoupper(trim($_POST['category_code'] ?? ''));
+    $category_name = trim($_POST['category_name'] ?? '');
+    $category_code = mysqli_real_escape_string($conn, $category_code);
+    $category_name = mysqli_real_escape_string($conn, $category_name);
+    $query = "UPDATE expense_category SET category_code='$category_code', category_name='$category_name', updated_at='$updated_at', updated_by='$updated_by' WHERE category_id='$edit_id'";
+    $result = mysqli_query($conn, $query);
+    echo $result ? 1 : 0;
+}
+if ($form_name == 'inacv_expense_category') {
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $status = (int) ($_POST['status'] ?? 0);
+    $query = "UPDATE expense_category SET status='$status', updated_at='$updated_at', updated_by='$updated_by' WHERE category_id='$id'";
+    $result = mysqli_query($conn, $query);
+    echo $result ? 1 : 0;
+}
+
+if ($form_name == 'quick_add_expense_category') {
+    require_once __DIR__ . '/include/expense_functions.php';
+    header('Content-Type: application/json; charset=utf-8');
+    $category_name = trim($_POST['category_name'] ?? '');
+    if ($category_name === '') {
+        echo json_encode(array('result' => 0, 'message' => 'Category name is required.'));
+        exit;
+    }
+    $category_code = expense_auto_category_code($conn, $category_name);
+    $category_code = mysqli_real_escape_string($conn, $category_code);
+    $category_name_esc = mysqli_real_escape_string($conn, $category_name);
+    $query = "INSERT INTO expense_category (category_code, category_name, created_at, created_by, status)
+        VALUES ('$category_code', '$category_name_esc', '$created_at', '$created_by', 0)";
+    $result = mysqli_query($conn, $query);
+    if ($result) {
+        echo json_encode(array(
+            'result' => 1,
+            'id' => (int) mysqli_insert_id($conn),
+            'name' => $category_name,
+        ));
+    } else {
+        echo json_encode(array('result' => 0, 'message' => 'Could not save category.'));
+    }
+    exit;
+}
+
+// expense vendor master
+if ($form_name == 'add_expense_vendor') {
+    $vendor_name = mysqli_real_escape_string($conn, trim($_POST['vendor_name'] ?? ''));
+    $vendor_type = mysqli_real_escape_string($conn, strtoupper(trim($_POST['vendor_type'] ?? 'OTHER')));
+    $mobile = mysqli_real_escape_string($conn, trim($_POST['mobile'] ?? ''));
+    $city = mysqli_real_escape_string($conn, trim($_POST['city'] ?? ''));
+    $query = "INSERT INTO expense_vendor (vendor_name, vendor_type, mobile, city, created_at, created_by, status)
+        VALUES ('$vendor_name', '$vendor_type', '$mobile', '$city', '$created_at', '$created_by', 0)";
+    $result = mysqli_query($conn, $query);
+    echo $result ? 1 : 0;
+}
+if ($form_name == 'edit_expense_vendor') {
+    $edit_id = (int) ($_POST['edit_id'] ?? 0);
+    $vendor_name = mysqli_real_escape_string($conn, trim($_POST['vendor_name'] ?? ''));
+    $vendor_type = mysqli_real_escape_string($conn, strtoupper(trim($_POST['vendor_type'] ?? 'OTHER')));
+    $mobile = mysqli_real_escape_string($conn, trim($_POST['mobile'] ?? ''));
+    $city = mysqli_real_escape_string($conn, trim($_POST['city'] ?? ''));
+    $query = "UPDATE expense_vendor SET vendor_name='$vendor_name', vendor_type='$vendor_type', mobile='$mobile', city='$city', updated_at='$updated_at', updated_by='$updated_by' WHERE vendor_id='$edit_id'";
+    $result = mysqli_query($conn, $query);
+    echo $result ? 1 : 0;
+}
+if ($form_name == 'inacv_expense_vendor') {
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $status = (int) ($_POST['status'] ?? 0);
+    $query = "UPDATE expense_vendor SET status='$status', updated_at='$updated_at', updated_by='$updated_by' WHERE vendor_id='$id'";
+    $result = mysqli_query($conn, $query);
+    echo $result ? 1 : 0;
+}
+
+if ($form_name == 'quick_add_expense_vendor') {
+    header('Content-Type: application/json; charset=utf-8');
+    $vendor_name = trim($_POST['vendor_name'] ?? '');
+    $vendor_type = strtoupper(trim($_POST['vendor_type'] ?? 'OTHER'));
+    if ($vendor_name === '') {
+        echo json_encode(array('result' => 0, 'message' => 'Paid-to name is required.'));
+        exit;
+    }
+    if (!in_array($vendor_type, array('DRIVER', 'AGENT', 'HALTING', 'OTHER'), true)) {
+        $vendor_type = 'OTHER';
+    }
+    $vendor_name_esc = mysqli_real_escape_string($conn, $vendor_name);
+    $vendor_type_esc = mysqli_real_escape_string($conn, $vendor_type);
+    $query = "INSERT INTO expense_vendor (vendor_name, vendor_type, mobile, city, created_at, created_by, status)
+        VALUES ('$vendor_name_esc', '$vendor_type_esc', '', '', '$created_at', '$created_by', 0)";
+    $result = mysqli_query($conn, $query);
+    if ($result) {
+        echo json_encode(array(
+            'result' => 1,
+            'id' => (int) mysqli_insert_id($conn),
+            'name' => $vendor_name,
+        ));
+    } else {
+        echo json_encode(array('result' => 0, 'message' => 'Could not save paid-to party.'));
+    }
+    exit;
+}
+
+// extra expense (GCN linked)
+if ($form_name == 'add_extra_expense' || $form_name == 'edit_extra_expense') {
+    require_once __DIR__ . '/include/expense_functions.php';
+    $expense_date = trim($_POST['expense_date'] ?? '');
+    $grn_no = trim($_POST['grn_no'] ?? '');
+    $transaction_id = (int) ($_POST['transaction_id'] ?? 0);
+    $trans_table = trim($_POST['trans_table'] ?? '');
+    $category_id = (int) ($_POST['category_id'] ?? 0);
+    $vendor_id = (int) ($_POST['vendor_id'] ?? 0);
+    $amount = round((float) ($_POST['amount'] ?? 0));
+    $payment_mode = mysqli_real_escape_string($conn, strtoupper(trim($_POST['payment_mode'] ?? 'CASH')));
+    $paid_by = mysqli_real_escape_string($conn, trim($_POST['paid_by'] ?? ''));
+    $description = mysqli_real_escape_string($conn, trim($_POST['description'] ?? ''));
+    $edit_id = (int) ($_POST['edit_id'] ?? 0);
+
+    if ($grn_no === '' || $category_id <= 0 || $vendor_id <= 0 || $amount <= 0) {
+        echo 'Please fill all required fields.';
+        exit;
+    }
+
+    $lookup = expense_lookup_grn($conn, $grn_no);
+    if ($lookup['status'] != 1) {
+        echo $lookup['message'];
+        exit;
+    }
+
+    $grn_esc = mysqli_real_escape_string($conn, $grn_no);
+    $trans_table_esc = mysqli_real_escape_string($conn, $trans_table);
+    $expense_date_esc = mysqli_real_escape_string($conn, $expense_date);
+
+    if ($form_name == 'edit_extra_expense' && $edit_id > 0) {
+        $query = "UPDATE extra_expense SET expense_date='$expense_date_esc', category_id='$category_id', vendor_id='$vendor_id', amount='$amount', payment_mode='$payment_mode', paid_by='$paid_by', description='$description', updated_at='$updated_at', updated_by='$updated_by' WHERE expense_id='$edit_id' AND status=0";
+        $result = mysqli_query($conn, $query);
+        echo $result ? 1 : 0;
+        exit;
+    }
+
+    $expense_no = expense_next_number($conn, $expense_date);
+    $expense_no_esc = mysqli_real_escape_string($conn, $expense_no);
+    $query = "INSERT INTO extra_expense (expense_no, expense_date, grn_no, transaction_id, trans_table, category_id, vendor_id, amount, payment_mode, paid_by, description, status, created_at, created_by)
+        VALUES ('$expense_no_esc', '$expense_date_esc', '$grn_esc', '$transaction_id', '$trans_table_esc', '$category_id', '$vendor_id', '$amount', '$payment_mode', '$paid_by', '$description', 0, '$created_at', '$created_by')";
+    $result = mysqli_query($conn, $query);
+    echo $result ? 1 : 0;
+    exit;
+}
+
 // vehicle
 if ($form_name == 'add_vehicle') {
     extract($_POST);
@@ -1750,6 +1930,7 @@ VALUES
 // Consignment Booking
 if ($form_name == 'add_new_consignment') {
     $out_put = array();
+    ob_start();
     require_once('include/gst_tax_functions.php');
     $_POST = gst_tax_normalize_booking_charges($_POST);
     extract($_POST);
@@ -1993,6 +2174,7 @@ $invoice_id = 0;
 
         // Qrcode Start
         // require 'vendor/autoload.php'; For Barcode
+        ob_start();
         include('libs/phpqrcode/qrlib.php');
         $result_bar = [];
 
@@ -2085,6 +2267,7 @@ $invoice_id = 0;
             }
         }
         // Qrcode End
+        ob_end_clean();
 
         $invoice_id = mysqli_insert_id($conn);
 
@@ -2131,6 +2314,12 @@ $attachment_sql = ($attachment_id === null)
     die(mysqli_error($conn));
 }
             }
+
+            ew_send_booking_json_success(array(
+                'result' => 1,
+                'data' => $grn_num1,
+                'tracking_code' => $tracking_code,
+            ));
 
             $inv = '';
             for ($i = 0; $i < count($party_invoice); $i++) {
@@ -2438,7 +2627,12 @@ $attachment_sql = ($attachment_id === null)
         $out_put['logout'] = 1;
     }
 
-    echo json_encode($out_put);
+    if (empty($GLOBALS['ew_booking_json_sent'])) {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        echo json_encode($out_put);
+    }
 }
 
 // Consignment Booking manual
@@ -3502,7 +3696,7 @@ if ($form_name == 'edit_consignment_details') {
     if ($billing_only_edit) {
         $status_q = mysqli_query($conn, "SELECT status FROM {$tables[0]} WHERE transaction_id='" . mysqli_real_escape_string($conn, $edit_tid) . "' LIMIT 1");
         $status_row = mysqli_fetch_assoc($status_q);
-        if ((int) ($status_row['status'] ?? 0) < 8) {
+        if ((int) ($status_row['status'] ?? 0) !== 8) {
             $billing_only_edit = false;
         }
     }
