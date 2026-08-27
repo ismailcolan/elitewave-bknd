@@ -1,6 +1,7 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+require_once ('include/billing_functions.php');
 $logged_id = $_SESSION['user_id'];
 ?>
 <!DOCTYPE html>
@@ -416,6 +417,8 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                         $updated_at = $row['updated_at'];
                                         $pkg_q = mysqli_query($conn, 'select sum(no_of_pkge) as pkge from transaction_invoice_' . $m1 . '_' . $dt[2] . " where transaction_id='" . $row['transaction_id'] . "' ");
                                         $pkg_r = mysqli_fetch_array($pkg_q);
+                                        $trans_table_name = 'transaction_' . $m1 . '_' . $dt[2];
+                                        $gcn_billed = booking_is_gcn_billed($conn, $trans_table_name, $row['transaction_id']);
                                         ?>
                                         <tr>
                                             <td class="text-center"><?php echo $i; ?></td>
@@ -537,6 +540,10 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                         <a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="<?php echo $row['transaction_id']; ?>" readonly><i class="fa fa-pencil"></i></a>
                                                             <!-- <a title="Pay at Booking" href="#" class="table-actions btn-edit edit_disabled" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a> -->
 
+                                                        <?php
+                                                        } elseif ($gcn_billed) {
+                                                            ?>
+                                                        <a title="Invoiced — edit locked" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="<?php echo $row['transaction_id']; ?>" readonly><i class="fa fa-pencil"></i></a>
                                                         <?php
                                                         } else {
                                                             $edit_title = ((int) $status === 8) ? 'Edit Payment / Billing' : 'Edit';

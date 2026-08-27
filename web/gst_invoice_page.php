@@ -13,6 +13,12 @@ $result = mysqli_query($conn, $query);
 $row    = mysqli_fetch_assoc($result);
 extract($row);
 
+require_once __DIR__ . '/include/gst_invoice_pdf_layout.php';
+$transport_types = gst_invoice_resolve_transport_types($conn, $row);
+$vehicle_type = $transport_types['vehicle_type'];
+$premium_train_type = $transport_types['premium_train_type'];
+$premium_airlines_type = $transport_types['premium_airlines_type'];
+
 $invoice_date = $grn_date;
 $unique_invoice_no = ($unique_invoice_no != '') ? $unique_invoice_no : $invoice_no;
 

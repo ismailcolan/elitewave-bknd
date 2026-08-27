@@ -28,11 +28,11 @@ li.light-blue:hover .user-menu.dropdown-menu-right {
 }
 
 span.required {
-    color: #F00;
+    color: #DD111E;
     font-size: 15px;
 }
 label.error {
-    color: #F00;
+    color: #DD111E;
     font-size: 12px;
     padding-top: 10px;
     padding-left: 10px;
@@ -85,7 +85,7 @@ td.total-cost {
 .login-error {
     text-align: center;
     width: 100%;
-	color: #F00;
+	color: #DD111E;
     font-weight: bold;
     display: none;
 }

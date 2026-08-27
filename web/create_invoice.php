@@ -26,18 +26,65 @@ $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 			font-weight: 700;
 		}
 		.invoice-header-bar i { margin-right: 8px; }
-		.filter-section { padding: 24px 20px 20px; border: 1px solid #e9ecef; border-top: none; }
-		.filter-form-wrap { max-width: 960px; margin: 0 auto; }
-		.filter-row { margin-bottom: 14px; }
-		.filter-label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #333; }
-		.invoice-meta-box {
+		.filter-section { padding: 24px 24px 28px; border: 1px solid #e9ecef; border-top: none; background: #fff; }
+		.filter-form-wrap { max-width: 980px; margin: 0 auto; }
+		.filter-row { margin-bottom: 16px; }
+		.filter-row .form-group { margin-bottom: 0; width: 100%; }
+		.filter-label {
+			display: block;
+			font-weight: 600;
+			font-size: 13px;
+			margin-bottom: 7px;
+			color: #1e293b;
+		}
+		.filter-label .required-star { color: #dc2626; }
+		.field-hint {
+			display: block;
+			margin-top: 6px;
+			font-size: 12px;
+			color: #64748b;
+			line-height: 1.4;
+		}
+		.invoice-top-meta {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: flex-end;
+			gap: 20px 28px;
+			padding-bottom: 20px;
+			margin-bottom: 20px;
+			border-bottom: 1px solid #e9ecef;
+		}
+		.invoice-top-meta .meta-block { flex: 1 1 180px; min-width: 0; }
+		.invoice-top-meta .meta-block-date { flex: 0 1 200px; }
+		.invoice-top-meta .meta-block-actions { flex: 0 0 auto; margin-left: auto; }
+		#invoice_no_preview {
+			display: inline-block;
+			min-width: 220px;
+			padding: 9px 16px;
+			font-size: 15px;
+			font-weight: 700;
+			color: #0A1E3D;
+			background: linear-gradient(135deg, #f0f4ff 0%, #e8eef8 100%);
+			border: 2px solid #0A1E3D;
+			border-radius: 8px;
+			letter-spacing: 0.04em;
+			box-shadow: 0 1px 3px rgba(10, 30, 61, 0.08);
+		}
+		.invoice-select-panel {
 			background: #f8fafc;
 			border: 1px solid #e5e7eb;
-			border-radius: 8px;
-			padding: 14px 16px;
-			margin-bottom: 16px;
+			border-radius: 10px;
+			padding: 18px 20px 14px;
 		}
-		.invoice-meta-box .meta-val { font-weight: 700; color: #0A1E3D; font-size: 15px; }
+		.invoice-select-panel-title {
+			font-size: 12px;
+			font-weight: 700;
+			color: #64748b;
+			text-transform: uppercase;
+			letter-spacing: 0.06em;
+			margin: 0 0 14px;
+		}
+		.invoice-select-panel-title i { margin-right: 6px; color: #0A1E3D; }
 		.billing-type-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 		.billing-type-section { margin-bottom: 10px; }
 		.billing-type-section-title {
@@ -66,26 +113,204 @@ $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 			border-color: #0A1E3D;
 			color: #fff;
 		}
-		#lines_table { font-size: 12px; }
-		#lines_table th { background: #0A1E3D; color: #fff; white-space: nowrap; font-size: 11px; }
-		#lines_table td { vertical-align: middle; white-space: nowrap; }
-		#lines_table .num { text-align: right; }
-		.summary-panel {
-			margin-top: 16px;
-			padding: 14px 16px;
-			background: #f8fafc;
-			border: 1px solid #e5e7eb;
-			border-radius: 8px;
-			font-size: 13px;
+		#lines_table { font-size: 12px; margin-bottom: 0; border-collapse: collapse; width: 100%; }
+		#lines_table th {
+			background: #0A1E3D !important;
+			color: #fff !important;
+			white-space: nowrap;
+			font-size: 11px;
+			font-weight: 600;
+			padding: 8px 6px;
+			border: none !important;
+			border-bottom: 2px solid #061528 !important;
 		}
-		.summary-panel .row-line { display: flex; justify-content: space-between; padding: 4px 0; }
-		.summary-panel .grand { font-weight: 700; font-size: 15px; color: #0A1E3D; border-top: 1px solid #e5e7eb; margin-top: 8px; padding-top: 8px; }
+		#lines_table td {
+			vertical-align: middle;
+			white-space: nowrap;
+			padding: 6px 6px;
+			border: none !important;
+			border-bottom: 1px solid #e9ecef !important;
+			background: #fff;
+		}
+		#lines_table tbody tr:nth-child(even) td { background: #f9fafb; }
+		#lines_table tfoot td {
+			background: #f8fafc;
+			font-weight: 700;
+			border: none !important;
+			border-top: 2px solid #dee2e6 !important;
+		}
+		#lines_table tfoot .totals-row td.text-right { text-align: right !important; }
+		#lines_table .num { text-align: right; }
+		#lines_table th.col-actions,
+		#lines_table td.col-actions {
+			width: 44px;
+			min-width: 44px;
+			max-width: 44px;
+			text-align: center;
+			padding: 4px 2px !important;
+		}
+		#lines_table .col-actions .act-remove {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 26px;
+			height: 26px;
+			border: none !important;
+			border-radius: 4px;
+			background: #fee2e2;
+			color: #dc2626;
+			text-decoration: none !important;
+			cursor: pointer;
+		}
+		#lines_table .col-actions .act-remove:hover { background: #fecaca; color: #b91c1c; }
 		.btn-row { margin-top: 20px; }
 		.btn1 { font-weight: 600; padding: 8px 20px !important; border-radius: 4px !important; margin-right: 8px; }
 		.table-section { display: none; margin-top: 20px; }
-		.filter-section .select2-container { width: 100% !important; }
+		.table-scroll-wrapper {
+			overflow-x: auto;
+			border: 1px solid #e5e7eb;
+			border-radius: 6px;
+		}
+		.filter-row .form-group { margin-bottom: 0; width: 100%; }
+		.filter-section select.form-control,
+		.filter-section select.filter-select {
+			display: block;
+			width: 100% !important;
+			height: 38px !important;
+			min-height: 38px;
+			border: 1px solid #D8DDE5 !important;
+			border-radius: 8px !important;
+			background: #fff !important;
+			padding: 4px 8px;
+			font-size: 13px;
+			color: #334155;
+			box-shadow: none;
+		}
+		.filter-section .select2-container .select2-choice {
+			height: 38px !important;
+			line-height: 36px !important;
+			border: 1px solid #D8DDE5 !important;
+			border-radius: 8px !important;
+			background: #fff !important;
+			padding: 0 0 0 10px !important;
+			color: #334155;
+			box-shadow: none !important;
+		}
+		.filter-section .select2-container .select2-choice .select2-arrow {
+			border-left: 1px solid #D8DDE5 !important;
+			background: #f8fafc !important;
+			width: 30px !important;
+			border-radius: 0 8px 8px 0 !important;
+		}
+		.filter-section .select2-container .select2-choice > span:first-child {
+			line-height: 36px !important;
+			padding-right: 32px;
+			font-size: 13px;
+		}
+		.filter-section .select2-container .select2-choice abbr {
+			display: none !important;
+		}
+		.filter-section .select2-default,
+		.filter-section .select2-container .select2-choice > span.select2-default,
+		.filter-section .select2-container-multi .select2-choices .select2-search-field input.select2-input {
+			color: #94a3b8 !important;
+		}
+		.filter-section .select2-container {
+			display: block !important;
+			width: 100% !important;
+			max-width: 100% !important;
+			min-width: 0 !important;
+		}
 		.filter-section .select2-container-multi .select2-choices {
-			min-height: 38px !important; border: 1px solid #D8DDE5; border-radius: 8px; background: #fff;
+			min-height: 38px !important;
+			height: 38px !important;
+			max-height: 38px !important;
+			overflow-x: auto !important;
+			overflow-y: hidden !important;
+			white-space: nowrap !important;
+			padding: 3px 6px !important;
+			border: 1px solid #D8DDE5 !important;
+			border-radius: 8px !important;
+			background: #fff !important;
+		}
+		.filter-section .select2-container-multi .select2-choices li {
+			float: none !important;
+			display: inline-block !important;
+			vertical-align: middle;
+			white-space: nowrap;
+		}
+		.filter-section .select2-container-multi .select2-choices .select2-search-field {
+			width: 100% !important;
+			margin: 0;
+			padding: 0;
+		}
+		.filter-section .select2-container-multi .select2-choices .select2-search-field input {
+			width: 100% !important;
+			min-width: 100% !important;
+			max-width: none !important;
+			padding: 0 8px !important;
+			height: 30px !important;
+			margin: 0 !important;
+			line-height: 30px !important;
+			font-size: 13px !important;
+			box-sizing: border-box;
+		}
+		.filter-section .select2-container-multi .select2-choices .select2-search-choice ~ .select2-search-field {
+			width: auto !important;
+		}
+		.filter-section .select2-container-multi .select2-choices .select2-search-choice ~ .select2-search-field input {
+			width: 20px !important;
+			min-width: 20px !important;
+			max-width: 80px !important;
+		}
+		.filter-section .select2-container-multi .select2-choices .select2-search-choice {
+			position: relative;
+			margin: 2px 4px 2px 0 !important;
+			padding: 3px 22px 3px 8px !important;
+			line-height: 18px !important;
+			max-width: 200px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			background: #e8edf3 !important;
+			border: 1px solid #c5ced8 !important;
+			border-radius: 3px;
+			color: #333;
+			font-size: 12px;
+		}
+		.filter-section .select2-container-multi .select2-choices .select2-search-choice div {
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		.filter-section .select2-container-multi .select2-choices .select2-search-choice-close,
+		.filter-section .select2-search-choice-close {
+			display: block !important;
+			position: absolute !important;
+			right: 4px !important;
+			left: auto !important;
+			top: 50% !important;
+			width: 14px !important;
+			height: 14px !important;
+			margin-top: -7px !important;
+			background: none !important;
+			background-image: none !important;
+			font-size: 0 !important;
+			line-height: 12px !important;
+			text-align: center;
+			text-decoration: none !important;
+			color: #555 !important;
+			opacity: 1 !important;
+			z-index: 2;
+		}
+		.filter-section .select2-container-multi .select2-choices .select2-search-choice-close:before,
+		.filter-section .select2-search-choice-close:before {
+			content: "\00d7";
+			font-family: Arial, sans-serif;
+			font-weight: 700;
+			color: #444;
+			font-size: 15px;
+		}
+		.filter-section .select2-container-multi .select2-choices .select2-search-choice-close:hover:before {
+			color: #c00;
 		}
 		.search-gcn-row { margin-top: 4px; }
 		#btn_search_gcn { min-width: 120px; font-weight: 600; }
@@ -106,41 +331,42 @@ $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 						<div class="filter-form-wrap">
 							<input type="hidden" id="billing_invoice_id" value="<?php echo $edit_id; ?>">
 
-							<div class="row filter-row">
-								<div class="col-md-4 col-sm-6">
+							<div class="invoice-top-meta">
+								<div class="meta-block">
 									<label class="filter-label">Invoice No</label>
-									<div class="meta-val" id="invoice_no_preview"><?php echo htmlspecialchars($preview_no); ?></div>
+									<div id="invoice_no_preview"><?php echo htmlspecialchars($preview_no); ?></div>
 								</div>
-								<div class="col-md-4 col-sm-6">
+								<div class="meta-block meta-block-date">
 									<label class="filter-label">Date <span class="required-star">*</span></label>
 									<?php echo ew_date_input(array('id' => 'invoice_date', 'value' => $c_date, 'required' => true, 'readonly' => true)); ?>
 								</div>
-								<div class="col-md-4 col-sm-12 text-right" style="padding-top: 22px;">
+								<div class="meta-block meta-block-actions">
 									<a href="#" class="btn btn-success btn1" id="btn_pdf_download" target="_blank"><i class="fa fa-download"></i> Download PDF</a>
 								</div>
 							</div>
 
-							<div class="invoice-meta-box">
-							<div class="row filter-row">
-								<div class="col-md-6">
-									<div class="form-group">
-										<label class="filter-label">Select Customer <span class="required-star">*</span></label>
-										<select id="customers" class="form-control">
-											<option value="">Select Customer</option>
-											<?php while ($cust = mysqli_fetch_assoc($customers_q)) { ?>
-												<option value="<?php echo (int) $cust['client_id']; ?>"><?php echo htmlspecialchars($cust['client_company_name']); ?></option>
-											<?php } ?>
-										</select>
+							<div class="invoice-select-panel">
+								<div class="invoice-select-panel-title"><i class="fa fa-filter"></i> Select Consignments</div>
+								<div class="row filter-row">
+									<div class="col-md-6">
+										<div class="form-group">
+											<label class="filter-label">Select Customer <span class="required-star">*</span></label>
+											<select id="customers" class="form-control filter-select">
+												<option value=""></option>
+												<?php while ($cust = mysqli_fetch_assoc($customers_q)) { ?>
+													<option value="<?php echo (int) $cust['client_id']; ?>"><?php echo htmlspecialchars($cust['client_company_name']); ?></option>
+												<?php } ?>
+											</select>
+										</div>
+									</div>
+									<div class="col-md-6">
+										<div class="form-group">
+											<label class="filter-label">GCN No <span class="required-star">*</span></label>
+											<select id="gcn_keys" class="form-control filter-select" multiple="multiple"></select>
+											<small class="field-hint" id="gcn_result_hint">Select a customer to load delivered GCNs. GCNs already used on an invoice are not shown.</small>
+										</div>
 									</div>
 								</div>
-								<div class="col-md-6">
-									<div class="form-group">
-										<label class="filter-label">GCN No <span class="required-star">*</span></label>
-										<select id="gcn_keys" class="form-control" multiple></select>
-										<small class="text-muted" id="gcn_result_hint">Select a customer to load delivered GCNs.</small>
-									</div>
-								</div>
-							</div>
 							</div>
 						</div>
 					</div>
@@ -150,17 +376,18 @@ $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 					<div class="heading"><i class="fa fa-table"></i> Invoice Consignment Details</div>
 					<div class="widget-content padded clearfix">
 						<div class="table-scroll-wrapper">
-							<table class="table table-bordered table-striped" id="lines_table">
+							<table class="table" id="lines_table">
 								<thead>
 									<tr>
 										<th>S.No</th><th>GCN No</th><th>Date</th><th>Sender</th><th>Receiver</th>
-										<th>Pkgs</th><th>Weight</th><th>Freight</th><th>Other</th><th>GST</th><th>Total</th><th>Billing Type</th><th></th>
+										<th>Pkgs</th><th>Weight</th><th>Freight</th><th>Taxable</th>
+										<th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th><th>Billing Type</th><th class="col-actions"></th>
 									</tr>
 								</thead>
 								<tbody id="lines_body"></tbody>
+								<tfoot id="lines_foot"></tfoot>
 							</table>
 						</div>
-						<div class="summary-panel" id="summary_panel"></div>
 						<div class="btn-row">
 							<button type="button" class="btn btn-default btn1" id="btn_cancel">Cancel</button>
 							<button type="button" class="btn btn-warning btn1" id="btn_draft">Save as Draft</button>
@@ -219,6 +446,24 @@ function refreshInvoiceNo() {
 	});
 }
 
+function initCustomerSelect(selectedVal) {
+	var $el = $('#customers');
+	if ($el.data('select2')) {
+		$el.select2('destroy');
+	}
+	$el.select2({
+		width: '100%',
+		placeholder: '--- Select Customer ---',
+		allowClear: false,
+		minimumResultsForSearch: 8
+	});
+	if (selectedVal) {
+		$el.select2('val', String(selectedVal));
+	} else {
+		$el.select2('val', '');
+	}
+}
+
 function refreshGcnSelect(html, hint) {
 	var $el = $('#gcn_keys');
 	if ($el.data('select2')) {
@@ -226,7 +471,12 @@ function refreshGcnSelect(html, hint) {
 		$el.select2('destroy');
 	}
 	$el.html(html || '');
-	$el.select2({ width: '100%', placeholder: 'Select GCN(s)' });
+	$el.select2({
+		width: '100%',
+		placeholder: '--- Select GCN(s) ---',
+		closeOnSelect: false,
+		allowClear: true
+	});
 	$el.on('change', loadLineDetails);
 	if (hint) {
 		$('#gcn_result_hint').text(hint);
@@ -259,7 +509,7 @@ function loadGcnOptions(selectKeys) {
 			return;
 		}
 		$.each(rows, function(i, row) {
-			opts += '<option value="' + escHtml(row.key) + '">' + escHtml(row.label) + '</option>';
+			opts += '<option value="' + escHtml(row.key) + '" title="' + escHtml(row.label) + '">' + escHtml(row.grn_no) + '</option>';
 		});
 		refreshGcnSelect(opts, rows.length + ' delivered GCN(s) found. Select one or more.');
 		if (selectKeys && selectKeys.length) {
@@ -286,34 +536,46 @@ function renderLines(lines, summary) {
 		html += '<td class="num">' + escHtml(r.packages) + '</td>';
 		html += '<td class="num">' + escHtml(r.weight) + '</td>';
 		html += '<td class="num">' + escHtml(r.freight_amount) + '</td>';
-		html += '<td class="num">' + escHtml(r.other_charges) + '</td>';
-		html += '<td class="num">' + escHtml(r.gst_amount) + '</td>';
+		html += '<td class="num">' + escHtml(r.taxable_value) + '</td>';
+		html += '<td class="num">' + escHtml(r.cgst_amount) + '</td>';
+		html += '<td class="num">' + escHtml(r.sgst_amount) + '</td>';
+		html += '<td class="num">' + escHtml(r.igst_amount) + '</td>';
 		html += '<td class="num">' + escHtml(r.total_amount) + '</td>';
 		html += '<td>' + escHtml(r.billing_type_label || r.billing_type) + '</td>';
-		html += '<td><button type="button" class="btn btn-xs btn-danger btn-remove-line" data-key="' + escHtml(r.key) + '"><i class="fa fa-times"></i></button></td>';
+		html += '<td class="col-actions"><a href="#" class="act-remove btn-remove-line" data-key="' + escHtml(r.key) + '" title="Remove"><i class="fa fa-times"></i></a></td>';
 		html += '</tr>';
 	});
 	$('#lines_body').html(html);
 
 	if (!invoiceLines.length) {
 		$('#table_section').hide();
-		$('#summary_panel').html('');
+		$('#lines_foot').html('');
 		return;
 	}
 	$('#table_section').show();
 
 	summary = summary || {};
-	var shtml = '';
-	shtml += '<div class="row-line"><span>Total Freight</span><strong>' + escHtml(summary.total_freight || '0.00') + '</strong></div>';
-	shtml += '<div class="row-line"><span>Total Other Charges</span><strong>' + escHtml(summary.total_other || '0.00') + '</strong></div>';
-	shtml += '<div class="row-line"><span>Taxable Amount</span><strong>' + escHtml(summary.taxable_value || '0.00') + '</strong></div>';
-	shtml += '<div class="row-line"><span>CGST</span><strong>' + escHtml(summary.cgst_amount || '0.00') + '</strong></div>';
-	shtml += '<div class="row-line"><span>SGST / UTGST</span><strong>' + escHtml(summary.sgst_amount || '0.00') + '</strong></div>';
-	shtml += '<div class="row-line"><span>IGST</span><strong>' + escHtml(summary.igst_amount || '0.00') + '</strong></div>';
-	shtml += '<div class="row-line"><span>Cess</span><strong>' + escHtml(summary.cess_amount || '0.00') + '</strong></div>';
-	shtml += '<div class="row-line"><span>Total GST</span><strong>' + escHtml(summary.gst_amount || '0.00') + '</strong></div>';
-	shtml += '<div class="row-line grand"><span>Grand Total</span><strong>' + escHtml(summary.grand_total || '0.00') + '</strong></div>';
-	$('#summary_panel').html(shtml);
+	var totalPkgs = 0;
+	var totalWeight = 0;
+	$.each(invoiceLines, function(i, r) {
+		totalPkgs += parseInt(r.packages, 10) || 0;
+		totalWeight += parseFloat(String(r.weight).replace(/,/g, '')) || 0;
+	});
+
+	var foot = '';
+	foot += '<tr class="totals-row">';
+	foot += '<td colspan="5" class="text-right"><strong>Total</strong></td>';
+	foot += '<td class="num"><strong>' + totalPkgs + '</strong></td>';
+	foot += '<td class="num"><strong>' + totalWeight.toFixed(2) + '</strong></td>';
+	foot += '<td class="num"><strong>' + escHtml(summary.total_freight || '0.00') + '</strong></td>';
+	foot += '<td class="num"><strong>' + escHtml(summary.taxable_value || '0.00') + '</strong></td>';
+	foot += '<td class="num"><strong>' + escHtml(summary.cgst_amount || '0.00') + '</strong></td>';
+	foot += '<td class="num"><strong>' + escHtml(summary.sgst_amount || '0.00') + '</strong></td>';
+	foot += '<td class="num"><strong>' + escHtml(summary.igst_amount || '0.00') + '</strong></td>';
+	foot += '<td class="num"><strong>' + escHtml(summary.grand_total || '0.00') + '</strong></td>';
+	foot += '<td></td><td class="col-actions"></td>';
+	foot += '</tr>';
+	$('#lines_foot').html(foot);
 }
 
 function loadLineDetails() {
@@ -381,7 +643,7 @@ function saveInvoice(status) {
 }
 
 $(document).ready(function() {
-	$('#customers').select2({ width: '100%', placeholder: 'Select Customer', allowClear: true });
+	initCustomerSelect('');
 	refreshGcnSelect('', 'Select a customer to load delivered GCNs.');
 
 	$(document).on('change', '#invoice_date', refreshInvoiceNo);
@@ -389,7 +651,8 @@ $(document).ready(function() {
 		loadGcnOptions();
 	});
 
-	$(document).on('click', '.btn-remove-line', function() {
+	$(document).on('click', '.btn-remove-line', function(e) {
+		e.preventDefault();
 		var key = $(this).data('key');
 		var vals = $('#gcn_keys').val() || [];
 		vals = $.grep(vals, function(v) { return v !== key; });
@@ -407,7 +670,7 @@ $(document).ready(function() {
 		$('#invoice_no_preview').text(r.master.invoice_no || $('#invoice_no_preview').text());
 		updatePdfButton(<?php echo $edit_id; ?>, r.master.status);
 		if (r.master.customer_id) {
-			$('#customers').val(String(r.master.customer_id)).trigger('change.select2');
+			initCustomerSelect(r.master.customer_id);
 			var draftKeys = $.map(r.lines || [], function(l) { return l.key; });
 			loadGcnOptions(draftKeys);
 		}

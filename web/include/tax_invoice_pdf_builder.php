@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/billing_functions.php';
 require_once __DIR__ . '/gst_invoice_pdf_footer.php';
+require_once __DIR__ . '/gst_invoice_pdf_layout.php';
 
 function tax_invoice_fmt_addr($det, $conn)
 {
@@ -66,9 +67,11 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
     $rows_html = '';
     $sno = 1;
     $gcn_count = 0;
-    $vehicle_type = '';
-    $premium_train_type = '';
-    $premium_airlines_type = '';
+    $transport_types = array(
+        'vehicle_type' => '',
+        'premium_train_type' => '',
+        'premium_airlines_type' => '',
+    );
 
     foreach ($details as $detail) {
         $tbl = preg_replace('/[^a-zA-Z0-9_]/', '', $detail['trans_table']);
@@ -77,6 +80,11 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
         if (!$tq || !($trow = mysqli_fetch_assoc($tq))) {
             continue;
         }
+
+        $transport_types = gst_invoice_merge_transport_types(
+            $transport_types,
+            gst_invoice_resolve_transport_types($conn, $trow)
+        );
 
         $inv_tbl = str_replace('transaction_', 'transaction_invoice_', $tbl);
         $item = array('qty' => $detail['packages'], 'charged_weight' => $detail['weight'], 'party_invoice_no' => '', 'frieght_rate' => $trow['frieght_rate']);
@@ -96,13 +104,6 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
         $consignee_addr_html = tax_invoice_fmt_addr($consignee_det ?: array(), $conn);
         $consignee_gst = $consignee_det['gst_no'] ?? '';
 
-        if ($vehicle_type === '' && !empty($trow['ftl_type'])) {
-            $vehicle_type = $trow['ftl_type'];
-        }
-        if ($premium_train_type === '' && !empty($trow['train_type'])) {
-            $premium_train_type = $trow['train_type'];
-        }
-
         $sum_qty += $qty;
         $sum_weight += $weight;
         $sum_freight += $freight;
@@ -110,27 +111,29 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
         $sum_total_line += $total_line;
         $gcn_count++;
 
-        $rows_html .= '<tr>
-            <td style="border:1px solid #000;padding:3px;text-align:center;">' . $sno . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:center;">' . htmlspecialchars($detail['grn_no']) . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:center;">' . htmlspecialchars($detail['grn_date']) . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:center;">' . $qty . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:center;">' . $weight . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:center;">' . $rate . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:center;">' . htmlspecialchars(get_client_name($conn, $trow['consigner'])) . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:left;font-size:7pt;">' . htmlspecialchars(get_client_name($conn, $trow['consignee'])) . '<br>' . $consignee_addr_html . '<br>GSTIN : ' . htmlspecialchars($consignee_gst) . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:center;font-size:7pt;">' . htmlspecialchars($mode_name) . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:center;">' . htmlspecialchars($item['party_invoice_no'] ?? '') . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:right;">' . number_format($freight, 2) . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:right;">' . number_format($dc, 2) . '</td>
-            <td style="border:1px solid #000;padding:3px;text-align:right;">' . number_format($total_line, 2) . '</td>
-        </tr>';
+        $rows_html .= '
+<tr>
+    <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;">' . $sno . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;">' . htmlspecialchars($detail['grn_no']) . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;">' . htmlspecialchars($detail['grn_date']) . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;">' . $qty . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;">' . $weight . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;">' . $rate . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;">' . htmlspecialchars(get_client_name($conn, $trow['consigner'])) . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:left;vertical-align:top;font-size:7pt;">' . htmlspecialchars(get_client_name($conn, $trow['consignee'])) . '<br>' . $consignee_addr_html . '<br>GSTIN : ' . htmlspecialchars($consignee_gst) . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;font-size:7pt;">' . htmlspecialchars($mode_name) . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;">' . htmlspecialchars($item['party_invoice_no'] ?? '') . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:right;vertical-align:top;">' . number_format($freight, 2) . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:right;vertical-align:top;">' . number_format($dc, 2) . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:right;vertical-align:top;">' . number_format($total_line, 2) . '</td>
+</tr>';
         $sno++;
     }
 
     $cgst_amt = (float) $master['cgst_amount'];
     $sgst_amt = (float) $master['sgst_amount'];
     $igst_amt = (float) $master['igst_amount'];
+    $cess_amt = (float) ($master['cess_amount'] ?? 0);
     $taxable = (float) $master['taxable_value'];
     $grand_total = (float) $master['grand_total'];
     $is_same_state = ($cgst_amt > 0 || $sgst_amt > 0);
@@ -139,102 +142,135 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
     $sgst_rate = $taxable > 0 ? round(($sgst_amt / $taxable) * 100, 2) : 0;
     $igst_rate = $taxable > 0 ? round(($igst_amt / $taxable) * 100, 2) : 0;
 
-    $round_off = 0;
+    $computed_total = $taxable + $cgst_amt + $sgst_amt + $igst_amt + $cess_amt;
+    $round_off = round($grand_total - $computed_total, 2);
+    if (abs($round_off) < 0.01) {
+        $round_off = 0;
+    }
     $total_words = $master['total_words'] ?: gst_tax_report_amount_in_words($grand_total);
     $current_date = date('Y.m.d H:i:s O');
 
-    $css = '<style>body{font-family:freesans;font-size:7.5pt;}table{border-collapse:collapse;}td{font-family:freesans;font-size:7.5pt;vertical-align:middle;}b,strong{font-weight:bold;}</style>';
-    $html = $css;
+    $html = gst_invoice_pdf_css();
 
-    $html .= '<table style="width:100%;border-collapse:collapse;border:1px solid #000;"><tr>
-        <td style="width:20%;"></td>
-        <td style="width:55%;text-align:center;font-size:14pt;font-weight:bold;">TAX INVOICE</td>
-        <td style="width:25%;text-align:right;font-weight:bold;font-size:9pt;">(ORIGINAL COPY)</td>
-    </tr></table>';
+    $html .= '
+<table style="width:100%;border-collapse:collapse;border-right:1px solid #000;border-left:1px solid #000;border-top:1px solid #000;">
+<tr>
+    <td style="width:20%;text-align:center;vertical-align:middle;padding-left:240px;"></td>
+    <td style="width:55%;text-align:center;vertical-align:middle;">
+        <div style="font-size:14pt;font-weight:bold;line-height:18px;padding-left:700px;">TAX INVOICE</div>
+    </td>
+    <td style="width:25%;font-weight:bold;text-align:right;vertical-align:top;font-size:9pt;padding-left:5px;">(ORIGINAL COPY)</td>
+</tr>
+</table>';
 
-    $html .= '<table style="width:100%;border-collapse:collapse;border-left:1px solid #000;border-right:1px solid #000;">
-        <tr>
-            <td style="width:20%;text-align:center;"><img src="images/elite-nav.png" style="width:180px;"></td>
-            <td style="width:65%;text-align:center;">
-                <div style="font-size:17pt;font-weight:bold;color:#021659;">EliteWave360 Logistics</div>
-                <div style="font-size:8.8pt;line-height:10px;">No.10/35, M.V.Badran Street, Anaikar Complex, Second Floor, Naval Hospital Road,<br>Periamet, Chennai - 600003 Tamil Nadu, Phone : +91 9840859711 &nbsp;&nbsp; +91 9952918211<br>E-Mail : info@elitewave360.in, athar@elitewave360.in &nbsp;&nbsp; www.elitewave360.in</div>
-            </td>
-            <td style="width:15%;"></td>
-        </tr></table>';
+    $html .= '
+<table style="width:100%;border-collapse:collapse;border-right:1px solid #000;border-left:1px solid #000;">
+<tr>
+    <td style="width:20%;text-align:center;vertical-align:middle;"><img src="images/elite-nav.png" style="width:180px;"></td>
+    <td style="width:65%;text-align:center;vertical-align:middle;">
+        <div style="font-size:17pt;font-weight:bold;color:#021659;line-height:18px;">EliteWave360 Logistics</div>
+        <div style="font-size:8.8pt;line-height:10px;">No.10/35, M.V.Badran Street, Anaikar Complex, Second Floor, Naval Hospital Road,<br>Periamet, Chennai - 600003 Tamil Nadu, Phone : +91 9840859711 &nbsp;&nbsp; +91 9952918211<br>E-Mail : info@elitewave360.in, athar@elitewave360.in &nbsp;&nbsp; www.elitewave360.in</div>
+    </td>
+    <td style="width:15%;font-weight:bold;text-align:right;vertical-align:top;font-size:8pt;"></td>
+</tr>
+</table>';
 
-    $html .= '<table style="width:100%;border-collapse:collapse;border-left:1px solid #000;border-right:1px solid #000;"><tr>
-        <td style="width:50%;font-weight:bold;font-size:9.2pt;">GSTIN/UIN : ' . htmlspecialchars($company_gstin) . '</td>
-        <td style="width:50%;font-weight:bold;font-size:9.2pt;text-align:right;">PAN : ' . htmlspecialchars($company_pan) . '</td>
-    </tr></table>';
+    $html .= '
+<table style="width:100%;border-collapse:collapse;border-right:1px solid #000;border-left:1px solid #000;">
+<tr>
+    <td style="width:50%;font-size:9.2pt;font-weight:bold;text-align:left;"> GSTIN/UIN : ' . htmlspecialchars($company_gstin) . '</td>
+    <td></td>
+    <td style="width:50%;font-size:9.2pt;font-weight:bold;text-align:right;">PAN : ' . htmlspecialchars($company_pan) . '</td>
+</tr>
+</table>';
 
-    $html .= '<table width="100%" style="border-collapse:collapse;border:1px solid #000;"><tr>
-        <td style="width:40%;font-weight:bold;font-size:10pt;">Invoice Number&nbsp;&nbsp;: &nbsp;' . htmlspecialchars($unique_invoice_no) . '</td>
-        <td style="width:25%;font-weight:bold;font-size:10pt;text-align:center;">SAC CODE:&nbsp;&nbsp;' . htmlspecialchars($sac) . '</td>
-        <td style="width:35%;font-weight:bold;font-size:10pt;text-align:right;">Invoice Generated Date :&nbsp;' . htmlspecialchars($invoice_date) . '</td>
-    </tr></table>';
+    $html .= '
+<table cellpadding="4" cellspacing="0" width="100%" style="border-collapse:collapse;border:1px solid #000;">
+<tr>
+    <td style="width:40%;font-weight:bold;border:none;font-size:10pt;white-space:nowrap;">Invoice Number&nbsp;&nbsp;: &nbsp;' . htmlspecialchars($unique_invoice_no) . '</td>
+    <td style="width:25%;font-weight:bold;border:none;font-size:10pt;text-align:center;white-space:nowrap;">SAC CODE:&nbsp;&nbsp;' . htmlspecialchars($sac) . '</td>
+    <td style="width:35%;font-weight:bold;border:none;font-size:10pt;text-align:right;white-space:nowrap;">Invoice Generated Date :&nbsp;' . htmlspecialchars($invoice_date) . '</td>
+</tr>
+</table>';
 
-    $html .= '<table width="100%" style="border-collapse:collapse;border:1px solid #000;font-size:8.5pt;"><tr>
-        <td width="50%" style="vertical-align:top;padding:3px 6px;border-right:1px solid #000;">
-            <b>Bill To</b> : <b>' . htmlspecialchars($bill_to_name) . '</b><br>' . strtoupper(strip_tags($bill_to_addr)) . '<br>
-            State : ' . htmlspecialchars($bill_to_state) . ' &nbsp;&nbsp; Code : ' . htmlspecialchars($state_code) . '<br>
-            <b>GSTIN/UIN : ' . htmlspecialchars($bill_to_gst) . '</b>
-        </td>
-        <td width="50%" style="vertical-align:top;padding:3px 6px;">
-            <b>Contact Person</b> : ' . htmlspecialchars($client_contact_person ?: 'Not Available') . '<br>
-            <b>Mobile No(s)</b> : ' . htmlspecialchars($mobile_numbers_text) . '<br>
-            <b>Email 1</b> : ' . htmlspecialchars($client_email ?: 'Not Available') . '<br>
-            <b>Email 2</b> : ' . htmlspecialchars($client_email2 ?: 'Not Available') . '
-        </td>
-    </tr></table>';
+    $html .= '
+<table width="100%" style="border-collapse:collapse;font-size:8.5pt;">
+<tr>
+    <td width="50%" style="vertical-align:top;padding:3px 6px;border:1px solid #000;border-right:1px solid #000;line-height:1.15;">
+        <table cellpadding="0" cellspacing="0" width="100%" style="border:none;border-collapse:collapse;">
+            <tr>
+                <td width="70" style="border:none;vertical-align:top;font-weight:bold;font-size:9.5pt;">Bill To</td>
+                <td width="10" style="border:none;vertical-align:top;font-weight:bold;font-size:9.5pt;">:</td>
+                <td style="border:none;vertical-align:top;font-size:9pt;font-weight:bold;">' . htmlspecialchars($bill_to_name) . '</td>
+            </tr>
+            <tr><td style="border:none;"></td><td style="border:none;"></td><td style="border:none;font-size:9pt;">' . strtoupper(strip_tags($bill_to_addr)) . '</td></tr>
+            <tr><td style="border:none;"></td><td style="border:none;"></td><td style="border:none;font-size:9.5pt;">State : ' . htmlspecialchars($bill_to_state) . ' &nbsp;&nbsp; Code : ' . htmlspecialchars($state_code) . '</td></tr>
+            <tr><td style="border:none;"></td><td style="border:none;"></td><td style="border:none;font-weight:bold;font-size:8.5pt;">GSTIN/UIN : ' . htmlspecialchars($bill_to_gst) . '</td></tr>
+        </table>
+    </td>
+    <td width="50%" style="vertical-align:top;padding:3px 6px;border:1px solid #000;border-left:0;line-height:1.15;">
+        <table cellpadding="0" cellspacing="0" width="100%" style="border:none;font-size:8.5pt;border-collapse:collapse;">
+            <tr><td width="130" style="border:none;vertical-align:top;font-weight:bold;font-size:9.5pt;">Contact Person</td><td width="10" style="border:none;font-weight:bold;font-size:9.5pt;">:</td><td style="border:none;font-size:9.5pt;">' . htmlspecialchars($client_contact_person ?: 'Not Available') . '</td></tr>
+            <tr><td style="border:none;font-weight:bold;font-size:9.5pt;">Mobile Numbers</td><td style="border:none;font-weight:bold;font-size:9.5pt;">:</td><td style="border:none;font-size:9.5pt;">' . htmlspecialchars($mobile_numbers_text) . '</td></tr>
+            <tr><td style="border:none;font-weight:bold;font-size:9.5pt;">Email 1</td><td style="border:none;font-weight:bold;font-size:9.5pt;">:</td><td style="border:none;font-size:9.5pt;">' . htmlspecialchars($client_email ?: 'Not Available') . '</td></tr>
+            <tr><td style="border:none;font-weight:bold;font-size:9.5pt;">Email 2</td><td style="border:none;font-weight:bold;font-size:9.5pt;">:</td><td style="border:none;font-size:9.5pt;">' . htmlspecialchars($client_email2 ?: 'Not Available') . '</td></tr>
+        </table>
+    </td>
+</tr>
+</table>';
 
-    $html .= '<table width="100%" style="border-collapse:collapse;border:1px solid #000;font-size:7.5pt;">
-        <tr style="font-weight:bold;text-align:center;">
-            <td style="border:1px solid #000;">S/No</td>
-            <td style="border:1px solid #000;">GCN No</td>
-            <td style="border:1px solid #000;">Date</td>
-            <td style="border:1px solid #000;">Qty</td>
-            <td style="border:1px solid #000;">Weight</td>
-            <td style="border:1px solid #000;">Rate</td>
-            <td style="border:1px solid #000;">Consignor / Consignee</td>
-            <td style="border:1px solid #000;">Ship To</td>
-            <td style="border:1px solid #000;">Mode</td>
-            <td style="border:1px solid #000;">Supp.Inv.No.</td>
-            <td style="border:1px solid #000;">Freight</td>
-            <td style="border:1px solid #000;">DC</td>
-            <td style="border:1px solid #000;">Total</td>
-        </tr>' . $rows_html . '
-        <tr style="font-weight:bold;">
-            <td style="border:1px solid #000;padding:2px 5px;">Total</td>
-            <td style="border:1px solid #000;text-align:center;">' . $gcn_count . '</td>
-            <td style="border:1px solid #000;"></td>
-            <td style="border:1px solid #000;text-align:center;">' . $sum_qty . '</td>
-            <td style="border:1px solid #000;text-align:center;">' . $sum_weight . '</td>
-            <td style="border:1px solid #000;"></td><td style="border:1px solid #000;"></td><td style="border:1px solid #000;"></td><td style="border:1px solid #000;"></td><td style="border:1px solid #000;"></td>
-            <td style="border:1px solid #000;text-align:right;">' . number_format($sum_freight, 2) . '</td>
-            <td style="border:1px solid #000;text-align:right;">' . number_format($sum_dc, 2) . '</td>
-            <td style="border:1px solid #000;text-align:right;">' . number_format($sum_total_line, 2) . '</td>
-        </tr></table>';
+    $html .= '
+<table border="1" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;table-layout:fixed;font-family:Arial, Helvetica, sans-serif;font-size:7.5pt;">
+<tr style="font-weight:bold;text-align:center;vertical-align:middle;height:22px;">
+    <td style="border:1px solid #000;width:5%;padding:2px;">S/No</td>
+    <td style="border:1px solid #000;width:8%;padding:2px;">GCN No</td>
+    <td style="border:1px solid #000;width:8%;padding:2px;">Date</td>
+    <td style="border:1px solid #000;width:4%;padding:2px;">Qty</td>
+    <td style="border:1px solid #000;width:6%;padding:2px;">Weight</td>
+    <td style="border:1px solid #000;width:5%;padding:2px;">Rate</td>
+    <td style="border:1px solid #000;width:15%;padding:2px;">Consignor / Consignee</td>
+    <td style="border:1px solid #000;width:20%;padding:2px;">Ship To</td>
+    <td style="border:1px solid #000;width:7%;padding:2px;">Mode</td>
+    <td style="border:1px solid #000;width:8%;padding:2px;">Supp.Inv.No.</td>
+    <td style="border:1px solid #000;width:6%;padding:2px;">Freight</td>
+    <td style="border:1px solid #000;width:4%;padding:2px;">DC</td>
+    <td style="border:1px solid #000;width:6%;padding:2px;">Total</td>
+</tr>' . $rows_html . '
+<tr style="font-weight:bold;height:20px;page-break-inside:avoid;">
+    <td style="border:1px solid #000;text-align:left;padding:2px 5px;font-weight:bold;vertical-align:middle;white-space:nowrap;">Total</td>
+    <td style="border:1px solid #000;text-align:center;padding:2px;vertical-align:middle;font-weight:bold;white-space:nowrap;">' . $gcn_count . '</td>
+    <td style="border:1px solid #000;padding:2px;"></td>
+    <td style="border:1px solid #000;text-align:center;padding:2px;font-weight:bold;vertical-align:middle;">' . $sum_qty . '</td>
+    <td style="border:1px solid #000;text-align:center;font-weight:bold;padding:2px;vertical-align:middle;">' . $sum_weight . '</td>
+    <td style="border:1px solid #000;padding:2px;"></td>
+    <td style="border:1px solid #000;padding:2px;"></td>
+    <td style="border:1px solid #000;padding:2px;"></td>
+    <td style="border:1px solid #000;padding:2px;"></td>
+    <td style="border:1px solid #000;padding:2px;"></td>
+    <td style="border:1px solid #000;text-align:right;padding:2px;font-weight:bold;vertical-align:middle;">' . number_format($sum_freight, 2) . '</td>
+    <td style="border:1px solid #000;text-align:right;padding:2px;vertical-align:middle;font-weight:bold;">' . number_format($sum_dc, 2) . '</td>
+    <td style="border:1px solid #000;text-align:right;padding:2px;font-weight:bold;vertical-align:middle;">' . number_format($sum_total_line, 2) . '</td>
+</tr>
+</table>';
 
-    $html .= '<table width="100%" style="border-collapse:collapse;border-left:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;font-size:9pt;"><tr>
-        <td width="70%" style="vertical-align:top;padding:5px 9px;border-right:1px solid #000;">
-            <b>Invoice Number</b> : ' . htmlspecialchars($unique_invoice_no) . '<br>
-            <b>Vehicle Type</b> : ' . htmlspecialchars($vehicle_type) . '<br>
-            <b>Premium Train Type</b> : ' . htmlspecialchars($premium_train_type) . '<br>
-            <b>Premium Airlines Type</b> : ' . htmlspecialchars($premium_airlines_type) . '<br><br>
-            <b>Amount (In words)</b> : ' . htmlspecialchars($total_words) . '
-        </td>
-        <td width="30%" style="vertical-align:top;padding:0;">';
+    $html .= gst_invoice_pdf_summary_section_html(
+        $unique_invoice_no,
+        $transport_types,
+        $is_same_state,
+        $cgst_rate,
+        $sgst_rate,
+        $igst_rate,
+        $cgst_amt,
+        $sgst_amt,
+        $igst_amt,
+        $round_off,
+        $grand_total
+    );
 
-    $html .= '<table width="100%" style="border-collapse:collapse;font-size:9pt;">';
-    if ($is_same_state) {
-        $html .= '<tr><td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:1px 4px;font-weight:bold;">OUTPUT- CGST @ ' . $cgst_rate . '%</td><td style="border-bottom:1px solid #000;padding:1px 4px;text-align:right;font-weight:bold;">' . number_format($cgst_amt, 2) . '</td></tr>';
-        $html .= '<tr><td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:1px 4px;font-weight:bold;">OUTPUT- SGST @ ' . $sgst_rate . '%</td><td style="border-bottom:1px solid #000;padding:1px 4px;text-align:right;font-weight:bold;">' . number_format($sgst_amt, 2) . '</td></tr>';
-    } else {
-        $html .= '<tr><td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:1px 4px;font-weight:bold;">OUTPUT- IGST @ ' . $igst_rate . '%</td><td style="border-bottom:1px solid #000;padding:1px 4px;text-align:right;font-weight:bold;">' . number_format($igst_amt, 2) . '</td></tr>';
-    }
-    $html .= '<tr><td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:1px 4px;font-weight:bold;">ROUND OFF</td><td style="border-bottom:1px solid #000;padding:1px 4px;text-align:right;font-weight:bold;">' . number_format(abs($round_off), 2) . '</td></tr>';
-    $html .= '<tr><td style="border-right:1px solid #000;padding:1px 4px;font-weight:bold;">GRAND TOTAL</td><td style="padding:1px 4px;text-align:right;font-weight:bold;">' . number_format($grand_total, 2) . '</td></tr>';
-    $html .= '</table></td></tr></table>';
+    $html .= '
+<table border="1" cellpadding="4" cellspacing="0" width="100%" style="border-collapse:collapse;margin-top:-1px;">
+<tr><td style="border:1px solid #000;font-weight:bold;font-size:8.5pt;">Amount (In words) : ' . htmlspecialchars($total_words) . '</td></tr>
+</table>';
 
     $html .= gst_invoice_pdf_footer_html($sac_text, $current_date, dirname(__DIR__));
 

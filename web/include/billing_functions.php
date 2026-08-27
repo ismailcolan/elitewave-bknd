@@ -153,6 +153,59 @@ function billing_get_invoiced_amount($conn, $trans_table, $transaction_id, $excl
     return 0.0;
 }
 
+function billing_gcn_on_invoice($conn, $trans_table, $transaction_id, $exclude_invoice_id = 0)
+{
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
+    $transaction_id = (int) $transaction_id;
+    $exclude_invoice_id = (int) $exclude_invoice_id;
+    $sql = "SELECT COUNT(*) AS c
+        FROM billing_invoice_details d
+        INNER JOIN billing_invoice_master m ON m.billing_invoice_id = d.billing_invoice_id
+        WHERE d.trans_table='" . mysqli_real_escape_string($conn, $trans_table) . "'
+        AND d.transaction_id='$transaction_id'
+        AND m.status IN ('draft','final')";
+    if ($exclude_invoice_id > 0) {
+        $sql .= " AND m.billing_invoice_id!='$exclude_invoice_id'";
+    }
+    $q = mysqli_query($conn, $sql);
+    if ($q && ($row = mysqli_fetch_assoc($q))) {
+        return (int) $row['c'] > 0;
+    }
+    return false;
+}
+
+function billing_gcn_on_final_invoice($conn, $trans_table, $transaction_id, $exclude_invoice_id = 0)
+{
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
+    $transaction_id = (int) $transaction_id;
+    $exclude_invoice_id = (int) $exclude_invoice_id;
+    $sql = "SELECT COUNT(*) AS c
+        FROM billing_invoice_details d
+        INNER JOIN billing_invoice_master m ON m.billing_invoice_id = d.billing_invoice_id
+        WHERE d.trans_table='" . mysqli_real_escape_string($conn, $trans_table) . "'
+        AND d.transaction_id='$transaction_id'
+        AND m.status='final'";
+    if ($exclude_invoice_id > 0) {
+        $sql .= " AND m.billing_invoice_id!='$exclude_invoice_id'";
+    }
+    $q = mysqli_query($conn, $sql);
+    if ($q && ($row = mysqli_fetch_assoc($q))) {
+        return (int) $row['c'] > 0;
+    }
+    return false;
+}
+
+function booking_is_gcn_billed($conn, $trans_table, $transaction_id)
+{
+    return billing_gcn_on_final_invoice($conn, $trans_table, $transaction_id);
+}
+
+function billing_should_exclude_gcn($conn, $trans_table, $transaction_id, $total = 0, $exclude_invoice_id = 0)
+{
+    // Once a GCN is on any invoice (draft or final), do not offer it again except on that same invoice.
+    return billing_gcn_on_invoice($conn, $trans_table, $transaction_id, $exclude_invoice_id);
+}
+
 function billing_preview_invoice_number($conn, $invoice_date)
 {
     $parts = explode('-', $invoice_date);
@@ -267,7 +320,10 @@ function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_i
         }
 
         $sql = "SELECT t.transaction_id, t.grn_no, t.grn_date, t.consigner, t.consignee,
-            t.total, t.mode_of_consignment
+            t.total, t.mode_of_consignment,
+            t.frieght_amount, t.doc_amount, t.other_charge_amount, t.mamul_charge,
+            t.vehicle_halting_charge, t.vehicle_loading_unloading, t.rajdhani_charges,
+            t.taxable_value, t.gst_amount
             FROM `$trans_table` t
             WHERE t.status='8'
             AND (t.booking_status IS NULL OR t.booking_status='' OR t.booking_status!='1')
@@ -280,12 +336,11 @@ function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_i
         }
 
         while ($row = mysqli_fetch_assoc($q)) {
-            $total = (float) ($row['total'] ?? 0);
-            $invoiced = billing_get_invoiced_amount($conn, $trans_table, $row['transaction_id'], $exclude_invoice_id);
-            if ($total > 0 && $invoiced >= ($total - 0.01)) {
+            if (billing_should_exclude_gcn($conn, $trans_table, $row['transaction_id'], 0, $exclude_invoice_id)) {
                 continue;
             }
-            $remaining = $total > 0 ? max(0, $total - $invoiced) : $total;
+            $total = (float) ($row['total'] ?? 0);
+            $remaining = $total;
             $sender = get_client_name($conn, $row['consigner']);
             $receiver = get_client_name($conn, $row['consignee']);
             $label = $row['grn_no'] . ' | ' . $row['grn_date'] . ' | ' . $sender . ' | ' . $receiver . ' | ' . billing_format_money($remaining);
@@ -305,14 +360,97 @@ function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_i
     return $rows;
 }
 
-function billing_other_charges_from_row($row)
+function billing_invoice_lines_aggregate($conn, $trans_table, $transaction_id)
 {
-    return (float) ($row['doc_amount'] ?? 0)
+    $inv_tbl = str_replace('transaction_', 'transaction_invoice_', preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table));
+    $transaction_id = (int) $transaction_id;
+    $agg = array('packages' => 0, 'weight' => 0.0, 'freight' => 0.0, 'rate' => 0.0);
+
+    $q = @mysqli_query($conn, "SELECT qty, charged_weight, frieght_rate FROM `$inv_tbl`
+        WHERE transaction_id='$transaction_id'
+        AND (type_of_pkge IS NULL OR type_of_pkge='' OR type_of_pkge!='Select Package Type')");
+    if (!$q) {
+        return $agg;
+    }
+
+    while ($line = mysqli_fetch_assoc($q)) {
+        $qty = (int) ($line['qty'] ?? 0);
+        $weight = (float) ($line['charged_weight'] ?? 0);
+        $rate = (float) ($line['frieght_rate'] ?? 0);
+        $agg['packages'] += $qty;
+        $agg['weight'] += $weight;
+        $agg['freight'] += round($weight * $rate, 2);
+        if ($rate > 0) {
+            $agg['rate'] = $rate;
+        }
+    }
+
+    return $agg;
+}
+
+function billing_freight_from_row($row, $line_agg = null)
+{
+    $freight = (float) ($row['frieght_amount'] ?? 0);
+    if ($freight <= 0 && is_array($line_agg) && (float) ($line_agg['freight'] ?? 0) > 0) {
+        return round((float) $line_agg['freight'], 2);
+    }
+    if ($freight <= 0) {
+        $weight = (float) ($row['consignment_weight'] ?? 0);
+        if ($weight <= 0 && is_array($line_agg)) {
+            $weight = (float) ($line_agg['weight'] ?? 0);
+        }
+        $rate = (float) ($row['frieght_rate'] ?? 0);
+        if ($rate <= 0 && is_array($line_agg)) {
+            $rate = (float) ($line_agg['rate'] ?? 0);
+        }
+        if ($weight > 0 && $rate > 0) {
+            $freight = round($weight * $rate, 2);
+        }
+    }
+
+    return $freight;
+}
+
+function billing_extra_charges_from_row($row)
+{
+    $loading = (float) ($row['vehicle_loading_unloading'] ?? 0);
+    if ($loading <= 0) {
+        $loading = (float) ($row['loading_unloading_amount'] ?? 0);
+    }
+
+    return round(
+        (float) ($row['doc_amount'] ?? 0)
         + (float) ($row['other_charge_amount'] ?? 0)
         + (float) ($row['mamul_charge'] ?? 0)
         + (float) ($row['vehicle_halting_charge'] ?? 0)
-        + (float) ($row['vehicle_loading_unloading'] ?? 0)
-        + (float) ($row['rajdhani_charges'] ?? 0);
+        + $loading
+        + (float) ($row['rajdhani_charges'] ?? 0),
+        2
+    );
+}
+
+function billing_amounts_from_booking_row($row, $line_agg = null)
+{
+    $freight = billing_freight_from_row($row, $line_agg);
+    $extra = billing_extra_charges_from_row($row);
+    $taxable = round((float) ($row['taxable_value'] ?? 0), 2);
+    if ($taxable <= 0) {
+        $taxable = round($freight + $extra, 2);
+    }
+    if ($freight <= 0 && $taxable > 0) {
+        if ($extra > 0) {
+            $freight = max(0, round($taxable - $extra, 2));
+        } else {
+            $freight = $taxable;
+        }
+    }
+    $other = max(0, round($taxable - $freight, 2));
+
+    return array(
+        'freight' => $freight,
+        'other' => $other,
+        'taxable' => $taxable,
+    );
 }
 
 function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing_type = '', $exclude_invoice_id = 0)
@@ -328,29 +466,19 @@ function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing
         return null;
     }
 
-    $total = (float) ($row['total'] ?? 0);
-    $invoiced = billing_get_invoiced_amount($conn, $trans_table, $transaction_id, $exclude_invoice_id);
-    if ($total > 0 && $invoiced >= ($total - 0.01)) {
+    if (billing_should_exclude_gcn($conn, $trans_table, $transaction_id, 0, $exclude_invoice_id)) {
         return null;
     }
 
-    $remaining_ratio = 1.0;
-    if ($total > 0 && $invoiced > 0) {
-        $remaining_ratio = max(0, ($total - $invoiced) / $total);
-    }
-
-    $freight = (float) ($row['frieght_amount'] ?? 0) * $remaining_ratio;
-    $other = billing_other_charges_from_row($row) * $remaining_ratio;
-    $taxable = (float) ($row['taxable_value'] ?? 0) * $remaining_ratio;
-    $cgst = (float) ($row['cgst_amount'] ?? 0) * $remaining_ratio;
-    $sgst = (float) ($row['sgst_amount'] ?? 0) * $remaining_ratio;
-    $igst = (float) ($row['igst_amount'] ?? 0) * $remaining_ratio;
-    $cess = (float) ($row['cess_amount'] ?? 0) * $remaining_ratio;
-    $gst = (float) ($row['gst_amount'] ?? 0) * $remaining_ratio;
-    $line_total = $total > 0 ? ($total - $invoiced) : ($freight + $other + $gst);
-
     $packages = (int) ($row['no_of_pkge'] ?? 0);
     $weight = (float) ($row['consignment_weight'] ?? 0);
+    $line_agg = billing_invoice_lines_aggregate($conn, $trans_table, $transaction_id);
+    if ($packages <= 0 && (int) ($line_agg['packages'] ?? 0) > 0) {
+        $packages = (int) $line_agg['packages'];
+    }
+    if ($weight <= 0 && (float) ($line_agg['weight'] ?? 0) > 0) {
+        $weight = (float) $line_agg['weight'];
+    }
     if ($packages <= 0 || $weight <= 0) {
         $inv_tbl = str_replace('transaction_', 'transaction_invoice_', $trans_table);
         $iq = @mysqli_query($conn, "SELECT SUM(qty) AS pq, SUM(charged_weight) AS pw FROM `$inv_tbl` WHERE transaction_id='$transaction_id'");
@@ -363,6 +491,21 @@ function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing
             }
         }
     }
+
+    $row_calc = $row;
+    $row_calc['consignment_weight'] = $weight;
+
+    $amounts = billing_amounts_from_booking_row($row_calc, $line_agg);
+    $freight = $amounts['freight'];
+    $other = $amounts['other'];
+    $taxable = $amounts['taxable'];
+    $cgst = (float) ($row['cgst_amount'] ?? 0);
+    $sgst = (float) ($row['sgst_amount'] ?? 0);
+    $igst = (float) ($row['igst_amount'] ?? 0);
+    $cess = (float) ($row['cess_amount'] ?? 0);
+    $gst = (float) ($row['gst_amount'] ?? 0);
+    $total = (float) ($row['total'] ?? 0);
+    $line_total = $total > 0 ? $total : ($freight + $other + $gst);
 
     if ($billing_type === '') {
         $billing_type = billing_type_from_mode($row['mode_of_consignment'] ?? 0);

@@ -2,6 +2,7 @@
 require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/gst_tax_functions.php');
+require_once('include/billing_functions.php');
 ensure_gst_tax_master_table($conn);
 ensure_transaction_gst_columns($conn, 'transaction');
 $company_query = mysqli_query($conn, 'SELECT company_id, company_code, grn_mode, state FROM company WHERE status=0 LIMIT 1');
@@ -24,6 +25,14 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 	<style>
 		.form-horizontal .control-label {
 			text-align: left;
+		}
+		.save-button{
+			font-size: 13px !important;
+			padding: 10px 17px !important;
+		}
+		.cancel-button{
+			font-size: 13px !important;
+			padding: 10px 17px !important;
 		}
 
 		#grn_details .form-horizontal .form-group > label.control-label {
@@ -93,6 +102,26 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 			margin-left: 8px;
 			text-transform: none;
 			letter-spacing: 0;
+		}
+
+		#grn_details.form-fully-locked input,
+		#grn_details.form-fully-locked select,
+		#grn_details.form-fully-locked textarea,
+		#grn_details.form-fully-locked button:not(.btn-cancel) {
+			pointer-events: none;
+			background-color: #f1f5f9 !important;
+			opacity: 0.85;
+		}
+
+		.form-locked-banner {
+			background: #fef3c7;
+			border: 1px solid #f59e0b;
+			color: #92400e;
+			padding: 10px 14px;
+			border-radius: 6px;
+			margin-bottom: 14px;
+			font-size: 13px;
+			font-weight: 600;
 		}
 
 		#grn_details .con_name_val1,
@@ -353,7 +382,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 
 		.attach_required:after {
 			content: "This field is required.";
-			color: #d9534f;
+			color: #DD111E;
 			position: relative;
 			display: block;
 			margin: 0;
@@ -366,7 +395,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 
 		.con_name_val1:after {
 			content: "Select Consignor";
-			color: #d9534f;
+			color: #DD111E;
 			position: relative;
 			display: block;
 			margin: 0;
@@ -378,7 +407,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 
 		.con_name_val2:after {
 			content: "Select Consignee";
-			color: #d9534f;
+			color: #DD111E;
 			position: relative;
 			display: block;
 			margin: 0;
@@ -743,7 +772,10 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 								$form_name = 'add_new_consignment';
 							}
 							$booking_status = (int) ($row['status'] ?? 0);
-							$billing_only_edit = ($form_name === 'edit_consignment_details' && $booking_status >= 8);
+							$trans_table_name = 'transaction_' . $m . '_' . $y;
+							$gcn_billed = ($transaction_id > 0) && booking_is_gcn_billed($conn, $trans_table_name, $transaction_id);
+							$billing_only_edit = ($form_name === 'edit_consignment_details' && $booking_status >= 8 && !$gcn_billed);
+							$form_fully_locked = ($form_name === 'edit_consignment_details' && $gcn_billed);
 							$booking_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
 							$grn_date_val = !empty($row['grn_date']) ? $row['grn_date'] : date('d-m-Y');
 							$date_keypress_attr = 'onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"';
@@ -774,9 +806,15 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 								}
 							}
 							?>
-							<form id="grn_details" class="form-horizontal ew-validated-form<?php echo $billing_only_edit ? ' billing-only-edit' : ''; ?>" enctype="multipart/form-data" data-ew-validate="1">
+							<form id="grn_details" class="form-horizontal ew-validated-form<?php echo $billing_only_edit ? ' billing-only-edit' : ''; ?><?php echo $form_fully_locked ? ' form-fully-locked' : ''; ?>" enctype="multipart/form-data" data-ew-validate="1">
 								<input type="hidden" name="billing_only_edit" id="billing_only_edit" value="<?php echo $billing_only_edit ? '1' : '0'; ?>">
+								<input type="hidden" name="form_fully_locked" id="form_fully_locked" value="<?php echo $form_fully_locked ? '1' : '0'; ?>">
 								<input type="hidden" name="booking_status" id="booking_status" value="<?php echo (int) $booking_status; ?>">
+								<?php if ($form_fully_locked) { ?>
+								<div class="form-locked-banner col-md-offset-1 col-md-10"><i class="fa fa-lock"></i> This GCN is already invoiced. The booking form is locked and cannot be edited.</div>
+								<?php } elseif ($billing_only_edit) { ?>
+								<div class="form-locked-banner col-md-offset-1 col-md-10" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;"><i class="fa fa-info-circle"></i> Delivered consignment — only payment / billing fields can be edited. GST settings are locked.</div>
+								<?php } ?>
 								<input type="hidden" name="truck_type" id="truck_type" value="<?php echo $ftl_type; ?>" />
 								<input type="hidden" name="form_name" value="<?php echo $form_name; ?>" id="form_name">
 								<input type="hidden" name="edit_id" id="edit_id" value="<?php echo $row['transaction_id'] ?? ''; ?>">
@@ -1766,8 +1804,10 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 						<br />
 						<div class="row">
 							<div class="col-md-12 form-action">
-								<button class="btn btn-primary" type="button" id="save">Submit</button>
-								<button class="btn btn-default-outline  btn-reset btn-cancel" type="button">Cancel</button>
+								<?php if (!$form_fully_locked) { ?>
+								<button class="save-button btn btn-primary" type="button" id="save">Submit</button>
+								<?php } ?>
+								<button class="cancel-button btn btn-default-outline  btn-reset btn-cancel" type="button">Cancel</button>
 							</div>
 						</div>
 						</form>
@@ -1783,6 +1823,26 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 
 	<script src="include/calculation.js"></script>
 	<script type="text/javascript">
+		function applyFormFullyLocked() {
+			if ($('#form_fully_locked').val() !== '1' && !$('#grn_details').hasClass('form-fully-locked')) {
+				return;
+			}
+			$('#grn_details').addClass('form-fully-locked');
+			$('#save').hide();
+			$('#grn_details').find('input, select, textarea, button').not('.btn-cancel').each(function() {
+				var $el = $(this);
+				if (($el.attr('type') || '').toLowerCase() === 'hidden') {
+					return;
+				}
+				if ($el.is('select') || $el.is('button')) {
+					$el.prop('disabled', true);
+				} else {
+					$el.prop('readonly', true);
+				}
+			});
+			$('.upload-dropzone, #add_more, .remove-image, #signature, .jSignature').css('pointer-events', 'none');
+		}
+
 		function applyBillingOnlyEditMode() {
 			if (!$('#grn_details').hasClass('billing-only-edit') && $('#billing_only_edit').val() !== '1') {
 				return;
@@ -1839,7 +1899,15 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 			return parseFloat(val) || 0;
 		}
 
+		function roundRupee(val) {
+			return Math.round(parseAmount(val));
+		}
+
 		function formatMoney(val) {
+			return String(roundRupee(val));
+		}
+
+		function formatRate(val) {
 			return parseAmount(val).toFixed(2);
 		}
 
@@ -1956,33 +2024,33 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 			fields.forEach(function(selector) {
 				total += parseAmount($(selector).val());
 			});
-			return Math.round(total * 100) / 100;
+			return roundRupee(total);
 		}
 
 		function applyGstBreakupDisplay(breakup) {
 			$('#taxable_value').val(formatMoney(breakup.taxable));
 			$('#gst_tax_code').val(breakup.tax_code || '');
-			$('#cgst_rate').val(formatMoney(breakup.cgst_rate));
-			$('#sgst_rate').val(formatMoney(breakup.sgst_rate));
-			$('#igst_rate').val(formatMoney(breakup.igst_rate));
-			$('#cess_rate').val(formatMoney(breakup.cess_rate));
+			$('#cgst_rate').val(formatRate(breakup.cgst_rate));
+			$('#sgst_rate').val(formatRate(breakup.sgst_rate));
+			$('#igst_rate').val(formatRate(breakup.igst_rate));
+			$('#cess_rate').val(formatRate(breakup.cess_rate));
 			$('#cgst_amount').val(formatMoney(breakup.cgst_amount));
 			$('#sgst_amount').val(formatMoney(breakup.sgst_amount));
 			$('#igst_amount').val(formatMoney(breakup.igst_amount));
 			$('#cess_amount').val(formatMoney(breakup.cess_amount));
-			$('#gst_rate').val(formatMoney(breakup.gst_rate));
+			$('#gst_rate').val(formatRate(breakup.gst_rate));
 			$('#gst_amount').val(formatMoney(breakup.gst_amount));
 
 			$('#disp_taxable_value').text(formatMoney(breakup.taxable));
-			$('#disp_cgst_rate').text(formatMoney(breakup.cgst_rate));
+			$('#disp_cgst_rate').text(formatRate(breakup.cgst_rate));
 			$('#disp_cgst_amount').text(formatMoney(breakup.cgst_amount));
-			$('#disp_sgst_rate').text(formatMoney(breakup.sgst_rate));
+			$('#disp_sgst_rate').text(formatRate(breakup.sgst_rate));
 			$('#disp_sgst_amount').text(formatMoney(breakup.sgst_amount));
-			$('#disp_igst_rate').text(formatMoney(breakup.igst_rate));
+			$('#disp_igst_rate').text(formatRate(breakup.igst_rate));
 			$('#disp_igst_amount').text(formatMoney(breakup.igst_amount));
-			$('#disp_cess_rate').text(formatMoney(breakup.cess_rate));
+			$('#disp_cess_rate').text(formatRate(breakup.cess_rate));
 			$('#disp_cess_amount').text(formatMoney(breakup.cess_amount));
-			$('#disp_gst_rate').text(formatMoney(breakup.gst_rate));
+			$('#disp_gst_rate').text(formatRate(breakup.gst_rate));
 			$('#disp_gst_amount').text(formatMoney(breakup.gst_amount));
 			$('#disp_grand_total').text(formatMoney(breakup.grand_total));
 
@@ -2025,23 +2093,19 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 			if (resolvedType === 'intra') {
 				breakup.cgst_rate = profile.cgst_rate;
 				breakup.sgst_rate = profile.sgst_rate;
-				breakup.cgst_amount = Math.round(taxable * profile.cgst_rate) / 100;
-				breakup.sgst_amount = Math.round(taxable * profile.sgst_rate) / 100;
-				breakup.cgst_amount = Math.round(breakup.cgst_amount * 100) / 100;
-				breakup.sgst_amount = Math.round(breakup.sgst_amount * 100) / 100;
+				breakup.cgst_amount = roundRupee(taxable * profile.cgst_rate / 100);
+				breakup.sgst_amount = roundRupee(taxable * profile.sgst_rate / 100);
 			} else if (resolvedType === 'inter') {
 				breakup.igst_rate = profile.igst_rate;
-				breakup.igst_amount = Math.round(taxable * profile.igst_rate) / 100;
-				breakup.igst_amount = Math.round(breakup.igst_amount * 100) / 100;
+				breakup.igst_amount = roundRupee(taxable * profile.igst_rate / 100);
 			}
 
 			if (profile.cess_rate > 0) {
-				breakup.cess_amount = Math.round(taxable * profile.cess_rate) / 100;
-				breakup.cess_amount = Math.round(breakup.cess_amount * 100) / 100;
+				breakup.cess_amount = roundRupee(taxable * profile.cess_rate / 100);
 			}
 
-			breakup.gst_amount = Math.round((breakup.cgst_amount + breakup.sgst_amount + breakup.igst_amount + breakup.cess_amount) * 100) / 100;
-			breakup.grand_total = Math.round((taxable + breakup.gst_amount) * 100) / 100;
+			breakup.gst_amount = roundRupee(breakup.cgst_amount + breakup.sgst_amount + breakup.igst_amount + breakup.cess_amount);
+			breakup.grand_total = roundRupee(taxable + breakup.gst_amount);
 			applyGstBreakupDisplay(breakup);
 			return breakup;
 		}
@@ -2389,11 +2453,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 
 		//AddZero Function    
 		function addZeroes(num) {
-			var num = Number(num);
-			if (String(num).split(".").length < 2 || String(num).split(".")[1].length <= 2) {
-				num = num.toFixed(2);
-			}
-			return num;
+			return roundRupee(num);
 		}
 		//End AddZero Function   
 
@@ -2422,7 +2482,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 				charge_weight = v_weight;
 				//console.log("Volume",charge_weight);
 			}
-			var total_amt = parseFloat(rate) * parseFloat(charge_weight);
+			var total_amt = roundRupee(parseFloat(rate) * parseFloat(charge_weight));
 
 			if (!isNaN(total_amt)) {
 				$('#frieght_amount').val(addZeroes(total_amt));
@@ -2607,11 +2667,11 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 						console.log(pay_inv_data);
 						if (pay_inv_data != "No_Destination") {
 							console.log(pay_inv_data);
-							$("#doc_amount").val(parseFloat(pay_inv_data.doc_chrgs).toFixed(2));
-							$("#mamul_charge").val(isNaN(parseFloat(pay_inv_data.mamul_chrgs)) ? '0.00' : parseFloat(pay_inv_data.mamul_chrgs).toFixed(2));
-							$("#vehicle_halting_charge").val(isNaN(parseFloat(pay_inv_data.vehicle_halting_charge)) ? '0.00' : parseFloat(pay_inv_data.vehicle_halting_charge).toFixed(2));
-							$("#vehicle_loading_unloading").val(isNaN(parseFloat(pay_inv_data.vehicle_loading_unloading)) ? '0.00' : parseFloat(pay_inv_data.vehicle_loading_unloading).toFixed(2));
-							$("#other_amount").val(parseFloat(pay_inv_data.other_chrgs).toFixed(2));
+							$("#doc_amount").val(formatMoney(pay_inv_data.doc_chrgs));
+							$("#mamul_charge").val(formatMoney(pay_inv_data.mamul_chrgs));
+							$("#vehicle_halting_charge").val(formatMoney(pay_inv_data.vehicle_halting_charge));
+							$("#vehicle_loading_unloading").val(formatMoney(pay_inv_data.vehicle_loading_unloading));
+							$("#other_amount").val(formatMoney(pay_inv_data.other_chrgs));
 
 							if ($("#mode_of_trasport").val() != "") {
 								if ($("#mode_of_trasport").val() == 1) { // air
@@ -2628,9 +2688,9 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 								} else {
 									$("#frieght_rate").val(parseFloat("0.00").toFixed(2));
 									$("#doc_amount").val("");
-									$("#mamul_charge").val("0.00");
-									$("#vehicle_halting_charge").val("0.00");
-									$("#vehicle_loading_unloading").val("0.00");
+									$("#mamul_charge").val("0");
+									$("#vehicle_halting_charge").val("0");
+									$("#vehicle_loading_unloading").val("0");
 									$("#other_amount").val("");
 								}
 							} else {
@@ -2855,6 +2915,7 @@ $("#consignee_branch_div").hide();
 				};
 			}
 
+			applyFormFullyLocked();
 			applyBillingOnlyEditMode();
 
 			var form_name = $("#form_name").val();
@@ -3367,7 +3428,7 @@ $("#consignee_branch_div").hide();
 					success: function(result) {
 						// console.log(result);
 						if (result[0] == "1") {
-							$("#grn_error").html(result[1]).attr("style", "color:red");
+							$("#grn_error").html(result[1]).attr("style", "color:#DD111E");
 							chck_key = false;
 
 						} else {
@@ -3434,9 +3495,9 @@ $("#consignee_branch_div").hide();
 			}
 			$(document).on('blur', 'input.calculation', function(ev) {
 				if ($(this).val() != "")
-					$(this).val(parseFloat($(this).val()).toFixed(2));
+					$(this).val(roundRupee($(this).val()));
 				else
-					$(this).val("0.00");
+					$(this).val("0");
 
 			});
 			$(document).on('click', '.btn-del-file', function(evt) {
@@ -3619,6 +3680,12 @@ $("#consignee_branch_div").hide();
 
 
 			$(document).on('click', '#save', function() {
+				if ($('#form_fully_locked').val() === '1') {
+					if (typeof ewFormToast === 'function') {
+						ewFormToast('This GCN is already invoiced. Booking cannot be edited.', 'error', 5000);
+					}
+					return false;
+				}
 
 				//Select Consginor and Consginee
 				const get_consigner_valll = $('.get_consigner_valll').val();

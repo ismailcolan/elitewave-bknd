@@ -30,10 +30,7 @@
 	<link href="user/stylesheets/bootstrap-multiselect.css" media="all" rel="stylesheet" type="text/css" />
 	
 	<link href="user/stylesheets/jquery.timepicker.css" media="all" rel="stylesheet" type="text/css" />
-	
-	
-	
-	
+	<link href="user/stylesheets/ew-form-validation.css" media="all" rel="stylesheet" type="text/css" />
 	<!--<link href="user/stylesheets/color/green.css" media="all" rel="alternate stylesheet" title="green-theme" type="text/css" />
 	<link href="user/stylesheets/color/orange.css" media="all" rel="alternate stylesheet" title="orange-theme" type="text/css" />
 	<link hreuser"stylesheets/color/magenta.css" media="all" rel="alternate stylesheet" title="magenta-theme" type="text/css" />

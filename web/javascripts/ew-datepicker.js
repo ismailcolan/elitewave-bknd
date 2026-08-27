@@ -50,6 +50,9 @@
 	function upgradeLegacyDatePickers($root) {
 		$root.find('.input-group.date-picker, .input-group.date.date-picker').each(function() {
 			var $group = $(this);
+			if ($group.attr('data-ew-skip-upgrade') === '1') {
+				return;
+			}
 			if ($group.hasClass('ew-date-upgraded') || $group.hasClass('date-input-inside')) {
 				return;
 			}

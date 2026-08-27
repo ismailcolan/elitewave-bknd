@@ -1750,6 +1750,8 @@ VALUES
 // Consignment Booking
 if ($form_name == 'add_new_consignment') {
     $out_put = array();
+    require_once('include/gst_tax_functions.php');
+    $_POST = gst_tax_normalize_booking_charges($_POST);
     extract($_POST);
 
     if ($_SESSION['company_id'] != '') {
@@ -3390,6 +3392,8 @@ $invoice_id    = NULL;
 
 if ($form_name == 'edit_consignment_details') {
     $out_put = array();
+    require_once('include/gst_tax_functions.php');
+    $_POST = gst_tax_normalize_booking_charges($_POST);
     extract($_POST);
     // var_dump($_POST);
     $tables = get_trans_table_name($conn, $grn_date);
@@ -3485,6 +3489,23 @@ if ($form_name == 'edit_consignment_details') {
     $total = (float) ($gst_snapshot['grand_total'] ?? $total);
 
     $billing_only_edit = isset($_POST['billing_only_edit']) && (string) $_POST['billing_only_edit'] === '1';
+
+    require_once('include/billing_functions.php');
+    $edit_tid = (int) ($edit_id ?? 0);
+    if ($edit_tid > 0 && booking_is_gcn_billed($conn, $tables[0], $edit_tid)) {
+        $out_put['result'] = 0;
+        $out_put['message'] = 'This GCN is already invoiced. Booking cannot be edited.';
+        echo json_encode($out_put);
+        exit;
+    }
+
+    if ($billing_only_edit) {
+        $status_q = mysqli_query($conn, "SELECT status FROM {$tables[0]} WHERE transaction_id='" . mysqli_real_escape_string($conn, $edit_tid) . "' LIMIT 1");
+        $status_row = mysqli_fetch_assoc($status_q);
+        if ((int) ($status_row['status'] ?? 0) < 8) {
+            $billing_only_edit = false;
+        }
+    }
 
     // After delivery: update payment/billing + GST amounts only — never clear origin/destination/parties
     if ($billing_only_edit) {

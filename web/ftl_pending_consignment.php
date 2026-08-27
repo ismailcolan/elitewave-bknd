@@ -40,7 +40,7 @@ require_once("include/function.php");
 
         .attach_required:after {
 				content: "This field is required.";
-				color: #d9534f;
+				color: #DD111E;
 				position: relative;
 				display: block;
 				margin: 0;

@@ -3078,7 +3078,7 @@ label {
 }
 
 label.error {
-  color: #d9534f;
+  color: #DD111E;
   margin-top: 5px;
 }
 
@@ -3104,7 +3104,7 @@ input[type="text"] {
 
 .form-control.has-error,
 .form-control.error {
-  border-color: #d9534f;
+  border-color: #DD111E;
 }
 
 .form-group [class^="col-"],
@@ -3212,11 +3212,11 @@ input[type="text"] {
 
 .has-error .help-block,
 .has-error .control-label {
-  color: #d9534f;
+  color: #DD111E;
 }
 
 .has-error .form-control {
-  border-color: #d9534f;
+  border-color: #DD111E;
 }
 
 .has-success .help-block,

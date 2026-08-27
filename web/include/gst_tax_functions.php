@@ -225,6 +225,36 @@ function gst_tax_resolve_type($gst_type_input, $origin_state_id, $destination_st
     return $gst_type_input;
 }
 
+function gst_tax_round_rupee($amount)
+{
+    return (float) round((float) $amount, 0);
+}
+
+function gst_tax_normalize_booking_charges(array $data)
+{
+    $fields = array(
+        'frieght_amount',
+        'doc_amount',
+        'mamul_charge',
+        'vehicle_halting_charge',
+        'vehicle_loading_unloading',
+        'other_amount',
+        'rajdhani_charges',
+    );
+
+    foreach ($fields as $field) {
+        if (!array_key_exists($field, $data)) {
+            continue;
+        }
+        if ($data[$field] === '' || $data[$field] === null) {
+            continue;
+        }
+        $data[$field] = gst_tax_round_rupee($data[$field]);
+    }
+
+    return $data;
+}
+
 function gst_tax_calc_taxable_from_charges($charges)
 {
     $fields = array(
@@ -239,15 +269,15 @@ function gst_tax_calc_taxable_from_charges($charges)
 
     $total = 0;
     foreach ($fields as $field) {
-        $total += (float) ($charges[$field] ?? 0);
+        $total += gst_tax_round_rupee($charges[$field] ?? 0);
     }
 
-    return round($total, 2);
+    return gst_tax_round_rupee($total);
 }
 
 function gst_tax_calc_breakup($taxable_value, $profile, $gst_type)
 {
-    $taxable = round((float) $taxable_value, 2);
+    $taxable = gst_tax_round_rupee($taxable_value);
     $gst_type = strtolower(trim((string) $gst_type));
 
     $result = array(
@@ -277,22 +307,21 @@ function gst_tax_calc_breakup($taxable_value, $profile, $gst_type)
     if ($gst_type === 'intra') {
         $result['cgst_rate'] = (float) ($profile['cgst_rate'] ?? 0);
         $result['sgst_rate'] = (float) ($profile['sgst_rate'] ?? 0);
-        $result['cgst_amount'] = round($taxable * $result['cgst_rate'] / 100, 2);
-        $result['sgst_amount'] = round($taxable * $result['sgst_rate'] / 100, 2);
-        $result['cess_amount'] = round($taxable * $cess_rate / 100, 2);
+        $result['cgst_amount'] = gst_tax_round_rupee($taxable * $result['cgst_rate'] / 100);
+        $result['sgst_amount'] = gst_tax_round_rupee($taxable * $result['sgst_rate'] / 100);
+        $result['cess_amount'] = gst_tax_round_rupee($taxable * $cess_rate / 100);
     } elseif ($gst_type === 'inter') {
         $result['igst_rate'] = (float) ($profile['igst_rate'] ?? 0);
-        $result['igst_amount'] = round($taxable * $result['igst_rate'] / 100, 2);
-        $result['cess_amount'] = round($taxable * $cess_rate / 100, 2);
+        $result['igst_amount'] = gst_tax_round_rupee($taxable * $result['igst_rate'] / 100);
+        $result['cess_amount'] = gst_tax_round_rupee($taxable * $cess_rate / 100);
     } else {
         return $result;
     }
 
-    $result['gst_amount'] = round(
-        $result['cgst_amount'] + $result['sgst_amount'] + $result['igst_amount'] + $result['cess_amount'],
-        2
+    $result['gst_amount'] = gst_tax_round_rupee(
+        $result['cgst_amount'] + $result['sgst_amount'] + $result['igst_amount'] + $result['cess_amount']
     );
-    $result['grand_total'] = round($taxable + $result['gst_amount'], 2);
+    $result['grand_total'] = gst_tax_round_rupee($taxable + $result['gst_amount']);
 
     return $result;
 }

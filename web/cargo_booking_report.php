@@ -31,7 +31,7 @@ if ($cities_q) {
 			margin-bottom: 6px;
 			color: #333;
 		}
-		.required-star { color: red; font-weight: bold; }
+		.required-star { color: #DD111E; font-weight: bold; }
 		.filter-section {
 			padding: 24px 20px 20px;
 			border: 1px solid #e9ecef;

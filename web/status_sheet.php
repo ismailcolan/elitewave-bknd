@@ -201,7 +201,7 @@ $c_Y = date('Y');
 		#grn_failed_list {
 			font-size: 12px;
 			margin-top: 6px;
-			color: #a94442;
+			color: #DD111E;
 		}
 
 		/* ── Tab-4 (Select from List) specific ── */
@@ -414,7 +414,7 @@ $c_Y = date('Y');
 
 		#list-summary.error {
 			background: #f2dede;
-			color: #a94442;
+			color: #DD111E;
 			border: 1px solid #ebccd1;
 		}
 

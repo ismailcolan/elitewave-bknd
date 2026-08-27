@@ -70,15 +70,140 @@ table{
 
 .select2-container .select2-choice{
 	line-height: 1 !important;
-	border: none;
-}
-.select2-container .select2-choice > .select2-chosen{
-	line-height: 1.5 !important;
 }
 
-.select2-container .select2-choice .select2-arrow{
+/* Consignment report — period filter row */
+.report-period-row {
+	margin-bottom: 8px;
+}
+.report-period-wrap {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 24px;
+	padding: 4px 0 8px;
+}
+.report-type-group {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 28px;
+}
+.report-type-group label.control-label {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 8px;
+	margin: 0 !important;
+	padding-top: 0 !important;
+	white-space: nowrap;
+	font-weight: 600;
+	font-size: 12px;
+	letter-spacing: 0.4px;
+	text-transform: uppercase;
+}
+.report-type-group input[type="radio"] {
+	margin: 0;
+	position: relative;
+	top: -1px;
+}
+.report-date-group {
+	width: 220px;
+	min-width: 220px;
+	flex: 0 0 220px;
+	position: relative;
+}
+.report-date-group .date-input-inside,
+.report-date-group .input-group {
+	width: 100%;
+}
+.report-year-select-wrap {
+	width: 100%;
+}
+.report-year-select {
+	width: 100%;
+	height: 38px;
+	min-height: 38px;
+	border: 1px solid #D8DDE5;
+	border-radius: 8px;
+	padding: 6px 10px;
+	background: #fff;
+	font-size: 14px;
+}
+.widget-container.fluid-height {
+	overflow: visible !important;
+}
+.datepicker.dropdown-menu {
+	z-index: 10050 !important;
+}
+@media (max-width: 767px) {
+	.report-period-wrap {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 14px;
+	}
+	.report-type-group {
+		justify-content: center;
+		flex-wrap: wrap;
+		gap: 16px 24px;
+	}
+	.report-date-group {
+		width: 100%;
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+}
+
+/* Filter fields — stacked label above dropdown */
+#transaction_form .form-group {
+	margin-bottom: 16px;
+	overflow: visible;
+}
+#transaction_form .form-group > .control-label {
+	display: block !important;
+	float: none !important;
+	width: 100% !important;
+	padding-top: 0 !important;
+	margin-bottom: 6px !important;
+	line-height: 1.35 !important;
+	text-align: left !important;
+	position: static !important;
+}
+#transaction_form select.form-control {
+	width: 100%;
+	height: 38px;
+	min-height: 38px;
+	border: 1px solid #D8DDE5;
+	border-radius: 8px;
+	padding: 6px 10px;
+	background: #fff;
+}
+#transaction_form .select2-container {
+	display: block !important;
+	width: 100% !important;
+	margin-top: 0 !important;
+}
+#transaction_form .select2-container .select2-choice {
+	height: 38px !important;
+	line-height: 36px !important;
+	border: 1px solid #D8DDE5 !important;
+	border-radius: 8px !important;
+	background: #fff !important;
+	padding-left: 10px !important;
+}
+#transaction_form .select2-container .select2-choice > .select2-chosen {
+	line-height: 36px !important;
+	margin-right: 28px;
+}
+#transaction_form .select2-container .select2-choice .select2-arrow {
+	height: 36px !important;
+	width: 28px !important;
 	border-left: none !important;
-	background: none !important;
+	background: transparent !important;
+}
+.widget-container.fluid-height .widget-content.padded {
+	overflow: visible;
+	padding-top: 18px !important;
 }
 
 </style>
@@ -109,35 +234,41 @@ table{
 									<div class="message" style="text-align:center"></div>
 								</div>
 
-								<div class="row">
-									<div class="col-md-offset-3 col-md-2">
-										<div class="form-group">
-											<label class="control-label" style="margin-right: 30px;"><input type="radio" name="report_type" class="report_type" value="DAILY" checked /> DAILY</label>
-											<label class="control-label" style="margin-right: 30px;"><input type="radio" class="report_type" name="report_type" value="MONTHLY" /> MONTHLY</label>
-											<label class="control-label"><input type="radio" class="report_type" name="report_type" value="YEARLY" />YEARLY</label>
+								<div class="row report-period-row">
+									<div class="col-md-12">
+										<div class="report-period-wrap">
+											<div class="report-type-group">
+												<label class="control-label"><input type="radio" name="report_type" class="report_type" value="DAILY" checked /> DAILY</label>
+												<label class="control-label"><input type="radio" class="report_type" name="report_type" value="MONTHLY" /> MONTHLY</label>
+												<label class="control-label"><input type="radio" class="report_type" name="report_type" value="YEARLY" /> YEARLY</label>
+											</div>
+											<div class="report-date-group">
+												<div id="picker1" class="input-group date daily cals_csss date-picker" data-ew-skip-upgrade="1" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
+													<input class="form-control" type="text" id="date" name="date" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" required><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
+												</div>
+												<div id="picker2" class="input-group cals_csss date monthly date-picker" data-ew-skip-upgrade="1" data-date-autoclose="true" data-date-format="mm-yyyy" style="display:none;">
+													<input class="form-control" type="text" id="month" name="month" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
+												</div>
+												<div id="picker3" class="report-year-select-wrap" style="display:none;">
+													<select id="year" name="year" class="form-control report-year-select">
+														<?php
+														$current_year = (int) date('Y');
+														for ($yr = $current_year + 1; $yr >= $current_year - 15; $yr--) {
+															$selected = ($yr === $current_year) ? ' selected' : '';
+															echo '<option value="' . $yr . '"' . $selected . '>' . $yr . '</option>';
+														}
+														?>
+													</select>
+												</div>
+											</div>
 										</div>
-									</div>
-									<div class="col-md-3">
-										<div class="form-group">
-
-											<div id="picker1" class="input-group date daily cals_csss date-picker" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-												<input class="form-control" type="text" id="date" name="date" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" required><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
-											</div>
-											<div id="picker2" class="input-group cals_csss date monthly  date-picker" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-												<input class="form-control" type="text" id="month" name="month" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" required><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
-											</div>
-            								<div id="picker3" class="input-group cals_csss date yearly date-picker" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-												<input class="form-control" type="text" id="year" name="year" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" required><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
-											</div>
-										</div>
-										
 									</div>
 								</div><br />
 								<div class="row">
 									<div class="col-md-offset-2 col-md-3">
 										<div class="form-group">
 											<label class="control-label">Client:</label>
-											<select name="client_wise_report" id="client_wise_report" class="form-control client_wise_report" style="padding: 0; border:0;">
+											<select name="client_wise_report" id="client_wise_report" class="form-control client_wise_report">
 												<option value="">-- Select Client --</option>
 												<?php
 												$query = "select * from client";
@@ -155,7 +286,7 @@ table{
 									<div class="col-md-3">
 										<div class="form-group">
 											<label class="control-label">Consignee:</label>
-											<select name="consignee_wise_report" id="consignee_wise_report" class="form-control consignee_wise_report" style="padding: 0; border:0;">
+											<select name="consignee_wise_report" id="consignee_wise_report" class="form-control consignee_wise_report">
 												<option value="">-- Select Consignee --</option>
 												<?php
 												$query = "select * from client";
@@ -299,49 +430,100 @@ table{
 
 	<script type="text/javascript">
 		$(document).ready(function() {
-			$('.client_wise_report').select2();
-			$('.consignee_wise_report').select2();
-			$('#report_table').DataTable({
-				dom: 'Bfrtip',
-				lengthMenu: [
-					[ 10, 25, 50, -1 ],
-					[ '10 rows', '25 rows', '50 rows', 'Show all' ]
-				],
-				buttons: [
-					'pageLength',
-					{
-						extend: 'excel',
-						text: 'Export'
-					}
-				]
-			});
+			$('.client_wise_report').select2({ width: '100%' });
+			$('.consignee_wise_report').select2({ width: '100%' });
+			if ($('#report_table').length) {
+				$('#report_table').DataTable({
+					dom: 'Bfrtip',
+					lengthMenu: [
+						[ 10, 25, 50, -1 ],
+						[ '10 rows', '25 rows', '50 rows', 'Show all' ]
+					],
+					buttons: [
+						'pageLength',
+						{
+							extend: 'excel',
+							text: 'Export'
+						}
+					]
+				});
+			}
 
 			$("#date").val('<?php echo $c_date; ?>');
 			$("#month").val('<?php echo $c_mY; ?>');
 			$("#year").val('<?php echo $c_Y; ?>');
-			$("#picker2").hide();
-			$("#picker3").hide();
-			$(document).on('change', '.report_type', function() {
-				if ($(this).val() == 'MONTHLY') {
-					$("#picker1").hide();
-					$("#picker3").hide();
-					$("#picker2").show();
-				} else if($(this).val() == 'YEARLY') {
-					$("#picker2").hide();
-					$("#picker1").hide();
-					$("#picker3").show();
-				} else{
-					$("#picker2").hide();
-					$("#picker3").hide();
-					$("#picker1").show();
-				}
 
+			function initReportPicker($wrap, opts) {
+				var $input = $wrap.find('input').first();
+				if (!$input.length) {
+					return;
+				}
+				if ($input.data('datepicker')) {
+					$input.datepicker('destroy');
+				}
+				$input.datepicker(opts);
+				$input.off('show.reportPicker').on('show.reportPicker', function() {
+					var dp = $input.data('datepicker');
+					if (dp && typeof dp.place === 'function') {
+						setTimeout(function() {
+							dp.place();
+						}, 0);
+					}
+				});
+			}
+
+			function initAllReportPickers() {
+				initReportPicker($('#picker1'), {
+					format: 'dd-mm-yyyy',
+					autoclose: true,
+					todayHighlight: true
+				});
+				initReportPicker($('#picker2'), {
+					format: 'mm-yyyy',
+					minViewMode: 1,
+					startView: 1,
+					autoclose: true
+				});
+			}
+
+			function setReportType(type) {
+				$('#picker1, #picker2, #picker3').hide();
+				$('#date, #month, #year').prop('required', false);
+				if (type === 'MONTHLY') {
+					$('#picker2').show();
+					$('#month').prop('required', true);
+				} else if (type === 'YEARLY') {
+					$('#picker3').show();
+					$('#year').prop('required', true);
+				} else {
+					$('#picker1').show();
+					$('#date').prop('required', true);
+				}
+			}
+
+			setTimeout(function() {
+				initAllReportPickers();
+				setReportType($('.report_type:checked').val());
+			}, 0);
+
+			$(document).on('change', '.report_type', function() {
+				setReportType($(this).val());
 			});
+
+			$(document).on('click', '.report-date-group .date-field-icon, .report-date-group .fa_calend, .report-date-group .input-group-addon', function() {
+				var $input = $(this).closest('[id^="picker"]').find('input').first();
+				if ($input.length) {
+					if (!$input.data('datepicker')) {
+						initAllReportPickers();
+					}
+					$input.datepicker('show');
+				}
+			});
+
 			$(document).on('click', '#search', function() {
 				$("#report").html("");
 				$("#table_div").show();
 				var data = $('#transaction_form').serialize();
-				//alert(data);
 				if ($('#transaction_form').valid() == true) {
 					$('.form-data-saving').show();
 					$.ajax({
@@ -349,55 +531,48 @@ table{
 						type: "GET",
 						data: data,
 						success: function(result) {
-							//console.log(result);
-							$("#report_table").DataTable().destroy();
-							$('#report').append(result);
-							$("#report_table").DataTable({
-								dom: 'Bfrtip',
-								lengthMenu: [
-									[ 10, 25, 50, 100, -1 ],
-									[ '10 rows', '25 rows', '50 rows', '100 rows', 'Show all' ]
-								],
-								buttons: [
-									'pageLength',
-									{
-										extend: 'excel',
-										text: 'Export'
+							if ($.fn.DataTable.isDataTable('#report_table')) {
+								$('#report_table').DataTable().destroy();
+							}
+							$('#report').html(result);
+							var $firstRowCells = $('#report_table tbody tr:first td');
+							if ($('#report_table').length && $firstRowCells.length === 12) {
+								try {
+									$("#report_table").DataTable({
+										dom: 'Bfrtip',
+										lengthMenu: [
+											[ 10, 25, 50, 100, -1 ],
+											[ '10 rows', '25 rows', '50 rows', '100 rows', 'Show all' ]
+										],
+										buttons: [
+											'pageLength',
+											{
+												extend: 'excel',
+												text: 'Export'
+											}
+										]
+									});
+								} catch (e) {
+									if (typeof ewToast === 'function') {
+										ewToast('Unable to display report table.', 'error');
 									}
-								]
-							});
+								}
+							}
                         	$('.form-data-saving').hide();
+						},
+						complete: function() {
+							$('.form-data-saving').hide();
+						},
+						error: function() {
+							$('.form-data-saving').hide();
+							if (typeof ewToast === 'function') {
+								ewToast('Unable to load report. Please try again.', 'error');
+							}
 						}
 					});
 				}
 
 			});
-
-			$('.monthly').on("click", function() {
-				$(this).datepicker({
-					changeMonth: true,
-					changeYear: true,
-					format: 'mm-yyyy',
-				}).datepicker('show');
-			});
-
-			$('.yearly').on("click", function() {
-				$(this).datepicker({
-					changeMonth: true,
-					changeYear: true,
-					format: 'yyyy',
-				}).datepicker('show');
-			});
-
-			$('.daily').on("click", function() {
-				$(this).datepicker({
-					changeMonth: true,
-					changeYear: true,
-					format: 'dd-mm-yyyy',
-				}).datepicker('show');
-			});
-
-
 		});
 		$(window).load(function() {
 			$(".loading-page").hide();

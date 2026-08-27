@@ -1,6 +1,7 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+require_once ('include/billing_functions.php');
 require_once ('include/set_connection.php');
 date_default_timezone_set('Asia/Kolkata');
 $c_date = date('d-m-Y');
@@ -246,6 +247,10 @@ if ($cmd == 'get_transaction_month_details') {
 				} else {
 					$edit_btn = '<a title="Edit Payment / Billing" href="transactions.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $dt[1] . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
 				}
+			}
+			$trans_table_name = 'transaction_' . $m1 . '_' . $dt[1];
+			if (booking_is_gcn_billed($conn, $trans_table_name, $row['transaction_id'])) {
+				$edit_btn = '<a title="Invoiced — edit locked" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>';
 			}
 			if ($booking == '1')
 				$out_put .= "
@@ -666,148 +671,217 @@ if ($cmd == 'get_destination_consignor') {
 
 if ($cmd == 'get_pickup_report_details') {
 	$out_put = '';
-	extract($_REQUEST);
+	$report_type = $_REQUEST['report_type'] ?? 'DAILY';
+	$date = $_REQUEST['date'] ?? '';
+	$month = $_REQUEST['month'] ?? '';
+	$year = $_REQUEST['year'] ?? '';
+	$client_wise_report = $_REQUEST['client_wise_report'] ?? '';
+	$consignee_wise_report = $_REQUEST['consignee_wise_report'] ?? '';
+	$mode_of_trasport = $_REQUEST['mode_of_trasport'] ?? '';
+	$origin = $_REQUEST['origin'] ?? '';
+	$destination = $_REQUEST['destination'] ?? '';
+	$status = $_REQUEST['status'] ?? '';
+
 	$company_id = get_company($conn, $_SESSION['user_id']);
-	if ($_SESSION['role'] == 'CL') {
-		if ($report_type == 'MONTHLY') {
-			$add_q = "and grn_date LIKE '%$month'";
-			$dt = explode('-', $month);
-			$y = $dt[1];
-			$m = $dt[0];
-		} else if ($report_type == 'YEARLY') {
-			$add_q = "and grn_date LIKE '%$year'";
-			$y = $year;
+	$is_client = ($_SESSION['role'] == 'CL');
+	$add_q = '';
+	$y = '';
+	$m = '';
+	$m1 = 1;
+
+	if ($report_type == 'MONTHLY') {
+		$month = trim($month);
+		$dt = explode('-', $month);
+		$y = $dt[1] ?? date('Y');
+		$m = $dt[0] ?? date('m');
+		$month_esc = mysqli_real_escape_string($conn, $month);
+		$add_q = ($is_client ? 'and ' : '') . "grn_date LIKE '%$month_esc'";
+	} elseif ($report_type == 'YEARLY') {
+		if (preg_match('/(\d{4})/', trim($year), $year_match)) {
+			$y = $year_match[1];
 		} else {
-			$add_q = "and grn_date='$date'";
-			$dt = explode('-', $date);
-			$y = $dt[2];
-			$m = $dt[1];
+			$y = date('Y');
 		}
+		$add_q = '';
 	} else {
-		if ($report_type == 'MONTHLY') {
-			$add_q = "grn_date LIKE '%$month'";
-			$dt = explode('-', $month);
-			$y = $dt[1];
-			$m = $dt[0];
-		} else if ($report_type == 'YEARLY') {
-			$add_q = "grn_date LIKE '%$year'";
-			$y = $year;
-		} else {
-			$add_q = "grn_date='$date'";
-			$dt = explode('-', $date);
-			$y = $dt[2];
-			$m = $dt[1];
-		}
+		$date = trim($date);
+		$dt = explode('-', $date);
+		$y = $dt[2] ?? date('Y');
+		$m = $dt[1] ?? date('m');
+		$date_esc = mysqli_real_escape_string($conn, $date);
+		$add_q = ($is_client ? 'and ' : '') . "grn_date='$date_esc'";
 	}
 
 	if ($report_type != 'YEARLY') {
-		if ($m < 4)
+		if ($m < 4) {
 			$m1 = 1;
-		else if (($m > 3) && ($m < 7))
+		} elseif ($m < 7) {
 			$m1 = 2;
-		else if (($m > 6) && ($m < 10))
+		} elseif ($m < 10) {
 			$m1 = 3;
-		else
+		} else {
 			$m1 = 4;
+		}
 	}
 
 	if ($client_wise_report != '') {
-		$add_q .= "and consigner='$client_wise_report'";
+		$add_q .= " and consigner='" . mysqli_real_escape_string($conn, $client_wise_report) . "'";
 	}
 	if ($consignee_wise_report != '') {
-		$add_q .= "and consignee='$consignee_wise_report'";
+		$add_q .= " and consignee='" . mysqli_real_escape_string($conn, $consignee_wise_report) . "'";
 	}
-	if ($mode_of_trasport != '')
-		$add_q .= " and mode_of_transportation='$mode_of_trasport'";
-	if ($origin != '')
-		$add_q .= " and origin='$origin'";
-	if ($destination != '')
-		$add_q .= " and destination='$destination'";
-	if ($status != '')
-		$add_q .= " and status='$status'";
+	if ($mode_of_trasport != '') {
+		$add_q .= " and mode_of_transportation='" . mysqli_real_escape_string($conn, $mode_of_trasport) . "'";
+	}
+	if ($origin != '') {
+		$add_q .= " and origin='" . mysqli_real_escape_string($conn, $origin) . "'";
+	}
+	if ($destination != '') {
+		$add_q .= " and destination='" . mysqli_real_escape_string($conn, $destination) . "'";
+	}
+	if ($status != '') {
+		$add_q .= " and status='" . mysqli_real_escape_string($conn, $status) . "'";
+	}
 
-	$i = 1;
-	if ($_SESSION['role'] == 'CL') {
-		if ($report_type != 'YEARLY') {
-			$query = 'select * from transaction_' . $m1 . '_' . $y . " where consigner='" . $company_id . "' $add_q";
-		} else {
-			$query = 'SELECT * FROM transaction_1_' . $y . " where consigner='" . $company_id . "' $add_q UNION ALL SELECT * FROM transaction_2_" . $y . " where consigner='" . $company_id . "' $add_q UNION ALL SELECT * FROM transaction_3_" . $y . " where consigner='" . $company_id . "' $add_q UNION ALL SELECT * FROM transaction_4_" . $y . " where consigner='" . $company_id . "' $add_q";
+	$query = '';
+	if ($report_type == 'YEARLY') {
+		$y_int = (int) $y;
+		$y_esc = mysqli_real_escape_string($conn, (string) $y_int);
+		$year_conditions = array();
+		$year_conditions[] = "(grn_date LIKE '%-$y_esc' OR grn_date LIKE '$y_esc-%' OR (STR_TO_DATE(grn_date, '%d-%m-%Y') IS NOT NULL AND YEAR(STR_TO_DATE(grn_date, '%d-%m-%Y')) = $y_int))";
+		if ($is_client) {
+			$year_conditions[] = "consigner='" . mysqli_real_escape_string($conn, $company_id) . "'";
 		}
+		if ($client_wise_report != '') {
+			$year_conditions[] = "consigner='" . mysqli_real_escape_string($conn, $client_wise_report) . "'";
+		}
+		if ($consignee_wise_report != '') {
+			$year_conditions[] = "consignee='" . mysqli_real_escape_string($conn, $consignee_wise_report) . "'";
+		}
+		if ($mode_of_trasport != '') {
+			$year_conditions[] = "mode_of_transportation='" . mysqli_real_escape_string($conn, $mode_of_trasport) . "'";
+		}
+		if ($origin != '') {
+			$year_conditions[] = "origin='" . mysqli_real_escape_string($conn, $origin) . "'";
+		}
+		if ($destination != '') {
+			$year_conditions[] = "destination='" . mysqli_real_escape_string($conn, $destination) . "'";
+		}
+		if ($status != '') {
+			$year_conditions[] = "status='" . mysqli_real_escape_string($conn, $status) . "'";
+		}
+		$where_sql = implode(' AND ', $year_conditions);
+		$select_cols = 'transaction_id, grn_no, grn_date, booking_status, mode_of_transportation, origin, consigner, consignee, destination, status';
+
+		$union_parts = array();
+		$tbl_q = mysqli_query($conn, 'SELECT table_name FROM transaction_tbls ORDER BY table_name');
+		if ($tbl_q) {
+			while ($tbl_row = mysqli_fetch_assoc($tbl_q)) {
+				$suffix = $tbl_row['table_name'];
+				$table = 'transaction_' . $suffix;
+				$chk = @mysqli_query($conn, "SELECT 1 FROM `$table` LIMIT 1");
+				if (!$chk) {
+					continue;
+				}
+				$union_parts[] = "SELECT $select_cols FROM `$table` WHERE $where_sql";
+			}
+		}
+		$query = implode(' UNION ALL ', $union_parts);
+	} elseif ($is_client) {
+		$query = 'select * from transaction_' . (int) $m1 . '_' . (int) $y . " where consigner='" . mysqli_real_escape_string($conn, $company_id) . "' $add_q";
 	} else {
-		if ($report_type != 'YEARLY') {
-			$query = 'select * from transaction_' . $m1 . '_' . $y . " where  $add_q";
-		} else {
-			$query = 'SELECT * FROM transaction_1_' . $y . " WHERE  $add_q UNION ALL SELECT * FROM transaction_2_" . $y . " WHERE  $add_q UNION ALL SELECT * FROM transaction_3_" . $y . " WHERE  $add_q UNION ALL SELECT * FROM transaction_4_" . $y . " WHERE  $add_q";
-		}
+		$query = 'select * from transaction_' . (int) $m1 . '_' . (int) $y . ' where ' . $add_q;
 	}
-	$result = mysqli_query($conn, $query);
 
-	$out_put .= '<style>tr { height: 30px; }</style>
+	$result = ($query !== '') ? mysqli_query($conn, $query) : false;
+
+	$table_head = '<style>tr { height: 30px; }</style>
 	<table class="table table-bordered table-striped" id="report_table" style="width:100%">
 	<thead>
-	<th class="table-title" width="60px">S.No</th>
+	<tr>
+		<th class="table-title" width="60px">S.No</th>
 		<th class="table-title">GRN NO</th>
 		<th class="table-title" width="100px">GRN Date</th>
 		<th class="table-title" width="100px">Invoice No.</th>
-		<th class="table-title"  width="80px">Weight</th>
+		<th class="table-title" width="80px">Weight</th>
 		<th class="table-title" width="100px">No.of.Pkgs</th>
-		<th class="table-title"  width="80px">Mode</th>
+		<th class="table-title" width="80px">Mode</th>
 		<th class="table-title">Origin</th>
-		<th class="table-title" >Consignor </th>
-		<th class="table-title" >Consignee </th>
+		<th class="table-title">Consignor</th>
+		<th class="table-title">Consignee</th>
 		<th class="table-title" width="120px">Destination</th>
-		<th class="table-title" width="80px">Status</th>      
+		<th class="table-title" width="80px">Status</th>
+	</tr>
 	</thead>
 	<tbody id="get_month_details">';
 
-	if (mysqli_num_rows($result) > 0) {
+	$out_put = $table_head;
+	$i = 1;
+
+	if ($result && mysqli_num_rows($result) > 0) {
 		while ($row = mysqli_fetch_array($result)) {
 			$booking = $row['booking_status'];
-			$grn_date = $row['grn_date'];
+			$grn_date = trim((string) ($row['grn_date'] ?? ''));
 			$dat = explode('-', $grn_date);
-			$y2 = $dat[2];
-			if ($dat[1] < 4)
+			if (count($dat) === 3 && strlen($dat[0]) === 4) {
+				$y2 = $dat[0];
+				$m_num = (int) $dat[1];
+			} else {
+				$y2 = $dat[2] ?? date('Y');
+				$m_num = (int) ($dat[1] ?? 1);
+			}
+			if ($m_num < 4) {
 				$m2 = 1;
-			else if (($dat[1] > 3) && ($dat[1] < 7))
+			} elseif ($m_num < 7) {
 				$m2 = 2;
-			else if (($dat[1] > 6) && ($dat[1] < 10))
+			} elseif ($m_num < 10) {
 				$m2 = 3;
-			else
+			} else {
 				$m2 = 4;
+			}
 
-			$query1 = 'select sum(no_of_pkge) as no_of_pkge,party_invoice_no,gross_weight from transaction_invoice_' . $m2 . '_' . $y2 . " where transaction_id='" . $row['transaction_id'] . "'";
+			$row1 = array(
+				'party_invoice_no' => '',
+				'gross_weight' => '',
+				'no_of_pkge' => '',
+			);
+			$query1 = 'select sum(no_of_pkge) as no_of_pkge, party_invoice_no, gross_weight from transaction_invoice_' . (int) $m2 . '_' . (int) $y2 . " where transaction_id='" . mysqli_real_escape_string($conn, $row['transaction_id']) . "'";
 			$result1 = mysqli_query($conn, $query1);
-			$row1 = mysqli_fetch_array($result1);
+			if ($result1) {
+				$fetched = mysqli_fetch_array($result1);
+				if ($fetched) {
+					$row1 = $fetched;
+				}
+			}
 
 			$out_put .= '<tr>
 		<td class="text-center">' . $i . '</td>
-		<td>' . $row['grn_no'] . '</td>
-		<td>' . $row['grn_date'] . '</td>
-		<td>' . $row1['party_invoice_no'] . '</td>
-		<td>' . $row1['gross_weight'] . '</td>
-		<td>' . $row1['no_of_pkge'] . '</td>
-		<td>' . get_mode($conn, $row['mode_of_transportation']) . '</td>
-		<td>' . get_city_name($conn, $row['origin']) . '</td>
-		<td>' . get_client_name($conn, $row['consigner']) . '</td>
-		<td>' . get_client_name($conn, $row['consignee']) . '</td>
-		<td>' . get_city_name($conn, $row['destination']) . '</td>';
+		<td>' . htmlspecialchars($row['grn_no']) . '</td>
+		<td>' . htmlspecialchars($grn_date) . '</td>
+		<td>' . htmlspecialchars($row1['party_invoice_no'] ?? '') . '</td>
+		<td>' . htmlspecialchars($row1['gross_weight'] ?? '') . '</td>
+		<td>' . htmlspecialchars($row1['no_of_pkge'] ?? '') . '</td>
+		<td>' . htmlspecialchars(get_mode($conn, $row['mode_of_transportation'])) . '</td>
+		<td>' . htmlspecialchars(get_city_name($conn, $row['origin'])) . '</td>
+		<td>' . htmlspecialchars(get_client_name($conn, $row['consigner'])) . '</td>
+		<td>' . htmlspecialchars(get_client_name($conn, $row['consignee'])) . '</td>
+		<td>' . htmlspecialchars(get_city_name($conn, $row['destination'])) . '</td>';
 			if ($booking == '1') {
 				$out_put .= '<td style="color:red;">Consignment Cancelled</td>';
 			} else {
-				$out_put .= '<td>' . get_trans_status($row['status']) . '</td>';
+				$out_put .= '<td>' . htmlspecialchars(get_trans_status($row['status'])) . '</td>';
 			}
 
 			$out_put .= '</tr>';
 
 			$i++;
 		}
-		$out_put .= '</tbody>
-		</table>';
-		echo $out_put;
 	} else {
-		echo '<tr>
-		<td class="text-center" colspan="10"> No Records Found For this Search</td></tr>';
+		$out_put .= '<tr><td class="text-center" colspan="12">No Records Found For this Search</td></tr>';
 	}
+
+	$out_put .= '</tbody></table>';
+	echo $out_put;
 }
 
 if ($cmd == 'get_payment_report_details') {
