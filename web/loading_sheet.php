@@ -73,10 +73,16 @@ if($key !=''){
 									</div>
 									<div class="form-group">
 										<label class="control-label col-sm-4">Date <span style="color:red;">*</span> :</label>
-										<div class="input-group date datepicker date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-											<input class="form-control table-height final" type="text" name="grn_date" value="<?php if($row['grn_date']!='')
-											echo $row['grn_date']; else echo date('d-m-Y'); ?>"  id="grn_date" required> <span class="input-group-addon table-height"><i class="fa fa-calendar"></i></span>
-										</div>
+										<?php
+										$grn_date_val = !empty($row['grn_date']) ? $row['grn_date'] : date('d-m-Y');
+										echo ew_date_input(array(
+											'id' => 'grn_date',
+											'name' => 'grn_date',
+											'value' => $grn_date_val,
+											'required' => true,
+											'class' => 'table-height final',
+										));
+										?>
 									</div>
 									<div class="form-group">
 										<label class="control-label col-sm-4">Loading HUB <span style="color:red;">*</span> :</label>

@@ -11,245 +11,326 @@ $logged_id = $_SESSION['user_id'];
     <?php include ('include/css_js.php'); ?>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" integrity="sha512-aOG0c6nPNzGk+5zjwyJaoRUgCdOrfSDhmMID2u4+OIslr0GjpLKo7Xm0Ao3xmpM4T8AmIouRkqwj1nrdVsLKEQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        button#search {
-            margin-top: 20px;
-            background: #f0ad4eeb;
-            border-color: #f1b35c;
-            font-weight: bold;
-            color: #fff;
-        }
-
-#remarks{
-    padding:8px 10px;
-    line-height:20px;
-    vertical-align:top;
-    resize:vertical;
-    overflow-y:auto;
-    box-sizing:border-box;
-}
-
-        .edit_disabled {
-            pointer-events: none;
-            cursor: default;
-            color: grey;
-        }
-
-        .no-attach {
-            color: grey;
-            cursor: none !important;
-        }
-
-        .ui-monthpicker-trigger {
-            display: none;
-        }
-
-        .disable_action {
-            color: #7a888f;
-            cursor: not-allowed;
-        }
-
-        .fa_calend {
-            height: 25px;
-            position: absolute;
-            right: 0;
-            width: 8%;
-            top: 0;
-            display: grid;
-            justify-content: center;
-            align-items: center;
-            padding-top: 2px;
-        }
-
-        .cals_csss {
-            width: 100%;
-        }
-        #get_month_details button {
-            width:25px; 
-        }
-
-        @media (min-width: 320px) and (max-width:575.98px) {
-            .trans_list{
-        overflow:visible;
-    }
-
-    .trans_list_table{
-        width:100% !important;
-    }
-
-    .trans_list_table thead{
-        display:none;
-    }
-
-    .trans_list_table,
-    .trans_list_table tbody,
-    .trans_list_table tr,
-    .trans_list_table td{
-        display:block;
-        width:100%;
-    }
-
-    .trans_list_table tr{
-        border:1px solid #ddd;
-        border-radius:8px;
-        margin-bottom:15px;
-        background:#fff;
-        padding:10px;
-    }
-
-    .trans_list_table td{
-        border:none !important;
-        border-bottom:1px solid #eee !important;
-        text-align:right;
-        padding:10px 10px 10px 45%;
-        position:relative;
-        white-space:normal;
-    }
-
-    .trans_list_table td:last-child{
-        border-bottom:none !important;
-    }
-
-    .trans_list_table td:before{
-        content:attr(data-label);
-        position:absolute;
-        left:10px;
-        top:10px;
-        width:40%;
-        font-weight:bold;
-        text-align:left;
-        color:#0A1E3D;
-    }
-
-    /* Change Status buttons */
-
-    #get_month_details button{
-        width:auto;
-        height:28px;
-        margin:2px;
-    }
-
-    td[data-label="Change Status"]{
-        text-align:left;
-        padding-left:10px;
-    }
-
-    td[data-label="Change Status"]:before{
-        position:static;
-        display:block;
-        margin-bottom:8px;
-    }
-
-    .tra-status-div{
-            padding:0px !important;
-        }
-
-        #get_month_details .actions {
-            width: auto;
+        .txn-page-wrap { padding: 0 16px 28px; }
+        .txn-page-header,
+        .txn-page-header h1,
+        .txn-page-header h1 i,
+        .txn-header-meta { color: #ffffff !important; }
+        .txn-page-header {
             display: flex;
-        justify-content: space-between;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: linear-gradient(185deg, var(--ew-navy, #0A1E3D) 0%, var(--ew-navy-deep, #061428) 100%);
+            padding: 14px 24px;
+            border-radius: 10px 10px 0 0;
+            min-height: 64px;
         }
+        .txn-page-header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
         }
-
+        .txn-page-header h1 i { margin-right: 8px; }
+        .txn-header-meta {
+            font-size: 14px;
+            color: rgba(255,255,255,.88) !important;
+            margin-top: 4px;
+        }
+        .txn-table-card {
+            background: #fff;
+            border: 1px solid #E2E8F0;
+            border-radius: 0 0 10px 10px;
+            overflow: visible;
+            box-shadow: 0 4px 18px rgba(15, 23, 42, .06);
+        }
+        .txn-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 14px 20px;
+            background: #F8FAFC;
+            border-bottom: 1px solid #E2E8F0;
+            overflow: visible;
+            position: relative;
+            z-index: 10;
+        }
+        .month-field-col {
+            max-width: 280px;
+            flex: 0 0 auto;
+        }
+        .txn-toolbar .control-label,
+        .month-field-col .control-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-bottom: 6px;
+        }
+        .txn-datatable-area {
+            padding: 0 16px 16px;
+            width: 100%;
+            overflow-x: auto;
+        }
+        .trans_list_table {
+            width: 100% !important;
+            min-width: 980px;
+            margin: 0 !important;
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+        }
+        .trans_list_table col.col-sno { width: 42px; }
+        .trans_list_table col.col-gcn { width: 88px; }
+        .trans_list_table col.col-date { width: 88px; }
+        .trans_list_table col.col-pkgs { width: 48px; }
+        .trans_list_table col.col-consignor { width: 120px; }
+        .trans_list_table col.col-consignee { width: 120px; }
+        .trans_list_table col.col-dest { width: 90px; }
+        .trans_list_table col.col-status { width: 110px; }
+        .trans_list_table col.col-steps { width: 280px; }
+        .trans_list_table thead th {
+            background: var(--ew-primary-light, #EEF2F7) !important;
+            color: var(--ew-navy, #0A1E3D) !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            padding: 11px 8px !important;
+            border-bottom: 2px solid var(--ew-border, #D8DDE5) !important;
+            border-right: 1px solid var(--ew-border-light, #E2E8F0) !important;
+            white-space: nowrap;
+            vertical-align: middle !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .trans_list_table thead th:last-child { border-right: none !important; text-align: center !important; }
+        .trans_list_table tbody td {
+            font-size: 13px;
+            padding: 9px 8px !important;
+            vertical-align: middle !important;
+            border-color: #EEF2F7 !important;
+            color: #1E293B;
+            overflow: hidden;
+            word-wrap: break-word;
+        }
+        .trans_list_table tbody td.col-steps {
+            overflow: visible !important;
+            white-space: nowrap;
+            padding: 8px 6px !important;
+            text-align: center !important;
+        }
+        .trans_list_table tbody tr:hover td { background: #F8FAFC !important; }
+        .trans_list_table tbody tr:nth-child(even) td { background: #FBFCFE; }
+        .txn-gcn-no { font-weight: 700; color: #0A1E3D; font-size: 13px; }
+        .txn-status-badge {
+            display: inline-block;
+            min-width: 72px;
+            max-width: 100%;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.3;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .txn-status-booked { background: #DBEAFE; color: #1D4ED8; }
+        .txn-status-picked { background: #E0F2FE; color: #0369A1; }
+        .txn-status-transit-1 { background: #FEF3C7; color: #92400E; }
+        .txn-status-transit-2 { background: #FFEDD5; color: #C2410C; }
+        .txn-status-transit-3 { background: #FEE2E2; color: #B91C1C; }
+        .txn-status-destination { background: #EDE9FE; color: #6D28D9; }
+        .txn-status-out { background: #FCE7F3; color: #BE185D; }
+        .txn-status-transit { background: #FEF3C7; color: #B45309; }
+        .txn-status-delivered { background: #DCFCE7; color: #15803D; }
+        .txn-status-cancelled { background: #FEE2E2; color: #B91C1C; }
+        .txn-status-partial { background: #FEE2E2; color: #DC2626; }
+        .txn-status-default { background: #F1F5F9; color: #475569; }
+        .txn-datatable-area .dataTables_wrapper { width: 100%; }
+        .txn-datatable-area .dataTables_length,
+        .txn-datatable-area .dataTables_filter { padding: 12px 0 8px; margin: 0; }
+        .txn-datatable-area .dataTables_length select {
+            border: 1px solid #D8DDE5; border-radius: 6px; padding: 4px 8px; margin: 0 6px;
+        }
+        .txn-datatable-area .dataTables_filter input {
+            border: 1px solid #D8DDE5; border-radius: 6px; padding: 6px 10px; margin-left: 8px; min-width: 180px;
+        }
+        .txn-datatable-area .dataTables_info,
+        .txn-datatable-area .dataTables_paginate { padding: 10px 0 4px; font-size: 12px; }
+        .col-steps .border,
+        #get_month_details button.border {
+            width: 30px;
+            height: 30px;
+            min-width: 25px;
+            padding: 0;
+            margin: 0;
+            border: 1px solid silver;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            vertical-align: middle;
+        }
+        .col-steps .border i.fa-check,
+        #get_month_details button.border i.fa-check {
+            font-size: 10px;
+        }
+        .col-steps .actions > div,
+        #get_month_details .actions > div,
+        #get_month_details .col-steps > div {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+        .booked { background-color: #8dafbf; color: #fff; }
+        .picked-up { background-color: #77aec9; color: #fff; }
+        .transit-1 { background-color: #6293ab; color: #fff; }
+        .transit-2 { background-color: #4c798f; color: #fff; }
+        .transit-3 { background-color: #3d6578; color: #fff; }
+        .destination { background-color: #1a607e; color: #fff; }
+        .out-delivery { background-color: #0e4c68; color: #fff; }
+        .delivered { background-color: #003e58; color: #fff; }
+        .partial-delivery-button {
+            background-color: #DC2626 !important;
+            color: #fff !important;
+            border-color: #DC2626 !important;
+        }
+        .mobile-update-status {
+            display: none;
+            width: 100%;
+            margin-top: 8px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .mobile-status-group { display: none; }
         .table-actions-click {
             border: solid 1px;
             background: #0A1E3D;
             color: #FFF;
             border-radius: 5px;
         }
-
-        .border{
-            border: 1px solid silver;
+        .month-field-col .date-input-inside { width: 168px; max-width: 168px; }
+        .month-field-col { margin-bottom: 0; }
+        #status_popup_modal .modal-dialog {
+            max-width: 540px;
+            width: 92%;
+            margin: 28px auto;
         }
-
-        .booked{
-         background-color: #8dafbf;
-         color: white;
+        #status_popup_modal .modal-body { padding: 20px 24px 8px; }
+        .ts-modal-remarks-panel {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+            min-height: 88px;
+            max-height: 168px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.55;
+            color: #334155;
         }
-
-        .picked-up{
-         background-color: #77aec9;
-         color: white;       
+        .ts-modal-field { margin-bottom: 16px; }
+        .ts-modal-field > label,
+        #status_popup_modal .form-group > label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-bottom: 6px;
         }
-
-        .transit-1{
-         background-color: #6293ab;
-         color: white;       
+        #status_popup_modal .form-control {
+            border-radius: 8px;
+            border-color: #CBD5E1;
+            min-height: 38px;
         }
-
-        .transit-2{
-         background-color: #4c798f;
-         color: white;       
+        #status_popup_modal .date-input-inside .form-control { min-height: 38px; }
+        #delivery_options {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
         }
-
-        .transit-3{
-         background-color: #3d6578;
-         color: white;       
+        #delivery_options > .form-group:last-child { margin-bottom: 0; }
+        #status_popup_modal .modal-footer {
+            text-align: center;
+            padding: 14px 24px 18px !important;
+            border-top: 1px solid #E2E8F0;
         }
-
-        .destination{
-         background-color: #1a607e;
-         color: white;       
+        #status_popup_modal .modal-footer .btn {
+            min-width: 108px;
+            margin: 0 8px;
+            border-radius: 8px;
+            font-weight: 600;
         }
-
-        .out-delivery{
-         background-color: #0e4c68;
-         color: white;       
+        .ts-modal-datetime-row { margin-left: -8px; margin-right: -8px; }
+        .ts-modal-datetime-row > [class*="col-"] { padding-left: 8px; padding-right: 8px; }
+        @media (max-width: 767px) {
+            .txn-page-wrap { padding: 0 12px 24px; }
         }
-
-        .delivered{
-         background-color: #003e58;
-         color: white;       
+        @media (max-width: 575.98px) {
+            .txn-datatable-area { overflow-x: visible; }
+            .trans_list_table { min-width: 0; table-layout: auto !important; }
+            .trans_list_table thead { display: none; }
+            .trans_list_table, .trans_list_table tbody, .trans_list_table tr, .trans_list_table td {
+                display: block; width: 100%;
+            }
+            .trans_list_table tr {
+                border: 1px solid #E2E8F0;
+                border-radius: 10px;
+                margin-bottom: 14px;
+                background: #fff;
+                padding: 10px;
+            }
+            .trans_list_table td {
+                border: none !important;
+                border-bottom: 1px solid #EEF2F7 !important;
+                text-align: right;
+                padding: 10px 10px 10px 45% !important;
+                position: relative;
+                white-space: normal;
+            }
+            .trans_list_table td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                top: 10px;
+                width: 40%;
+                font-weight: 700;
+                text-align: left;
+                color: #0A1E3D;
+                font-size: 11px;
+                text-transform: uppercase;
+            }
+            .trans_list_table td.col-steps,
+            td[data-label="Change Status"] {
+                text-align: left;
+                padding-left: 10px !important;
+                overflow: visible !important;
+            }
+            td[data-label="Change Status"]:before {
+                position: static;
+                display: block;
+                margin-bottom: 8px;
+            }
+            .col-steps > div { flex-wrap: wrap !important; }
+            .col-steps .border { display: none; }
+            .mobile-update-status { display: inline-block; }
+            .mobile-status-group { display: block; }
         }
-
-        .tra-status-div{
-            padding:0 40px;
-        }
-.desktop-status-buttons{
-    display:block;
-}
-
-.mobile-update-status{
-    display:none;
-}
-
-@media (max-width:575.98px){
-
-.desktop-status-buttons{
-    display:none;
-}
-
-.mobile-update-status{
-    display:inline-block;
-    width:100%;
-    margin-top:8px;
-}
-
-}
-        .mobile-status-group{
-    display:none;
-}
-
-@media(max-width:575.98px){
-
-.mobile-status-group{
-    display:block;
-}
-
-}
-
-.partial-delivery-status {
-    color: #fff !important;
-    background-color: #d9534f !important;
-    font-weight: bold;
-}
-.partial-delivery-button {
-    background-color: #d9534f !important;
-    color: #fff !important;
-}
-
     </style>
 
 </head>
@@ -268,51 +349,56 @@ $logged_id = $_SESSION['user_id'];
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <!-- <div class="col-md-offset-1 col-md-10"> -->
-                    <div class="tra-status-div"> 
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-table"></i>Change Status </div>
-                        <div class="widget-content padded">
-                            <form class="form-horizontal" id="transaction_form">
-
+                    <div class="txn-page-wrap">
+                    <div class="widget-container fluid-height clearfix" style="padding:0;border:none;background:transparent;box-shadow:none;">
+                        <div class="txn-page-header">
+                            <div>
+                                <h1><i class="fa fa-exchange"></i> Change Status</h1>
+                                <div class="txn-header-meta">Update consignment tracking stages month by month</div>
+                            </div>
+                        </div>
+                        <div class="txn-table-card">
+                        <div class="txn-toolbar">
+                            <form class="form-horizontal" id="transaction_form" style="margin:0;">
                                 <input type="hidden" id="form_name" name="form_name" value="transaction_form">
                                 <input type="hidden" id="edit_id" name="edit_id" value="">
                                 <input type="hidden" id="cmd" name="cmd" value="get_transact_status_month_detail">
                                 <div id="response" class="alert alert-danger" style="display:none;">
                                     <div class="message" style="text-align:center"></div>
                                 </div>
-
-                                <div class="row">
-                                    <div class="col-md-offset-4 col-md-3">
-                                        <div class="form-group">
-                                            <label class="control-label">Month:</label>
-                                            <div class="input-group cals_csss">
-                                                <input class="form-control" type="text" id="month" name="month" value="<?php echo date('m-Y'); ?>" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" required><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class=" col-md-4">
-                                        <button class="btn btn-primary" type="button" id="search" style="margin-top:  20px;">Search</button>
-                                    </div>
-
-
-                                </div><br />
-
+                                <div class="month-field-col">
+                                    <label class="control-label">Month</label>
+                                    <?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'required' => true)); ?>
+                                </div>
                             </form>
-                            <div class="trans_list">
-                                <table class="table table-bordered table-striped trans_list_table">
-                                    <thead>
-                                        <th class="table-title" style="padding:9px;">S.No</th>
-                                        <th class="table-title" style="width:10%">GCN NO</th>
-                                        <th class="table-title" style="width:10%">GCN Date</th>
-                                        <th class="table-title" style="width:5%">No of Pkgs</th>
-                                        <th class="table-title" style="width:13%">Consignor </th>
-                                        <th class="table-title" style="width:15%">Consignee </th>
-                                        <th class="table-title" style="width:13%">Destination</th>
-                                        <th class="table-title" style="width:10%">Status</th>
-                                        <th class="table-title" style="width:20%">Change Status</th>
-                                    </thead>
-                                    <tbody id="get_month_details">
+                        </div>
+                        <div class="txn-datatable-area">
+                            <table class="table table-bordered table-striped trans_list_table" id="ts_status_table">
+                                <colgroup>
+                                    <col class="col-sno">
+                                    <col class="col-gcn">
+                                    <col class="col-date">
+                                    <col class="col-pkgs">
+                                    <col class="col-consignor">
+                                    <col class="col-consignee">
+                                    <col class="col-dest">
+                                    <col class="col-status">
+                                    <col class="col-steps">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                    <th>S.No</th>
+                                    <th>GCN No</th>
+                                    <th>GCN Date</th>
+                                    <th>Pkgs</th>
+                                    <th>Consignor</th>
+                                    <th>Consignee</th>
+                                    <th>Destination</th>
+                                    <th>Status</th>
+                                    <th>Change Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="get_month_details">
                                         <?php
                                         $date = date('d-m-Y');
                                         $my = date('m-Y');
@@ -398,86 +484,40 @@ if ($delivery_type == 'partial') {
                                             ?>
                                             <tr>
                                                 <td class="text-center" data-label="S.No"><?php echo $i; ?></td>
-                                                <td data-label="GCN No"><?php echo $row['grn_no']; ?></td>
-                                                <td data-label="GCN Date"><?php echo $row['grn_date']; ?></td>
-                                                <td data-label="No of Pkgs"><?php echo $pkg_r['pkge']; ?></td>
-                                                <td data-label="Consignor">
-                                                    <?php echo get_client_name($conn, $row['consigner']); ?>
-                                                    </td>
+                                                <td data-label="GCN No"><span class="txn-gcn-no"><?php echo htmlspecialchars($row['grn_no']); ?></span></td>
+                                                <td data-label="GCN Date"><?php echo htmlspecialchars($row['grn_date']); ?></td>
+                                                <td class="text-center" data-label="Pkgs"><?php echo (int) $pkg_r['pkge']; ?></td>
+                                                <td data-label="Consignor"><?php echo htmlspecialchars(get_client_name($conn, $row['consigner'])); ?></td>
+                                                <td data-label="Consignee"><?php echo htmlspecialchars(get_client_name($conn, $row['consignee'])); ?></td>
+                                                <td data-label="Destination"><?php echo htmlspecialchars(get_city_name($conn, $row['destination'])); ?></td>
+                                                <td data-label="Status"><?php echo transaction_status_badge($booking, $status, array(
+                                                    'delivery_type' => $delivery_type,
+                                                    'delivered_packages' => $delivered_packages,
+                                                    'total_packages' => $total_packages,
+                                                )); ?></td>
 
-                                                <td data-label="Consignee">
-                                                    <?php echo get_client_name($conn, $row['consignee']); ?>
-                                                    </td>
-                                                <td data-label="Destination"><?php echo get_city_name($conn, $row['destination']); ?></td>
-                                                <?php if ($booking == '1') { ?>
-                                                    <td style="color:red;">Consignment Cancelled</td>
-                                               
-                                                <?php } else { ?>
-
-    <td data-label="Status"
-        class="<?php echo ($delivery_type == 'partial') ? 'partial-delivery-status' : ''; ?>">
-
-        <?php echo htmlspecialchars($display_status); ?>
-
-    </td>
-
-<?php } ?>
-                                                
-
-                                                <td class="actions center-content "  data-label="Change Status">
-                                                    <div class="desktop-status-buttons">
-                                                        <button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>&nbsp;
-                                                        <button class="border picked-up <?php if ($row['status'] >= 2) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 2) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="2" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 2) { echo 'data-remarks="' . get_cong_remarks($conn, 2, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="Consignment Picked Up"><?php if ($row['status'] >= 2) { echo "<i class='fa fa-check'></i>"; } else { echo '2'; } ?></button>&nbsp;
-                                                        <button class="border transit-1  <?php if ($row['status'] >= 3) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 3) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="3" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 3) { echo 'data-remarks="' . get_cong_remarks($conn, 3, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="In Transit-1"><?php if ($row['status'] >= 3) { echo "<i class='fa fa-check'></i>"; } else { echo '3'; } ?></button>&nbsp;
-                                                        <button class="border transit-2  <?php if ($row['status'] >= 4) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 4) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="4" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 4) { echo 'data-remarks="' . get_cong_remarks($conn, 4, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="In Transit-2"><?php if ($row['status'] >= 4) { echo "<i class='fa fa-check'></i>"; } else { echo '4'; } ?></button>&nbsp;
-                                                        <button class="border transit-3  <?php if ($row['status'] >= 5) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 5) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="5" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 5) { echo 'data-remarks="' . get_cong_remarks($conn, 15, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="In Transit-3"><?php if ($row['status'] >= 5) { echo "<i class='fa fa-check'></i>"; } else { echo '5'; } ?></button>&nbsp;
-                                                        <button class="border destination  <?php if ($row['status'] >= 6) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 6) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="6" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 6) { echo 'data-remarks="' . get_cong_remarks($conn, 6, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="At Destination"><?php if ($row['status'] >= 6) { echo "<i class='fa fa-check'></i>"; } else { echo '6'; } ?></button>&nbsp;
-                                                        <button class="border out-delivery  <?php if ($row['status'] >= 7) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 7) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="7" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 7) { echo 'data-remarks="' . get_cong_remarks($conn, 7, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="Out For Delivery"><?php if ($row['status'] >= 7) { echo "<i class='fa fa-check'></i>"; } else { echo '7'; } ?></button>&nbsp;
-                                                        <!-- <button class="border delivered  <?php if ($row['status'] >= 8) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 8) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="8" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 8) { echo 'data-remarks="' . get_cong_remarks($conn, 8, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="Delivered Successfully"><?php if ($row['status'] >= 8) { echo "<i class='fa fa-check'></i>"; } else { echo '8'; } ?></button> -->
-                                                         <?php if ($row['status'] >= 8 && $delivery_type == 'full') { ?>
-
-    <!-- Fully Delivered - no popup -->
-    <button
-        class="border delivered"
-        data-status="8"
-        data-tabid="<?php echo $trans_name; ?>"
-        data-grnid="<?php echo $row['grn_id']; ?>"
-        data-grnno="<?php echo $row['grn_no']; ?>"
-        data-consignment="<?php echo $row['transaction_id']; ?>"
-        title="Delivered Successfully"
-        disabled>
-
-        <i class="fa fa-check"></i>
-
-    </button>
-
-<?php } else { ?>
-
-    <!-- Not delivered OR partially delivered - allow popup -->
-    <button
-        class="border delivered <?php echo ($delivery_type == 'partial') ? 'partial-delivery-button' : ''; ?>"
-        id="status_popup"
-        data-status="8"
-        data-tabid="<?php echo $trans_name; ?>"
-        data-grnid="<?php echo $row['grn_id']; ?>"
-        data-grnno="<?php echo $row['grn_no']; ?>"
-        data-consignment="<?php echo $row['transaction_id']; ?>"
-        data-total-packages="<?php echo $total_packages; ?>"
-        data-delivered-packages="<?php echo $delivered_packages; ?>"
-        data-delivery-type="<?php echo $delivery_type; ?>"
-        title="Change Delivery Status">
-
-        <?php
-        if ($row['status'] >= 8) {
-            echo "<i class='fa fa-check'></i>";
-        } else {
-            echo '8';
-        }
-        ?>
-
-    </button>
-
-<?php } ?>
+                                                <td class="col-steps actions center-content" data-label="Change Status">
+                                                    <div>
+                                                        <button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>
+                                                        <button class="border picked-up <?php if ($row['status'] >= 2) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 2) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="2" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 2) { echo 'data-remarks="' . get_cong_remarks($conn, 2, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="Consignment Picked Up"><?php if ($row['status'] >= 2) { echo "<i class='fa fa-check'></i>"; } else { echo '2'; } ?></button>
+                                                        <button class="border transit-1 <?php if ($row['status'] >= 3) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 3) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="3" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 3) { echo 'data-remarks="' . get_cong_remarks($conn, 3, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="In Transit-1"><?php if ($row['status'] >= 3) { echo "<i class='fa fa-check'></i>"; } else { echo '3'; } ?></button>
+                                                        <button class="border transit-2 <?php if ($row['status'] >= 4) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 4) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="4" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 4) { echo 'data-remarks="' . get_cong_remarks($conn, 4, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="In Transit-2"><?php if ($row['status'] >= 4) { echo "<i class='fa fa-check'></i>"; } else { echo '4'; } ?></button>
+                                                        <button class="border transit-3 <?php if ($row['status'] >= 5) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 5) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="5" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 5) { echo 'data-remarks="' . get_cong_remarks($conn, 15, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="In Transit-3"><?php if ($row['status'] >= 5) { echo "<i class='fa fa-check'></i>"; } else { echo '5'; } ?></button>
+                                                        <button class="border destination <?php if ($row['status'] >= 6) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 6) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="6" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 6) { echo 'data-remarks="' . get_cong_remarks($conn, 6, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="At Destination"><?php if ($row['status'] >= 6) { echo "<i class='fa fa-check'></i>"; } else { echo '6'; } ?></button>
+                                                        <button class="border out-delivery <?php if ($row['status'] >= 7) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 7) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="7" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 7) { echo 'data-remarks="' . get_cong_remarks($conn, 7, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="Out For Delivery"><?php if ($row['status'] >= 7) { echo "<i class='fa fa-check'></i>"; } else { echo '7'; } ?></button>
+                                                        <?php if ($row['status'] >= 8 && $delivery_type == 'full') { ?>
+                                                        <button class="border delivered" data-status="8" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" data-consignment="<?php echo $row['transaction_id']; ?>" title="Delivered Successfully" disabled><i class="fa fa-check"></i></button>
+                                                        <?php } else {
+                                                            $delivered_classes = 'border delivered';
+                                                            if ($delivery_type == 'partial') {
+                                                                $delivered_classes .= ' partial-delivery-button';
+                                                            } elseif ($row['status'] >= 8) {
+                                                                $delivered_classes .= ' show_info_popup';
+                                                            }
+                                                            $delivered_attrs = ($row['status'] < 8 || $delivery_type == 'partial') ? 'id="status_popup"' : 'readonly';
+                                                        ?>
+                                                        <button class="<?php echo $delivered_classes; ?>" <?php echo $delivered_attrs; ?> data-status="8" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" data-consignment="<?php echo $row['transaction_id']; ?>" data-total-packages="<?php echo $total_packages; ?>" data-delivered-packages="<?php echo $delivered_packages; ?>" data-delivery-type="<?php echo $delivery_type; ?>" title="Change Delivery Status"><?php if ($row['status'] >= 8) { echo "<i class='fa fa-check'></i>"; } else { echo '8'; } ?></button>
+                                                        <?php } ?>
                                                     </div>
                                                     
                                                     <button
@@ -499,8 +539,7 @@ if ($delivery_type == 'partial') {
 
                                     </tbody>
                                 </table>
-                            </div>
-
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -513,35 +552,184 @@ if ($delivery_type == 'partial') {
         <?php require_once ('include/footer.php'); ?>
     </div>
 
-    <script src='javascripts/jquery.ui.monthpicker.js'></script>
     <script type="text/javascript">
-        jQuery(document).ready(function() {
-            jQuery("#month").monthpicker({
-                showOn: "both",
-                dateFormat: 'mm-yy'
+        window.tsStatusTable = null;
+
+        function hidePageLoaders() {
+            $(".loading-page").hide();
+            $(".form-data-saving").hide();
+        }
+
+        function destroyTsStatusTable() {
+            var $table = $('#ts_status_table');
+            if (!$table.length || !$.fn.dataTable) {
+                window.tsStatusTable = null;
+                return;
+            }
+            if ($.fn.dataTable.fnIsDataTable && $.fn.dataTable.fnIsDataTable($table[0])) {
+                try {
+                    $table.dataTable().fnDestroy();
+                } catch (e) {}
+            }
+            window.tsStatusTable = null;
+        }
+
+        function initTsStatusTable() {
+            if (!$.fn.dataTable) {
+                return;
+            }
+            var $table = $('#ts_status_table');
+            if (!$table.length) {
+                return;
+            }
+            destroyTsStatusTable();
+            if ($.fn.dataTableExt) {
+                $.fn.dataTableExt.sErrMode = 'throw';
+            }
+            window.tsStatusTable = $table.dataTable({
+                sDom: '<"txn-dt-top"lf>rt<"txn-dt-bottom"ip>',
+                iDisplayLength: 10,
+                aLengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'All']],
+                aaSorting: [[2, 'desc']],
+                bAutoWidth: false,
+                bDestroy: true,
+                aoColumnDefs: [
+                    { bSortable: false, aTargets: [8] },
+                    { sClass: 'text-center', aTargets: [0, 3] },
+                    { sClass: 'col-steps', aTargets: [8] }
+                ],
+                oLanguage: {
+                    sEmptyTable: 'No bookings found for this month.',
+                    sZeroRecords: 'No matching consignments found.'
+                }
             });
-        });
+        }
+
+        function refreshStatusTableAfterSave(message) {
+            hidePageLoaders();
+            $('#save_status_change').attr('disabled', false);
+            if (message && typeof ewToast === 'function') {
+                ewToast(message, 'success');
+            }
+            fetchStatusMonthDetails(true);
+        }
+
+        function fetchStatusMonthDetails(silent) {
+            var data = $('#transaction_form').serialize();
+            if ($('#transaction_form').valid() !== true) {
+                return;
+            }
+            if (!silent) {
+                hidePageLoaders();
+            }
+            destroyTsStatusTable();
+            $.ajax({
+                url: 'fetch_details.php',
+                type: 'GET',
+                data: data,
+                success: function(result) {
+                    $('#get_month_details').html(result);
+                    initTsStatusTable();
+                },
+                error: function() {
+                    $('#get_month_details').html('');
+                    initTsStatusTable();
+                    if (typeof ewToast === 'function') {
+                        ewToast('Could not load consignments for this month.', 'error');
+                    }
+                },
+                complete: hidePageLoaders
+            });
+        }
+
+        function unlockStatusDatePicker() {
+            var $statusDate = $('#status_date');
+            if (!$statusDate.length) {
+                return;
+            }
+            if (!$statusDate.data('datepicker') && typeof initEwDatepickers === 'function') {
+                initEwDatepickers('#status_popup_modal');
+            }
+            var dp = $statusDate.data('datepicker');
+            if (dp) {
+                dp.o.endDate = Infinity;
+                dp.o.startDate = -Infinity;
+                dp.updateNavArrows();
+            }
+        }
+
+        function ewTodayDisplayDate() {
+            var now = new Date();
+            var dd = String(now.getDate()).padStart(2, '0');
+            var mm = String(now.getMonth() + 1).padStart(2, '0');
+            return dd + '-' + mm + '-' + now.getFullYear();
+        }
+
+        function ewTodayDisplayTime() {
+            var now = new Date();
+            return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        }
+
+        function ewServerDateFromDisplay(val) {
+            if (!val) {
+                return val;
+            }
+            var parts = val.split('-');
+            if (parts.length === 3 && parts[0].length === 2 && parts[2].length === 4) {
+                return parts[2] + '-' + parts[1] + '-' + parts[0];
+            }
+            return val;
+        }
+
+        function initStatusTimePicker() {
+            var $time = $('#status_time');
+            if (!$time.length || $time.data('ew-time-init')) {
+                return;
+            }
+            if (typeof $time.timepicker !== 'function') {
+                return;
+            }
+            $time.timepicker({
+                timeFormat: 'H:i',
+                interval: 15,
+                minTime: '00:00',
+                maxTime: '23:59',
+                dropdown: true,
+                scrollbar: true,
+                appendTo: 'body'
+            });
+            $time.data('ew-time-init', true);
+        }
+
+        function setStatusModalDateTime() {
+            $('#status_date').val(ewTodayDisplayDate());
+            $('#status_time').val(ewTodayDisplayTime());
+            if ($('#status_date').data('datepicker')) {
+                $('#status_date').datepicker('update', ewTodayDisplayDate());
+            }
+        }
 
         $(document).ready(function() {
+            hidePageLoaders();
+            initTsStatusTable();
+            initStatusTimePicker();
 
-            $(document).on('click', '#search', function() {
-
-                var data = $('#transaction_form').serialize();
-
-                //alert(data);
-                if ($('#transaction_form').valid() == true) {
-
-                    $.ajax({
-                        url: 'fetch_details.php',
-                        type: "GET",
-                        data: data,
-                        success: function(result) {
-                            console.log(result);
-                            $('#get_month_details').html(result);
-                        }
-                    });
+            var monthPickerReady = false;
+            setTimeout(function() { monthPickerReady = true; }, 500);
+            $('#month').on('changeDate', function() {
+                if (!monthPickerReady) {
+                    return;
                 }
+                fetchStatusMonthDetails();
+            });
 
+            $('#status_popup_modal').on('shown.bs.modal', function() {
+                unlockStatusDatePicker();
+                initStatusTimePicker();
+            });
+
+            $(document).on('show', '#status_date', function() {
+                unlockStatusDatePicker();
             });
 
             //close pop
@@ -554,13 +742,7 @@ if ($delivery_type == 'partial') {
 
             $(document).on('click', '.close-popup', function() {
                 $(".form-data-saving").hide();
-                $("#alert-status").text("");
-                $("#alert-message").text("Saved Successfully, please wait until page refresh");
-                $("#alert-container").addClass("alert-success").slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
-                    $("#alert-container").hide();
-                    $("#alert-container").removeClass("alert-success");
-                    location.reload();
-                });
+                refreshStatusTableAfterSave('Status updated successfully.');
             });
 
             $(document).on('click', '#save_status_change', function(e) {
@@ -583,7 +765,7 @@ if (parseInt($("#status").val()) === 8) {
     if (!deliveryType) {
         alert("Please select Partially Delivered or Fully Delivered.");
         $(this).attr('disabled', false);
-        $(".loading-page").hide();
+        hidePageLoaders();
         return false;
     }
 
@@ -605,42 +787,48 @@ if (parseInt($("#status").val()) === 8) {
             );
 
             $(this).attr('disabled', false);
-            $(".loading-page").hide();
+            hidePageLoaders();
 
             return false;
         }
     }
 }
-                        var data = $('#status_change_consignment').serialize();
-
-                        //$("#table_div").show();
+                        var data = $('#status_change_consignment').serializeArray();
+                        var statusDateVal = ewServerDateFromDisplay($('#status_date').val());
+                        var hasStatusDate = false;
+                        $.each(data, function(i, field) {
+                            if (field.name === 'status_date') {
+                                field.value = statusDateVal;
+                                hasStatusDate = true;
+                            }
+                        });
+                        if (!hasStatusDate) {
+                            data.push({ name: 'status_date', value: statusDateVal });
+                        }
 
                         $.ajax({
                             url: 'save_details.php',
                             type: "POST",
-                            data: data,
+                            data: $.param(data),
                             success: function(result) {
-                                console.log(result);
-                                $(".loading-page").hide();
-                                $(this).attr('disabled', false);
                                 if (result != 0) {
-                                    $("#alert-status").text("Alert !!!");
-                                    $("#alert-message").text("Status Updated Successfully.! Please Wait Until Page Refresh.!!");
-                                    $("#alert-container").addClass("alert-success").slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
-                                        $("#alert-container").hide();
-                                        $("#alert-container").removeClass("alert-success");
-                                        location.reload();
-                                    });
-
+                                    refreshStatusTableAfterSave('Status updated successfully.');
                                 } else {
-                                    $("#alert-status").text("Alert !!! ");
-                                    $("#alert-message").text("Status update Failed");
-                                    $("#alert-container").addClass("alert-danger").slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
-                                        $("#alert-container").hide();
-                                        $("#alert-container").removeClass("alert-danger");
-                                    });
+                                    hidePageLoaders();
+                                    $('#save_status_change').attr('disabled', false);
+                                    if (typeof ewToast === 'function') {
+                                        ewToast('Status update failed.', 'error');
+                                    }
                                 }
-
+                            },
+                            error: function() {
+                                if (typeof ewToast === 'function') {
+                                    ewToast('Status update failed. Please try again.', 'error');
+                                }
+                            },
+                            complete: function() {
+                                hidePageLoaders();
+                                $('#save_status_change').attr('disabled', false);
                             }
                         });
                     }
@@ -649,26 +837,17 @@ if (parseInt($("#status").val()) === 8) {
             // show popup on status button click
 
         });
-        $(window).load(function() {
-            $(".loading-page").hide();
-        });
+        hidePageLoaders();
+        $(window).load(hidePageLoaders);
+        setTimeout(hidePageLoaders, 2000);
 
        $(document).on('click','#status_popup', function(){
 
-       
+    unlockStatusDatePicker();
 
     $("#status_popup_modal").modal('show');
 
-    let now = new Date();
-
-let date = now.toISOString().split('T')[0];
-
-let time =
-    String(now.getHours()).padStart(2,'0') + ':' +
-    String(now.getMinutes()).padStart(2,'0');
-
-$("#status_date").val(date);
-$("#status_time").val(time);
+    setStatusModalDateTime();
 
     const tabid = $(this).data('tabid');
     const grn_id = $(this).data('grnid');
@@ -824,7 +1003,7 @@ else {
 
        success:function(msg){
 
-    $("#remarks").html(msg);
+    $("#status_remarks").html(msg);
 
     $("#remarks_text").val(
         $("<div>").html(msg).text()
@@ -836,12 +1015,15 @@ else {
 
 });
 
-        $(document).on('click','.show_info_popup', function(){
-            if($(this).data('remarks') != ""){
-                let remarks = $(this).data('remarks');
-                $('#show_remarks_modal').modal('show');
-                $("#show_remarks").val(remarks)
+        $(document).on('click','.show_info_popup', function(e){
+            var remarks = $(this).attr('data-remarks');
+            if (!remarks || remarks === '') {
+                return;
             }
+            e.preventDefault();
+            e.stopPropagation();
+            $('#show_remarks_modal').modal('show');
+            $("#view_remarks").html(remarks);
         });
         const statusList = {
     2: "Consignment Picked Up",
@@ -854,22 +1036,7 @@ else {
 };
 $(document).on('click','.mobile-update-status',function(){
 
-let now = new Date();
-
-let date = now.toISOString().split('T')[0];
-
-let time =
-    String(now.getHours()).padStart(2,'0') + ':' +
-    String(now.getMinutes()).padStart(2,'0');
-
-let currentDate = now.toISOString().split('T')[0];
-
-let currentTime =
-    String(now.getHours()).padStart(2,'0') + ':' +
-    String(now.getMinutes()).padStart(2,'0');
-
-$("#status_date").val(currentDate);
-$("#status_time").val(currentTime);
+    setStatusModalDateTime();
 
     $("#status_popup_modal").modal('show');
 
@@ -896,7 +1063,7 @@ $.ajax({
 
    success:function(msg){
 
-    $("#remarks").html(msg);
+    $("#status_remarks").html(msg);
 
     $("#remarks_text").val(
         $("<div>").html(msg).text()
@@ -936,7 +1103,7 @@ $(document).on("change","#mobile_status_select",function(){
 
        success:function(msg){
 
-    $("#remarks").html(msg);
+    $("#status_remarks").html(msg);
 
     $("#remarks_text").val(
         $("<div>").html(msg).text()
@@ -956,16 +1123,13 @@ $(document).on("change","#mobile_status_select",function(){
         <span id="alert-message"></span>
     </div>
 
-    <div class="modal fade " id="status_popup_modal" style="display:none">
+    <div class="modal fade" id="status_popup_modal" style="display:none">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <button aria-hidden="true" class="close" data-dismiss="modal" type="button">&times;</button>
-                    <h4 class="modal-title" style="color:#fff">
-                        Change consignment status
-                    </h4>
+                    <h4 class="modal-title">Change consignment status</h4>
                 </div>
-                <!--- Change consignment status / GRN Model -->
                 <div class="modal-body" id="cancel_grn">
                     <form id="status_change_consignment" enctype="multipart/form-data">
                         <input type="hidden" name="form_name" value="status_change_consignment">
@@ -975,121 +1139,72 @@ $(document).on("change","#mobile_status_select",function(){
                         <input type="hidden" name="grn_id" id="grn_id" value="">
                         <input type="hidden" name="grn_no" id="grn_no" value="">
                         <input type="hidden" name="status" id="status" value="">
-                        <input type="hidden"
-       name="total_packages"
-       id="total_packages"
-       value="">
+                        <input type="hidden" name="total_packages" id="total_packages" value="">
+                        <input type="hidden" name="existing_delivered_packages" id="existing_delivered_packages" value="">
 
-<input type="hidden"
-       name="existing_delivered_packages"
-       id="existing_delivered_packages"
-       value="">
-<div class="form-group mobile-status-group">
+                        <div class="form-group mobile-status-group">
+                            <label>Status</label>
+                            <select class="form-control" id="mobile_status_select"></select>
+                        </div>
 
-<label>Status</label>
+                        <div id="status_remarks" class="ts-modal-remarks-panel"></div>
 
-<select class="form-control" id="mobile_status_select">
+                        <div id="delivery_options" style="display:none;">
+                            <div class="form-group">
+                                <label>Delivery Type <span style="color:red">*</span></label>
+                                <div>
+                                    <label style="margin-right:20px;">
+                                        <input type="radio" name="delivery_type" value="partial" id="delivery_partial">
+                                        Partially Delivered
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="delivery_type" value="full" id="delivery_full">
+                                        Fully Delivered
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Total Packages</label>
+                                <input type="text" class="form-control" id="total_packages_display" readonly>
+                            </div>
+                            <div class="form-group" id="partial_package_group" style="display:none;">
+                                <label>Packages Delivered <span style="color:red">*</span></label>
+                                <select class="form-control" name="delivered_packages" id="delivered_packages">
+                                    <option value="">Select packages</option>
+                                </select>
+                            </div>
+                        </div>
 
-</select>
+                        <div class="row ts-modal-datetime-row">
+                            <div class="col-sm-6">
+                                <div class="ts-modal-field">
+                                    <label>Status Date <span style="color:red">*</span></label>
+                                    <?php echo ew_date_input(array(
+                                        'id' => 'status_date',
+                                        'name' => 'status_date',
+                                        'value' => date('d-m-Y'),
+                                        'required' => true,
+                                        'attrs' => 'data-allow-future="1"',
+                                    )); ?>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="ts-modal-field">
+                                    <label>Status Time <span style="color:red">*</span></label>
+                                    <input type="text" class="form-control" id="status_time" name="status_time" value="<?php echo date('H:i'); ?>" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
 
-</div>
+                        <input type="hidden" id="remarks_text" name="remarks">
 
-<!-- Delivery Options -->
-<div id="delivery_options" style="display:none; margin-top:15px;">
-
-    <div class="form-group">
-        <label>
-            Delivery Type <span style="color:red">*</span>
-        </label>
-
-        <div>
-            <label style="margin-right:20px;">
-                <input
-                    type="radio"
-                    name="delivery_type"
-                    value="partial"
-                    id="delivery_partial">
-                Partially Delivered
-            </label>
-
-            <label>
-                <input
-                    type="radio"
-                    name="delivery_type"
-                    value="full"
-                    id="delivery_full">
-                Fully Delivered
-            </label>
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label>Total Packages</label>
-
-        <input
-            type="text"
-            class="form-control"
-            id="total_packages_display"
-            readonly>
-    </div>
-
-    <div class="form-group" id="partial_package_group" style="display:none;">
-
-        <label>
-            Packages Delivered
-            <span style="color:red">*</span>
-        </label>
-
-        <select
-            class="form-control"
-            name="delivered_packages"
-            id="delivered_packages">
-
-            <option value="">Select packages</option>
-
-        </select>
-
-    </div>
-
-</div>
-<div id="remarks"
-     class="form-control"
-     style="height:115px !important;
-            overflow-y:auto;
-            white-space:normal;
-            padding:10px;
-            line-height:24px;
-            font-size:15px !important;
-            background:#fff;">
-</div>
-<div class="row" style="margin-top:15px;">
-    <div class="col-md-6">
-        <label>Status Date <span style="color:red">*</span></label>
-        <input type="date"
-               class="form-control"
-               id="status_date"
-               name="status_date"
-               value="<?php echo date('Y-m-d'); ?>">
-    </div>
-
-    <div class="col-md-6">
-        <label>Status Time <span style="color:red">*</span></label>
-        <input type="time"
-               class="form-control"
-               id="status_time"
-               name="status_time"
-               value="<?php echo date('H:i'); ?>">
-    </div>
-</div>
-<input type="hidden" id="remarks_text" name="remarks">
-                        <div class="modal-footer" style="text-align: center;">
+                        <div class="modal-footer">
                             <button class="btn btn-danger btn-cancel" type="button" id="status_modal_cancel">Cancel</button>
                             <button class="btn btn-primary btn-submit" type="button" id="save_status_change">Submit</button>
                         </div>
                     </form>
                 </div>
             </div>
-
         </div>
     </div>
 
@@ -1107,23 +1222,9 @@ $(document).on("change","#mobile_status_select",function(){
                 <div class="form-group">
     <label>REMARKS (AUTO GENERATED):</label>
 
-    <div id="remarks"
-         style="
-            min-height:115px !important;
-            max-height:180px;
-            overflow-y:auto;
-            border:1px solid #ced4da;
-            border-radius:4px;
-            background:#fff;
-            padding:12px;
-            font-size:15px !important;
-            line-height:24px;
-            color:#333;
-            text-align:left;
-        ">
-    </div>
+    <div id="view_remarks" class="ts-modal-remarks-panel"></div>
 
-    <input type="hidden" id="remarks_text" name="remarks">
+    <input type="hidden" id="view_remarks_text" name="remarks">
 </div>
                     <div class="text-right">
                         <button class="btn btn-info btn-cancel" type="button" aria-hidden="true" class="close" data-dismiss="modal" style="margin-top: 10px; margin-right: 0;">OK</button>

@@ -41,9 +41,7 @@ require_once("include/function.php");
 						<div class="col-md-offset-4 col-md-4">
 						<div class="form-group">
 						<label class="control-label">Month:</label>
-						<div class="input-group date  date-picker" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-						<input class="form-control" type="text" id="month" value="<?php echo date('m-Y'); ?>" name="month" required><span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-						</div>
+						<?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'required' => true)); ?>
 						</div>
 						</div>
 				 </div><br/>
@@ -221,13 +219,6 @@ require_once("include/function.php");
 			});
 		}
 		
-	$('.date-picker').on("click", function() {
-				$(this).datepicker({
-					changeMonth: true,
-					changeYear: true,
-					format: 'mm-yyyy',
-					}).datepicker('show');
-			});
 		$(document).on('click','.close-popup',function(){
 				$(".form-data-saving").hide();
 				$("#alert-status").text("");

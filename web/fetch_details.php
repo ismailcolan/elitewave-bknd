@@ -150,7 +150,7 @@ if ($cmd == 'get_transaction_month_details') {
 	}
 	$result = mysqli_query($conn, $query);
 	$i = 1;
-	if (mysqli_num_rows($result) > 0) {
+	if ($result && mysqli_num_rows($result) > 0) {
 		while ($row = mysqli_fetch_array($result)) {
 			$booking = $row['booking_status'];
 			$consignment_mode = $row['mode_of_consignment'];
@@ -158,48 +158,27 @@ if ($cmd == 'get_transaction_month_details') {
 			$remarks = $row['remarks'];
 			$cancelled_by = get_user($conn, $row['cancelled_by']);
 			$updated_at = $row['updated_at'];
+			$count = 0;
+			$imagesd1 = array();
+			$filtered_array = array();
 
 			$pkg_q = mysqli_query($conn, 'select sum(no_of_pkge) as pkge from transaction_invoice_' . $m1 . '_' . $dt[1] . " where transaction_id='" . $row['transaction_id'] . "'");
 			$pkg_r = mysqli_fetch_array($pkg_q);
 
-			// to add charges, restricted and frequency symbol for consigner
-			if (check_invoice_restricted($conn, $row['consigner']) == 1) {
-				$restricted_sign = " <i class='fa fa-ban text-danger' title='This client is restricted'></i>";
-			}
-			if (checkPartyWiseFrequency($conn, $row['consigner']) == 0) {
-				$frequency_sign = " <i class='fa fa-clock-o text-primary' title='This client is in frequency'></i>";
-			}
-			if (checkClientCharges($conn, $row['consigner']) > 0) {
-				$charges_sign = " <i class='fa fa-inr text-success' title='This client applies client charges'></i>";
-			}
-
-			// to add charges, restricted and frequency symbol for consignee
-			if (check_invoice_restricted($conn, $row['consignee']) == 1) {
-				$restricted_symbol = " <i class='fa fa-ban text-danger' title='This client is restricted'></i>";
-			}
-			if (checkPartyWiseFrequency($conn, $row['consignee']) == 0) {
-				$frequency_symbol = " <i class='fa fa-clock-o text-primary' title='This client is in frequency'></i> ";
-			}
-			if (checkClientCharges($conn, $row['consignee']) > 0) {
-				$charges_symbol = " <i class='fa fa-inr text-success' title='This client applies client charges'></i>";
-			}
+			$dest_name = get_city_name($conn, $row['destination']);
+			$dest_cell = $dest_name !== '' ? '<span class="txn-dest">' . htmlspecialchars($dest_name) . '</span>' : '<span class="txn-dest-empty">—</span>';
 
 			$out_put .= '<tr>
 			<td class="text-center">' . $i . '</td>
-			<td>' . $row['grn_no'] . '</td>
-			<td>' . ($row['tracking_code'] ?? '') . '</td>
-			<td>' . $row['grn_date'] . '</td>
-			<td>' . $pkg_r['pkge'] . '</td>
-			<td>' . get_client_name($conn, $row['consigner']) . ' ' . $restricted_sign . ' ' . $frequency_sign . ' ' . $charges_sign . '</td>
-			<td>' . get_client_name($conn, $row['consignee']) . ' ' . $restricted_symbol . ' ' . $frequency_symbol . ' ' . $charges_symbol . '</td>
-			<td>' . get_city_name($conn, $row['destination']) . '</td>';
-			if ($booking == '1') {
-				$out_put .= '<td style="color:red;">Consignment Cancelled</td>';
-			} else {
-				$out_put .=
-					'<td>' . get_trans_status($row['status']) . '</td>';
-			}
-			$out_put .= '<td>';
+			<td><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
+			<td><span class="txn-pnr">' . htmlspecialchars($row['tracking_code'] ?? '') . '</span></td>
+			<td>' . htmlspecialchars($row['grn_date']) . '</td>
+			<td class="text-center">' . (int) $pkg_r['pkge'] . '</td>
+			<td class="col-consignor">' . transaction_list_client_cell($conn, $row['consigner']) . '</td>
+			<td class="col-consignee">' . transaction_list_client_cell($conn, $row['consignee']) . '</td>
+			<td>' . $dest_cell . '</td>
+			<td>' . transaction_list_status_badge($booking, $status) . '</td>';
+			$out_put .= '<td class="txn-pod-cell">';
 			$grn_no = $row['grn_no'];
 			if ($grn_no != '') {
 				$screens = $grn_no;
@@ -230,12 +209,8 @@ if ($cmd == 'get_transaction_month_details') {
 
 			$out_put .= '</td>
 			
-			<td class="actions center-content ">
-			
-			
-				<div class="action-buttons" style="width: 100%;">
-				
-                <!--- <a title="Cancel"  class="table-actions btn-edit " id="' . $row['transaction_id'] . '"><i class="fa fa-ban"></i></a> -->';
+			<td class="actions center-content col-actions">
+				<div class="action-buttons txn-action-group">';
 			if ($row['book_manual'] == 2) {
 				$edit_btn = '<a title="Edit" href="transactions_manual.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $dt[1] . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
 			} else {
@@ -308,8 +283,10 @@ if ($cmd == 'get_transaction_month_details') {
 			$i++;
 		}
 		echo $out_put;
-	} else
-		echo "<tr><td colspan='9' style='padding:10px;text-align:center;font-size:17px;'> No Booking in this Month</td></tr>";
+	} else {
+		// Leave tbody empty — DataTables shows sEmptyTable message (colspan rows break column mapping).
+		echo '';
+	}
 }
 if ($cmd == 'get_vehicle_details') {
 	$tbl_id = $_REQUEST['tbl_id'];
@@ -587,6 +564,15 @@ if ($cmd == 'get_expense_category_details') {
 if ($cmd == 'get_expense_vendor_details') {
 	$tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
 	$query = "SELECT * FROM expense_vendor WHERE vendor_id='$tbl_id'";
+	$result = mysqli_query($conn, $query);
+	$row = $result ? mysqli_fetch_assoc($result) : array();
+	echo json_encode($row);
+}
+if ($cmd == 'get_vendor_master_details') {
+	require_once __DIR__ . '/include/vendor_master_helpers.php';
+	ew_vendor_ensure_table($conn);
+	$tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
+	$query = "SELECT * FROM vendor_master WHERE vendor_id='$tbl_id'";
 	$result = mysqli_query($conn, $query);
 	$row = $result ? mysqli_fetch_assoc($result) : array();
 	echo json_encode($row);
@@ -1553,20 +1539,29 @@ if ($cmd == 'get_transact_status_month_detail') {
 
 			$pkg_q = mysqli_query($conn, 'select sum(no_of_pkge) as pkge from transaction_invoice_' . $m1 . '_' . $dt[1] . " where transaction_id='" . $row['transaction_id'] . "'");
 			$pkg_r = mysqli_fetch_array($pkg_q);
+			$total_packages = (int) $pkg_r['pkge'];
+
+			$delivery_type = '';
+			$delivered_packages = 0;
+			$delivery_q = mysqli_query($conn, "SELECT delivery_type, delivered_packages FROM transaction_status_log WHERE grn_no='" . mysqli_real_escape_string($conn, $row['grn_no']) . "' AND to_status='8' ORDER BY sheet_id DESC LIMIT 1");
+			if ($delivery_q && ($delivery_r = mysqli_fetch_assoc($delivery_q))) {
+				$delivery_type = !empty($delivery_r['delivery_type']) ? $delivery_r['delivery_type'] : '';
+				$delivered_packages = !empty($delivery_r['delivered_packages']) ? (int) $delivery_r['delivered_packages'] : 0;
+			}
 
 			$out_put .= '<tr>
-			<td class="text-center">' . $i . '</td>
-			<td>' . $row['grn_no'] . '</td>
-			<td>' . $row['grn_date'] . '</td>
-			<td>' . $pkg_r['pkge'] . '</td>
-			<td>' . get_client_name($conn, $row['consigner']) . ' ' . $restricted_sign . ' ' . $frequency_sign . ' ' . $charges_sign . '</td>
-			<td>' . get_client_name($conn, $row['consignee']) . ' ' . $restricted_symbol . ' ' . $frequency_symbol . ' ' . $charges_symbol . '</td>
-			<td>' . get_city_name($conn, $row['destination']) . '</td>';
-			if ($booking == '1') {
-				$out_put .= '<td style="color:red;">Consignment Cancelled</td>';
-			} else {
-				$out_put .= '<td>' . get_trans_status($row['status']) . '</td>';
-			}
+			<td class="text-center" data-label="S.No">' . $i . '</td>
+			<td data-label="GCN No"><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
+			<td data-label="GCN Date">' . htmlspecialchars($row['grn_date']) . '</td>
+			<td class="text-center" data-label="Pkgs">' . $total_packages . '</td>
+			<td data-label="Consignor">' . htmlspecialchars(get_client_name($conn, $row['consigner'])) . '</td>
+			<td data-label="Consignee">' . htmlspecialchars(get_client_name($conn, $row['consignee'])) . '</td>
+			<td data-label="Destination">' . htmlspecialchars(get_city_name($conn, $row['destination'])) . '</td>
+			<td data-label="Status">' . transaction_status_badge($booking, $status, array(
+				'delivery_type' => $delivery_type,
+				'delivered_packages' => $delivered_packages,
+				'total_packages' => $total_packages,
+			)) . '</td>';
 
 			$status_row = $row['status'];
 			$grn_no_row = $row['grn_no'];
@@ -1574,39 +1569,44 @@ if ($cmd == 'get_transact_status_month_detail') {
 			$transaction_id_row = $row['transaction_id'];
 
 			if ($status_row >= 2 || $booking == '1') {
-				$disabled2 = 'disabled';
+				$disabled2 = 'class="border picked-up show_info_popup" disabled';
 			} else {
-				$disabled2 = "id='status_popup'";
+				$disabled2 = "class=\"border picked-up\" id='status_popup'";
 			}
 			if ($status_row >= 3 || $booking == '1') {
-				$disabled3 = 'disabled';
+				$disabled3 = 'class="border transit-1 show_info_popup" disabled';
 			} else {
-				$disabled3 = "id='status_popup'";
+				$disabled3 = "class=\"border transit-1\" id='status_popup'";
 			}
 			if ($status_row >= 4 || $booking == '1') {
-				$disabled4 = 'disabled';
+				$disabled4 = 'class="border transit-2 show_info_popup" disabled';
 			} else {
-				$disabled4 = "id='status_popup'";
+				$disabled4 = "class=\"border transit-2\" id='status_popup'";
 			}
 			if ($status_row >= 5 || $booking == '1') {
-				$disabled5 = 'disabled';
+				$disabled5 = 'class="border transit-3 show_info_popup" disabled';
 			} else {
-				$disabled5 = "id='status_popup'";
+				$disabled5 = "class=\"border transit-3\" id='status_popup'";
 			}
 			if ($status_row >= 6 || $booking == '1') {
-				$disabled6 = 'disabled';
+				$disabled6 = 'class="border destination show_info_popup" disabled';
 			} else {
-				$disabled6 = "id='status_popup'";
+				$disabled6 = "class=\"border destination\" id='status_popup'";
 			}
 			if ($status_row >= 7 || $booking == '1') {
-				$disabled7 = 'disabled';
+				$disabled7 = 'class="border out-delivery show_info_popup" disabled';
 			} else {
-				$disabled7 = "id='status_popup'";
+				$disabled7 = "class=\"border out-delivery\" id='status_popup'";
 			}
-			if ($status_row >= 8 || $booking == '1') {
-				$disabled8 = 'disabled';
+			if ($status_row >= 8 && $delivery_type === 'full') {
+				$disabled8 = 'class="border delivered" disabled';
+			} elseif ($status_row >= 8 && $delivery_type === 'partial') {
+				$disabled8 = 'class="border delivered partial-delivery-button" id=\'status_popup\'';
+			} elseif ($status_row >= 8 || $booking == '1') {
+				$disabled8 = 'class="border delivered show_info_popup" disabled';
 			} else {
-				$disabled8 = "id='status_popup'";
+				$partial_class = ($delivery_type === 'partial') ? ' partial-delivery-button' : '';
+				$disabled8 = 'class="border delivered' . $partial_class . '" id=\'status_popup\'';
 			}
 
 			if ($status_row >= 2) {
@@ -1645,18 +1645,16 @@ if ($cmd == 'get_transact_status_month_detail') {
 				$button_text8 = 8;
 			}
 
-			$color_button = ($booking == 1) ? 'style="color:red !important;"' : '';
-
-			$out_put .= '<td class="actions center-content ">
+			$out_put .= '<td class="col-steps actions center-content" data-label="Change Status">
 				<div>
-					<button ' . $color_button . ' class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>&nbsp;
-					<button ' . $color_button . ' class="border picked-up" ' . $disabled2 . ' data-status="2" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="Consignment Picked Up">' . $button_text2 . '</button>&nbsp;
-					<button ' . $color_button . ' class="border transit-1"  ' . $disabled3 . ' data-status="3" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="In Transit-1">' . $button_text3 . '</button>&nbsp;
-					<button ' . $color_button . ' class="border transit-2"  ' . $disabled4 . ' data-status="4" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="In Transit-2">' . $button_text4 . '</button>&nbsp;
-					<button ' . $color_button . ' class="border transit-3"  ' . $disabled5 . ' data-status="5" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="In Transit-3">' . $button_text5 . '</button>&nbsp;
-					<button ' . $color_button . ' class="border destination"  ' . $disabled6 . ' data-status="6" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="At Destination">' . $button_text6 . '</button>&nbsp;
-					<button ' . $color_button . ' class="border out-delivery"  ' . $disabled7 . ' data-status="7" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="Out For Delivery">' . $button_text7 . '</button>&nbsp;
-					<button ' . $color_button . ' class="border delivered"  ' . $disabled8 . ' data-status="8" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="Delivered Successfully">' . $button_text8 . '</button>
+					<button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>
+					<button ' . $disabled2 . ' data-status="2" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="Consignment Picked Up">' . $button_text2 . '</button>
+					<button ' . $disabled3 . ' data-status="3" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="In Transit-1">' . $button_text3 . '</button>
+					<button ' . $disabled4 . ' data-status="4" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="In Transit-2">' . $button_text4 . '</button>
+					<button ' . $disabled5 . ' data-status="5" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="In Transit-3">' . $button_text5 . '</button>
+					<button ' . $disabled6 . ' data-status="6" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="At Destination">' . $button_text6 . '</button>
+					<button ' . $disabled7 . ' data-status="7" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="Out For Delivery">' . $button_text7 . '</button>
+					<button ' . $disabled8 . ' data-status="8" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" data-total-packages="' . $total_packages . '" data-delivered-packages="' . $delivered_packages . '" data-delivery-type="' . htmlspecialchars($delivery_type, ENT_QUOTES, 'UTF-8') . '" title="Delivered Successfully">' . $button_text8 . '</button>
 				</div>
 			</td>
 		</tr>';
@@ -1664,8 +1662,9 @@ if ($cmd == 'get_transact_status_month_detail') {
 			$i++;
 		}
 		echo $out_put;
-	} else
-		echo "<tr><td colspan='9' style='padding:10px;text-align:center;font-size:17px;'> No Booking in this Month</td></tr>";
+	} else {
+		echo '';
+	}
 }
 
 // check manual grn duplicate

@@ -1,0 +1,9 @@
+Host webmin-elitewave
+    HostName 200.97.169.207
+    User elitewave360
+    Port 22
+    IdentityFile C:\Users\CIPL1516\.ssh\webmin_cursor_key
+    IdentitiesOnly yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 6
+    TCPKeepAlive yes

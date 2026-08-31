@@ -17,12 +17,6 @@ if($key !=''){
   <?php include("include/title.php"); ?>
   <?php include("include/css_js.php"); ?>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
-    <style>
-	.datepicker {
-    padding-left: 0px;
-    padding-right: 0px;
-   }
-</style>
   </head>
   <body class="page-header-fixed bg-1">
     <div class="modal-shiftfix">
@@ -74,35 +68,25 @@ if($key !=''){
 							</div>
 							<div class="form-group">
 								<label class="control-label">Fitness <span style="color:red;">*</span> :</label>
-								<div class="input-group date datepicker date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-										<input class="form-control table-height final" type="text" name="fitness" value="<?php echo $vehicle_row['fitness']?>"  id="fitness" required> <span class="input-group-addon table-height"><i class="fa fa-calendar"></i></span>
-								</div>
+								<?php echo ew_date_input(array('id' => 'fitness', 'name' => 'fitness', 'value' => $vehicle_row['fitness'], 'required' => true, 'class' => 'table-height final')); ?>
 							</div>
 							<div class="form-group">
 								<label class="control-label">Insurance <span style="color:red;">*</span> :</label>
-								<div class="input-group date datepicker date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-										<input class="form-control table-height final" type="text" name="insurance"  id="insurance" value="<?php echo $vehicle_row['insurance']?>" required> <span class="input-group-addon table-height"><i class="fa fa-calendar"></i></span>
-								</div>
+								<?php echo ew_date_input(array('id' => 'insurance', 'name' => 'insurance', 'value' => $vehicle_row['insurance'], 'required' => true, 'class' => 'table-height final')); ?>
 							</div>
 							<div class="form-group">
 								<label class="control-label">Road Tax <span style="color:red;">*</span> :</label>
-								<div class="input-group date datepicker date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-										<input class="form-control table-height final" type="text" name="road_tax"  id="road_tax"  value="<?php echo $vehicle_row['road_tax']?>" required> <span class="input-group-addon table-height"><i class="fa fa-calendar"></i></span>
-								</div>
+								<?php echo ew_date_input(array('id' => 'road_tax', 'name' => 'road_tax', 'value' => $vehicle_row['road_tax'], 'required' => true, 'class' => 'table-height final')); ?>
 							</div>
 							</div>
 							<div class="col-md-5">
 							<div class="form-group">
 								<label class="control-label">Permit <span style="color:red;">*</span> :</label>
-								<div class="input-group date datepicker date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-										<input class="form-control table-height final" type="text" name="permit"  id="permit"  value="<?php echo $vehicle_row['permit']?>" required> <span class="input-group-addon table-height"><i class="fa fa-calendar"></i></span>
-								</div>
+								<?php echo ew_date_input(array('id' => 'permit', 'name' => 'permit', 'value' => $vehicle_row['permit'], 'required' => true, 'class' => 'table-height final')); ?>
 							</div>
 							<div class="form-group">
 								<label class="control-label">Emission <span style="color:red;">*</span> :</label>
-								<div class="input-group date datepicker date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-										<input class="form-control table-height final" type="text" name="emission"  id="emission"  value="<?php echo $vehicle_row['emission']?>" required> <span class="input-group-addon table-height"><i class="fa fa-calendar"></i></span>
-								</div>
+								<?php echo ew_date_input(array('id' => 'emission', 'name' => 'emission', 'value' => $vehicle_row['emission'], 'required' => true, 'class' => 'table-height final')); ?>
 							</div>
 							<div class="form-group">
 								<label class="control-label">Pollution Certificate <span style="color:red;">*</span> :</label>

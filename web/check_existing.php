@@ -425,6 +425,60 @@ if ($cmd == 'chk_expense_category_code') {
 	echo json_encode($out_put);
 }
 
+if ($cmd == 'chk_vendor_name') {
+	require_once __DIR__ . '/include/vendor_master_helpers.php';
+	ew_vendor_ensure_table($conn);
+	$value = mysqli_real_escape_string($conn, trim($_REQUEST['value'] ?? ''));
+	$edit_id = trim($_REQUEST['edit_id'] ?? '');
+	$edit_check = ($edit_id !== '') ? " AND md5(vendor_id)!='" . mysqli_real_escape_string($conn, $edit_id) . "' " : ' ';
+	$out_put = array('0', 'Valid details');
+	$query = "SELECT vendor_id FROM vendor_master WHERE vendor_name='$value' $edit_check LIMIT 1";
+	$result = mysqli_query($conn, $query);
+	if ($result && mysqli_num_rows($result) > 0) {
+		$out_put = array('1', 'Vendor name already exists. Try another...');
+	}
+	echo json_encode($out_put);
+}
+
+if ($cmd == 'chk_vendor_gstin') {
+	require_once __DIR__ . '/include/vendor_master_helpers.php';
+	ew_vendor_ensure_table($conn);
+	$value = ew_vendor_normalize_gstin($_REQUEST['value'] ?? '');
+	$out_put = array('0', 'Valid GSTIN');
+	if ($value !== '' && !ew_vendor_validate_gstin($value)) {
+		echo json_encode(array('1', 'Invalid GSTIN. Use 15 chars (example: 29AABCU9603R1ZM) or leave blank.'));
+		exit;
+	}
+	$edit_id = trim($_REQUEST['edit_id'] ?? '');
+	$edit_check = ($edit_id !== '') ? " AND md5(vendor_id)!='" . mysqli_real_escape_string($conn, $edit_id) . "' " : ' ';
+	$value_esc = mysqli_real_escape_string($conn, $value);
+	$query = "SELECT vendor_id FROM vendor_master WHERE gstin='$value_esc' AND gstin!='' $edit_check LIMIT 1";
+	$result = mysqli_query($conn, $query);
+	if ($result && mysqli_num_rows($result) > 0) {
+		$out_put = array('1', 'GSTIN already exists. Try another...');
+	}
+	echo json_encode($out_put);
+}
+
+if ($cmd == 'chk_vendor_pan') {
+	require_once __DIR__ . '/include/vendor_master_helpers.php';
+	ew_vendor_ensure_table($conn);
+	$value = strtoupper(trim($_REQUEST['value'] ?? ''));
+	$out_put = array('0', 'Valid PAN');
+	if ($value !== '' && !ew_vendor_validate_pan($value)) {
+		echo json_encode(array('1', 'Invalid PAN format.'));
+		exit;
+	}
+	$edit_id = trim($_REQUEST['edit_id'] ?? '');
+	$edit_check = ($edit_id !== '') ? " AND md5(vendor_id)!='" . mysqli_real_escape_string($conn, $edit_id) . "' " : ' ';
+	$value_esc = mysqli_real_escape_string($conn, $value);
+	$query = "SELECT vendor_id FROM vendor_master WHERE pan_no='$value_esc' $edit_check LIMIT 1";
+	$result = mysqli_query($conn, $query);
+	if ($result && mysqli_num_rows($result) > 0) {
+		$out_put = array('1', 'PAN already exists. Try another...');
+	}
+	echo json_encode($out_put);
+}
 
 
 ?>

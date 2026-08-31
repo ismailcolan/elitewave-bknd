@@ -1396,6 +1396,154 @@ if ($form_name == 'quick_add_expense_vendor') {
     exit;
 }
 
+// logistics vendor master
+if ($form_name == 'add_vendor') {
+    require_once __DIR__ . '/include/vendor_master_helpers.php';
+    if (!ew_vendor_ensure_table($conn)) {
+        echo 'Vendor table is not ready. Please contact administrator.';
+        exit;
+    }
+
+    $edit_key = trim($_POST['edit_id'] ?? '');
+    $vendor_name = mysqli_real_escape_string($conn, trim($_POST['vendor_name'] ?? ''));
+    $contact_person = mysqli_real_escape_string($conn, trim($_POST['contact_person'] ?? ''));
+    $address1 = mysqli_real_escape_string($conn, trim($_POST['address1'] ?? ''));
+    $address2 = mysqli_real_escape_string($conn, trim($_POST['address2'] ?? ''));
+    $state = (int) ($_POST['state'] ?? 0);
+    $city = (int) ($_POST['city'] ?? 0);
+    $pincode = mysqli_real_escape_string($conn, trim($_POST['pincode'] ?? ''));
+    $vendor_type = mysqli_real_escape_string($conn, trim($_POST['vendor_type'] ?? ''));
+    $email = mysqli_real_escape_string($conn, trim($_POST['email'] ?? ''));
+    $email_alt = mysqli_real_escape_string($conn, trim($_POST['email_alt'] ?? ''));
+    $contact_no = mysqli_real_escape_string($conn, trim($_POST['contact_no'] ?? ''));
+    $contact_no2 = mysqli_real_escape_string($conn, trim($_POST['contact_no2'] ?? ''));
+    $gstin = ew_vendor_normalize_gstin($_POST['gstin'] ?? '');
+    $pan_no = strtoupper(trim($_POST['pan_no'] ?? ''));
+    $mode_of_transport = mysqli_real_escape_string($conn, trim($_POST['mode_of_transport'] ?? ''));
+    $service_type = mysqli_real_escape_string($conn, trim($_POST['service_type'] ?? ''));
+    $operating_from = mysqli_real_escape_string($conn, trim($_POST['operating_from'] ?? ''));
+    $operating_to = mysqli_real_escape_string($conn, trim($_POST['operating_to'] ?? ''));
+    $payment_terms = mysqli_real_escape_string($conn, trim($_POST['payment_terms'] ?? ''));
+    $credit_days = trim($_POST['credit_days'] ?? '');
+    $credit_days_sql = ($credit_days === '') ? 'NULL' : (int) $credit_days;
+    $account_holder_name = mysqli_real_escape_string($conn, trim($_POST['account_holder_name'] ?? ''));
+    $bank_name = mysqli_real_escape_string($conn, trim($_POST['bank_name'] ?? ''));
+    $account_number = mysqli_real_escape_string($conn, trim($_POST['account_number'] ?? ''));
+    $ifsc = strtoupper(trim($_POST['ifsc'] ?? ''));
+    $bank_branch = mysqli_real_escape_string($conn, trim($_POST['bank_branch'] ?? ''));
+    $status = (int) ($_POST['status'] ?? 0);
+
+    if ($vendor_name === '' || $vendor_type === '' || $contact_person === '' || $contact_no === '' || $state <= 0 || $city <= 0 || $address1 === '' || $mode_of_transport === '' || $pan_no === '') {
+        echo 'Please fill all mandatory fields.';
+        exit;
+    }
+    if (!ew_vendor_validate_pan($pan_no)) {
+        echo 'Invalid PAN number.';
+        exit;
+    }
+    if ($gstin !== '' && !ew_vendor_validate_gstin($gstin)) {
+        echo 'Invalid GSTIN. Enter 15 characters (example: 29AABCU9603R1ZM) or leave blank.';
+        exit;
+    }
+    if ($ifsc !== '' && !ew_vendor_validate_ifsc($ifsc)) {
+        echo 'Invalid IFSC code.';
+        exit;
+    }
+
+    $gstin_esc = mysqli_real_escape_string($conn, $gstin);
+    $pan_esc = mysqli_real_escape_string($conn, $pan_no);
+    $ifsc_esc = mysqli_real_escape_string($conn, $ifsc);
+
+    $edit_check = ($edit_key !== '') ? " AND md5(vendor_id)!='" . mysqli_real_escape_string($conn, $edit_key) . "' " : '';
+    $dup_name = mysqli_query($conn, "SELECT vendor_id FROM vendor_master WHERE vendor_name='$vendor_name' $edit_check LIMIT 1");
+    if ($dup_name && mysqli_num_rows($dup_name) > 0) {
+        echo 'Vendor name already exists.';
+        exit;
+    }
+    if ($gstin !== '') {
+        $dup_gst = mysqli_query($conn, "SELECT vendor_id FROM vendor_master WHERE gstin='$gstin_esc' $edit_check LIMIT 1");
+        if ($dup_gst && mysqli_num_rows($dup_gst) > 0) {
+            echo 'GSTIN already exists.';
+            exit;
+        }
+    }
+    $dup_pan = mysqli_query($conn, "SELECT vendor_id FROM vendor_master WHERE pan_no='$pan_esc' $edit_check LIMIT 1");
+    if ($dup_pan && mysqli_num_rows($dup_pan) > 0) {
+        echo 'PAN already exists.';
+        exit;
+    }
+
+    if ($edit_key !== '') {
+        $query = "UPDATE vendor_master SET
+            vendor_name='$vendor_name',
+            vendor_type='$vendor_type',
+            contact_person='$contact_person',
+            address1='$address1',
+            address2='$address2',
+            state='$state',
+            city='$city',
+            pincode='$pincode',
+            email='$email',
+            email_alt='$email_alt',
+            contact_no='$contact_no',
+            contact_no2='$contact_no2',
+            gstin='$gstin_esc',
+            pan_no='$pan_esc',
+            mode_of_transport='$mode_of_transport',
+            service_type='$service_type',
+            operating_from='$operating_from',
+            operating_to='$operating_to',
+            payment_terms='$payment_terms',
+            credit_days=$credit_days_sql,
+            account_holder_name='$account_holder_name',
+            bank_name='$bank_name',
+            account_number='$account_number',
+            ifsc='$ifsc_esc',
+            bank_branch='$bank_branch',
+            status='$status',
+            updated_at='$updated_at',
+            updated_by='$updated_by'
+            WHERE md5(vendor_id)='" . mysqli_real_escape_string($conn, $edit_key) . "'";
+        $result = mysqli_query($conn, $query);
+        echo $result ? 1 : 0;
+        exit;
+    }
+
+    $next = ew_vendor_next_code($conn);
+    $vendor_code = mysqli_real_escape_string($conn, $next['vendor_code']);
+    $vendor_code_id = (int) $next['vendor_code_id'];
+
+    $query = "INSERT INTO vendor_master (
+        vendor_code, vendor_code_id, vendor_name, vendor_type, contact_person,
+        address1, address2, state, city, pincode, email, email_alt,
+        contact_no, contact_no2, gstin, pan_no, mode_of_transport, service_type,
+        operating_from, operating_to, payment_terms, credit_days,
+        account_holder_name, bank_name, account_number, ifsc, bank_branch,
+        status, created_at, created_by
+    ) VALUES (
+        '$vendor_code', '$vendor_code_id', '$vendor_name', '$vendor_type', '$contact_person',
+        '$address1', '$address2', '$state', '$city', '$pincode', '$email', '$email_alt',
+        '$contact_no', '$contact_no2', '$gstin_esc', '$pan_esc', '$mode_of_transport', '$service_type',
+        '$operating_from', '$operating_to', '$payment_terms', $credit_days_sql,
+        '$account_holder_name', '$bank_name', '$account_number', '$ifsc_esc', '$bank_branch',
+        '$status', '$created_at', '$created_by'
+    )";
+    $result = mysqli_query($conn, $query);
+    echo $result ? 1 : 0;
+    exit;
+}
+
+if ($form_name == 'inacv_vendor') {
+    require_once __DIR__ . '/include/vendor_master_helpers.php';
+    ew_vendor_ensure_table($conn);
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $status = (int) ($_POST['status'] ?? 0);
+    $query = "UPDATE vendor_master SET status='$status', updated_at='$updated_at', updated_by='$updated_by' WHERE vendor_id='$id'";
+    $result = mysqli_query($conn, $query);
+    echo $result ? 1 : 0;
+    exit;
+}
+
 // extra expense (GCN linked)
 if ($form_name == 'add_extra_expense' || $form_name == 'edit_extra_expense') {
     require_once __DIR__ . '/include/expense_functions.php';
@@ -6979,6 +7127,10 @@ $total_packages = isset($_POST['total_packages'])
 
     $status_date = $_POST['status_date'];
 $status_time = $_POST['status_time'];
+
+    if (preg_match('/^(\d{2})-(\d{2})-(\d{4})$/', $status_date, $date_parts)) {
+        $status_date = $date_parts[3] . '-' . $date_parts[2] . '-' . $date_parts[1];
+    }
 
     $querys = "SELECT client_id FROM $table_names WHERE grn_no='$grn_no' AND `status` <= '$status' AND booking_status = '' ";
     $result = mysqli_query($conn, $querys);

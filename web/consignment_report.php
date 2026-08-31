@@ -16,20 +16,6 @@ $c_Y = date('Y');
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<link rel="stylesheet" href="./stylesheets/buttons.dataTables.min.css">
 <style>
-  .fa_calend{
-            height: 25px;
-    position: absolute;
-    right: 0;
-    width: 8%;
-    top: 0;
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    padding-top: 2px;
-        }
-   .cals_csss{
-    width: 100%;
-   }
 @media only screen and (min-width: 360px) and (max-width: 640px) and (orientation: landscape) {
 
 div#dataTable1_filter {
@@ -243,11 +229,11 @@ table{
 												<label class="control-label"><input type="radio" class="report_type" name="report_type" value="YEARLY" /> YEARLY</label>
 											</div>
 											<div class="report-date-group">
-												<div id="picker1" class="input-group date daily cals_csss date-picker" data-ew-skip-upgrade="1" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-													<input class="form-control" type="text" id="date" name="date" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" required><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
+												<div id="picker1">
+													<?php echo ew_date_input(array('id' => 'date', 'name' => 'date', 'required' => true, 'value' => $c_date, 'readonly' => true)); ?>
 												</div>
-												<div id="picker2" class="input-group cals_csss date monthly date-picker" data-ew-skip-upgrade="1" data-date-autoclose="true" data-date-format="mm-yyyy" style="display:none;">
-													<input class="form-control" type="text" id="month" name="month" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
+												<div id="picker2" style="display:none;">
+													<?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'value' => $c_mY)); ?>
 												</div>
 												<div id="picker3" class="report-year-select-wrap" style="display:none;">
 													<select id="year" name="year" class="form-control report-year-select">
@@ -449,42 +435,7 @@ table{
 				});
 			}
 
-			$("#date").val('<?php echo $c_date; ?>');
-			$("#month").val('<?php echo $c_mY; ?>');
 			$("#year").val('<?php echo $c_Y; ?>');
-
-			function initReportPicker($wrap, opts) {
-				var $input = $wrap.find('input').first();
-				if (!$input.length) {
-					return;
-				}
-				if ($input.data('datepicker')) {
-					$input.datepicker('destroy');
-				}
-				$input.datepicker(opts);
-				$input.off('show.reportPicker').on('show.reportPicker', function() {
-					var dp = $input.data('datepicker');
-					if (dp && typeof dp.place === 'function') {
-						setTimeout(function() {
-							dp.place();
-						}, 0);
-					}
-				});
-			}
-
-			function initAllReportPickers() {
-				initReportPicker($('#picker1'), {
-					format: 'dd-mm-yyyy',
-					autoclose: true,
-					todayHighlight: true
-				});
-				initReportPicker($('#picker2'), {
-					format: 'mm-yyyy',
-					minViewMode: 1,
-					startView: 1,
-					autoclose: true
-				});
-			}
 
 			function setReportType(type) {
 				$('#picker1, #picker2, #picker3').hide();
@@ -501,23 +452,10 @@ table{
 				}
 			}
 
-			setTimeout(function() {
-				initAllReportPickers();
-				setReportType($('.report_type:checked').val());
-			}, 0);
+			setReportType($('.report_type:checked').val());
 
 			$(document).on('change', '.report_type', function() {
 				setReportType($(this).val());
-			});
-
-			$(document).on('click', '.report-date-group .date-field-icon, .report-date-group .fa_calend, .report-date-group .input-group-addon', function() {
-				var $input = $(this).closest('[id^="picker"]').find('input').first();
-				if ($input.length) {
-					if (!$input.data('datepicker')) {
-						initAllReportPickers();
-					}
-					$input.datepicker('show');
-				}
 			});
 
 			$(document).on('click', '#search', function() {

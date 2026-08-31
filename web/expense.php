@@ -222,10 +222,7 @@ if ($key != '') {
                                         </div>
                                         <div class="form-group">
                                             <label class="control-label">Expense Date <span style="color:red;">*</span> :</label>
-                                            <div class="input-group date date-picker" data-date-format="dd-mm-yyyy" data-date-autoclose="true">
-                                                <input type="text" id="expense_date" name="expense_date" class="form-control" value="<?php echo htmlspecialchars($row['expense_date']); ?>" required autocomplete="off" />
-                                                <span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-                                            </div>
+                                            <?php echo ew_date_input(array('id' => 'expense_date', 'name' => 'expense_date', 'value' => $row['expense_date'], 'required' => true)); ?>
                                         </div>
                                         <div class="form-group">
                                             <label class="control-label">Category <span style="color:red;">*</span> :</label>
@@ -351,12 +348,6 @@ if ($key != '') {
 
         <script type="text/javascript">
             $(document).ready(function() {
-                $('.date-picker').datepicker({
-                    format: 'dd-mm-yyyy',
-                    autoclose: true,
-                    todayHighlight: true
-                });
-
                 function formatRupee(n) {
                     n = parseInt(n, 10) || 0;
                     return n.toLocaleString('en-IN');

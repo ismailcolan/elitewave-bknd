@@ -378,16 +378,26 @@ body.page-header-fixed {
   </div>
 </div>
 
-<div class="loading-page"><img src="images/ajax_loader.gif" /></div>
-<div class="form-data-saving" style="display:none;"><img src="images/loading.png" /></div>
+<div class="loading-page" style="display:none;"><img src="images/ajax_loader.gif" alt="" /></div>
+<div class="form-data-saving" style="display:none;"><img src="images/loading.png" alt="" /></div>
 
 <script>
 $(document).ready(function(){
 
-  $(document).on('mouseover click', function() {
+  var lastSessionCheck = 0;
+  function checkSession() {
+    var now = Date.now();
+    if (now - lastSessionCheck < 60000) {
+      return;
+    }
+    lastSessionCheck = now;
     $.ajax({ url:"include/sessions_check.php", type:"POST",
       success:function(login){ if(login==0) window.location.href='logout.php'; }
     });
+  }
+
+  $(document).on('click', function() {
+    checkSession();
   });
 
   let idleTime = 0;

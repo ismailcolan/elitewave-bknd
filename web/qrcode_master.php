@@ -510,9 +510,7 @@ if ($key != '') {
 									<div class="col-md-offset-4 col-md-3">
 										<!-- <div class="form-group" >
 						<label class="control-label">Month:</label>
-						<div class="input-group date  date-picker" data-date-autoclose="true" data-date-format="mm-yyyy">
-										<input class="form-control" type="text" id="month" name="month" value="<?php echo date('m-Y'); ?>" required><span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-						</div>
+						<?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'required' => true)); ?>
 						</div> -->
 										<div class="form-group">
 											<label class="control-label">GRN No:</label>

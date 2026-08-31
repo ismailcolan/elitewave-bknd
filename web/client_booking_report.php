@@ -49,11 +49,11 @@ $c_mY=date('m-Y');
 						<div class="col-md-3">
 						<div class="form-group">
 						
-						<div id="picker1" class="input-group date daily  date-picker" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-							<input class="form-control" type="text"  id="date" name="date" required><span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+						<div id="picker1">
+							<?php echo ew_date_input(array('id' => 'date', 'name' => 'date', 'required' => true, 'value' => $c_date, 'readonly' => true)); ?>
 						</div>
-						<div id="picker2" class="input-group date monthly  date-picker" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-							<input class="form-control" type="text"  id="month" name="month" required><span class="input-group-addon"><i class="fa fa-calendar"></i></span>
+						<div id="picker2" style="display:none;">
+							<?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'value' => $c_mY)); ?>
 						</div>
 						</div>
 						
@@ -174,9 +174,6 @@ $c_mY=date('m-Y');
 		
 		<script type="text/javascript">
 		$(document).ready(function(){
-		$("#date").val('<?php echo $c_date; ?>');
-		$("#month").val('<?php echo $c_mY; ?>');
-		$("#picker2").hide();
 		$(document).on('change','.report_type',function(){
 			if($(this).val()=='MONTHLY')
 			{
@@ -208,25 +205,6 @@ $c_mY=date('m-Y');
 			}
 			
 		});
-		
-		
-	$('.monthly').on("click", function() {
-				$(this).datepicker({
-					changeMonth: true,
-					changeYear: true,
-					format: 'mm-yyyy',
-					}).datepicker('show');
-			});
-			
-			$('.daily').on("click", function() {
-				$(this).datepicker({
-					changeMonth: true,
-					changeYear: true,
-					format: 'dd-mm-yyyy',
-					}).datepicker('show');
-			});
-			
-		
 		});
 		$(window).load(function() {
 			$(".loading-page").hide();

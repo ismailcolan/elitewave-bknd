@@ -235,31 +235,6 @@ require_once("include/function.php");
 			margin-bottom: 10px;
 		}
 
-		.fa_calend {
-			height: 25px;
-			position: absolute;
-			right: 0;
-			width: 8%;
-			top: 1px;
-			display: grid;
-			justify-content: center;
-			align-items: center;
-			padding-top: 2px;
-		}
-
-		.cals_csss {
-			width: 100%;
-		}
-
-		input#grn_date {
-			border-top-right-radius: 5px;
-			border-bottom-right-radius: 5px;
-			width: 99%;
-		}
-
-		/* End */
-
-
 		@media (min-width: 320px) and (max-width:575.98px) {
 
 			#pkg_req label.error,
@@ -390,6 +365,21 @@ require_once("include/function.php");
 							$ftl_type = $row['ftl_type'];
 							if ($row['transaction_id'] > 0) $form_name = "edit_consignment_details_manual";
 							else $form_name = "add_new_consignment_manual";
+							$grn_date_val = !empty($row['grn_date']) ? $row['grn_date'] : date('d-m-Y');
+							$booking_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
+							$date_keypress_attr = 'onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"';
+							$grn_date_opts = array(
+								'id' => 'grn_date',
+								'name' => 'grn_date',
+								'value' => $grn_date_val,
+								'required' => true,
+								'end_date' => 'today',
+								'class' => 'table-height final',
+								'attrs' => $date_keypress_attr,
+							);
+							if ($booking_role !== 'AD') {
+								$grn_date_opts['start_date'] = date('d-m-Y');
+							}
 							?>
 							<form id="grn_details" class="form-horizontal" enctype="multipart/form-data">
 								<input type="hidden" name="truck_type" id="truck_type" value="<?php echo $ftl_type; ?>" />
@@ -443,10 +433,7 @@ require_once("include/function.php");
 											<div class="form-group">
 												<label class="control-label col-sm-4">GCN.Date <span style="color:red;">*</span> :</label>
 												<div class="col-lg-8">
-													<div class="input-group cals_csss date date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-														<input class="form-control table-height final" type="text" name="grn_date" value="<?php if ($row['grn_date'] != '') echo $row['grn_date'];
-																																			else echo date('d-m-Y'); ?>" id="grn_date" required autocomplete="off" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"> <span class="input-group-addon fa_calend table-height"><i class="fa fa-calendar"></i></span>
-													</div>
+													<?php echo ew_date_input($grn_date_opts); ?>
 												</div>
 											</div>
 											<div class="form-group">
@@ -882,10 +869,14 @@ require_once("include/function.php");
 											<div class="form-group">
 												<label class="control-label col-sm-12 col-lg-4 col-md-12   v_label">E-Way Expiry Date:</label>
 												<div class="col-lg-8">
-													<div class="input-group date date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-														<input type="text" id="eway_expiryDate" name="eway_expiryDate" class="form-control text-right" value="<?php echo $row['eway_expirydate'] ?>" autocomplete="off" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" />
-														<span class="input-group-addon table-height"><i class="fa fa-calendar"></i></span>
-													</div>
+													<?php echo ew_date_input(array(
+														'id' => 'eway_expiryDate',
+														'name' => 'eway_expiryDate',
+														'value' => $row['eway_expirydate'] ?? '',
+														'class' => 'text-right',
+														'start_date' => date('d-m-Y'),
+														'attrs' => $date_keypress_attr,
+													)); ?>
 												</div>
 											</div>
 											<div class="form-group">
@@ -1887,12 +1878,6 @@ require_once("include/function.php");
 			});
 			//End
 
-			$('#eway_expiryDate').datepicker({
-				startDate: date,
-				format: "dd-mm-yyyy",
-				autoclose: true
-			});
-
 			$('.grn_no_popup').hide();
 
 			function isChar(evt, element) {
@@ -1911,18 +1896,11 @@ require_once("include/function.php");
 			var role = '<?php echo $_SESSION['role']; ?>';
 			var id = '<?php echo $_SESSION['user_id']; ?>';
 			console.log(role);
-			var date = '<?php date('d-m-Y'); ?>';
 			if (role == 'CL') {
 				$('#consignor_name').attr("disabled", "disabled");
 			}
 
 			if (role == "CL") {
-				$('#grn_date').datepicker({
-					startDate: date,
-					format: "dd-mm-yyyy",
-					endDate: date
-				});
-
 				$.ajax({
 					async: false,
 					url: 'fetch_details.php',
@@ -1962,23 +1940,6 @@ require_once("include/function.php");
 						console.log(jqxhr.responseText);
 					}
 				});
-
-
-
-			} else {
-				if (role == 'AD') {
-					$('#grn_date').datepicker({
-						format: "dd-mm-yyyy",
-						autoclose: true
-					});
-
-				} else {
-					$('#grn_date').datepicker({
-						startDate: date,
-						format: "dd-mm-yyyy",
-						autoclose: true
-					});
-				}
 			}
 			$(document).on('change', '#destination', function(e) {
 				reset_consignee();
@@ -2346,19 +2307,6 @@ require_once("include/function.php");
 			} else {
 				$('div#signatureparent').addClass('height_check');
 			}
-			$('.datepicker').on("click", function() {
-				$(this).datepicker({
-					startDate: new Date(),
-					changeMonth: true,
-					changeYear: true,
-					gotoCurrent: true,
-					dateFormat: 'yy-mm-dd',
-					maxDate: new Date(),
-					yearRange: '1980:c',
-					defaultDate: '-10y'
-				}).datepicker('show');
-			});
-
 			$('.num_only,#grn_no,#goods_dedared_value').keypress(function(event) {
 				return isNumber(event, this)
 			});

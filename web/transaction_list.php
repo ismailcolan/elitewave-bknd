@@ -13,7 +13,6 @@ $logged_id = $_SESSION['user_id'];
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" integrity="sha512-aOG0c6nPNzGk+5zjwyJaoRUgCdOrfSDhmMID2u4+OIslr0GjpLKo7Xm0Ao3xmpM4T8AmIouRkqwj1nrdVsLKEQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         .edit_disabled {
             pointer-events: none;
@@ -26,51 +25,16 @@ $logged_id = $_SESSION['user_id'];
             cursor: none !important;
         }
 
-        .ui-monthpicker-trigger {
-            display: none;
-        }
-
         .disable_action {
             color: #7a888f;
             cursor: not-allowed;
         }
-  .fa_calend{
-            display: table-cell !important;
-            text-align: center !important;
-            width: 1% !important;
-            cursor: pointer;
-            border-left: 1.5px solid var(--ew-border);
-            background: #F5F6F8;
-            color: var(--ew-text-muted);
-            transition: background .2s ease;
-            vertical-align: middle !important;
-            padding: 0 10px;
-  }
-  .fa_calend:hover {
-            background: #E8EDF4;
-            color: var(--ew-navy);
-  }
-   .fa_calend i {
-            font-size: 15px;
-            margin: 0;
-            padding: 0;
-            vertical-align: middle;
-   }
-    
+
  @media (min-width: 320px) and (max-width:575.98px) {
-    .trans_list {
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
+    .txn-datatable-area {
+        overflow-x: auto;
+    }
 }
-.trans_list_table {
-    margin: 0 auto;
-    width: max-content!important;
-    max-width: unset!important;
-    clear: both;
-    border-collapse: collapse;
-    table-layout: fixed;
-}}
 
 .table-actions-click{
     border: solid 1px;
@@ -105,101 +69,19 @@ $logged_id = $_SESSION['user_id'];
   }
 }
 
-/* ===== Custom calendar-style month picker ===== */
+/* Month filter field */
 .month-field-col {
-    max-width: 260px;
+    max-width: 280px;
+    flex: 0 0 auto;
 }
-.month-picker-wrap {
-    position: relative;
-    width: 180px;
-    border:0 !important;
-}
-.month-picker-wrap .form-control {
-    background: #fff;
-    cursor: pointer;
-    padding-right: 50px !important;
-}
-.month-picker-wrap .fa_calend {
-    cursor: pointer;
-    color: #2f6fed;
-}
-.month-picker-panel {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    z-index: 1050;
-    width: 300px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-    border: 1px solid #e7e9ee;
-    overflow: hidden;
-    font-family: inherit;
-}
-.mp-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: #0A1E3D;
-}
-.mp-year-label {
-    color: #fff;
+.month-field-col .control-label {
+    display: block;
+    font-size: 11px;
     font-weight: 600;
-    font-size: 16px;
-    letter-spacing: .5px;
-}
-.mp-nav-btn {
-    background: transparent;
-    border: none;
-    color: #cfe1ff;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: background .15s ease;
-}
-.mp-nav-btn:hover {
-    background: rgba(255,255,255,0.15);
-    color: #fff;
-}
-.mp-months-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding: 16px;
-}
-.mp-month-cell {
-    padding: 10px 4px;
-    text-align: center;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #333;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all .15s ease;
-}
-.mp-month-cell:hover {
-    background: #eef4ff;
-    border-color: #cfe1ff;
-}
-.mp-month-cell.mp-selected {
-    background: #2f6fed;
-    color: #fff;
-}
-.mp-month-cell.mp-today:not(.mp-selected) {
-    border-color: #2f6fed;
-    color: #2f6fed;
-}
-.mp-footer {
-    display: flex;
-    justify-content: flex-end;
-    padding: 10px 16px;
-    border-top: 1px solid #eef0f3;
-}
-.mp-footer .btn {
-    border-radius: 6px;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 6px;
 }
 
 /* ===== Import Consignment modal ===== */
@@ -257,10 +139,375 @@ $logged_id = $_SESSION['user_id'];
     padding: 6px 20px;
 }
 .selected-file-name {
-    margin-top: 12px;
-    font-size: 13px;
+            margin-top: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0A1E3D;
+        }
+
+/* ===== Transaction list UI ===== */
+.txn-page-wrap {
+    padding: 0 24px 32px;
+    max-width: 100%;
+}
+.txn-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: linear-gradient(185deg, var(--ew-navy, #0A1E3D) 0%, var(--ew-navy-deep, #061428) 100%);
+    color: #fff;
+    padding: 14px 24px;
+    border-radius: 10px 10px 0 0;
+    min-height: 64px;
+}
+.txn-page-header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff !important;
+}
+.txn-page-header h1 i {
+    margin-right: 8px;
+    opacity: 1;
+    color: #ffffff !important;
+}
+.txn-header-meta {
+    font-size: 14px;
+    color: rgba(255,255,255,.88) !important;
+    margin-top: 4px;
+}
+.txn-btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    color: #0A1E3D !important;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
     font-weight: 600;
+    font-size: 13px;
+    text-decoration: none !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.txn-btn-add:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,.2);
+    color: #0A1E3D !important;
+}
+.txn-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 14px 20px;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+    overflow: visible;
+    position: relative;
+    z-index: 10;
+}
+.txn-toolbar .control-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 6px;
+}
+.txn-table-card {
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 0 0 10px 10px;
+    overflow: visible;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, .06);
+}
+.txn-datatable-area {
+    padding: 0 16px 16px;
+    width: 100%;
+}
+.txn-datatable-area .dataTables_wrapper {
+    width: 100%;
+}
+.txn-datatable-area .dataTables_length,
+.txn-datatable-area .dataTables_filter {
+    padding: 12px 0 8px;
+    margin: 0;
+}
+.txn-datatable-area .dataTables_length select {
+    border: 1px solid #D8DDE5;
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin: 0 6px;
+}
+.txn-datatable-area .dataTables_filter input {
+    border: 1px solid #D8DDE5;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-left: 8px;
+    min-width: 180px;
+}
+.txn-datatable-area .dataTables_info,
+.txn-datatable-area .dataTables_paginate {
+    padding: 10px 0 4px;
+    font-size: 12px;
+}
+.txn-datatable-area .dataTables_scrollHead,
+.txn-datatable-area .dataTables_scrollBody {
+    border-bottom: 1px solid #E2E8F0;
+}
+.txn-datatable-area .dataTables_scrollHeadInner,
+.txn-datatable-area .dataTables_scrollHeadInner table {
+    width: 100% !important;
+}
+.trans_list_table {
+    width: 100% !important;
+    margin: 0 !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+}
+.trans_list_table col.col-sno { width: 42px; }
+.trans_list_table col.col-gcn { width: 88px; }
+.trans_list_table col.col-pnr { width: 108px; }
+.trans_list_table col.col-date { width: 88px; }
+.trans_list_table col.col-pkgs { width: 48px; }
+.trans_list_table col.col-consignor { width: 130px; }
+.trans_list_table col.col-consignee { width: 130px; }
+.trans_list_table col.col-dest { width: 90px; }
+.trans_list_table col.col-status { width: 100px; }
+.trans_list_table col.col-pod { width: 44px; }
+.trans_list_table col.col-actions { width: 240px; }
+.trans_list_table thead th {
+    background: var(--ew-primary-light, #EEF2F7) !important;
+    color: var(--ew-navy, #0A1E3D) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 11px 8px !important;
+    border: none !important;
+    border-bottom: 2px solid var(--ew-border, #D8DDE5) !important;
+    border-right: 1px solid var(--ew-border-light, #E2E8F0) !important;
+    white-space: nowrap;
+    vertical-align: middle !important;
+    box-sizing: border-box !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.trans_list_table thead th:last-child {
+    border-right: none !important;
+}
+.trans_list_table thead th.sorting,
+.trans_list_table thead th.sorting_asc,
+.trans_list_table thead th.sorting_desc {
+    padding-right: 22px !important;
+    background-image: none !important;
+}
+.trans_list_table tbody td {
+    font-size: 13px;
+    padding: 9px 8px !important;
+    vertical-align: middle !important;
+    border-color: #EEF2F7 !important;
+    color: #1E293B;
+    box-sizing: border-box !important;
+    overflow: hidden;
+    word-wrap: break-word;
+}
+.trans_list_table tbody td.col-actions {
+    overflow: visible !important;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
+}
+.trans_list_table tbody tr:hover td.col-actions {
+    z-index: 4;
+}
+.trans_list_table tbody td.col-consignor,
+.trans_list_table tbody td.col-consignee {
+    white-space: normal;
+    line-height: 1.4;
+    font-size: 13px;
+}
+.trans_list_table tbody tr:hover {
+    position: relative;
+    z-index: 2;
+}
+.trans_list_table tbody tr:hover td {
+    background: #F8FAFC !important;
+}
+.trans_list_table tbody tr:nth-child(even) td {
+    background: #FBFCFE;
+}
+.txn-gcn-no {
+    font-weight: 700;
     color: #0A1E3D;
+    font-size: 13px;
+}
+.txn-pnr {
+    font-size: 12px;
+    color: #64748B;
+}
+.txn-dest {
+    font-weight: 500;
+}
+.txn-dest-empty {
+    color: #CBD5E1;
+}
+.txn-status-badge {
+    display: inline-block;
+    min-width: 72px;
+    max-width: 100%;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.txn-status-booked { background: #DBEAFE; color: #1D4ED8; }
+.txn-status-transit { background: #FEF3C7; color: #B45309; }
+.txn-status-delivered { background: #DCFCE7; color: #15803D; }
+.txn-status-cancelled { background: #FEE2E2; color: #B91C1C; }
+.txn-status-default { background: #F1F5F9; color: #475569; }
+.txn-party-name {
+    font-weight: 500;
+}
+.txn-party-icon {
+    font-size: 11px;
+    margin-left: 2px;
+}
+.txn-icon-restricted { color: #DC2626; }
+.txn-icon-frequency { color: #2563EB; }
+.txn-icon-charges { color: #16A34A; }
+.txn-pod-cell {
+    text-align: center;
+}
+.txn-pod-cell .fa-check-circle { color: #16A34A; font-size: 16px; }
+.txn-pod-cell .fa-times-circle-o { color: #CBD5E1; font-size: 16px; }
+.txn-action-group {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 3px;
+    justify-content: flex-start;
+    align-items: center;
+}
+.txn-action-group .table-actions,
+.txn-action-group .dropdown.table-actions {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border-radius: 6px;
+    background: #E2E8F0;
+    color: #0A1E3D !important;
+    border: 1px solid #CBD5E1;
+    margin: 0 !important;
+    transition: background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    font-size: 13px;
+    text-decoration: none !important;
+}
+.txn-action-group .table-actions i {
+    color: inherit !important;
+    pointer-events: none;
+}
+.txn-action-group .table-actions:hover:not(.disable_action):not(.no-attach) {
+    background: #0A1E3D !important;
+    color: #ffffff !important;
+    border-color: #0A1E3D !important;
+    z-index: 20;
+    box-shadow: 0 2px 8px rgba(10, 30, 61, .25);
+}
+.txn-action-group .btn-invoice,
+.txn-action-group .btn-view-pod {
+    z-index: 2;
+}
+.txn-action-group .btn-invoice:hover:not(.no-attach),
+.txn-action-group .btn-view-pod:hover {
+    z-index: 25;
+}
+.txn-action-group .table-actions.disable_action,
+.txn-action-group .table-actions.no-attach {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #F1F5F9;
+    color: #94A3B8 !important;
+    border-color: #E2E8F0;
+}
+.txn-action-group .dropdown.table-actions {
+    z-index: 3;
+}
+.txn-action-group .dropdown.table-actions.open,
+.txn-action-group .dropdown.table-actions:hover {
+    z-index: 30;
+}
+.txn-action-group .dropdown.table-actions .dropdown-menu {
+    min-width: 160px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.15);
+    border: 1px solid #E2E8F0;
+    padding: 6px 0;
+    z-index: 1000;
+}
+.txn-action-group .dropdown.table-actions .dropdown-menu li a {
+    padding: 8px 14px;
+    font-size: 12px;
+}
+.txn-table-footer {
+    padding: 10px 16px 14px;
+    border-top: 1px solid #EEF2F7;
+    background: #FAFBFC;
+}
+.txn-dt-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 4px;
+}
+.txn-dt-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+@media (max-width: 767px) {
+    .txn-page-wrap { padding: 0 12px 24px; }
+    .txn-toolbar { flex-direction: column; align-items: stretch; }
+    .txn-toolbar .text-right { text-align: left !important; }
+}
+
+.txn-page-wrap .txn-page-header,
+.txn-page-wrap .txn-page-header h1,
+.txn-page-wrap .txn-page-header h1 i,
+.txn-page-wrap .txn-header-meta {
+    color: #ffffff !important;
+}
+.txn-page-wrap .txn-action-group .table-actions {
+    color: #0A1E3D !important;
+}
+.txn-page-wrap .txn-action-group .table-actions:hover {
+    border: 1px solid #0A1E3D !important;
+    border-radius: 6px !important;
+}
+.txn-page-wrap .dataTables_length,
+.txn-page-wrap .dataTables_filter,
+.txn-page-wrap .dataTables_info,
+.txn-page-wrap .dataTables_paginate {
+    font-size: 13px !important;
 }
     </style>
 
@@ -280,66 +527,64 @@ $logged_id = $_SESSION['user_id'];
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <!-- <div class="col-md-offset-1 col-md-10"> -->
-                    <div class="" style="padding:0 40px;"> 
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-table"></i>Transaction <span class="align-right"><i class="fa fa-plus"></i> <a href="transactions.php">Add Transaction</a></span> </div>
-                        <div class="widget-content padded">
-                            
-                            <div class="row">
-                                <form class="form-horizontal" id="transaction_form">
+                    <div class="txn-page-wrap">
+                    <div class="widget-container fluid-height clearfix" style="padding:0;border:none;background:transparent;box-shadow:none;">
+                        <div class="txn-page-header">
+                            <div>
+                                <h1><i class="fa fa-truck"></i> Transactions</h1>
+                                <div class="txn-header-meta">Manage consignments, documents, and delivery status</div>
+                            </div>
+                            <a href="transactions.php" class="txn-btn-add"><i class="fa fa-plus"></i> Add Transaction</a>
+                        </div>
+                        <div class="txn-table-card">
+                        <div class="txn-toolbar">
+                            <form class="form-horizontal" id="transaction_form" style="margin:0;">
                                     <input type="hidden" id="form_name" name="form_name" value="transaction_form">
                                     <input type="hidden" id="edit_id" name="edit_id" value="">
                                     <input type="hidden" id="cmd" name="cmd" value="get_transaction_month_details">
                                     <div id="response" class="alert alert-danger" style="display:none;">
                                         <div class="message" style="text-align:center"></div>
                                     </div>
-
-                                    <div class="col-md-6 col-6">
-                                        <div class="month-field-col">
-                                            <div class="form-group">
-                                                <label class="control-label">Month:</label>
-                                                <div class="input-group month-picker-wrap" id="month_picker_wrap">
-                                                    <input class="form-control" type="text" id="month" name="month" value="<?php echo date('m-Y'); ?>" readonly required>
-                                                    <span class="input-group-addon fa_calend" id="month_picker_trigger"><i class="fa fa-calendar"></i></span>
-
-                                                    <div class="month-picker-panel" id="month_picker_panel" style="display:none;">
-                                                        <div class="mp-header">
-                                                            <button type="button" class="mp-nav-btn" id="mp_prev_year"><i class="fa fa-chevron-left"></i></button>
-                                                            <span class="mp-year-label" id="mp_year_label"></span>
-                                                            <button type="button" class="mp-nav-btn" id="mp_next_year"><i class="fa fa-chevron-right"></i></button>
-                                                        </div>
-                                                        <div class="mp-months-grid" id="mp_months_grid"></div>
-                                                        <div class="mp-footer">
-                                                            <button type="button" class="btn btn-sm btn-default" id="mp_clear">Clear</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <div class="month-field-col">
+                                        <label class="control-label">Month</label>
+                                        <?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'required' => true)); ?>
                                     </div>
-                                </form>
-
-                                <div class="col-md-6 col-6 text-right">
-                                    <button type="button" class="btn import-trigger-btn" data-toggle="modal" data-target="#import_modal">
-                                        <i class="fa fa-upload"></i>&nbsp; Import Consignment
-                                    </button>
-                                </div>
-                            </div><br />
-<div class="trans_list">
-                            <table class="table table-bordered table-striped trans_list_table">
+                            </form>
+                            <div class="text-right">
+                                <button type="button" class="btn import-trigger-btn" data-toggle="modal" data-target="#import_modal" style="margin-top:0;">
+                                    <i class="fa fa-upload"></i>&nbsp; Import Consignment
+                                </button>
+                            </div>
+                        </div>
+                        <div class="txn-datatable-area">
+                            <table class="table table-bordered table-striped trans_list_table" id="txn_list_table">
+                                <colgroup>
+                                    <col class="col-sno">
+                                    <col class="col-gcn">
+                                    <col class="col-pnr">
+                                    <col class="col-date">
+                                    <col class="col-pkgs">
+                                    <col class="col-consignor">
+                                    <col class="col-consignee">
+                                    <col class="col-dest">
+                                    <col class="col-status">
+                                    <col class="col-pod">
+                                    <col class="col-actions">
+                                </colgroup>
                                 <thead>
-                                    <th class="table-title" style="width:6%; padding: 9px;">S.No</th>
-                                    <th class="table-title" style="width:10%">GCN NO</th>
-                                    <th class="table-title" style="width:8%">PNR</th>
-                                    <th class="table-title" style="width:10%">GCN Date</th>
-                                    <th class="table-title" style="width:5%">No of Pkgs</th>
-                                    <th class="table-title" style="width:10%">Consignor </th>
-                                    <th class="table-title" style="width:13%">Consignee </th>
-                                    <th class="table-title" style="width:8%">Destination</th>
-                                    <th class="table-title" style="width:10%">Status</th>
-                                    <th class="table-title" style="width:3%">POD</th>
-                                    <th class="table-title" style="width:25%">Action</th>
+                                    <tr>
+                                    <th>S.No</th>
+                                    <th>GCN No</th>
+                                    <th>PNR</th>
+                                    <th>GCN Date</th>
+                                    <th>Pkgs</th>
+                                    <th>Consignor</th>
+                                    <th>Consignee</th>
+                                    <th>Destination</th>
+                                    <th>Status</th>
+                                    <th>POD</th>
+                                    <th>Actions</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="get_month_details">
                                     <?php
@@ -422,43 +667,20 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                         ?>
                                         <tr>
                                             <td class="text-center"><?php echo $i; ?></td>
-                                            <td><?php echo $row['grn_no']; ?></td>
-                                            <td><?php echo $row['tracking_code']; ?></td>
-                                            <td><?php echo $row['grn_date']; ?></td>
-                                            <td><?php echo $pkg_r['pkge']; ?></td>
-                                            <td><?php echo get_client_name($conn, $row['consigner']);
-                                        if (check_invoice_restricted($conn, $row['consigner']) == 1) {
-                                            echo " <i class='fa fa-ban text-danger' title='This client is restricted'></i>";
-                                        }
-                                        if (checkPartyWiseFrequency($conn, $row['consigner']) == 0) {
-                                            echo " <i class='fa fa-clock-o text-primary' title='This client is in frequency'></i>";
-                                        }
-                                        if (checkClientCharges($conn, $row['consigner']) > 0) {
-                                            echo " <i class='fa fa-inr text-success' title='This client applies client charges'></i>";
-                                        } ?></td>
-                                            
-                                            <td><?php echo get_client_name($conn, $row['consignee']);
-                                        if (check_invoice_restricted($conn, $row['consignee']) == 1) {
-                                            echo " <i class='fa fa-ban text-danger' title='This client is restricted'></i>";
-                                        }
-                                        if (checkPartyWiseFrequency($conn, $row['consignee']) == 0) {
-                                            echo " <i class='fa fa-clock-o text-primary' title='This client is in frequency'></i> ";
-                                        }
-                                        if (checkClientCharges($conn, $row['consignee']) > 0) {
-                                            echo " <i class='fa fa-inr text-success' title='This client applies client charges'></i>";
-                                        } ?></td>
-                                            <td><?php echo get_city_name($conn, $row['destination']); ?></td>
-                                            <?php if ($booking == '1') { ?>
-                                                <td style="color:red;">Consignment Cancelled</td>
-                                            <?php
-                                        } else {
-                                            ?>
-                                                <td><?php echo get_trans_status($row['status']); ?></td>
-
-                                            <?php } ?>
+                                            <td><span class="txn-gcn-no"><?php echo htmlspecialchars($row['grn_no']); ?></span></td>
+                                            <td><span class="txn-pnr"><?php echo htmlspecialchars($row['tracking_code'] ?? ''); ?></span></td>
+                                            <td><?php echo htmlspecialchars($row['grn_date']); ?></td>
+                                            <td class="text-center"><?php echo (int) $pkg_r['pkge']; ?></td>
+                                            <td class="col-consignor"><?php echo transaction_list_client_cell($conn, $row['consigner']); ?></td>
+                                            <td class="col-consignee"><?php echo transaction_list_client_cell($conn, $row['consignee']); ?></td>
+                                            <td><?php
+                                                $dest = get_city_name($conn, $row['destination']);
+                                                echo $dest !== '' ? '<span class="txn-dest">' . htmlspecialchars($dest) . '</span>' : '<span class="txn-dest-empty">—</span>';
+                                            ?></td>
+                                            <td><?php echo transaction_list_status_badge($booking, $status); ?></td>
 
                                             <!--- POD Verification -->
-                                            <td>
+                                            <td class="txn-pod-cell">
                                                 <?php
                                                 $imagesd1 = array();
                                                 $filtered_array = array();
@@ -502,12 +724,8 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                             </td>
                                             <!--- End POD Verification -->
 
-                                            <td class="actions center-content ">
-
-
-                                                <div class="action-buttons" style="width: 100%;">
-
-
+                                            <td class="actions center-content col-actions">
+                                                <div class="action-buttons txn-action-group">
                                                     <?php if ($booking == '1') { ?>
                                                         <a title="Info" href="#cancel_grn_popup" class="table-actions show_info_popup"  data-toggle="modal" data-remarks="<?php echo $remarks; ?>" data-createdby="<?php echo $cancelled_by; ?>" data-createdat="<?php echo $updated_at; ?>" id="<?php echo $row['transaction_id']; ?>" ><i class="fa fa-exclamation-circle"></i></a>
                                                         <a title="Edit" href="#" class="table-actions btn-edit edit_disabled disable_action" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a>
@@ -628,7 +846,6 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                 </tbody>
                             </table>
 </div>
-
                         </div>
                     </div>
                 </div>
@@ -642,22 +859,94 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
     </div>
 
     <script type="text/javascript">
+        window.txnListTable = null;
+
+        function destroyTxnListDataTable() {
+            var $table = $('#txn_list_table');
+            if (!$table.length || !$.fn.dataTable) {
+                window.txnListTable = null;
+                return;
+            }
+            if ($.fn.dataTable.fnIsDataTable && $.fn.dataTable.fnIsDataTable($table[0])) {
+                try {
+                    $table.dataTable().fnDestroy();
+                } catch (e) {}
+            }
+            window.txnListTable = null;
+        }
+
+        function initTxnListDataTable() {
+            if (!$.fn.dataTable) {
+                return;
+            }
+            var $table = $('#txn_list_table');
+            if (!$table.length) {
+                return;
+            }
+            destroyTxnListDataTable();
+            if ($.fn.dataTableExt) {
+                $.fn.dataTableExt.sErrMode = 'throw';
+            }
+            window.txnListTable = $table.dataTable({
+                sDom: '<"txn-dt-top"lf>rt<"txn-dt-bottom"ip>',
+                iDisplayLength: 25,
+                aLengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'All']],
+                aaSorting: [[3, 'desc']],
+                bAutoWidth: false,
+                bDestroy: true,
+                aoColumnDefs: [
+                    { bSortable: false, aTargets: [9, 10] },
+                    { sClass: 'text-center', aTargets: [0, 4, 9] },
+                    { sClass: 'col-consignor', aTargets: [5] },
+                    { sClass: 'col-consignee', aTargets: [6] },
+                    { sClass: 'col-actions', aTargets: [10] }
+                ],
+                oLanguage: {
+                    sEmptyTable: 'No bookings found for this month.',
+                    sZeroRecords: 'No matching consignments found.'
+                }
+            });
+        }
+
         function fetchMonthTransactions() {
             var data = $('#transaction_form').serialize();
             if ($('#transaction_form').valid() == true) {
+                destroyTxnListDataTable();
                 $.ajax({
                     url: 'fetch_details.php',
                     type: "GET",
                     data: data,
                     success: function(result) {
-                        console.log(result);
                         $('#get_month_details').html(result);
+                        initTxnListDataTable();
+                    },
+                    error: function() {
+                        $('#get_month_details').html('');
+                        initTxnListDataTable();
+                        ewToast('Could not load bookings for this month.', 'error');
                     }
                 });
             }
         }
 
         $(document).ready(function() {
+            $(".loading-page").hide();
+            try {
+                initTxnListDataTable();
+            } catch (e) {
+                console.error('DataTable init failed:', e);
+            }
+
+            var monthFetchTimer = null;
+            var monthPickerReady = false;
+            setTimeout(function() { monthPickerReady = true; }, 500);
+            $('#month').on('changeDate', function() {
+                if (!monthPickerReady) {
+                    return;
+                }
+                clearTimeout(monthFetchTimer);
+                monthFetchTimer = setTimeout(fetchMonthTransactions, 150);
+            });
 
             $(document).on('click', '.send_invoice', function(e) {
 
@@ -1051,7 +1340,10 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
         });
         $(window).load(function() {
             $(".loading-page").hide();
-        });     
+        });
+        setTimeout(function() {
+            $(".loading-page").hide();
+        }, 3000);
         
         // On click print icon show gr copy download options
         $(document).on('click','#print_grn',function(){
@@ -1096,7 +1388,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                 formData.append('csv_import', file); // Append file to form data
 
                 // Show the loader
-                $(".loading-page").addClass('show');
+                $(".loading-page").show();
 
                 $.ajax({
                     url: "import.php",
@@ -1106,7 +1398,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                     processData: false,
                     success: function(response) {
                         // Hide the loader
-                        $(".loading-page").removeClass('show');
+                        $(".loading-page").hide();
 
                         if (response.includes("Data inserted successfully")) {
                             ewToast("Data inserted successfully!", 'success');
@@ -1124,7 +1416,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                     },
                     error: function(xhr, status, error) {
                         // Hide the loader
-                        $(".loading-page").removeClass('show');
+                        $(".loading-page").hide();
                         console.error(xhr.responseText);
                         ewToast("Error: " + xhr.responseText, 'error');
                     }
@@ -1150,96 +1442,6 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
     });
 });
         });
-
-        /* ===================================================
-           Custom calendar-style Month Picker
-           =================================================== */
-        (function() {
-            var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            var $input = $("#month");
-            var $panel = $("#month_picker_panel");
-            var $grid = $("#mp_months_grid");
-            var $yearLabel = $("#mp_year_label");
-
-            var current = $input.val().split('-'); // [mm, yyyy]
-            var selectedMonth = current[0] ? parseInt(current[0], 10) : (new Date().getMonth() + 1);
-            var selectedYear = current[1] ? parseInt(current[1], 10) : new Date().getFullYear();
-            var viewYear = selectedYear;
-
-            var todayMonth = new Date().getMonth() + 1;
-            var todayYear = new Date().getFullYear();
-
-            function pad(n) {
-                return n < 10 ? "0" + n : "" + n;
-            }
-
-            function renderGrid() {
-                $yearLabel.text(viewYear);
-                $grid.empty();
-                for (var m = 1; m <= 12; m++) {
-                    var classes = "mp-month-cell";
-                    if (m === selectedMonth && viewYear === selectedYear) classes += " mp-selected";
-                    if (m === todayMonth && viewYear === todayYear) classes += " mp-today";
-                    $grid.append(
-                        $("<div>").addClass(classes).attr("data-month", m).text(monthNames[m - 1])
-                    );
-                }
-            }
-
-            function openPanel() {
-                viewYear = selectedYear;
-                renderGrid();
-                $panel.stop(true, true).slideDown(150);
-            }
-
-            function closePanel() {
-                $panel.stop(true, true).slideUp(120);
-            }
-
-            $("#month_picker_trigger, #month").on("click", function(e) {
-                e.stopPropagation();
-                if ($panel.is(":visible")) {
-                    closePanel();
-                } else {
-                    openPanel();
-                }
-            });
-
-            $("#mp_prev_year").on("click", function(e) {
-                e.stopPropagation();
-                viewYear--;
-                renderGrid();
-            });
-
-            $("#mp_next_year").on("click", function(e) {
-                e.stopPropagation();
-                viewYear++;
-                renderGrid();
-            });
-
-            $grid.on("click", ".mp-month-cell", function(e) {
-                e.stopPropagation();
-                selectedMonth = parseInt($(this).attr("data-month"), 10);
-                selectedYear = viewYear;
-                $input.val(pad(selectedMonth) + "-" + selectedYear);
-                closePanel();
-                fetchMonthTransactions();
-            });
-
-            $("#mp_clear").on("click", function(e) {
-                e.stopPropagation();
-                $input.val("");
-                closePanel();
-            });
-
-            $panel.on("click", function(e) {
-                e.stopPropagation();
-            });
-
-            $(document).on("click", function() {
-                closePanel();
-            });
-        })();
 
         /* ===================================================
            Import Consignment modal: drag & drop upload zone

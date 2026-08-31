@@ -345,6 +345,11 @@ select.select2-offscreen {
   min-width: 280px !important;
   width: auto !important;
 }
+.datepicker-dropdown.ew-month-picker {
+  min-width: 236px !important;
+  width: 236px !important;
+  max-width: 236px !important;
+}
 .datepicker-dropdown table tr td span,
 .datepicker-dropdown table tr td.day {
   border-radius: 6px !important;
@@ -649,7 +654,11 @@ div.dt-buttons .dt-button:hover {
   background: rgba(255,255,255,.88) !important;
   backdrop-filter: blur(4px);
   z-index: 99999;
-  display: flex; align-items: center; justify-content: center;
+  display: none;
+  align-items: center; justify-content: center;
+}
+.loading-page.ew-loading-active {
+  display: flex !important;
 }
 .loading-page img {
   width: 44px; height: 44px;

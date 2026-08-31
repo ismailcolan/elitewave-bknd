@@ -16,10 +16,6 @@ $c_mY = date('m-Y');
 
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
     <style>
-        .ui-monthpicker-trigger {
-            display: none;
-        }
-
         .select2-container .select2-choice .select2-arrow b {
             border-top: 4px solid #ffffff;
         }
@@ -49,20 +45,6 @@ $c_mY = date('m-Y');
             top: 10px;
             right: 3px;
         }
-.fa_calend{
-            height: 25px;
-    position: absolute;
-    right: 0;
-    width: 8%;
-    top: 0;
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    padding-top: 2px;
-   }
-   .cals_csss{
-    width: 100%;
-   }
         @media only screen and (min-width: 360px) and (max-width: 640px) {
 
             #radio_class {
@@ -148,11 +130,11 @@ $c_mY = date('m-Y');
                                     <div class="col-md-3">
                                         <div class="form-group" id="radio_class">
 
-                                            <div id="picker1" class="input-group date daily cals_csss date-picker" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-                                                <input class="form-control" type="text" id="date" name="date" required onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" ><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
+                                            <div id="picker1">
+                                                <?php echo ew_date_input(array('id' => 'date', 'name' => 'date', 'required' => true, 'value' => $c_date, 'readonly' => true)); ?>
                                             </div>
-                                            <div id="picker2" class="input-group cals_csss">
-                                                <input class="form-control" type="text" id="month" name="month" value="<?php echo date('m-Y'); ?>" required onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
+                                            <div id="picker2" style="display:none;">
+                                                <?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'value' => $c_mY)); ?>
                                             </div>
 
                                         </div>
@@ -228,15 +210,10 @@ $c_mY = date('m-Y');
     </div>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-    <script src='javascripts/jquery.ui.monthpicker.js'></script>
-
     <script type="text/javascript">
         $(document).ready(function() {
             $('.client_wise_report').select2();
             $('#report_table').dataTable({ bPaginate: true, iDisplayLength: 10 });
-            $("#date").val('<?php echo $c_date; ?>');
-            $("#month").val('<?php echo $c_mY; ?>');
-            $("#picker2").hide();
             $(document).on('change', '.report_type', function() {
                 if ($(this).val() == 'MONTHLY') {
                     $("#picker1").hide();
@@ -271,27 +248,6 @@ $c_mY = date('m-Y');
                     });
                 }
 
-            });
-            $('#month').on("click", function() {
-                // $(this).datepicker({
-                // 	changeMonth: true,
-                // 	changeYear: true,
-                // 	format: 'mm-yyyy',
-                // }).datepicker('show');
-                jQuery(this).monthpicker({
-                    showOn: "both",
-                    dateFormat: 'mm-yy'
-                    // buttonImage: "calendar.png",
-                    // buttonImageOnly: true
-                }).monthpicker('show');
-            });
-
-            $('.daily').on("click", function() {
-                $(this).datepicker({
-                    changeMonth: true,
-                    changeYear: true,
-                    format: 'dd-mm-yyyy',
-                }).datepicker('show');
             });
 
 

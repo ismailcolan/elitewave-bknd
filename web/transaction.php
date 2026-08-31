@@ -51,6 +51,19 @@
 							if($row['transaction_id'] > 0) 
 							$form_name="edit_consignment_details";
 							else $form_name="add_new_consignment";
+							$grn_date_val = !empty($row['grn_date']) ? $row['grn_date'] : date('d-m-Y');
+							$booking_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
+							$grn_date_opts = array(
+								'id' => 'grn_date',
+								'name' => 'grn_date',
+								'value' => $grn_date_val,
+								'required' => true,
+								'end_date' => 'today',
+								'class' => 'table-height final',
+							);
+							if ($booking_role !== 'AD') {
+								$grn_date_opts['start_date'] = date('d-m-Y');
+							}
 						?>
 						<form id="grn_details"  class="form-horizontal"  enctype="multipart/form-data">
 								<input type="hidden" name="form_name"  value="<?php echo $form_name; ?>">
@@ -81,10 +94,7 @@
 									</div>
 									<div class="form-group">
 										<label class="control-label col-sm-4">GRN.Date <span style="color:red;">*</span> :</label>
-										<div class="input-group date date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-											<input class="form-control table-height final" type="text" name="grn_date" value="<?php if($row['grn_date']!='')
-											echo $row['grn_date']; else echo date('d-m-Y'); ?>"  id="grn_date" required> <span class="input-group-addon table-height"><i class="fa fa-calendar"></i></span>
-										</div>
+										<?php echo ew_date_input($grn_date_opts); ?>
 									</div>
 									<div class="form-group">
 										<label class="control-label col-sm-4">Mode of Transportation <span style="color:red;">*</span> :</label>
@@ -642,19 +652,12 @@
 				var role='<?php echo $_SESSION['role']; ?>';
 		var id='<?php echo $_SESSION['user_id']; ?>';
 		console.log(role);
-		var date = '<?php date('d-m-Y'); ?>';
 		if(role == 'CL'){
 			$('#consignor_name').attr("disabled","disabled");
 		}
 		
 		if(role=="CL")
 		{
-			$('#grn_date').datepicker({
-			startDate:date,
-			format:"dd-mm-yyyy",
-			endDate:date
-		});
-				
 				$.ajax({
 				    async:false,
 					url:'fetch_details.php',
@@ -702,23 +705,6 @@ $('#address').html(address);
 				
 		
 			
-		}
-		else{
-		    if(role =='AD')
-		    {
-		        $('#grn_date').datepicker({
-		            format:"dd-mm-yyyy"
-				});
-		        
-		    }
-		    else{
-		        $('#grn_date').datepicker({
-		        	startDate:date,
-		        	format:"dd-mm-yyyy"	
-	        	});
-		    }
-			
-		
 		}
 				$(document).on('change','#destination',function(e){
 					reset_consignee();
@@ -951,19 +937,6 @@ $('#con_address').html(conAddress);
 		else{
 			$('div#signatureparent').addClass('height_check');
 		} 
-				 $('.datepicker').on("click", function() {
-					$(this).datepicker({
-							startDate: new Date(),
-							changeMonth: true,
-							changeYear: true,
-							gotoCurrent: true,
-							dateFormat: 'yy-mm-dd',
-							maxDate: new Date(),
-							yearRange: '1980:c',
-							defaultDate: '-10y'
-						}).datepicker('show');
-					});
-					
 					$('.num_only,#grn_no,#goods_dedared_value').keypress(function (event) {
 					return isNumber(event, this)
 				});

@@ -168,21 +168,6 @@ require_once("include/function.php");
             justify-content: end;
             width: 100%;
         }
-        .fa_calend{
-            height: 25px;
-    position: absolute;
-    right: 0;
-    width: 8%;
-    top: 0;
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    padding-top: 2px;
-        }
-   .cals_csss{
-    width: 100%;
-   }
-
  @media (min-width: 320px) and (max-width: 575px) {
 .pak_info_tblee{
     width: 100%;
@@ -241,6 +226,17 @@ require_once("include/function.php");
                             if ($row['transaction_id'] > 0)
                                 $form_name = "edit_ftl_consignment_details";
                             else $form_name = "add_new_ftl_consignment";
+                            $grn_date_val = !empty($row['grn_date']) ? $row['grn_date'] : date('d-m-Y');
+                            $date_keypress_attr = 'onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"';
+                            $grn_date_opts = array(
+                                'id' => 'grn_date',
+                                'name' => 'grn_date',
+                                'value' => $grn_date_val,
+                                'required' => true,
+                                'readonly' => true,
+                                'class' => 'table-height final',
+                            );
+                            $eway_val = !empty($row['eway_expirydate']) ? $row['eway_expirydate'] : date('d-m-Y');
                             ?>
                             <form id="ftl_details" class="form-horizontal" enctype="multipart/form-data">
                                 <input type="hidden" name="truck_type" id="truck_type" value="<?php echo $ftl_type;?>"/>
@@ -272,11 +268,7 @@ require_once("include/function.php");
                                             <div class="form-group">
                                                 <label class="control-label col-lg-4 col-sm-12">GRN.Date <span style="color:red;">*</span> :</label>
                                                <div class="col-lg-8 col-sm-12">
-                                                <div class="input-group date date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-                                                    <input class="form-control table-height final" type="text" name="grn_date" value="<?php if ($row['grn_date'] != '')
-                                                                                                                                            echo $row['grn_date'];
-                                                                                                                                  else echo date('d-m-Y'); ?>" id="grn_date" required readonly> <span class="input-group-addon table-height"><i class="fa fa-calendar"></i></span>
-                                                </div>
+                                                <?php echo ew_date_input($grn_date_opts); ?>
                                                  </div>     
                                             </div>
                                             <div class="form-group">
@@ -655,11 +647,12 @@ require_once("include/function.php");
                                             <div class="form-group">
                                                 <label class="control-label col-sm-12 col-lg-4 v_label">E-Way Expiry Date:</label>
                                                 <div class="col-sm-12 col-lg-8">
-                                                    <div class="input-group date date-picker table-height" data-date-autoclose="true" data-date-format="dd-mm-yyyy">
-                                                        <input type="text" id="eway_expiryDate" name="eway_expiryDate" class="form-control" value="<?php if ($row['eway_expirydate'] != '')
-                                                                                                                                                        echo $row['eway_expirydate'];
-                                                                                                                                                    else echo date('d-m-Y'); ?>" autocomplete="off"  onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" />
-                                                        <span class="input-group-addon table-height"><i class="fa fa-calendar"></i></span>
+                                                    <?php echo ew_date_input(array(
+                                                        'id' => 'eway_expiryDate',
+                                                        'name' => 'eway_expiryDate',
+                                                        'value' => $eway_val,
+                                                        'attrs' => $date_keypress_attr,
+                                                    )); ?>
                                                 </div>
                                             </div>
                                             <div class="form-group">
@@ -1492,23 +1485,11 @@ require_once("include/function.php");
             var role = '<?php echo $_SESSION['role']; ?>';
             var id = '<?php echo $_SESSION['user_id']; ?>';
             console.log(role);
-            var date = '<?php date('d-m-Y'); ?>';
-            $('#eway_expiryDate').datepicker({
-                // startDate: date,
-                format: "dd-mm-yyyy",
-                autoclose: true
-            });
             if (role == 'CL') {
                 $('#consignor_name').attr("disabled", "disabled");
             }
 
             if (role == "CL") {
-                // $('#grn_date').datepicker({
-                //     startDate: date,
-                //     format: "dd-mm-yyyy",
-                //     endDate: date
-                // });
-
                 $.ajax({
                     async: false,
                     url: 'fetch_details.php',
@@ -1548,23 +1529,6 @@ require_once("include/function.php");
                         console.log(jqxhr.responseText);
                     }
                 });
-
-
-
-            } else {
-                if (role == 'AD') {
-                    // $('#grn_date').datepicker({
-                    //     format: "dd-mm-yyyy"
-                    // });
-
-                } else {
-                    // $('#grn_date').datepicker({
-                    //     startDate: date,
-                    //     format: "dd-mm-yyyy"
-                    // });
-                }
-
-
             }
             $(document).on('change', '#destination', function(e) {
                 reset_consignee();
@@ -1843,19 +1807,6 @@ require_once("include/function.php");
             } else {
                 $('div#signatureparent').addClass('height_check');
             }
-            $('.datepicker').on("click", function() {
-                $(this).datepicker({
-                    startDate: new Date(),
-                    changeMonth: true,
-                    changeYear: true,
-                    gotoCurrent: true,
-                    dateFormat: 'yy-mm-dd',
-                    maxDate: new Date(),
-                    yearRange: '1980:c',
-                    defaultDate: '-10y'
-                }).datepicker('show');
-            });
-
             $('.num_only,#grn_no,#goods_dedared_value').keypress(function(event) {
                 return isNumber(event, this)
             });

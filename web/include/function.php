@@ -1,5 +1,6 @@
 <?php
 require_once("tracking_templates.php");
+require_once(__DIR__ . '/encryption.php');
 
 function get_trans_status($val)
 {
@@ -19,6 +20,110 @@ function get_trans_status($val)
 		return 'Out for Delivery';
 	if ($val == 8)
 		return 'Consignment Delivered Successfully';
+}
+
+function transaction_list_status_badge($booking, $status)
+{
+	if ((string) $booking === '1') {
+		return '<span class="txn-status-badge txn-status-cancelled" title="Consignment Cancelled">Cancelled</span>';
+	}
+	$status = (int) $status;
+	$full_label = get_trans_status($status);
+	if ($full_label === null || $full_label === '') {
+		$full_label = 'Unknown';
+	}
+	$short_map = array(
+		1 => 'Booked',
+		2 => 'Picked Up',
+		3 => 'In Transit',
+		4 => 'In Transit',
+		5 => 'In Transit',
+		6 => 'At Destination',
+		7 => 'Out for Delivery',
+		8 => 'Delivered',
+	);
+	$short_label = isset($short_map[$status]) ? $short_map[$status] : $full_label;
+	$class = 'txn-status-default';
+	if ($status === 1) {
+		$class = 'txn-status-booked';
+	} elseif ($status === 8) {
+		$class = 'txn-status-delivered';
+	} elseif ($status >= 2 && $status <= 7) {
+		$class = 'txn-status-transit';
+	}
+	return '<span class="txn-status-badge ' . $class . '" title="' . htmlspecialchars($full_label) . '">' . htmlspecialchars($short_label) . '</span>';
+}
+
+/**
+ * Status badge for Transaction Status page — shows step-specific labels (Transit-1, Transit-2, etc.).
+ */
+function transaction_status_badge($booking, $status, $opts = array())
+{
+	if ((string) $booking === '1') {
+		return '<span class="txn-status-badge txn-status-cancelled" title="Consignment Cancelled">Cancelled</span>';
+	}
+
+	$status = (int) $status;
+	$delivery_type = isset($opts['delivery_type']) ? (string) $opts['delivery_type'] : '';
+	$delivered_packages = isset($opts['delivered_packages']) ? (int) $opts['delivered_packages'] : 0;
+	$total_packages = isset($opts['total_packages']) ? (int) $opts['total_packages'] : 0;
+
+	if ($delivery_type === 'partial') {
+		$label = 'Partial ' . $delivered_packages . '/' . $total_packages;
+		$title = 'Partially Delivered (' . $delivered_packages . ' of ' . $total_packages . ' packages)';
+		return '<span class="txn-status-badge txn-status-partial" title="' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($label) . '</span>';
+	}
+
+	if ($delivery_type === 'full') {
+		return '<span class="txn-status-badge txn-status-delivered" title="Delivered Successfully">Delivered</span>';
+	}
+
+	$full_label = get_trans_status($status);
+	if ($full_label === null || $full_label === '') {
+		$full_label = 'Unknown';
+	}
+
+	$short_map = array(
+		1 => 'Booked',
+		2 => 'Picked Up',
+		3 => 'Transit-1',
+		4 => 'Transit-2',
+		5 => 'Transit-3',
+		6 => 'At Destination',
+		7 => 'Out for Delivery',
+		8 => 'Delivered',
+	);
+	$class_map = array(
+		1 => 'txn-status-booked',
+		2 => 'txn-status-picked',
+		3 => 'txn-status-transit-1',
+		4 => 'txn-status-transit-2',
+		5 => 'txn-status-transit-3',
+		6 => 'txn-status-destination',
+		7 => 'txn-status-out',
+		8 => 'txn-status-delivered',
+	);
+
+	$short_label = isset($short_map[$status]) ? $short_map[$status] : $full_label;
+	$class = isset($class_map[$status]) ? $class_map[$status] : 'txn-status-default';
+
+	return '<span class="txn-status-badge ' . $class . '" title="' . htmlspecialchars($full_label, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($short_label) . '</span>';
+}
+
+function transaction_list_client_cell($conn, $client_id)
+{
+	$name = get_client_name($conn, $client_id);
+	$html = '<span class="txn-party-name">' . htmlspecialchars($name) . '</span>';
+	if (check_invoice_restricted($conn, $client_id) == 1) {
+		$html .= " <i class='fa fa-ban txn-party-icon txn-icon-restricted' title='Restricted client'></i>";
+	}
+	if (checkPartyWiseFrequency($conn, $client_id) == 0) {
+		$html .= " <i class='fa fa-clock-o txn-party-icon txn-icon-frequency' title='Invoice frequency client'></i>";
+	}
+	if (checkClientCharges($conn, $client_id) > 0) {
+		$html .= " <i class='fa fa-inr txn-party-icon txn-icon-charges' title='Client charges apply'></i>";
+	}
+	return $html;
 }
 
 function get_cons_status_sms($val)
@@ -161,7 +266,7 @@ function get_client_name($conn, $id)
 	$query = "select * from client where client_id='$id'";
 	$result = mysqli_query($conn, $query);
 	$row = mysqli_fetch_array($result);
-	return $row['client_company_name'];
+	return ew_client_decrypt_name($row['client_company_name'] ?? '');
 }
 
 function get_client_contact_name($conn, $id)
@@ -744,6 +849,21 @@ function ew_date_input($opts = array())
 		. $dataAttrs . $extra . '>'
 		. '<i class="fa fa-calendar date-field-icon" aria-hidden="true"></i>'
 		. '</div>';
+}
+
+/**
+ * Month/year picker (mm-yyyy) using the shared ew-datepicker component.
+ */
+function ew_month_input($opts = array())
+{
+	$opts['format'] = 'mm-yyyy';
+	if (!isset($opts['readonly'])) {
+		$opts['readonly'] = true;
+	}
+	if (!isset($opts['value']) || $opts['value'] === '') {
+		$opts['value'] = date('m-Y');
+	}
+	return ew_date_input($opts);
 }
 
 ?>

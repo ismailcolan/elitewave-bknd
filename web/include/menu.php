@@ -401,6 +401,7 @@ $count_read = mysqli_num_rows($read_status);
         <a class="nav-link" href="mode_of_transportation.php"><span class="nav-waypoint"></span>Mode of Transport</a>
         <a class="nav-link" href="gst_tax_master.php"><span class="nav-waypoint"></span>GST Tax Master</a>
         <a class="nav-link" href="client.php"><span class="nav-waypoint"></span>Client</a>
+        <a class="nav-link" href="vendor.php"><span class="nav-waypoint"></span>Vendor</a>
         <a class="nav-link" href="client_branch.php"><span class="nav-waypoint"></span>Client Branch</a>
         <a class="nav-link" href="rate_calculator_form.php"><span class="nav-waypoint"></span>Rate Calculator</a>
         <a class="nav-link" href="expected_delivery_form.php"><span class="nav-waypoint"></span>Expected Delivery</a>

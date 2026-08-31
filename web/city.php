@@ -205,7 +205,7 @@ div#dataTable1_length {
                                             <td class="text-center"><?php echo $i; ?></td>
                                             <td><?php echo $row['city_code']; ?></td>
                                             <td><?php echo $row['city_name']; ?></td>
-                                            <td><?php echo $state['state_name']; ?></td>
+                                            <td><?php echo $state; ?></td>
                                             <td><?php echo $row['railway_station']; ?></td>
 <td><?php echo $row['airport']; ?></td>
 <td><?php echo $row['unloading_point']; ?></td>

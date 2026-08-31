@@ -135,13 +135,23 @@ foreach ($rows as $r) {
                                     <div class="col-md-3">
                                         <div class="form-group">
                                             <label class="control-label">From Date :</label>
-                                            <input type="text" name="from_date" id="from_date" class="form-control" value="<?php echo htmlspecialchars($from_date); ?>" autocomplete="off" />
+                                            <?php echo ew_date_input(array(
+                                                'id' => 'from_date',
+                                                'name' => 'from_date',
+                                                'value' => $from_date,
+                                                'readonly' => true,
+                                            )); ?>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-group">
                                             <label class="control-label">To Date :</label>
-                                            <input type="text" name="to_date" id="to_date" class="form-control" value="<?php echo htmlspecialchars($to_date); ?>" autocomplete="off" />
+                                            <?php echo ew_date_input(array(
+                                                'id' => 'to_date',
+                                                'name' => 'to_date',
+                                                'value' => $to_date,
+                                                'readonly' => true,
+                                            )); ?>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
@@ -286,10 +296,6 @@ foreach ($rows as $r) {
         <script src="./javascripts/buttons.html5.min.js"></script>
         <script type="text/javascript">
             $(document).ready(function() {
-                $('#from_date, #to_date').datepicker({
-                    format: 'dd-mm-yyyy',
-                    autoclose: true
-                });
                 ['#gcn_summary_table', '#expense_detail_table'].forEach(function(sel) {
                     var cols = $(sel + ' tbody tr:first td').length;
                     var headerCols = $(sel + ' thead th').length;

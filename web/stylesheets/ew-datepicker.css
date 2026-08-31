@@ -26,7 +26,114 @@
 	color: #0B1437;
 }
 
-/* Hide legacy separate addon once upgraded */
 .date-input-inside.ew-date-upgraded > .input-group-addon {
 	display: none !important;
+}
+
+.datepicker.dropdown-menu {
+	z-index: 10050 !important;
+}
+
+/* Month picker dropdown */
+.datepicker.datepicker-dropdown.ew-month-picker {
+	width: 240px !important;
+	min-width: 240px !important;
+	max-width: 240px !important;
+	padding: 8px 10px 10px !important;
+	border-radius: 8px !important;
+	box-sizing: border-box !important;
+}
+
+.datepicker.ew-month-picker:before,
+.datepicker.ew-month-picker:after {
+	left: 24px !important;
+	margin-left: 0 !important;
+}
+
+.datepicker.ew-month-picker .datepicker-days,
+.datepicker.ew-month-picker .datepicker-years {
+	display: none !important;
+}
+
+.datepicker.ew-month-picker .datepicker-months {
+	display: block !important;
+}
+
+.datepicker.ew-month-picker .datepicker-months table {
+	width: 100% !important;
+	margin: 0;
+}
+
+.datepicker.ew-month-picker .datepicker-months thead tr:first-child {
+	background: #EEF2F7;
+	border-radius: 6px;
+}
+
+.datepicker.ew-month-picker .datepicker-months thead tr:first-child th {
+	border: none;
+	background: transparent !important;
+	padding: 6px 4px;
+	color: #0A1E3D;
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.datepicker.ew-month-picker .datepicker-months thead tr:first-child th.prev,
+.datepicker.ew-month-picker .datepicker-months thead tr:first-child th.next {
+	width: 28px;
+}
+
+.datepicker.ew-month-picker .datepicker-months thead tr:first-child th.datepicker-switch {
+	width: auto !important;
+}
+
+.datepicker.ew-month-picker .datepicker-months tbody tr td {
+	padding: 6px 0 0;
+	border: none;
+}
+
+.datepicker.ew-month-picker .ew-month-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 4px;
+	width: 100%;
+}
+
+.datepicker.ew-month-picker .ew-month-grid span.month {
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+	float: none !important;
+	width: auto !important;
+	height: 34px;
+	margin: 0 !important;
+	padding: 0;
+	font-size: 12px;
+	font-weight: 600;
+	border-radius: 6px;
+	cursor: pointer;
+	box-sizing: border-box;
+}
+
+.datepicker table tr td span.active,
+.datepicker table tr td span.active:hover {
+	background: #0A1E3D !important;
+	background-image: none !important;
+	color: #fff !important;
+}
+
+.datepicker table tr td.day.active,
+.datepicker table tr td.day.active:hover {
+	background: #0A1E3D !important;
+	background-image: none !important;
+	color: #fff !important;
+}
+
+.datepicker table tr td.day:hover,
+.datepicker table tr td span:hover {
+	background: #EEF2F7;
+}
+
+.datepicker.ew-month-picker .datepicker-months thead tr:first-child th:hover {
+	background: transparent !important;
 }

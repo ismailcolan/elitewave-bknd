@@ -33,7 +33,7 @@
 	
 	<!-- Modern UI Layer (loaded last to override legacy styles) -->
 	<link href="stylesheets/modern-ui.css" media="all" rel="stylesheet" type="text/css" />
-	<link href="stylesheets/ew-datepicker.css" media="all" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/ew-datepicker.css?v=20260828" media="all" rel="stylesheet" type="text/css" />
 	<link href="stylesheets/ew-form-validation.css" media="all" rel="stylesheet" type="text/css" />
 	
 	
@@ -47,7 +47,6 @@
 
 	<script src="javascripts/jquery-1.10.2.min.js" type="text/javascript"></script>
 	<script src="javascripts/jquery-ui.js" type="text/javascript"></script>
-	<script src="javascripts/jquery.ui.monthpicker.js" type="text/javascript"></script>
 	
 	<script src="javascripts/bootstrap.min.js" type="text/javascript"></script>
 	<script src="javascripts/raphael.min.js" type="text/javascript"></script>
@@ -103,7 +102,7 @@
 	<script src="javascripts/bootstrap-multiselect.js" type="text/javascript"></script>
 	<script src="javascripts/jquery.timepicker.js" type="text/javascript"></script>
 	<script src="javascripts/duplicate_check.js" type="text/javascript"></script>
-	<script src="javascripts/ew-datepicker.js" type="text/javascript"></script>
+	<script src="javascripts/ew-datepicker.js?v=20260828b" type="text/javascript"></script>
 	<script src="javascripts/ew-form-validation.js" type="text/javascript"></script>
 	
 	<!-- Modern UI Toast Notification System -->
@@ -111,7 +110,7 @@
 	#ewToastWrap{
 		position:fixed !important;
 		bottom:88px !important;
-		left:50% !important;
+		left:60% !important;
 		right:auto !important;
 		transform:translateX(-50%) !important;
 		z-index:1000001 !important;
