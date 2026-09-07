@@ -200,6 +200,212 @@ function booking_is_gcn_billed($conn, $trans_table, $transaction_id)
     return billing_gcn_on_final_invoice($conn, $trans_table, $transaction_id);
 }
 
+function billing_gcn_final_conflict($conn, $trans_table, $transaction_id, $exclude_invoice_id = 0)
+{
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
+    $transaction_id = (int) $transaction_id;
+    $exclude_invoice_id = (int) $exclude_invoice_id;
+    if ($trans_table === '' || $transaction_id <= 0) {
+        return null;
+    }
+    $sql = "SELECT m.invoice_no, m.billing_invoice_id, m.status
+        FROM billing_invoice_details d
+        INNER JOIN billing_invoice_master m ON m.billing_invoice_id = d.billing_invoice_id
+        WHERE d.trans_table='" . mysqli_real_escape_string($conn, $trans_table) . "'
+        AND d.transaction_id='$transaction_id'
+        AND m.status='final'";
+    if ($exclude_invoice_id > 0) {
+        $sql .= " AND m.billing_invoice_id!='$exclude_invoice_id'";
+    }
+    $sql .= ' ORDER BY m.billing_invoice_id DESC LIMIT 1';
+    $q = mysqli_query($conn, $sql);
+    if ($q && ($row = mysqli_fetch_assoc($q))) {
+        return $row;
+    }
+    return null;
+}
+
+function billing_gcn_draft_conflict($conn, $trans_table, $transaction_id, $exclude_invoice_id = 0)
+{
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
+    $transaction_id = (int) $transaction_id;
+    $exclude_invoice_id = (int) $exclude_invoice_id;
+    if ($trans_table === '' || $transaction_id <= 0) {
+        return null;
+    }
+    $sql = "SELECT m.invoice_no, m.billing_invoice_id, m.status
+        FROM billing_invoice_details d
+        INNER JOIN billing_invoice_master m ON m.billing_invoice_id = d.billing_invoice_id
+        WHERE d.trans_table='" . mysqli_real_escape_string($conn, $trans_table) . "'
+        AND d.transaction_id='$transaction_id'
+        AND m.status='draft'";
+    if ($exclude_invoice_id > 0) {
+        $sql .= " AND m.billing_invoice_id!='$exclude_invoice_id'";
+    }
+    $sql .= ' ORDER BY m.billing_invoice_id DESC LIMIT 1';
+    $q = mysqli_query($conn, $sql);
+    if ($q && ($row = mysqli_fetch_assoc($q))) {
+        return $row;
+    }
+    return null;
+}
+
+function billing_gcn_on_current_invoice($conn, $trans_table, $transaction_id, $billing_invoice_id)
+{
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
+    $transaction_id = (int) $transaction_id;
+    $billing_invoice_id = (int) $billing_invoice_id;
+    if ($trans_table === '' || $transaction_id <= 0 || $billing_invoice_id <= 0) {
+        return false;
+    }
+    $sql = "SELECT COUNT(*) AS c FROM billing_invoice_details
+        WHERE billing_invoice_id='$billing_invoice_id'
+        AND trans_table='" . mysqli_real_escape_string($conn, $trans_table) . "'
+        AND transaction_id='$transaction_id'";
+    $q = mysqli_query($conn, $sql);
+    if ($q && ($row = mysqli_fetch_assoc($q))) {
+        return (int) $row['c'] > 0;
+    }
+    return false;
+}
+
+function billing_get_stored_detail_row($conn, $billing_invoice_id, $trans_table, $transaction_id)
+{
+    $billing_invoice_id = (int) $billing_invoice_id;
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
+    $transaction_id = (int) $transaction_id;
+    if ($billing_invoice_id <= 0 || $trans_table === '' || $transaction_id <= 0) {
+        return null;
+    }
+    $sql = "SELECT * FROM billing_invoice_details
+        WHERE billing_invoice_id='$billing_invoice_id'
+        AND trans_table='" . mysqli_real_escape_string($conn, $trans_table) . "'
+        AND transaction_id='$transaction_id'
+        LIMIT 1";
+    $q = mysqli_query($conn, $sql);
+    if ($q && ($row = mysqli_fetch_assoc($q))) {
+        return $row;
+    }
+    return null;
+}
+
+function billing_invoice_display_label($row)
+{
+    if (!empty($row['invoice_no'])) {
+        return $row['invoice_no'];
+    }
+    if (!empty($row['billing_invoice_id'])) {
+        return 'Draft #' . (int) $row['billing_invoice_id'];
+    }
+    return 'another invoice';
+}
+
+function billing_validate_gcn_for_invoice($conn, $trans_table, $transaction_id, $customer_id, $billing_type, $edit_id)
+{
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
+    $transaction_id = (int) $transaction_id;
+    $customer_id = (int) $customer_id;
+    $edit_id = (int) $edit_id;
+
+    if ($trans_table === '' || $transaction_id <= 0) {
+        return array('ok' => false, 'message' => 'Invalid GCN reference.');
+    }
+
+    $q = mysqli_query($conn, "SELECT transaction_id, grn_no, status, booking_status, consigner, consignee
+        FROM `$trans_table` WHERE transaction_id='$transaction_id' LIMIT 1");
+    if (!$q || !($booking = mysqli_fetch_assoc($q))) {
+        return array('ok' => false, 'message' => 'GCN not found.');
+    }
+    if ((string) ($booking['status'] ?? '') !== '8') {
+        return array('ok' => false, 'message' => 'GCN ' . ($booking['grn_no'] ?? '') . ' is not delivered yet.');
+    }
+    if ((string) ($booking['booking_status'] ?? '') === '1') {
+        return array('ok' => false, 'message' => 'GCN ' . ($booking['grn_no'] ?? '') . ' is cancelled.');
+    }
+
+    $final_conflict = billing_gcn_final_conflict($conn, $trans_table, $transaction_id, $edit_id);
+    if ($final_conflict) {
+        return array(
+            'ok' => false,
+            'message' => 'GCN ' . ($booking['grn_no'] ?? '') . ' is already billed on ' . billing_invoice_display_label($final_conflict) . '.',
+            'has_conflict' => 1,
+            'grn_no' => $booking['grn_no'] ?? '',
+        );
+    }
+
+    $draft_conflict = billing_gcn_draft_conflict($conn, $trans_table, $transaction_id, $edit_id);
+    if ($draft_conflict) {
+        return array(
+            'ok' => false,
+            'message' => 'GCN ' . ($booking['grn_no'] ?? '') . ' is already on ' . billing_invoice_display_label($draft_conflict) . '. Remove it from that draft first.',
+            'grn_no' => $booking['grn_no'] ?? '',
+        );
+    }
+
+    $detail = billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing_type, $edit_id);
+    if (!$detail) {
+        return array('ok' => false, 'message' => 'GCN ' . ($booking['grn_no'] ?? '') . ' is not available for invoicing.');
+    }
+    if ($customer_id > 0 && $detail['consigner_id'] !== $customer_id && $detail['consignee_id'] !== $customer_id) {
+        return array('ok' => false, 'message' => 'GCN ' . $detail['grn_no'] . ' does not belong to the selected customer.');
+    }
+
+    return array('ok' => true, 'detail' => $detail);
+}
+
+function billing_line_from_detail_row($conn, $d, $exclude_invoice_id = 0)
+{
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $d['trans_table'] ?? '');
+    $transaction_id = (int) ($d['transaction_id'] ?? 0);
+    if ($trans_table === '' || $transaction_id <= 0) {
+        return null;
+    }
+
+    $detail = billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $d['billing_type'] ?? '', $exclude_invoice_id);
+    if ($detail) {
+        return $detail;
+    }
+
+    $conflict = billing_gcn_final_conflict($conn, $trans_table, $transaction_id, $exclude_invoice_id);
+    $bt = billing_normalize_billing_type($d['billing_type'] ?? '');
+    $opts = billing_type_options();
+    $sender = get_client_name($conn, $d['consigner_id'] ?? 0);
+    $receiver = get_client_name($conn, $d['consignee_id'] ?? 0);
+    $warning = $conflict
+        ? ('Already billed on ' . billing_invoice_display_label($conflict) . '. Remove this GCN from the draft.')
+        : 'GCN is not available for invoicing.';
+
+    return array(
+        'key' => $trans_table . '|' . $transaction_id,
+        'trans_table' => $trans_table,
+        'transaction_id' => $transaction_id,
+        'grn_no' => $d['grn_no'] ?? '',
+        'grn_date' => $d['grn_date'] ?? '',
+        'sender' => $sender,
+        'receiver' => $receiver,
+        'consigner_id' => (int) ($d['consigner_id'] ?? 0),
+        'consignee_id' => (int) ($d['consignee_id'] ?? 0),
+        'packages' => (int) ($d['packages'] ?? 0),
+        'weight' => billing_format_money($d['weight'] ?? 0),
+        'freight_amount' => billing_format_money($d['freight_amount'] ?? 0),
+        'other_charges' => billing_format_money($d['other_charges'] ?? 0),
+        'taxable_value' => billing_format_money($d['taxable_value'] ?? 0),
+        'cgst_amount' => billing_format_money($d['cgst_amount'] ?? 0),
+        'sgst_amount' => billing_format_money($d['sgst_amount'] ?? 0),
+        'igst_amount' => billing_format_money($d['igst_amount'] ?? 0),
+        'cess_amount' => billing_format_money($d['cess_amount'] ?? 0),
+        'gst_amount' => billing_format_money($d['gst_amount'] ?? 0),
+        'total_amount' => billing_format_money($d['total_amount'] ?? 0),
+        'billing_type' => $bt,
+        'billing_type_label' => isset($opts[$bt]) ? $opts[$bt] : strtoupper($bt),
+        'mode_label' => '',
+        'invoiced_amount' => billing_format_money($d['invoiced_amount'] ?? $d['total_amount'] ?? 0),
+        'line_warning' => $warning,
+        'conflict_invoice_no' => $conflict['invoice_no'] ?? '',
+        'has_conflict' => $conflict ? 1 : 0,
+    );
+}
+
 function billing_should_exclude_gcn($conn, $trans_table, $transaction_id, $total = 0, $exclude_invoice_id = 0)
 {
     // Once a GCN is on any invoice (draft or final), do not offer it again except on that same invoice.
@@ -330,7 +536,9 @@ function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_i
             $customer_filter
             ORDER BY STR_TO_DATE(t.grn_date,'%d-%m-%Y') DESC, t.grn_no DESC";
 
+        $prev_report = mysqli_report(MYSQLI_REPORT_OFF);
         $q = mysqli_query($conn, $sql);
+        mysqli_report($prev_report);
         if (!$q) {
             continue;
         }
@@ -354,6 +562,38 @@ function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_i
                 'consigner_id' => (int) $row['consigner'],
                 'consignee_id' => (int) $row['consignee'],
             );
+        }
+    }
+
+    if ($exclude_invoice_id > 0) {
+        $existing = array();
+        foreach ($rows as $row) {
+            $existing[$row['key']] = true;
+        }
+        $dq = mysqli_query($conn, "SELECT * FROM billing_invoice_details WHERE billing_invoice_id='" . (int) $exclude_invoice_id . "' ORDER BY detail_id ASC");
+        if ($dq) {
+            while ($d = mysqli_fetch_assoc($dq)) {
+                $key = preg_replace('/[^a-zA-Z0-9_]/', '', $d['trans_table']) . '|' . (int) $d['transaction_id'];
+                if (isset($existing[$key])) {
+                    continue;
+                }
+                $sender = get_client_name($conn, $d['consigner_id'] ?? 0);
+                $receiver = get_client_name($conn, $d['consignee_id'] ?? 0);
+                $conflict = billing_gcn_final_conflict($conn, $d['trans_table'], $d['transaction_id'], $exclude_invoice_id);
+                $suffix = $conflict ? (' | Already on ' . billing_invoice_display_label($conflict)) : ' | On this draft';
+                $rows[] = array(
+                    'key' => $key,
+                    'label' => ($d['grn_no'] ?? '') . ' | ' . ($d['grn_date'] ?? '') . ' | ' . $sender . ' | ' . $receiver . $suffix,
+                    'grn_no' => $d['grn_no'] ?? '',
+                    'grn_date' => $d['grn_date'] ?? '',
+                    'amount' => billing_format_money($d['total_amount'] ?? 0),
+                    'consigner_id' => (int) ($d['consigner_id'] ?? 0),
+                    'consignee_id' => (int) ($d['consignee_id'] ?? 0),
+                    'draft_line' => 1,
+                    'has_conflict' => $conflict ? 1 : 0,
+                    'selectable' => $conflict ? 0 : 1,
+                );
+            }
         }
     }
 
@@ -622,14 +862,11 @@ function billing_save_invoice($conn, $payload, $user_id)
         }
         $seen[$key] = true;
         $bt = trim($line['billing_type'] ?? $billing_type_raw);
-        $detail = billing_fetch_gcn_detail($conn, $parsed['trans_table'], $parsed['transaction_id'], $bt, $edit_id);
-        if (!$detail) {
-            return array('status' => 1, 'message' => 'GCN not available for invoicing: ' . ($line['grn_no'] ?? $key));
+        $validated = billing_validate_gcn_for_invoice($conn, $parsed['trans_table'], $parsed['transaction_id'], $customer_id, $bt, $edit_id);
+        if (empty($validated['ok'])) {
+            return array('status' => 1, 'message' => $validated['message'] ?? ('GCN not available for invoicing: ' . ($line['grn_no'] ?? $key)));
         }
-        if ($detail['consigner_id'] !== $customer_id && $detail['consignee_id'] !== $customer_id) {
-            return array('status' => 1, 'message' => 'GCN ' . $detail['grn_no'] . ' does not belong to selected customer.');
-        }
-        $parsed_lines[] = $detail;
+        $parsed_lines[] = $validated['detail'];
     }
 
     if (empty($parsed_lines)) {

@@ -1270,34 +1270,61 @@ if ($cmd == 'get_client_branch') {
 }
 
 if ($cmd == 'get_existing_attchment') {
-	$table_name = $_REQUEST['table_name'];
-	$transaction_id = $_REQUEST['transaction_id'];
-	$out_put = '<div style="border: 1px solid;"><br>';
-
-	$query = "select * from $table_name where transaction_id='$transaction_id'";
-	$result = mysqli_query($conn, $query) or die(mysqli_error($conn));
-	while ($row = mysqli_fetch_array($result)) {
-		$out_put .= '<div class="col-md-offset-1 col-md-5">
-<label class="control-label">Eway Bill No ' . $row['eway_bill_no'] . ":</label>
-		\t  \t\t<label class=\"control-label\">Date Of Issue " . date('d-m-Y', strtotime($row['issue_date'])) . ":</label>
-		\t  \t\t<label class=\"control-label\">Date Of Expire " . date('d-m-Y', strtotime($row['expire_date'])) . ":</label>
-		\t  \t</div>
-		\t  \t<div class=\"col-md-offset-1 col-md-5\">
-		\t  \t\t<label class=\"control-label\">E-way Attachments:</label><br>
-		\t  \t\t<label class=\"control-label\"> " . $row['attachment'] . ' <a href="eway/' . $row['attachment'] . '" target="BLANK" ><img src="images/Pdf1.png" id="eway_image_src" data-val="' . $row['attachment'] . "\" width=\"20px\" /> </a> </label>  </br>
-</br></br>
-		\t  \t</div>";
+	$table_name = preg_replace('/[^a-zA-Z0-9_]/', '', $_REQUEST['table_name'] ?? '');
+	$transaction_id = (int) ($_REQUEST['transaction_id'] ?? 0);
+	if ($table_name === '' || $transaction_id <= 0) {
+		echo 0;
+		exit;
 	}
 
-	$out_put .= '<div class="modal-footer" style="text-align: center;">
-				<button class="btn btn-primary btn-new"  type="button" id="new_eway">Add New</button></div>
-
-</div>';
-
-	if (mysqli_num_rows($result) > 0)
-		echo $out_put;
-	else
+	$query = "SELECT * FROM `$table_name` WHERE transaction_id='$transaction_id' ORDER BY attachment_id DESC";
+	$result = mysqli_query($conn, $query);
+	if (!$result || mysqli_num_rows($result) === 0) {
 		echo 0;
+		exit;
+	}
+
+	$cards = '';
+	while ($row = mysqli_fetch_assoc($result)) {
+		$attachment = trim($row['attachment'] ?? '');
+		$file_path = ew_eway_attachment_path($attachment);
+		$bill_no = trim($row['eway_bill_no'] ?? '');
+		$issue_date = ew_format_display_date($row['issue_date'] ?? '');
+		$expire_date = ew_format_display_date($row['expire_date'] ?? '');
+		$is_image = ew_eway_attachment_is_image($attachment);
+		$icon_class = ew_eway_attachment_icon_class($attachment);
+
+		$preview_html = '';
+		if ($attachment !== '' && $file_path !== '') {
+			if ($is_image) {
+				$preview_html = '<a href="' . htmlspecialchars($file_path, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">'
+					. '<img src="' . htmlspecialchars($file_path, ENT_QUOTES, 'UTF-8') . '" class="eway-thumb" alt="E-Way attachment" />'
+					. '</a>';
+			} else {
+				$preview_html = '<a href="' . htmlspecialchars($file_path, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener" class="eway-file-link">'
+					. '<i class="fa ' . $icon_class . '"></i>'
+					. '<span>' . htmlspecialchars($attachment, ENT_QUOTES, 'UTF-8') . '</span>'
+					. '</a>';
+			}
+		} else {
+			$preview_html = '<span class="text-muted">No file found</span>';
+		}
+
+		$cards .= '<div class="eway-card">'
+			. '<div class="eway-card-grid">'
+			. '<div class="eway-field"><span class="eway-label">E-Way Bill No</span><span class="eway-value">' . htmlspecialchars($bill_no !== '' ? $bill_no : '-', ENT_QUOTES, 'UTF-8') . '</span></div>'
+			. '<div class="eway-field"><span class="eway-label">Date of Issue</span><span class="eway-value">' . htmlspecialchars($issue_date, ENT_QUOTES, 'UTF-8') . '</span></div>'
+			. '<div class="eway-field"><span class="eway-label">Date of Expiry</span><span class="eway-value">' . htmlspecialchars($expire_date, ENT_QUOTES, 'UTF-8') . '</span></div>'
+			. '</div>'
+			. '<div class="eway-preview-wrap"><span class="eway-label">Attachment</span>' . $preview_html . '</div>'
+			. '</div>';
+	}
+
+	echo '<div class="eway-list">' . $cards . '</div>'
+		. '<div class="eway-list-actions">'
+		. '<button class="btn btn-primary btn-sm" type="button" id="new_eway"><i class="fa fa-plus"></i> Add New</button>'
+		. '</div>';
+	exit;
 }
 
 if ($cmd == 'get_existing_invoice_attchment') {

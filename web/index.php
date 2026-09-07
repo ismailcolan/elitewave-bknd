@@ -402,9 +402,31 @@ if (isset($_COOKIE['persistID'])) {
   .si-remember-password{
     display:flex;
     align-items:center;
-    gap:8px;
+    justify-content:space-between;
+    gap:12px;
     width:100%;
     margin: 6px 0 24px;
+    flex-wrap:wrap;
+  }
+
+  .remember-wrap{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+  }
+
+  .forgot-link{
+    font-size:13px;
+    font-weight:600;
+    color: var(--red);
+    text-decoration:none;
+    white-space:nowrap;
+  }
+
+  .forgot-link:hover{
+    color: var(--red-dim);
+    text-decoration:underline;
   }
 
   .si-remember-password input[type="checkbox"]{
@@ -518,14 +540,13 @@ if (isset($_COOKIE['persistID'])) {
           </div>
 
           <div class="si-remember-password">
-            <input type="checkbox" name="remember" id="remember-me" class="form-choice form-choice-checkbox" value="1">
-            <span id="remember-me-label" class="form-label" for="remember-me">Keep me signed in</span>
+            <div class="remember-wrap">
+              <input type="checkbox" name="remember" id="remember-me" class="form-choice form-choice-checkbox" value="1">
+              <label id="remember-me-label" class="form-label" for="remember-me">Keep me signed in</label>
+            </div>
+            <a href="forgot_password.php" class="forgot-link">Forgot password?</a>
           </div>
           <div class="separator"></div>
-
-          <!--<div id="footer">
-              <label><span><a href="forgot_password.php">Forgot password?</a></span></label>
-          </div>-->
         </form>
       </div>
     </div>

@@ -38,21 +38,44 @@ if ($cmd === 'fetch_gcn_details') {
     }
     $billing_type = isset($_REQUEST['billing_type']) ? trim($_REQUEST['billing_type']) : '';
     $exclude = (int) ($_REQUEST['billing_invoice_id'] ?? 0);
+    $customer_id = (int) ($_REQUEST['customer_id'] ?? 0);
     $lines = array();
+    $skipped = array();
     foreach ($keys as $key) {
         $parsed = billing_parse_trans_key($key);
         if (!$parsed) {
+            $skipped[] = 'Invalid GCN reference.';
             continue;
         }
-        $detail = billing_fetch_gcn_detail($conn, $parsed['trans_table'], $parsed['transaction_id'], $billing_type, $exclude);
-        if ($detail) {
-            $lines[] = $detail;
+        $validated = billing_validate_gcn_for_invoice(
+            $conn,
+            $parsed['trans_table'],
+            $parsed['transaction_id'],
+            $customer_id,
+            $billing_type,
+            $exclude
+        );
+        if (!empty($validated['ok'])) {
+            $lines[] = $validated['detail'];
+            continue;
         }
+        if ($exclude > 0 && billing_gcn_on_current_invoice($conn, $parsed['trans_table'], $parsed['transaction_id'], $exclude)) {
+            $stored = billing_get_stored_detail_row($conn, $exclude, $parsed['trans_table'], $parsed['transaction_id']);
+            if ($stored) {
+                $line = billing_line_from_detail_row($conn, $stored, $exclude);
+                if ($line) {
+                    $lines[] = $line;
+                    continue;
+                }
+            }
+        }
+        $skipped[] = $validated['message'] ?? 'GCN not available for invoicing.';
     }
     billing_json_out(array(
         'status' => 0,
         'lines' => $lines,
         'summary' => billing_sum_lines($lines),
+        'skipped' => $skipped,
     ));
 }
 
@@ -64,9 +87,8 @@ if ($cmd === 'load_draft') {
     }
     $lines = array();
     foreach ($data['details'] as $d) {
-        $detail = billing_fetch_gcn_detail($conn, $d['trans_table'], $d['transaction_id'], $d['billing_type'], $id);
+        $detail = billing_line_from_detail_row($conn, $d, $id);
         if ($detail) {
-            $detail['billing_type'] = $d['billing_type'] ?: $detail['billing_type'];
             $lines[] = $detail;
         }
     }

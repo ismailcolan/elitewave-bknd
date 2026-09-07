@@ -866,4 +866,85 @@ function ew_month_input($opts = array())
 	return ew_date_input($opts);
 }
 
+function ew_format_display_date($value, $default = '-')
+{
+	$value = trim((string) $value);
+	if ($value === '' || $value === '0000-00-00' || $value === '0000-00-00 00:00:00') {
+		return $default;
+	}
+	if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
+		return $value;
+	}
+	$ts = strtotime($value);
+	if ($ts === false || $ts <= 0) {
+		return $default;
+	}
+	return date('d-m-Y', $ts);
+}
+
+function ew_normalize_input_date($value)
+{
+	$value = trim((string) $value);
+	if ($value === '') {
+		return '';
+	}
+	if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
+		return $value;
+	}
+	if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+		$parts = explode('-', $value);
+		return $parts[2] . '-' . $parts[1] . '-' . $parts[0];
+	}
+	$ts = strtotime($value);
+	if ($ts === false || $ts <= 0) {
+		return '';
+	}
+	return date('d-m-Y', $ts);
+}
+
+function ew_eway_attachment_web_root()
+{
+	return dirname(__DIR__);
+}
+
+function ew_eway_attachment_path($filename)
+{
+	$filename = basename((string) $filename);
+	if ($filename === '') {
+		return '';
+	}
+	$root = ew_eway_attachment_web_root();
+	if (is_file($root . '/eway/' . $filename)) {
+		return 'eway/' . $filename;
+	}
+	if (is_file($root . '/invoice_image/' . $filename)) {
+		return 'invoice_image/' . $filename;
+	}
+	if (preg_match('/^[a-f0-9]{10,}/i', $filename)) {
+		return 'invoice_image/' . $filename;
+	}
+	return 'eway/' . $filename;
+}
+
+function ew_eway_attachment_is_image($filename)
+{
+	$ext = strtolower(pathinfo((string) $filename, PATHINFO_EXTENSION));
+	return in_array($ext, array('jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'), true);
+}
+
+function ew_eway_attachment_icon_class($filename)
+{
+	$ext = strtolower(pathinfo((string) $filename, PATHINFO_EXTENSION));
+	if ($ext === 'pdf') {
+		return 'fa-file-pdf-o';
+	}
+	if (in_array($ext, array('doc', 'docx'), true)) {
+		return 'fa-file-word-o';
+	}
+	if (in_array($ext, array('xls', 'xlsx'), true)) {
+		return 'fa-file-excel-o';
+	}
+	return 'fa-file-o';
+}
+
 ?>

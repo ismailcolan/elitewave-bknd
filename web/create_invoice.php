@@ -483,6 +483,32 @@ function refreshGcnSelect(html, hint) {
 	}
 }
 
+function sumLinesFromRows(lines) {
+	var totalFreight = 0;
+	var taxable = 0;
+	var cgst = 0;
+	var sgst = 0;
+	var igst = 0;
+	var grand = 0;
+	$.each(lines || [], function(i, r) {
+		totalFreight += parseFloat(String(r.freight_amount || 0).replace(/,/g, '')) || 0;
+		taxable += parseFloat(String(r.taxable_value || 0).replace(/,/g, '')) || 0;
+		cgst += parseFloat(String(r.cgst_amount || 0).replace(/,/g, '')) || 0;
+		sgst += parseFloat(String(r.sgst_amount || 0).replace(/,/g, '')) || 0;
+		igst += parseFloat(String(r.igst_amount || 0).replace(/,/g, '')) || 0;
+		grand += parseFloat(String(r.total_amount || 0).replace(/,/g, '')) || 0;
+	});
+	function fmt(n) { return n.toFixed(2); }
+	return {
+		total_freight: fmt(totalFreight),
+		taxable_value: fmt(taxable),
+		cgst_amount: fmt(cgst),
+		sgst_amount: fmt(sgst),
+		igst_amount: fmt(igst),
+		grand_total: fmt(grand)
+	};
+}
+
 function loadGcnOptions(selectKeys) {
 	var customerId = getPrimaryCustomerId();
 	if (!customerId) {
@@ -509,11 +535,27 @@ function loadGcnOptions(selectKeys) {
 			return;
 		}
 		$.each(rows, function(i, row) {
-			opts += '<option value="' + escHtml(row.key) + '" title="' + escHtml(row.label) + '">' + escHtml(row.grn_no) + '</option>';
+			var disabled = (row.has_conflict || row.selectable === 0) ? ' disabled="disabled"' : '';
+			var label = row.grn_no;
+			if (row.has_conflict) {
+				label += ' (already billed)';
+			}
+			opts += '<option value="' + escHtml(row.key) + '"' + disabled + ' title="' + escHtml(row.label) + '">' + escHtml(label) + '</option>';
 		});
-		refreshGcnSelect(opts, rows.length + ' delivered GCN(s) found. Select one or more.');
+		var hint = rows.length + ' delivered GCN(s) found. Select one or more.';
+		if ($.grep(rows, function(row) { return row.has_conflict; }).length) {
+			hint += ' GCNs marked "already billed" must be removed before saving.';
+		}
+		refreshGcnSelect(opts, hint);
 		if (selectKeys && selectKeys.length) {
-			$('#gcn_keys').val(selectKeys).trigger('change');
+			$('#gcn_keys').val(selectKeys);
+			if (window.__draftLines && window.__draftLines.length) {
+				renderLines(window.__draftLines, window.__draftSummary || {});
+			} else {
+				$('#gcn_keys').trigger('change');
+			}
+		} else if (window.__draftLines && window.__draftLines.length) {
+			renderLines(window.__draftLines, window.__draftSummary || {});
 		} else {
 			renderLines([], {});
 		}
@@ -527,9 +569,13 @@ function renderLines(lines, summary) {
 	invoiceLines = lines || [];
 	var html = '';
 	$.each(invoiceLines, function(i, r) {
-		html += '<tr data-key="' + escHtml(r.key) + '">';
+		html += '<tr data-key="' + escHtml(r.key) + '"' + (r.has_conflict ? ' class="warning"' : '') + '>';
 		html += '<td>' + (i + 1) + '</td>';
-		html += '<td>' + escHtml(r.grn_no) + '</td>';
+		html += '<td>' + escHtml(r.grn_no);
+		if (r.line_warning) {
+			html += '<br><small style="color:#b45309;font-weight:600;">' + escHtml(r.line_warning) + '</small>';
+		}
+		html += '</td>';
 		html += '<td>' + escHtml(r.grn_date) + '</td>';
 		html += '<td>' + escHtml(r.sender) + '</td>';
 		html += '<td>' + escHtml(r.receiver) + '</td>';
@@ -579,21 +625,37 @@ function renderLines(lines, summary) {
 }
 
 function loadLineDetails() {
-	var keys = $('#gcn_keys').val();
-	if (!keys || !keys.length) {
+	var keys = $('#gcn_keys').val() || [];
+	if (!keys.length && !invoiceLines.length) {
+		renderLines([], {});
+		return;
+	}
+	var fetchKeys = keys.slice();
+	$.each(invoiceLines, function(i, l) {
+		if (l.has_conflict && $.inArray(l.key, fetchKeys) === -1) {
+			fetchKeys.push(l.key);
+		}
+	});
+	if (!fetchKeys.length) {
 		renderLines([], {});
 		return;
 	}
 	$.getJSON('create_invoice_data.php', {
 		cmd: 'fetch_gcn_details',
-		keys: keys,
+		keys: fetchKeys,
+		customer_id: getPrimaryCustomerId(),
+		billing_type: getInvoiceBillingType(),
 		billing_invoice_id: $('#billing_invoice_id').val()
 	}, function(r) {
 		if (!r || r.status !== 0) {
 			if (typeof ewFormToast === 'function') ewFormToast('Could not load GCN details.', 'error', 5000);
 			return;
 		}
-		renderLines(r.lines, r.summary);
+		var lines = r.lines || [];
+		if (r.skipped && r.skipped.length) {
+			if (typeof ewFormToast === 'function') ewFormToast(r.skipped.join(' '), 'warning', 7000);
+		}
+		renderLines(lines, sumLinesFromRows(lines));
 	});
 }
 
@@ -604,6 +666,17 @@ function saveInvoice(status) {
 	}
 	if (!invoiceLines.length) {
 		if (typeof ewFormToast === 'function') ewFormToast('Please select at least one GCN.', 'error', 5000);
+		return;
+	}
+	var conflictLine = null;
+	$.each(invoiceLines, function(i, r) {
+		if (r.has_conflict) {
+			conflictLine = r;
+			return false;
+		}
+	});
+	if (conflictLine) {
+		if (typeof ewFormToast === 'function') ewFormToast(conflictLine.line_warning || ('GCN ' + conflictLine.grn_no + ' cannot be invoiced again.'), 'error', 6000);
 		return;
 	}
 	var payload = {
@@ -671,7 +744,9 @@ $(document).ready(function() {
 		updatePdfButton(<?php echo $edit_id; ?>, r.master.status);
 		if (r.master.customer_id) {
 			initCustomerSelect(r.master.customer_id);
-			var draftKeys = $.map(r.lines || [], function(l) { return l.key; });
+			window.__draftLines = r.lines || [];
+			window.__draftSummary = r.summary || {};
+			var draftKeys = $.map(r.lines || [], function(l) { return l.has_conflict ? null : l.key; }).filter(Boolean);
 			loadGcnOptions(draftKeys);
 		}
 	});

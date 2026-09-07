@@ -4439,28 +4439,44 @@ vehicle_loading_unloading='$vehicle_loading_unloading',  consigner_signature='" 
 }
 
 if ($form_name == 'add_eway_bill') {
-    $id = $_POST['attachment_id'];
-    $table_name = $_POST['table_name'];
-    $issue_date = $_POST['issue_date'];
-    $expire_date = $_POST['expire_date'];
+    $id = (int) ($_POST['attachment_id'] ?? 0);
+    $table_name = preg_replace('/[^a-zA-Z0-9_]/', '', $_POST['table_name'] ?? '');
+    $issue_date = ew_normalize_input_date($_POST['issue_date'] ?? '');
+    $expire_date = ew_normalize_input_date($_POST['expire_date'] ?? '');
+    $eway_bill_no = trim($_POST['eway_bill_no'] ?? '');
+    $fr_result = false;
 
-    $eway_bill_no = $_POST['eway_bill_no'];
+    if ($id <= 0 || $table_name === '' || $eway_bill_no === '') {
+        echo 0;
+        exit;
+    }
+
+    $esc_table = mysqli_real_escape_string($conn, $table_name);
+    $esc_bill = mysqli_real_escape_string($conn, $eway_bill_no);
+    $esc_issue = mysqli_real_escape_string($conn, $issue_date);
+    $esc_expire = mysqli_real_escape_string($conn, $expire_date);
 
     foreach ($_FILES['attachment']['error'] as $key => $error) {
-        if ($error == UPLOAD_ERR_OK) {
-            $name = $eway_bill_no . $id . $_FILES['attachment']['name'][$key];
-            $target_dir = 'eway/';
-            if (move_uploaded_file($_FILES['attachment']['tmp_name'][$key], $target_dir . $name)) {
-                $fr_query = "insert into $table_name (transaction_id,attachment,eway_bill_no,issue_date,eway_status,expire_date,created_at,created_by,status) values('$id','$name','$eway_bill_no','$issue_date','1','$expire_date','$created_at','$created_by','0')";
-                $fr_result = mysqli_query($conn, $fr_query) or die(mysqli_error());
-            }
+        if ($error != UPLOAD_ERR_OK) {
+            continue;
+        }
+        $orig_name = basename($_FILES['attachment']['name'][$key]);
+        $safe_name = preg_replace('/[^a-zA-Z0-9._-]/', '_', $orig_name);
+        $name = preg_replace('/[^a-zA-Z0-9._-]/', '', $eway_bill_no) . $id . $safe_name;
+        $target_dir = 'eway/';
+        if (!is_dir($target_dir)) {
+            @mkdir($target_dir, 0755, true);
+        }
+        if (move_uploaded_file($_FILES['attachment']['tmp_name'][$key], $target_dir . $name)) {
+            $esc_name = mysqli_real_escape_string($conn, $name);
+            $fr_query = "INSERT INTO `$esc_table` (transaction_id,attachment,eway_bill_no,issue_date,eway_status,expire_date,created_at,created_by,status)
+                VALUES('$id','$esc_name','$esc_bill','$esc_issue','1','$esc_expire','$created_at','$created_by','0')";
+            $fr_result = mysqli_query($conn, $fr_query);
         }
     }
 
-    if ($fr_result)
-        echo 1;
-    else
-        echo 0;
+    echo $fr_result ? 1 : 0;
+    exit;
 }
 
 if ($form_name == 'add_company') {

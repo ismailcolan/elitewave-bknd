@@ -119,6 +119,117 @@ $logged_id = $_SESSION['user_id'];
     transition: all .15s ease;
     cursor: pointer;
 }
+
+/* ===== E-Way Attachments modal ===== */
+#eway_popup .modal-dialog {
+    max-width: 720px;
+}
+#eway_popup .modal-body {
+    padding: 20px 24px;
+}
+.eway-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: 340px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+.eway-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: #f8fafc;
+}
+.eway-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.eway-field {
+    min-width: 0;
+}
+.eway-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 4px;
+}
+.eway-value {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    word-break: break-word;
+}
+.eway-preview-wrap {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 12px;
+}
+.eway-thumb {
+    display: block;
+    max-width: 100%;
+    max-height: 160px;
+    margin-top: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    object-fit: contain;
+}
+.eway-file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #0A1E3D;
+    font-weight: 600;
+}
+.eway-file-link:hover {
+    text-decoration: none;
+    background: #eef2ff;
+}
+.eway-list-actions {
+    text-align: center;
+    padding-top: 4px;
+}
+.eway-add-form .form-group {
+    margin-bottom: 14px;
+}
+.eway-add-form label {
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+}
+.eway-add-form .form-control {
+    border-radius: 8px;
+}
+.eway-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+.eway-form-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+@media (max-width: 640px) {
+    .eway-card-grid,
+    .eway-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
 .upload-dropzone.upload-dragover {
     border-color: #2f6fed;
     background: #eef4ff;
@@ -1157,15 +1268,28 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
 
             //Cancel Grn Popup Script 
 
+            function resetEwayModal() {
+                $('#eway_form')[0].reset();
+                $('#old_attach_div').html('').show();
+                $('#attachment_body').hide();
+            }
+
             $(document).on('click', '#new_eway', function() {
-                $("#old_attach_div").hide(100);
+                $("#old_attach_div").hide();
                 $("#attachment_body").show();
             });
 
-
             $(document).on('click', '#eway_cancel', function() {
-                $("#old_attach_div").show();
-                $("#attachment_body").hide(100);
+                if ($('#old_attach_div').html().trim() !== '') {
+                    $("#old_attach_div").show();
+                    $("#attachment_body").hide();
+                } else {
+                    $('#eway_popup').modal('hide');
+                }
+            });
+
+            $('#eway_popup').on('hidden.bs.modal', function() {
+                resetEwayModal();
             });
 
 
@@ -1182,11 +1306,14 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             //Button Delete
 
             $(document).on('click', '.btn-eway', function(ev) {
+                if ($(this).hasClass('disable_action')) {
+                    return;
+                }
                 var id = $(this).attr('id');
                 var table_name = '<?php echo $trans_image_name; ?>';
+                resetEwayModal();
                 $("#attachment_id").val(id);
                 $("#table_name").val(table_name);
-                console.log($("#table_name").val(table_name));
                 $.ajax({
                     url: 'fetch_details.php',
                     type: "GET",
@@ -1196,11 +1323,17 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                         table_name: table_name
                     },
                     success: function(result) {
-                        console.log(result);
-                        if (result != 0)
-                            $('#old_attach_div').html(result);
-                        else
+                        if (result != 0 && String(result).trim() !== '0') {
+                            $('#old_attach_div').html(result).show();
+                            $("#attachment_body").hide();
+                        } else {
+                            $('#old_attach_div').html('').hide();
                             $("#attachment_body").show();
+                        }
+                    },
+                    error: function() {
+                        $('#old_attach_div').html('<p class="text-danger">Could not load attachments.</p>').show();
+                        $("#attachment_body").hide();
                     }
                 });
 
@@ -1309,27 +1442,31 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             $(document).on('click', '#save_eway', function(ev) {
                 var formData = new FormData(document.getElementById("eway_form"));
                 if ($('#eway_form').valid() == true) {
-                    $(this).prop("disabled", true);
+                    var $btn = $(this);
+                    $btn.prop("disabled", true);
                     $.ajax({
                         url: "save_details.php",
                         type: "post",
-                        //dataType:"json",
                         data: formData,
                         processData: false,
                         contentType: false,
                         success: function(result) {
-                            console.log(result);
+                            $btn.prop("disabled", false);
                             if (result == 1) {
-                                $(".form-data-saving").hide();
-
-                                $("#attachment_body").html("Attachments Uploaded Successfully ");
-                                location.reload();
-
-                            } else {
-                                $(".form-data-saving").hide();
-
+                                if (typeof ewFormToast === 'function') {
+                                    ewFormToast('E-Way attachment saved successfully.', 'success', 4000);
+                                }
+                                $('#eway_popup').modal('hide');
+                                setTimeout(function() { location.reload(); }, 800);
+                            } else if (typeof ewFormToast === 'function') {
+                                ewFormToast('Could not save attachment. Please check all fields and try again.', 'error', 5000);
                             }
-
+                        },
+                        error: function() {
+                            $btn.prop("disabled", false);
+                            if (typeof ewFormToast === 'function') {
+                                ewFormToast('Network error while saving attachment.', 'error', 5000);
+                            }
                         }
                     });
                 }
@@ -1543,46 +1680,50 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
         </div>
     </div>
 
-    <div class="modal fade " id="eway_popup" style="display:none">
+    <div class="modal fade" id="eway_popup" style="display:none">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <button aria-hidden="true" class="close" data-dismiss="modal" type="button">&times;</button>
                     <h4 class="modal-title" style="color:#fff">
-                        Add E-Way Attachments
+                        E-Way Attachments
                     </h4>
                 </div>
-                <div class="modal-body" id="old_attach_div">
+                <div class="modal-body">
+                    <div id="old_attach_div"></div>
+                    <div id="attachment_body" style="display:none">
+                        <form id="eway_form" class="eway-add-form" enctype="multipart/form-data">
+                            <input type="hidden" name="form_name" value="add_eway_bill">
+                            <input type="hidden" name="attachment_id" id="attachment_id" value="">
+                            <input type="hidden" name="table_name" id="table_name" value="">
 
-                </div>
-
-                <div class="modal-body" style="margin-left: 100px;display: none" id="attachment_body">
-                    <form id="eway_form" enctype="multipart/form-data">
-                        <input type="hidden" name="form_name" value="add_eway_bill">
-                        <input type="hidden" name="attachment_id" id="attachment_id" value="">
-                        <input type="hidden" name="table_name" id="table_name" value="">
-
-
-                        <label class="control-label">E-way Attachment:</label>
-                        <input type="file" name="attachment[]" required multiple=""><br>
-                        <label class="control-label">E-way Bill No:</label>
-                        <input type="text" class="form-control" style="width: 184px;" name="eway_bill_no" required><br>
-
-
-
-                        <label class="control-label">Date of Issue:</label>
-                        <input type="date" style="width: 180px;" class="form-control " placeholder="Date of Issue" name="issue_date" /><br>
-                        <label class="control-label">Date of Expiry:</label>
-                        <input type="date" style="width: 180px;" class="form-control expiredate" placeholder="Date of Expiry" name="expire_date" />
-                        <br>
-                        <div class="modal-footer" style="text-align: center;">
-                            <button class="btn btn-danger btn-cancel" type="button" id="eway_cancel">Cancel</button>
-                            <button class="btn btn-primary btn-submit" type="button" id="save_eway">Submit</button>
-                        </div>
+                            <div class="form-group">
+                                <label class="control-label">E-Way Attachment</label>
+                                <input type="file" class="form-control" name="attachment[]" required multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+                                <small class="text-muted">Upload image or PDF (multiple files allowed).</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">E-Way Bill No</label>
+                                <input type="text" class="form-control" name="eway_bill_no" required placeholder="Enter e-way bill number">
+                            </div>
+                            <div class="eway-form-grid">
+                                <div class="form-group">
+                                    <label class="control-label">Date of Issue</label>
+                                    <input type="date" class="form-control" name="issue_date">
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">Date of Expiry</label>
+                                    <input type="date" class="form-control expiredate" name="expire_date">
+                                </div>
+                            </div>
+                            <div class="eway-form-actions">
+                                <button class="btn btn-danger btn-cancel" type="button" id="eway_cancel">Cancel</button>
+                                <button class="btn btn-primary btn-submit" type="button" id="save_eway">Submit</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
-            </form>
-
         </div>
     </div>
 
