@@ -23,9 +23,7 @@ $logged_id = $_SESSION['user_id'];
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 12px;
-            background: linear-gradient(185deg, var(--ew-navy, #0A1E3D) 0%, var(--ew-navy-deep, #061428) 100%);
             padding: 14px 24px;
-            border-radius: 10px 10px 0 0;
             min-height: 64px;
         }
         .txn-page-header h1 {
@@ -42,7 +40,7 @@ $logged_id = $_SESSION['user_id'];
         .txn-table-card {
             background: #fff;
             border: 1px solid #E2E8F0;
-            border-radius: 0 0 10px 10px;
+            border-radius: 0 0 12px 12px;
             overflow: visible;
             box-shadow: 0 4px 18px rgba(15, 23, 42, .06);
         }
@@ -95,21 +93,13 @@ $logged_id = $_SESSION['user_id'];
         .trans_list_table col.col-status { width: 110px; }
         .trans_list_table col.col-steps { width: 280px; }
         .trans_list_table thead th {
-            background: var(--ew-primary-light, #EEF2F7) !important;
-            color: var(--ew-navy, #0A1E3D) !important;
-            font-size: 12px !important;
-            font-weight: 700 !important;
-            text-transform: uppercase;
-            letter-spacing: .04em;
             padding: 11px 8px !important;
-            border-bottom: 2px solid var(--ew-border, #D8DDE5) !important;
-            border-right: 1px solid var(--ew-border-light, #E2E8F0) !important;
             white-space: nowrap;
             vertical-align: middle !important;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .trans_list_table thead th:last-child { border-right: none !important; text-align: center !important; }
+        .trans_list_table thead th:last-child { text-align: center !important; }
         .trans_list_table tbody td {
             font-size: 13px;
             padding: 9px 8px !important;
@@ -128,32 +118,6 @@ $logged_id = $_SESSION['user_id'];
         .trans_list_table tbody tr:hover td { background: #F8FAFC !important; }
         .trans_list_table tbody tr:nth-child(even) td { background: #FBFCFE; }
         .txn-gcn-no { font-weight: 700; color: #0A1E3D; font-size: 13px; }
-        .txn-status-badge {
-            display: inline-block;
-            min-width: 72px;
-            max-width: 100%;
-            padding: 5px 9px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 600;
-            line-height: 1.3;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .txn-status-booked { background: #DBEAFE; color: #1D4ED8; }
-        .txn-status-picked { background: #E0F2FE; color: #0369A1; }
-        .txn-status-transit-1 { background: #FEF3C7; color: #92400E; }
-        .txn-status-transit-2 { background: #FFEDD5; color: #C2410C; }
-        .txn-status-transit-3 { background: #FEE2E2; color: #B91C1C; }
-        .txn-status-destination { background: #EDE9FE; color: #6D28D9; }
-        .txn-status-out { background: #FCE7F3; color: #BE185D; }
-        .txn-status-transit { background: #FEF3C7; color: #B45309; }
-        .txn-status-delivered { background: #DCFCE7; color: #15803D; }
-        .txn-status-cancelled { background: #FEE2E2; color: #B91C1C; }
-        .txn-status-partial { background: #FEE2E2; color: #DC2626; }
-        .txn-status-default { background: #F1F5F9; color: #475569; }
         .txn-datatable-area .dataTables_wrapper { width: 100%; }
         .txn-datatable-area .dataTables_length,
         .txn-datatable-area .dataTables_filter { padding: 12px 0 8px; margin: 0; }

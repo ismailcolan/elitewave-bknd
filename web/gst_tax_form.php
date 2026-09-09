@@ -15,6 +15,7 @@ $row = array(
     'sgst_rate' => '',
     'igst_rate' => '',
     'cess_rate' => '0',
+    'tds_rate' => '0',
     'status' => '1',
 );
 
@@ -131,6 +132,16 @@ if ($is_edit) {
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
+                                            <label class="control-label">TDS Rate (%) :</label>
+                                            <input type="number" name="tds_rate" id="tds_rate" class="form-control" min="0" step="0.01"
+                                                value="<?php echo htmlspecialchars($row['tds_rate'] ?? '0'); ?>" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
                                             <label class="control-label">Status :</label>
                                             <select name="status" id="status" class="form-control">
                                                 <option value="1" <?php echo (int) $row['status'] === 1 ? 'selected' : ''; ?>>Active</option>
@@ -206,22 +217,25 @@ if ($is_edit) {
                     var sgst = round2($('#sgst_rate').val());
                     var igst = round2($('#igst_rate').val());
                     var cess = round2($('#cess_rate').val());
+                    var tds = round2($('#tds_rate').val());
 
                     if (!$('#tax_code').val().trim() || !$('#tax_name').val().trim()) {
                         showAlert(false, 'Tax Code and Tax Name are required.');
                         return false;
                     }
-                    if (gst < 0 || cgst < 0 || sgst < 0 || igst < 0 || cess < 0) {
+                    if (gst < 0 || cgst < 0 || sgst < 0 || igst < 0 || cess < 0 || tds < 0) {
                         showAlert(false, 'Tax rates cannot be negative.');
                         return false;
                     }
-                    if (Math.abs((cgst + sgst) - gst) > 0.01) {
-                        showAlert(false, 'CGST + SGST/UTGST must equal GST Rate.');
-                        return false;
-                    }
-                    if (Math.abs(igst - gst) > 0.01) {
-                        showAlert(false, 'IGST must equal GST Rate.');
-                        return false;
+                    if (gst > 0) {
+                        if (Math.abs((cgst + sgst) - gst) > 0.01) {
+                            showAlert(false, 'CGST + SGST/UTGST must equal GST Rate.');
+                            return false;
+                        }
+                        if (Math.abs(igst - gst) > 0.01) {
+                            showAlert(false, 'IGST must equal GST Rate.');
+                            return false;
+                        }
                     }
                     return true;
                 }

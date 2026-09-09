@@ -130,13 +130,13 @@ div#dataTable1_length {
                                 ?>
                                    
 									
-									<td><?php if($row['status']==0)
-											echo '<button class="btn btn-primary">Pending</button>';
-											else if($row['status']==1)
-												echo '<button class="btn btn-danger">Cancelled</button>';
-											else if($row['status']==3)
-												echo '<button class="btn btn-success">Picked Up</button>';
-										?></td>
+									<td><?php if ($row['status'] == 0) {
+											echo '<span class="ew-badge ew-badge--pending">Pending</span>';
+										} elseif ($row['status'] == 1) {
+											echo '<span class="ew-badge ew-badge--cancelled">Cancelled</span>';
+										} elseif ($row['status'] == 3) {
+											echo '<span class="ew-badge ew-badge--picked-up">Picked Up</span>';
+										} ?></td>
 									
 									<td><?php if($status==0)
 									{ ?>
@@ -152,7 +152,7 @@ div#dataTable1_length {
 											else
 											{
 											?>
-											<a class="table-actions btn-active" style="color:red;" data-status="<?php echo $row['status']  ?>" title="Picked Up" id="<?php echo $row['pickup_id'] ?>"><i class="fa fa-times"></i></a>
+											<a class="table-actions btn-active is-inactive" data-status="<?php echo $row['status']  ?>" title="Picked Up" id="<?php echo $row['pickup_id'] ?>"><i class="fa fa-times"></i></a>
 											<?php 
 											 }
 											?>

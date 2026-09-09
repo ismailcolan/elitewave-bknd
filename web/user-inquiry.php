@@ -16,22 +16,6 @@ include_once ('include/function.php');
             cursor: default;
         }
 
-       .widget-container .widget-content {
-            width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
-        }
-
-        .user-inquiry_tbl {
-            margin: 0 auto;
-            width: max-content !important;
-            max-width: unset !important;
-
-            clear: both;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
-
         .dataTable th.sorting:after,
         .dataTable th.sorting_desc:after {
             top: 17px;
@@ -60,15 +44,6 @@ div#dataTable1_length {
     width: 43%;
     float: left;
     margin: 5px 0 10px;
-}
-.user-inquiry_tbl{
-	margin: 0 auto;
-	width: max-content!important;
-    max-width: unset!important;
-
-    clear: both;
-    border-collapse: collapse;
-    table-layout: fixed;
 }
 .dataTables_filter {
     width: 56%;
@@ -134,11 +109,11 @@ div#dataTable1_length {
                                                 $status_user = $row1['status'];
                                                 if ($status_user == 0) {
                                                     ?>
-                                                    <a title="Add to Client" href="add_to_client.php?key=<?php echo md5($row['user_id']); ?>" class="table-actions btn-edit" id="<?php echo $row['user_id']; ?>"><i class="fa fa-plus"> Client</i></a>
+                                                    <a title="Add to Client" href="add_to_client.php?key=<?php echo md5($row['user_id']); ?>" class="ew-badge ew-badge--booked" id="<?php echo $row['user_id']; ?>"><i class="fa fa-plus"></i> Client</a>
                                                 <?php
                                                 } else {
                                                     ?>
-                                                    <a title="Client" href="" class="table-actions disable" id=""><i class="fa fa-check"> Client</i></a>
+                                                    <span class="ew-badge ew-badge--active"><i class="fa fa-check"></i> Client</span>
                                                 <?php
                                                 }
                                                 ?>
@@ -154,11 +129,11 @@ div#dataTable1_length {
                                                 $status_user = $row1['status'];
                                                 if ($status_user == 0) {
                                                     ?>
-                                                    <a title="Add to Client" href="add_to_clientt.php?key=<?php echo md5($row['user_id']); ?>" class="table-actions btn-edit" id="<?php echo $row['user_id']; ?>"><i class="fa fa-plus"> Client</i></a>
+                                                    <a title="Add to Client" href="add_to_clientt.php?key=<?php echo md5($row['user_id']); ?>" class="ew-badge ew-badge--booked" id="<?php echo $row['user_id']; ?>"><i class="fa fa-plus"></i> Client</a>
                                                 <?php
                                                 } else {
                                                     ?>
-                                                    <a title="Client" href="" class="table-actions disable" id=""><i class="fa fa-check"> Client</i></a>
+                                                    <span class="ew-badge ew-badge--active"><i class="fa fa-check"></i> Client</span>
 
                                                 <?php
                                                 }

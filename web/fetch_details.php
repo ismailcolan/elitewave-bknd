@@ -554,19 +554,12 @@ if ($cmd == 'get_package_details') {
 	$row = mysqli_fetch_array($result);
 	echo json_encode($row);
 }
-if ($cmd == 'get_expense_category_details') {
-	$tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
-	$query = "SELECT * FROM expense_category WHERE category_id='$tbl_id'";
-	$result = mysqli_query($conn, $query);
-	$row = $result ? mysqli_fetch_assoc($result) : array();
-	echo json_encode($row);
-}
-if ($cmd == 'get_expense_vendor_details') {
-	$tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
-	$query = "SELECT * FROM expense_vendor WHERE vendor_id='$tbl_id'";
-	$result = mysqli_query($conn, $query);
-	$row = $result ? mysqli_fetch_assoc($result) : array();
-	echo json_encode($row);
+if ($cmd == 'get_expense_type_label_options') {
+	require_once __DIR__ . '/include/expense_type_helpers.php';
+	expense_type_ensure_schema($conn);
+	$selected = trim($_REQUEST['selected'] ?? '');
+	echo expense_type_label_select_html($conn, $selected);
+	exit;
 }
 if ($cmd == 'get_vendor_master_details') {
 	require_once __DIR__ . '/include/vendor_master_helpers.php';
@@ -575,17 +568,16 @@ if ($cmd == 'get_vendor_master_details') {
 	$query = "SELECT * FROM vendor_master WHERE vendor_id='$tbl_id'";
 	$result = mysqli_query($conn, $query);
 	$row = $result ? mysqli_fetch_assoc($result) : array();
+	if (!empty($row['vendor_id'])) {
+		$row['bank_accounts'] = ew_vendor_resolve_bank_accounts($conn, (int) $row['vendor_id'], $row);
+	}
 	echo json_encode($row);
 }
-if ($cmd == 'get_grn_for_extra_expense') {
-	require_once __DIR__ . '/include/expense_functions.php';
-	$grn_no = trim($_REQUEST['grn_no'] ?? '');
-	$exclude_expense_id = (int) ($_REQUEST['exclude_expense_id'] ?? 0);
-	$result = expense_lookup_grn($conn, $grn_no);
-	if ($result['status'] == 1 && isset($result['data'])) {
-		$result['data']['extra_paid_total'] = round(expense_sum_by_grn($conn, $grn_no, $exclude_expense_id));
-	}
-	echo json_encode($result);
+if ($cmd == 'get_vendor_type_options') {
+	require_once __DIR__ . '/include/vendor_master_helpers.php';
+	ew_vendor_ensure_table($conn);
+	$selected = trim($_REQUEST['selected'] ?? '');
+	echo ew_vendor_type_select_html($conn, $selected);
 	exit;
 }
 if ($cmd == 'get_consignee') {
@@ -1825,29 +1817,40 @@ if($cmd=="get_client_branches")
 // }
 
 if ($cmd == "get_branch_details") {
-
-    $branch_id = isset($_REQUEST['branch_id']) ? $_REQUEST['branch_id'] : 0;
-
-    $query = mysqli_query($conn,"
-        SELECT
-            cb.*,
-            c.city_name,
-            s.state_name
-        FROM client_branch cb
-        LEFT JOIN city c
-            ON c.city_id = cb.city
-        LEFT JOIN state s
-            ON s.state_id = cb.state
-        WHERE cb.client_branch_id = '$branch_id'
-    ");
-
-    $row = mysqli_fetch_assoc($query);
-
-    if ($row) {
-        $row['state_id'] = (int) ($row['state'] ?? 0);
+    // Branch master (branch.php, branch_list.php) — tbl_id → branch table
+    if (isset($_REQUEST['tbl_id']) && $_REQUEST['tbl_id'] !== '') {
+        $tbl_id = (int) $_REQUEST['tbl_id'];
+        $query = "SELECT * FROM branch WHERE branch_id='" . $tbl_id . "'";
+        $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
+        $row = mysqli_fetch_array($result);
+        echo json_encode($row ?: null);
+        exit;
     }
 
-    echo json_encode($row);
+    // Consignor/consignee client branches (transactions.php) — branch_id → client_branch
+    $branch_id = isset($_REQUEST['branch_id']) ? (int) $_REQUEST['branch_id'] : 0;
+    if ($branch_id > 0) {
+        $query = mysqli_query($conn, "
+            SELECT
+                cb.*,
+                c.city_name,
+                s.state_name
+            FROM client_branch cb
+            LEFT JOIN city c
+                ON c.city_id = cb.city
+            LEFT JOIN state s
+                ON s.state_id = cb.state
+            WHERE cb.client_branch_id = '" . $branch_id . "'
+        ");
+        $row = mysqli_fetch_assoc($query);
+        if ($row) {
+            $row['state_id'] = (int) ($row['state'] ?? 0);
+        }
+        echo json_encode($row ?: null);
+        exit;
+    }
+
+    echo json_encode(null);
     exit;
 }
 

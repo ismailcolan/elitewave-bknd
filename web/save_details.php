@@ -1284,115 +1284,71 @@ if ($form_name == 'inacv_package') {
         echo 0;
 }
 
-// expense category master
-if ($form_name == 'add_expense_category') {
-    $category_code = strtoupper(trim($_POST['category_code'] ?? ''));
-    $category_name = trim($_POST['category_name'] ?? '');
-    $category_code = mysqli_real_escape_string($conn, $category_code);
-    $category_name = mysqli_real_escape_string($conn, $category_name);
-    $query = "INSERT INTO expense_category (category_code, category_name, created_at, created_by, status)
-        VALUES ('$category_code', '$category_name', '$created_at', '$created_by', 0)";
-    $result = mysqli_query($conn, $query);
-    echo $result ? 1 : 0;
+// expense type master
+if ($form_name == 'add_expense_type') {
+    require_once __DIR__ . '/include/expense_type_helpers.php';
+    $result = expense_type_save_row($conn, $_POST, '', $created_by, $updated_by);
+    echo !empty($result['ok']) ? 1 : ($result['message'] ?? 0);
+    exit;
 }
-if ($form_name == 'edit_expense_category') {
-    $edit_id = (int) ($_POST['edit_id'] ?? 0);
-    $category_code = strtoupper(trim($_POST['category_code'] ?? ''));
-    $category_name = trim($_POST['category_name'] ?? '');
-    $category_code = mysqli_real_escape_string($conn, $category_code);
-    $category_name = mysqli_real_escape_string($conn, $category_name);
-    $query = "UPDATE expense_category SET category_code='$category_code', category_name='$category_name', updated_at='$updated_at', updated_by='$updated_by' WHERE category_id='$edit_id'";
-    $result = mysqli_query($conn, $query);
-    echo $result ? 1 : 0;
+if ($form_name == 'edit_expense_type') {
+    require_once __DIR__ . '/include/expense_type_helpers.php';
+    $edit_key = trim($_POST['edit_id'] ?? '');
+    $result = expense_type_save_row($conn, $_POST, $edit_key, $created_by, $updated_by);
+    echo !empty($result['ok']) ? 1 : ($result['message'] ?? 0);
+    exit;
 }
+if ($form_name == 'add_expense_type_label') {
+    require_once __DIR__ . '/include/expense_type_helpers.php';
+    header('Content-Type: application/json; charset=utf-8');
+    $result = expense_type_add_label($conn, $_POST['type_name'] ?? '', $created_by);
+    echo json_encode($result);
+    exit;
+}
+
 if ($form_name == 'inacv_expense_category') {
     $id = (int) ($_POST['tbl_id'] ?? 0);
     $status = (int) ($_POST['status'] ?? 0);
     $query = "UPDATE expense_category SET status='$status', updated_at='$updated_at', updated_by='$updated_by' WHERE category_id='$id'";
     $result = mysqli_query($conn, $query);
     echo $result ? 1 : 0;
-}
-
-if ($form_name == 'quick_add_expense_category') {
-    require_once __DIR__ . '/include/expense_functions.php';
-    header('Content-Type: application/json; charset=utf-8');
-    $category_name = trim($_POST['category_name'] ?? '');
-    if ($category_name === '') {
-        echo json_encode(array('result' => 0, 'message' => 'Category name is required.'));
-        exit;
-    }
-    $category_code = expense_auto_category_code($conn, $category_name);
-    $category_code = mysqli_real_escape_string($conn, $category_code);
-    $category_name_esc = mysqli_real_escape_string($conn, $category_name);
-    $query = "INSERT INTO expense_category (category_code, category_name, created_at, created_by, status)
-        VALUES ('$category_code', '$category_name_esc', '$created_at', '$created_by', 0)";
-    $result = mysqli_query($conn, $query);
-    if ($result) {
-        echo json_encode(array(
-            'result' => 1,
-            'id' => (int) mysqli_insert_id($conn),
-            'name' => $category_name,
-        ));
-    } else {
-        echo json_encode(array('result' => 0, 'message' => 'Could not save category.'));
-    }
     exit;
 }
 
-// expense vendor master
-if ($form_name == 'add_expense_vendor') {
-    $vendor_name = mysqli_real_escape_string($conn, trim($_POST['vendor_name'] ?? ''));
-    $vendor_type = mysqli_real_escape_string($conn, strtoupper(trim($_POST['vendor_type'] ?? 'OTHER')));
-    $mobile = mysqli_real_escape_string($conn, trim($_POST['mobile'] ?? ''));
-    $city = mysqli_real_escape_string($conn, trim($_POST['city'] ?? ''));
-    $query = "INSERT INTO expense_vendor (vendor_name, vendor_type, mobile, city, created_at, created_by, status)
-        VALUES ('$vendor_name', '$vendor_type', '$mobile', '$city', '$created_at', '$created_by', 0)";
-    $result = mysqli_query($conn, $query);
-    echo $result ? 1 : 0;
+// company bank accounts
+if ($form_name == 'add_company_bank' || $form_name == 'edit_company_bank') {
+    require_once __DIR__ . '/include/company_bank_helpers.php';
+    ew_company_bank_ensure_schema($conn);
+    $payload = array(
+        'bank_account_id' => (int) ($_POST['bank_account_id'] ?? 0),
+        'account_label' => $_POST['account_label'] ?? '',
+        'bank_name' => $_POST['bank_name'] ?? '',
+        'ifsc' => $_POST['ifsc'] ?? '',
+        'bank_branch' => $_POST['bank_branch'] ?? '',
+        'account_number' => $_POST['account_number'] ?? '',
+        'is_primary' => $_POST['is_primary'] ?? 0,
+        'status' => $_POST['status'] ?? 0,
+    );
+    $result = ew_company_bank_save($conn, $payload, $created_by);
+    echo !empty($result['ok']) ? 1 : ($result['message'] ?? 0);
+    exit;
 }
-if ($form_name == 'edit_expense_vendor') {
-    $edit_id = (int) ($_POST['edit_id'] ?? 0);
-    $vendor_name = mysqli_real_escape_string($conn, trim($_POST['vendor_name'] ?? ''));
-    $vendor_type = mysqli_real_escape_string($conn, strtoupper(trim($_POST['vendor_type'] ?? 'OTHER')));
-    $mobile = mysqli_real_escape_string($conn, trim($_POST['mobile'] ?? ''));
-    $city = mysqli_real_escape_string($conn, trim($_POST['city'] ?? ''));
-    $query = "UPDATE expense_vendor SET vendor_name='$vendor_name', vendor_type='$vendor_type', mobile='$mobile', city='$city', updated_at='$updated_at', updated_by='$updated_by' WHERE vendor_id='$edit_id'";
-    $result = mysqli_query($conn, $query);
-    echo $result ? 1 : 0;
-}
-if ($form_name == 'inacv_expense_vendor') {
-    $id = (int) ($_POST['tbl_id'] ?? 0);
-    $status = (int) ($_POST['status'] ?? 0);
-    $query = "UPDATE expense_vendor SET status='$status', updated_at='$updated_at', updated_by='$updated_by' WHERE vendor_id='$id'";
-    $result = mysqli_query($conn, $query);
-    echo $result ? 1 : 0;
+if ($form_name == 'delete_company_bank') {
+    require_once __DIR__ . '/include/company_bank_helpers.php';
+    ew_company_bank_ensure_schema($conn);
+    $result = ew_company_bank_delete($conn, (int) ($_POST['bank_account_id'] ?? 0));
+    echo !empty($result['ok']) ? 1 : ($result['message'] ?? 0);
+    exit;
 }
 
-if ($form_name == 'quick_add_expense_vendor') {
+// logistics vendor master — add vendor type
+if ($form_name == 'add_vendor_type') {
+    require_once __DIR__ . '/include/vendor_master_helpers.php';
+    ew_vendor_ensure_table($conn);
+    $type_name = trim($_POST['type_name'] ?? '');
+    $result = ew_vendor_add_type($conn, $type_name, $created_by);
     header('Content-Type: application/json; charset=utf-8');
-    $vendor_name = trim($_POST['vendor_name'] ?? '');
-    $vendor_type = strtoupper(trim($_POST['vendor_type'] ?? 'OTHER'));
-    if ($vendor_name === '') {
-        echo json_encode(array('result' => 0, 'message' => 'Paid-to name is required.'));
-        exit;
-    }
-    if (!in_array($vendor_type, array('DRIVER', 'AGENT', 'HALTING', 'OTHER'), true)) {
-        $vendor_type = 'OTHER';
-    }
-    $vendor_name_esc = mysqli_real_escape_string($conn, $vendor_name);
-    $vendor_type_esc = mysqli_real_escape_string($conn, $vendor_type);
-    $query = "INSERT INTO expense_vendor (vendor_name, vendor_type, mobile, city, created_at, created_by, status)
-        VALUES ('$vendor_name_esc', '$vendor_type_esc', '', '', '$created_at', '$created_by', 0)";
-    $result = mysqli_query($conn, $query);
-    if ($result) {
-        echo json_encode(array(
-            'result' => 1,
-            'id' => (int) mysqli_insert_id($conn),
-            'name' => $vendor_name,
-        ));
-    } else {
-        echo json_encode(array('result' => 0, 'message' => 'Could not save paid-to party.'));
-    }
+    echo json_encode($result);
     exit;
 }
 
@@ -1407,6 +1363,8 @@ if ($form_name == 'add_vendor') {
     $edit_key = trim($_POST['edit_id'] ?? '');
     $vendor_name = mysqli_real_escape_string($conn, trim($_POST['vendor_name'] ?? ''));
     $contact_person = mysqli_real_escape_string($conn, trim($_POST['contact_person'] ?? ''));
+    $contact_designation = mysqli_real_escape_string($conn, trim($_POST['contact_designation'] ?? ''));
+    $website = mysqli_real_escape_string($conn, trim($_POST['website'] ?? ''));
     $address1 = mysqli_real_escape_string($conn, trim($_POST['address1'] ?? ''));
     $address2 = mysqli_real_escape_string($conn, trim($_POST['address2'] ?? ''));
     $state = (int) ($_POST['state'] ?? 0);
@@ -1417,8 +1375,18 @@ if ($form_name == 'add_vendor') {
     $email_alt = mysqli_real_escape_string($conn, trim($_POST['email_alt'] ?? ''));
     $contact_no = mysqli_real_escape_string($conn, trim($_POST['contact_no'] ?? ''));
     $contact_no2 = mysqli_real_escape_string($conn, trim($_POST['contact_no2'] ?? ''));
-    $gstin = ew_vendor_normalize_gstin($_POST['gstin'] ?? '');
     $pan_no = strtoupper(trim($_POST['pan_no'] ?? ''));
+    $tax_flags = ew_vendor_parse_tax_flags($_POST);
+    if (empty($tax_flags['ok'])) {
+        echo $tax_flags['message'] ?? 'Invalid tax details.';
+        exit;
+    }
+    $gst_registered = (int) $tax_flags['gst_registered'];
+    $gst_exemption = (int) $tax_flags['gst_exemption'];
+    $tds_applicable = (int) $tax_flags['tds_applicable'];
+    $tds_rate = $tax_flags['tds_rate'];
+    $tds_rate_sql = ($tds_rate === null) ? 'NULL' : "'" . mysqli_real_escape_string($conn, (string) $tds_rate) . "'";
+    $gstin = $tax_flags['gstin'];
     $mode_of_transport = mysqli_real_escape_string($conn, trim($_POST['mode_of_transport'] ?? ''));
     $service_type = mysqli_real_escape_string($conn, trim($_POST['service_type'] ?? ''));
     $operating_from = mysqli_real_escape_string($conn, trim($_POST['operating_from'] ?? ''));
@@ -1426,14 +1394,16 @@ if ($form_name == 'add_vendor') {
     $payment_terms = mysqli_real_escape_string($conn, trim($_POST['payment_terms'] ?? ''));
     $credit_days = trim($_POST['credit_days'] ?? '');
     $credit_days_sql = ($credit_days === '') ? 'NULL' : (int) $credit_days;
-    $account_holder_name = mysqli_real_escape_string($conn, trim($_POST['account_holder_name'] ?? ''));
-    $bank_name = mysqli_real_escape_string($conn, trim($_POST['bank_name'] ?? ''));
-    $account_number = mysqli_real_escape_string($conn, trim($_POST['account_number'] ?? ''));
-    $ifsc = strtoupper(trim($_POST['ifsc'] ?? ''));
-    $bank_branch = mysqli_real_escape_string($conn, trim($_POST['bank_branch'] ?? ''));
     $status = (int) ($_POST['status'] ?? 0);
+    $bank_accounts_raw = ew_vendor_parse_bank_accounts_post($_POST);
+    $bank_validation = ew_vendor_validate_bank_accounts($bank_accounts_raw);
+    if (empty($bank_validation['ok'])) {
+        echo $bank_validation['message'] ?? 'Invalid bank account details.';
+        exit;
+    }
+    $bank_accounts = $bank_validation['accounts'];
 
-    if ($vendor_name === '' || $vendor_type === '' || $contact_person === '' || $contact_no === '' || $state <= 0 || $city <= 0 || $address1 === '' || $mode_of_transport === '' || $pan_no === '') {
+    if ($vendor_name === '' || $vendor_type === '' || $contact_person === '' || $contact_no === '' || trim($_POST['email'] ?? '') === '' || $state <= 0 || $city <= 0 || $address1 === '' || $pan_no === '') {
         echo 'Please fill all mandatory fields.';
         exit;
     }
@@ -1441,18 +1411,25 @@ if ($form_name == 'add_vendor') {
         echo 'Invalid PAN number.';
         exit;
     }
-    if ($gstin !== '' && !ew_vendor_validate_gstin($gstin)) {
-        echo 'Invalid GSTIN. Enter 15 characters (example: 29AABCU9603R1ZM) or leave blank.';
-        exit;
-    }
-    if ($ifsc !== '' && !ew_vendor_validate_ifsc($ifsc)) {
-        echo 'Invalid IFSC code.';
-        exit;
-    }
 
     $gstin_esc = mysqli_real_escape_string($conn, $gstin);
     $pan_esc = mysqli_real_escape_string($conn, $pan_no);
-    $ifsc_esc = mysqli_real_escape_string($conn, $ifsc);
+
+    $primary_bank = null;
+    foreach ($bank_accounts as $acc) {
+        if (($acc['account_role'] ?? '') === 'PRIMARY') {
+            $primary_bank = $acc;
+            break;
+        }
+    }
+    if (!$primary_bank && !empty($bank_accounts)) {
+        $primary_bank = $bank_accounts[0];
+    }
+    $account_holder_name = mysqli_real_escape_string($conn, $primary_bank['account_holder_name'] ?? '');
+    $bank_name = mysqli_real_escape_string($conn, $primary_bank['bank_name'] ?? '');
+    $account_number = mysqli_real_escape_string($conn, $primary_bank['account_number'] ?? '');
+    $ifsc_esc = mysqli_real_escape_string($conn, $primary_bank['ifsc'] ?? '');
+    $bank_branch = mysqli_real_escape_string($conn, $primary_bank['bank_branch'] ?? '');
 
     $edit_check = ($edit_key !== '') ? " AND md5(vendor_id)!='" . mysqli_real_escape_string($conn, $edit_key) . "' " : '';
     $dup_name = mysqli_query($conn, "SELECT vendor_id FROM vendor_master WHERE vendor_name='$vendor_name' $edit_check LIMIT 1");
@@ -1478,6 +1455,7 @@ if ($form_name == 'add_vendor') {
             vendor_name='$vendor_name',
             vendor_type='$vendor_type',
             contact_person='$contact_person',
+            contact_designation='$contact_designation',
             address1='$address1',
             address2='$address2',
             state='$state',
@@ -1485,9 +1463,14 @@ if ($form_name == 'add_vendor') {
             pincode='$pincode',
             email='$email',
             email_alt='$email_alt',
+            website='$website',
             contact_no='$contact_no',
             contact_no2='$contact_no2',
+            gst_registered='$gst_registered',
             gstin='$gstin_esc',
+            gst_exemption='$gst_exemption',
+            tds_applicable='$tds_applicable',
+            tds_rate=$tds_rate_sql,
             pan_no='$pan_esc',
             mode_of_transport='$mode_of_transport',
             service_type='$service_type',
@@ -1505,6 +1488,12 @@ if ($form_name == 'add_vendor') {
             updated_by='$updated_by'
             WHERE md5(vendor_id)='" . mysqli_real_escape_string($conn, $edit_key) . "'";
         $result = mysqli_query($conn, $query);
+        if ($result) {
+            $vid_q = mysqli_query($conn, "SELECT vendor_id FROM vendor_master WHERE md5(vendor_id)='" . mysqli_real_escape_string($conn, $edit_key) . "' LIMIT 1");
+            if ($vid_q && ($vid_row = mysqli_fetch_assoc($vid_q))) {
+                ew_vendor_save_bank_accounts($conn, (int) $vid_row['vendor_id'], $bank_accounts, $updated_by);
+            }
+        }
         echo $result ? 1 : 0;
         exit;
     }
@@ -1514,21 +1503,25 @@ if ($form_name == 'add_vendor') {
     $vendor_code_id = (int) $next['vendor_code_id'];
 
     $query = "INSERT INTO vendor_master (
-        vendor_code, vendor_code_id, vendor_name, vendor_type, contact_person,
-        address1, address2, state, city, pincode, email, email_alt,
-        contact_no, contact_no2, gstin, pan_no, mode_of_transport, service_type,
-        operating_from, operating_to, payment_terms, credit_days,
+        vendor_code, vendor_code_id, vendor_name, vendor_type, contact_person, contact_designation,
+        address1, address2, state, city, pincode, email, email_alt, website,
+        contact_no, contact_no2, gst_registered, gstin, gst_exemption, tds_applicable, tds_rate, pan_no,
+        mode_of_transport, service_type, operating_from, operating_to, payment_terms, credit_days,
         account_holder_name, bank_name, account_number, ifsc, bank_branch,
         status, created_at, created_by
     ) VALUES (
-        '$vendor_code', '$vendor_code_id', '$vendor_name', '$vendor_type', '$contact_person',
-        '$address1', '$address2', '$state', '$city', '$pincode', '$email', '$email_alt',
-        '$contact_no', '$contact_no2', '$gstin_esc', '$pan_esc', '$mode_of_transport', '$service_type',
-        '$operating_from', '$operating_to', '$payment_terms', $credit_days_sql,
+        '$vendor_code', '$vendor_code_id', '$vendor_name', '$vendor_type', '$contact_person', '$contact_designation',
+        '$address1', '$address2', '$state', '$city', '$pincode', '$email', '$email_alt', '$website',
+        '$contact_no', '$contact_no2', '$gst_registered', '$gstin_esc', '$gst_exemption', '$tds_applicable', $tds_rate_sql, '$pan_esc',
+        '$mode_of_transport', '$service_type', '$operating_from', '$operating_to', '$payment_terms', $credit_days_sql,
         '$account_holder_name', '$bank_name', '$account_number', '$ifsc_esc', '$bank_branch',
         '$status', '$created_at', '$created_by'
     )";
     $result = mysqli_query($conn, $query);
+    if ($result) {
+        $vendor_id = (int) mysqli_insert_id($conn);
+        ew_vendor_save_bank_accounts($conn, $vendor_id, $bank_accounts, $created_by);
+    }
     echo $result ? 1 : 0;
     exit;
 }
@@ -1539,52 +1532,6 @@ if ($form_name == 'inacv_vendor') {
     $id = (int) ($_POST['tbl_id'] ?? 0);
     $status = (int) ($_POST['status'] ?? 0);
     $query = "UPDATE vendor_master SET status='$status', updated_at='$updated_at', updated_by='$updated_by' WHERE vendor_id='$id'";
-    $result = mysqli_query($conn, $query);
-    echo $result ? 1 : 0;
-    exit;
-}
-
-// extra expense (GCN linked)
-if ($form_name == 'add_extra_expense' || $form_name == 'edit_extra_expense') {
-    require_once __DIR__ . '/include/expense_functions.php';
-    $expense_date = trim($_POST['expense_date'] ?? '');
-    $grn_no = trim($_POST['grn_no'] ?? '');
-    $transaction_id = (int) ($_POST['transaction_id'] ?? 0);
-    $trans_table = trim($_POST['trans_table'] ?? '');
-    $category_id = (int) ($_POST['category_id'] ?? 0);
-    $vendor_id = (int) ($_POST['vendor_id'] ?? 0);
-    $amount = round((float) ($_POST['amount'] ?? 0));
-    $payment_mode = mysqli_real_escape_string($conn, strtoupper(trim($_POST['payment_mode'] ?? 'CASH')));
-    $paid_by = mysqli_real_escape_string($conn, trim($_POST['paid_by'] ?? ''));
-    $description = mysqli_real_escape_string($conn, trim($_POST['description'] ?? ''));
-    $edit_id = (int) ($_POST['edit_id'] ?? 0);
-
-    if ($grn_no === '' || $category_id <= 0 || $vendor_id <= 0 || $amount <= 0) {
-        echo 'Please fill all required fields.';
-        exit;
-    }
-
-    $lookup = expense_lookup_grn($conn, $grn_no);
-    if ($lookup['status'] != 1) {
-        echo $lookup['message'];
-        exit;
-    }
-
-    $grn_esc = mysqli_real_escape_string($conn, $grn_no);
-    $trans_table_esc = mysqli_real_escape_string($conn, $trans_table);
-    $expense_date_esc = mysqli_real_escape_string($conn, $expense_date);
-
-    if ($form_name == 'edit_extra_expense' && $edit_id > 0) {
-        $query = "UPDATE extra_expense SET expense_date='$expense_date_esc', category_id='$category_id', vendor_id='$vendor_id', amount='$amount', payment_mode='$payment_mode', paid_by='$paid_by', description='$description', updated_at='$updated_at', updated_by='$updated_by' WHERE expense_id='$edit_id' AND status=0";
-        $result = mysqli_query($conn, $query);
-        echo $result ? 1 : 0;
-        exit;
-    }
-
-    $expense_no = expense_next_number($conn, $expense_date);
-    $expense_no_esc = mysqli_real_escape_string($conn, $expense_no);
-    $query = "INSERT INTO extra_expense (expense_no, expense_date, grn_no, transaction_id, trans_table, category_id, vendor_id, amount, payment_mode, paid_by, description, status, created_at, created_by)
-        VALUES ('$expense_no_esc', '$expense_date_esc', '$grn_esc', '$transaction_id', '$trans_table_esc', '$category_id', '$vendor_id', '$amount', '$payment_mode', '$paid_by', '$description', 0, '$created_at', '$created_by')";
     $result = mysqli_query($conn, $query);
     echo $result ? 1 : 0;
     exit;
@@ -7670,6 +7617,7 @@ if ($form_name == 'add_gst_tax_master' || $form_name == 'edit_gst_tax_master') {
     $sgst_rate = (float) ($_POST['sgst_rate'] ?? 0);
     $igst_rate = (float) ($_POST['igst_rate'] ?? 0);
     $cess_rate = (float) ($_POST['cess_rate'] ?? 0);
+    $tds_rate = (float) ($_POST['tds_rate'] ?? 0);
     $status = isset($_POST['status']) && (int) $_POST['status'] === 0 ? 0 : 1;
     $edit_id = (int) ($_POST['edit_id'] ?? 0);
 
@@ -7678,7 +7626,7 @@ if ($form_name == 'add_gst_tax_master' || $form_name == 'edit_gst_tax_master') {
         exit;
     }
 
-    $validation_error = gst_tax_validate_payload($gst_rate, $cgst_rate, $sgst_rate, $igst_rate, $cess_rate);
+    $validation_error = gst_tax_validate_payload($gst_rate, $cgst_rate, $sgst_rate, $igst_rate, $cess_rate, $tds_rate);
     if ($validation_error !== '') {
         echo json_encode(array('status' => 0, 'message' => $validation_error));
         exit;
@@ -7694,10 +7642,10 @@ if ($form_name == 'add_gst_tax_master' || $form_name == 'edit_gst_tax_master') {
 
     if ($form_name == 'add_gst_tax_master') {
         $sql = "INSERT INTO gst_tax_master
-            (tax_code, tax_name, gst_rate, cgst_rate, sgst_rate, igst_rate, cess_rate, status, is_deleted, created_at, created_by)
+            (tax_code, tax_name, gst_rate, cgst_rate, sgst_rate, igst_rate, cess_rate, tds_rate, status, is_deleted, created_at, created_by)
             VALUES (
                 '$tax_code_sql', '$tax_name_sql',
-                '$gst_rate', '$cgst_rate', '$sgst_rate', '$igst_rate', '$cess_rate',
+                '$gst_rate', '$cgst_rate', '$sgst_rate', '$igst_rate', '$cess_rate', '$tds_rate',
                 '$status', 0, '$created_at', '$created_by'
             )";
         $ok = mysqli_query($conn, $sql);
@@ -7721,6 +7669,7 @@ if ($form_name == 'add_gst_tax_master' || $form_name == 'edit_gst_tax_master') {
         sgst_rate='$sgst_rate',
         igst_rate='$igst_rate',
         cess_rate='$cess_rate',
+        tds_rate='$tds_rate',
         status='$status',
         updated_at='$updated_at',
         updated_by='$updated_by'

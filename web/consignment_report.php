@@ -54,10 +54,6 @@ table{
 }
 }
 
-.select2-container .select2-choice{
-	line-height: 1 !important;
-}
-
 /* Consignment report — period filter row */
 .report-period-row {
 	margin-bottom: 8px;
@@ -165,27 +161,7 @@ table{
 	background: #fff;
 }
 #transaction_form .select2-container {
-	display: block !important;
-	width: 100% !important;
 	margin-top: 0 !important;
-}
-#transaction_form .select2-container .select2-choice {
-	height: 38px !important;
-	line-height: 36px !important;
-	border: 1px solid #D8DDE5 !important;
-	border-radius: 8px !important;
-	background: #fff !important;
-	padding-left: 10px !important;
-}
-#transaction_form .select2-container .select2-choice > .select2-chosen {
-	line-height: 36px !important;
-	margin-right: 28px;
-}
-#transaction_form .select2-container .select2-choice .select2-arrow {
-	height: 36px !important;
-	width: 28px !important;
-	border-left: none !important;
-	background: transparent !important;
 }
 .widget-container.fluid-height .widget-content.padded {
 	overflow: visible;

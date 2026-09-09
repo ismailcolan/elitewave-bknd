@@ -131,16 +131,17 @@ $tax_rows = gst_tax_fetch_list($conn, array(
                                         <th class="table-title pct" style="width:8%">CGST %</th>
                                         <th class="table-title pct" style="width:10%">SGST/UTGST %</th>
                                         <th class="table-title pct" style="width:8%">IGST %</th>
-                                        <th class="table-title pct" style="width:8%">Cess %</th>
-                                        <th class="table-title" style="width:8%">Status</th>
-                                        <th class="table-title" style="width:12%">Action</th>
+                                        <th class="table-title pct" style="width:7%">Cess %</th>
+                                        <th class="table-title pct" style="width:7%">TDS %</th>
+                                        <th class="table-title" style="width:7%">Status</th>
+                                        <th class="table-title" style="width:11%">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php
                                     $i = 1;
                                     if (empty($tax_rows)) {
-                                        echo '<tr><td colspan="10" class="text-center">No records found.</td></tr>';
+                                        echo '<tr><td colspan="11" class="text-center">No records found.</td></tr>';
                                     } else {
                                         foreach ($tax_rows as $row) {
                                             $is_deleted = (int) $row['is_deleted'] === 1;
@@ -162,6 +163,7 @@ $tax_rows = gst_tax_fetch_list($conn, array(
                                                 <td class="pct"><?php echo gst_tax_format_rate($row['sgst_rate']); ?></td>
                                                 <td class="pct"><?php echo gst_tax_format_rate($row['igst_rate']); ?></td>
                                                 <td class="pct"><?php echo gst_tax_format_rate($row['cess_rate']); ?></td>
+                                                <td class="pct"><?php echo gst_tax_format_rate($row['tds_rate'] ?? 0); ?></td>
                                                 <td><?php echo $status_label; ?></td>
                                                 <td class="actions center-content">
                                                     <div class="action-buttons">
@@ -238,7 +240,7 @@ $tax_rows = gst_tax_fetch_list($conn, array(
                     if (visibleCount === 0) {
                         if (!$emptyRow.length) {
                             $('#gstTaxTable tbody').append(
-                                '<tr class="gst-search-empty"><td colspan="10" class="text-center">No records found.</td></tr>'
+                                '<tr class="gst-search-empty"><td colspan="11" class="text-center">No records found.</td></tr>'
                             );
                         }
                     } else {

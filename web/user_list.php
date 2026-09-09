@@ -41,21 +41,6 @@ div#dataTable1_length {
     text-align: right;
     color: #5f5f5f;
 }
-.us_list_tbl{
-	margin: 0 auto;
-	width: max-content!important;
-    max-width: unset!important;
-
-    clear: both;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
-th.table-title.sorting {
-    width: 144px!important;
-}
-th.table-title.sorting_disabled {
-    width: 55px!important;
-}
 }
 </style>
   </head>
@@ -117,7 +102,7 @@ th.table-title.sorting_disabled {
 											else
 											{
 											?>
-											<a class="table-actions btn-active" style="color:red;" data-status="<?php echo $row['status']  ?>" title="Active" id="<?php echo $row['user_id'] ?>"><i class="fa fa-times"></i></a>
+											<a class="table-actions btn-active is-inactive" data-status="<?php echo $row['status']  ?>" title="Active" id="<?php echo $row['user_id'] ?>"><i class="fa fa-times"></i></a>
 											<?php 
 											}
 											?>

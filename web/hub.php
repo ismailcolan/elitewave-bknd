@@ -9,11 +9,6 @@ require_once("include/function.php");
   <?php include("include/css_js.php"); ?>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 <style>
-.widget-content.padded.clearfix.new_dept {
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-}
 #contact_no:invalid {
   color: red;
 }

@@ -227,7 +227,7 @@ $count_read = mysqli_num_rows($read_status);
 .nav-item.open > .submenu { max-height: 1200px; }
 
 .submenu .nav-link {
-  padding: 9px 16px 9px 40px;   /* shifted right */
+  padding: 9px 16px 9px 40px;
   font-size: 0.87rem;
   font-weight: 400;
   margin: 1px 10px;
@@ -251,7 +251,7 @@ $count_read = mysqli_num_rows($read_status);
   box-shadow: none;
   transition: background .18s ease;
 }
- .submenu .nav-link:hover .nav-waypoint::before {
+.submenu .nav-link:hover .nav-waypoint::before {
   background: #fff;
 }
 .submenu .nav-link.active .nav-waypoint::before {
@@ -394,6 +394,7 @@ $count_read = mysqli_num_rows($read_status);
       </div>
       <div class="submenu" id="menu-master">
         <a class="nav-link" href="company.php"><span class="nav-waypoint"></span>Company</a>
+        <a class="nav-link" href="company_bank.php"><span class="nav-waypoint"></span>Company Bank</a>
         <a class="nav-link" href="branch.php"><span class="nav-waypoint"></span>Branch</a>
         <a class="nav-link" href="state.php"><span class="nav-waypoint"></span>State</a>
         <a class="nav-link" href="city.php"><span class="nav-waypoint"></span>City</a>
@@ -402,6 +403,9 @@ $count_read = mysqli_num_rows($read_status);
         <a class="nav-link" href="gst_tax_master.php"><span class="nav-waypoint"></span>GST Tax Master</a>
         <a class="nav-link" href="client.php"><span class="nav-waypoint"></span>Client</a>
         <a class="nav-link" href="vendor.php"><span class="nav-waypoint"></span>Vendor</a>
+        <a class="nav-link" href="expense_type_master.php"><span class="nav-waypoint"></span>Expense Type Master</a>
+        <a class="nav-link" href="expense_gcn.php"><span class="nav-waypoint"></span>Expense against GCN</a>
+        <a class="nav-link" href="expense_general.php"><span class="nav-waypoint"></span>General Expense</a>
         <a class="nav-link" href="client_branch.php"><span class="nav-waypoint"></span>Client Branch</a>
         <a class="nav-link" href="rate_calculator_form.php"><span class="nav-waypoint"></span>Rate Calculator</a>
         <a class="nav-link" href="expected_delivery_form.php"><span class="nav-waypoint"></span>Expected Delivery</a>
@@ -414,21 +418,6 @@ $count_read = mysqli_num_rows($read_status);
         <a class="nav-link" href="vehicle.php"><span class="nav-waypoint"></span>Vehicle</a>
         <a class="nav-link" href="train.php"><span class="nav-waypoint"></span>Train</a>
         <a class="nav-link" href="flight.php"><span class="nav-waypoint"></span>Flight</a>
-      </div>
-    </div>
-
-    <!-- Extra Expense -->
-    <div class="nav-item" data-tooltip="Extra Expense" id="item-extra-expense">
-      <div class="nav-link" onclick="toggleMenu('extra-expense')">
-        <span class="nav-waypoint"></span>
-        <img src="./images/master2.png" class="nav-icon" alt="">
-        <span class="nav-text">Extra Expense</span>
-        <i class="fa fa-chevron-right nav-arrow"></i>
-      </div>
-      <div class="submenu" id="menu-extra-expense">
-        <a class="nav-link" href="expense.php"><span class="nav-waypoint"></span>Add Expense</a>
-        <a class="nav-link" href="expense_list.php"><span class="nav-waypoint"></span>Expense List</a>
-        <a class="nav-link" href="expense_report.php"><span class="nav-waypoint"></span>GCN Expense Report</a>
       </div>
     </div>
 
@@ -482,6 +471,7 @@ $count_read = mysqli_num_rows($read_status);
         <a class="nav-link" href="track_consignment.php"><span class="nav-waypoint"></span>Track Consignment</a>
         <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
           <a class="nav-link" href="status_sheet.php"><span class="nav-waypoint"></span>Consignment Status Sheet</a>
+          <a class="nav-link" href="trip_summary.php"><span class="nav-waypoint"></span>Trip Summary Sheet</a>
           <a class="nav-link" href="transaction_status.php"><span class="nav-waypoint"></span>Transaction Status</a>
           <a class="nav-link" href="create_invoice.php"><span class="nav-waypoint"></span>Create Invoice</a>
           <a class="nav-link" href="invoice_list.php"><span class="nav-waypoint"></span>Invoice List</a>

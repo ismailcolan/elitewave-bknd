@@ -41,18 +41,6 @@ div#dataTable1_length {
     margin: 5px 0 10px;
 }
 
-.user_appr_tbl{
-	margin: 0 auto;
-	width: max-content!important;
-    max-width: unset!important;
-
-    clear: both;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
-th.table-title.sorting {
-    width: 111px!important;
-}
 .dataTables_filter {
     width: 56%;
     float: right;
@@ -103,24 +91,12 @@ th.table-title.sorting {
                                         <td><?php echo $row['contact_no']; ?></td>
                                         <!-- <td><?php  // echo $row['consignor_city'];
                                     ?></td> -->
-                                        <td class="actions center-content ">
-
-                                            <div class="action-buttons">
-                                                <?php
-                                                if ($row['status'] == '0') {
-                                                    // if($status ==0){
-                                                    ?>
-
-                                                    <a class="table-actions btn-active" style="color:orange;" data-status="<?php echo $row['status'] ?>" title="Not Active" id="<?php echo $row['user_id'] ?>">In Active</a>
-                                                <?php
-                                                } else {
-                                                    ?>
-                                                    <a class="table-actions btn-active" style="color:green; hover:white;" data-status="<?php echo $row['status'] ?>" title="Active" id="<?php echo $row['user_id'] ?>">Active</a>
-                                                <?php
-                                                }
-                                                ?>
-
-                                            </div>
+                                        <td class="text-center">
+                                            <?php if ($row['status'] == '0') { ?>
+                                                <span class="ew-badge ew-badge--inactive">Inactive</span>
+                                            <?php } else { ?>
+                                                <span class="ew-badge ew-badge--active">Active</span>
+                                            <?php } ?>
                                         </td>
                                         <td class="actions center-content ">
 
@@ -133,7 +109,7 @@ th.table-title.sorting {
                                                 <?php
                                                 } else {
                                                     ?>
-                                                    <a class="table-actions btn-active" style="color:red;" data-status="<?php echo $row['status'] ?>" title="Approved" id="<?php echo $row['user_id'] ?>"><i class="fa fa-times"></i></a>
+                                                    <a class="table-actions btn-active is-inactive" data-status="<?php echo $row['status'] ?>" title="Approved" id="<?php echo $row['user_id'] ?>"><i class="fa fa-times"></i></a>
                                                 <?php
                                                 }
                                                 ?>

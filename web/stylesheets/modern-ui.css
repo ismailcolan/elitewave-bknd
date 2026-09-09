@@ -5,11 +5,12 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ── Design Tokens — Logo Brand Palette ────────────────────── */
+/* ── Design Tokens ────────────────────── */
 :root {
   --ew-navy:        #0A1E3D;
   --ew-navy-light:  #132D54;
   --ew-navy-mid:    #1B3A5C;
+  --ew-navy-deep:   #061428;
   --ew-primary:     #0A1E3D;
   --ew-primary-dark:#06122A;
   --ew-primary-light:#E8EDF4;
@@ -77,7 +78,7 @@ strong { font-weight: 700; }
 body.page-header-fixed { padding-top: 70px !important; }
 
 .main-content {
-  min-height: calc(100vh - 70px);
+  min-height: 0;
 }
 
 /* ── Cards / Panels ───────────────────────────────────────── */
@@ -109,7 +110,7 @@ body.page-header-fixed { padding-top: 70px !important; }
   border-bottom: 1px solid var(--ew-border-light) !important;
 }
 
-/* ── Tables — FORCE light mode visibility ─────────────────── */
+/* ── Tables — dark navy header system (global) ─────────────── */
 .table {
   width: 100%;
   border-collapse: separate;
@@ -119,27 +120,29 @@ body.page-header-fixed { padding-top: 70px !important; }
 }
 .table > thead > tr > th,
 .table > thead > tr > td,
-thead th, thead td {
-  background: var(--ew-primary-light) !important;
-  border-bottom: 2px solid var(--ew-border) !important;
-  font-weight: 700 !important;
-  font-size: 0.72rem !important;
+table.dataTable thead th,
+table.dataTable thead td,
+.dataTable thead th,
+.dataTable thead td {
+  background: #0A1E3D !important;
+  border-bottom: none !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-  color: var(--ew-navy) !important;
-  padding: 8px 10px !important;
+  letter-spacing: 0.04em !important;
+  color: #fff !important;
+  padding: 8px 8px !important;
   white-space: nowrap;
+  vertical-align: middle;
 }
-.table > tbody > tr > td,
-tbody td {
+.table > tbody > tr > td {
   padding: 7px 10px !important;
   border-bottom: 1px solid var(--ew-border-light) !important;
   color: var(--ew-text) !important;
   vertical-align: middle;
   background: transparent !important;
 }
-.table > tbody > tr:hover > td,
-tbody tr:hover td {
+.table > tbody > tr:hover > td {
   background: #F7F9FC !important;
 }
 .table > tbody > tr:last-child > td { border-bottom: none !important; }
@@ -149,25 +152,47 @@ tbody tr:hover td {
   border-radius: var(--ew-radius) !important;
   overflow: hidden;
 }
-.table-bordered > thead > tr > th,
+.table-bordered > thead > tr > th {
+  border: none !important;
+  border-right: 1px solid rgba(255, 255, 255, .1) !important;
+}
+.table-bordered > thead > tr > th:last-child {
+  border-right: none !important;
+}
 .table-bordered > tbody > tr > td {
   border: 1px solid var(--ew-border-light) !important;
 }
 
-/* DataTables table headers — critical override */
+/* DataTables table headers */
 table.dataTable thead th,
 table.dataTable thead td,
 .dataTable thead th,
 .dataTable thead td {
-  background: var(--ew-primary-light) !important;
-  color: var(--ew-navy) !important;
-  font-weight: 700 !important;
-  border-bottom: 2px solid var(--ew-border) !important;
+  background: #0A1E3D !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  border-bottom: none !important;
 }
 table.dataTable tbody td,
 .dataTable tbody td {
   color: var(--ew-text) !important;
   background: transparent !important;
+}
+
+/* All list pages — #dataTable1 + .table-title */
+#dataTable1 th.table-title,
+#dataTable1 thead th,
+th.table-title,
+.widget-container table thead th,
+.widget-container .dataTable thead th {
+  background: #0A1E3D !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  vertical-align: middle !important;
 }
 
 /* ── Form Controls ────────────────────────────────────────── */
@@ -257,11 +282,6 @@ select.select2-offscreen {
   border-color: var(--ew-navy) !important;
   box-shadow: 0 0 0 3px rgba(10, 30, 61, 0.10) !important;
 }
-.select2-container .select2-choice .select2-arrow {
-  border-left: none !important;
-  background: transparent !important;
-  width: 28px !important;
-}
 
 .form-group { margin-bottom: 10px; }
 
@@ -340,15 +360,26 @@ select.select2-offscreen {
   border: 1px solid var(--ew-border) !important;
   border-radius: var(--ew-radius) !important;
   box-shadow: var(--ew-shadow-lg) !important;
-  padding: 8px !important;
+  padding: 0 !important;
   z-index: 9999 !important;
   min-width: 280px !important;
   width: auto !important;
+  overflow: hidden;
 }
 .datepicker-dropdown.ew-month-picker {
   min-width: 236px !important;
   width: 236px !important;
   max-width: 236px !important;
+  padding: 8px !important;
+}
+.datepicker-dropdown .datepicker-days {
+  padding: 0 8px 8px;
+}
+.datepicker-dropdown table {
+  width: 100%;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  margin: 0;
 }
 .datepicker-dropdown table tr td span,
 .datepicker-dropdown table tr td.day {
@@ -365,16 +396,52 @@ select.select2-offscreen {
   color: #fff !important;
   border-radius: 6px !important;
 }
-.datepicker-dropdown table tr th {
-  color: var(--ew-navy) !important;
+.datepicker-dropdown .datepicker-days thead tr:first-child {
+  background: var(--ew-navy) !important;
+  /* OLD: background: #0A1E3D !important; */
+}
+.datepicker-dropdown .datepicker-days thead tr:first-child th {
+  background: transparent !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 10px 6px !important;
   font-weight: 700 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: .04em !important;
+  white-space: nowrap;
+}
+.datepicker-dropdown .datepicker-days thead tr:first-child th.prev,
+.datepicker-dropdown .datepicker-days thead tr:first-child th.next {
+  cursor: pointer;
+  width: 32px;
+}
+.datepicker-dropdown .datepicker-days thead tr:nth-child(2) th {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  border: none !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 8px 4px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: .03em !important;
+}
+.datepicker-dropdown .datepicker-days tbody td {
+  padding: 4px !important;
+  border-bottom: none !important;
+  background: transparent !important;
+  color: var(--ew-text) !important;
+}
+.datepicker-dropdown .datepicker-days tbody tr:hover td {
+  background: transparent !important;
 }
 .datepicker-dropdown .datepicker-switch {
   font-weight: 700 !important;
-  color: var(--ew-navy) !important;
+  color: #fff !important;
 }
 .datepicker-dropdown .next, .datepicker-dropdown .prev {
-  color: var(--ew-navy) !important;
+  color: #fff !important;
 }
 
 .checkbox label, .radio label {
@@ -456,32 +523,7 @@ div.dataTables_wrapper .dataTables_filter input {
   font-size: 0.8rem;
   color: var(--ew-text-muted) !important;
 }
-.dataTables_wrapper .dataTables_paginate {
-  padding: 12px 0;
-  text-align: right;
-}
-.dataTables_wrapper .dataTables_paginate .paginate_button {
-  border: 1px solid var(--ew-border) !important;
-  border-radius: var(--ew-radius-sm) !important;
-  margin: 0 2px;
-  padding: 5px 12px;
-  font-family: var(--ew-font);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ew-text) !important;
-  background: #fff !important;
-  transition: all var(--ew-transition);
-}
-.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-  background: var(--ew-navy) !important;
-  color: #fff !important;
-  border-color: var(--ew-navy) !important;
-}
-.dataTables_wrapper .dataTables_paginate .paginate_button.current {
-  background: var(--ew-navy) !important;
-  color: #fff !important;
-  border-color: var(--ew-navy) !important;
-}
+/* Pagination buttons → ew-design-system.css (single source) */
 div.dt-buttons { margin-bottom: 12px; }
 div.dt-buttons .dt-button {
   font-family: var(--ew-font);
@@ -746,15 +788,11 @@ input[type="file"]::file-selector-button:hover {
   border-radius: var(--ew-radius-sm) !important;
 }
 
-/* ── Sticky Footer Support ─────────────────────────────────── */
-.modal-shiftfix {
-  display: flex;
-  flex-direction: column;
-/*   min-height: 100vh; */
-}
-.modal-shiftfix .container-fluid.main-content,
-.modal-shiftfix .main-content {
-  flex: 1 0 auto;
+/* Sticky footer + .ew-footer → ew-design-system.css */
+
+.main-content .widget-container:last-child,
+.main-content .row:last-child .widget-container:last-child {
+  margin-bottom: 20px !important;
 }
 
 /* ── Responsive ───────────────────────────────────────────── */
@@ -768,4 +806,536 @@ input[type="file"]::file-selector-button:hover {
   h2 { font-size: 1.1rem; }
   .btn { padding: 5px 12px; font-size: 0.78rem; }
   .table { font-size: 0.75rem; }
+}
+
+/* ============================================================
+   Page Shell — unified headers, buttons, panels (app-wide)
+   ============================================================ */
+
+.ew-page-shell,
+.egcn-shell,
+.egen-shell,
+.tss-shell {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, .06);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.ew-page-header,
+.egcn-header,
+.egen-header,
+.tss-header,
+.egcn-list-header,
+.egen-list-header,
+.tss-list-header,
+.trip-list-header,
+.trip-header,
+.txn-page-header {
+  background: linear-gradient(135deg, var(--ew-navy) 0%, #061428 55%, #0c4a6e 100%);
+  color: #fff;
+  padding: 10px 18px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  border-radius: var(--ew-radius) var(--ew-radius) 0 0;
+}
+
+/* Tables inside widget cards — square top on thead (heading owns top radius) */
+.widget-container .widget-content .table-bordered,
+.widget-container .widget-content table.dataTable,
+.widget-container .dataTables_wrapper table.dataTable {
+  border-radius: 0 0 var(--ew-radius-sm) var(--ew-radius-sm) !important;
+  overflow: hidden;
+  border-top: none !important;
+}
+
+.widget-container .widget-content table thead tr:first-child th:first-child,
+.widget-container .widget-content table thead tr:first-child th:last-child,
+.widget-container .dataTables_wrapper table thead tr:first-child th:first-child,
+.widget-container .dataTables_wrapper table thead tr:first-child th:last-child {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+/* Transaction / status list tables — force dark headers (overrides page inline light styles) */
+.trans_list_table thead th,
+#ts_status_table thead th {
+  background: #0A1E3D !important;
+  color: #fff !important;
+  border: none !important;
+  border-right: 1px solid rgba(255, 255, 255, .1) !important;
+  border-bottom: none !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .04em !important;
+}
+
+.trans_list_table thead th:last-child,
+#ts_status_table thead th:last-child {
+  border-right: none !important;
+}
+
+.ew-page-header__main,
+.txn-page-header > div:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ew-page-header__title,
+.txn-page-header h1,
+.txn-page-header .ew-page-header__title {
+  margin: 0;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.25;
+  color: #fff !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ew-page-header__title i,
+.txn-page-header h1 i,
+.txn-page-header .ew-page-header__title i {
+  margin-right: 0 !important;
+  opacity: .92;
+  font-size: 15px;
+  width: 16px;
+  text-align: center;
+}
+
+.ew-page-header__subtitle,
+.txn-header-meta {
+  font-size: 12px !important;
+  font-weight: 500;
+  color: rgba(255, 255, 255, .82) !important;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.ew-page-header__actions,
+.egcn-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Header action buttons — same size everywhere */
+.ew-header-btn,
+.egcn-header-actions .btn,
+.egen-header .btn,
+.tss-header .btn,
+.egcn-list-header .btn,
+.egen-list-header .btn,
+.tss-list-header .btn,
+.tss-list-header a.btn,
+.txn-btn-add {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 14px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all var(--ew-transition);
+}
+
+.ew-header-btn--ghost,
+.egcn-header-actions .btn-default,
+.egen-header .btn-default,
+.tss-header .btn-default {
+  background: rgba(255, 255, 255, .12) !important;
+  border: 1px solid rgba(255, 255, 255, .28) !important;
+  color: #fff !important;
+}
+
+.ew-header-btn--ghost:hover,
+.egcn-header-actions .btn-default:hover,
+.egen-header .btn-default:hover,
+.tss-header .btn-default:hover {
+  background: rgba(255, 255, 255, .22) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, .4) !important;
+}
+
+.ew-header-btn--solid,
+.egcn-list-header .btn,
+.egen-list-header .btn,
+.tss-list-header .btn,
+.tss-list-header a.btn,
+.txn-btn-add {
+  background: #fff !important;
+  border: none !important;
+  color: var(--ew-navy) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+}
+
+.ew-header-btn--solid:hover,
+.egcn-list-header .btn:hover,
+.egen-list-header .btn:hover,
+.tss-list-header .btn:hover,
+.tss-list-header a.btn:hover,
+.txn-btn-add:hover {
+  background: #f8fafc !important;
+  color: var(--ew-navy) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .16);
+}
+
+/* Toolbar / secondary header buttons — match header btn height */
+.import-trigger-btn,
+.txn-toolbar .btn,
+.txn-toolbar button.btn {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 14px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.import-trigger-btn {
+  background: var(--ew-navy) !important;
+  color: #fff !important;
+  border: none !important;
+  margin-top: 0 !important;
+}
+
+.import-trigger-btn:hover {
+  background: var(--ew-navy-light) !important;
+  color: #fff !important;
+}
+
+/* Section panel titles inside pages */
+.ew-panel-title,
+.egcn-panel-title,
+.egen-panel-title,
+.tss-panel-title {
+  padding: 14px 20px;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #334155 !important;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-bottom: 1px solid #e2e8f0;
+  line-height: 1.4;
+}
+
+.ew-panel-title i,
+.egcn-panel-title i,
+.egen-panel-title i,
+.tss-panel-title i {
+  margin-right: 8px;
+  opacity: .85;
+}
+
+/* Page footer action buttons — uniform size */
+.ew-page-footer,
+.egcn-panel-footer,
+.egen-panel-footer,
+.tss-footer {
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ew-page-footer .btn,
+.egcn-panel-footer .btn,
+.egen-panel-footer .btn,
+.tss-footer .btn {
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 20px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Table row action icon buttons */
+.ew-act-btn,
+.act-btn,
+.act-link,
+#egcn_list_table .act-link,
+#egen_list_table .act-link,
+#tss_list_table .act-link {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  box-sizing: border-box;
+}
+
+.act-wrap,
+#egcn_list_table .act-wrap,
+#egen_list_table .act-wrap,
+#tss_list_table .act-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Dark data-table headers */
+.ew-data-table thead th,
+#egcn_list_table th,
+#egen_list_table th,
+#tss_list_table th,
+#trip_list_table th,
+#gcn_items_table th,
+#expense_lines_table th {
+  background: #0A1E3D !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 8px 8px !important;
+  border: none !important;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* List header flex fix — remove pull-right hacks */
+.egcn-list-header,
+.egen-list-header,
+.tss-list-header {
+  border-radius: var(--ew-radius) var(--ew-radius) 0 0;
+}
+
+.egcn-list-header .btn.pull-right,
+.egen-list-header .btn.pull-right,
+.tss-list-header .btn.pull-right,
+.egcn-list-header a[style*="margin-top"],
+.egen-list-header a[style*="margin-top"] {
+  float: none !important;
+  margin-top: 0 !important;
+}
+
+/* Full-width modern pages */
+.main-content.new_dpt_bottom .col-md-12 > .ew-page-shell,
+.main-content.new_dpt_bottom .col-md-12 > .egcn-shell,
+.main-content.new_dpt_bottom .col-md-12 > .egen-shell,
+.main-content.new_dpt_bottom .col-md-12 > .tss-shell {
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .ew-page-header,
+  .egcn-header,
+  .egen-header,
+  .tss-header,
+  .egcn-list-header,
+  .egen-list-header,
+  .tss-list-header,
+  .txn-page-header {
+    padding: 9px 14px;
+    min-height: 40px;
+  }
+  .ew-page-header__title,
+  .txn-page-header h1 {
+    font-size: 14px !important;
+  }
+}
+
+/* ============================================================
+   Legacy pages — .widget-container .heading (all old modules)
+   ============================================================ */
+
+.widget-container {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, .06) !important;
+  overflow: hidden;
+  margin-bottom: 16px !important;
+  margin-top: 8px !important;
+}
+
+.widget-container .heading,
+.widget-container > .heading,
+.widget-container > .ew-page-header,
+.invoice-header-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 8px 12px !important;
+  background: linear-gradient(135deg, var(--ew-navy) 0%, var(--ew-navy-deep) 55%, #0c4a6e 100%) !important;
+  color: #fff !important;
+  padding: 10px 18px !important;
+  min-height: 44px !important;
+  height: auto !important;
+  width: 100% !important;
+  margin: 0 !important;
+  border-radius: var(--ew-radius) var(--ew-radius) 0 0 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  font-family: var(--ew-font) !important;
+}
+
+.widget-container .heading > i:first-child,
+.widget-container .heading [class^="fa"]:first-child,
+.widget-container .heading [class*=" fa-"]:first-child {
+  margin-right: 8px !important;
+  margin-left: 0 !important;
+  font-size: 15px !important;
+  opacity: .92;
+  flex-shrink: 0;
+}
+
+.widget-container .heading span.align-right {
+  float: none !important;
+  margin-left: auto !important;
+  flex-shrink: 0;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px;
+}
+
+.widget-container .heading span.align-right > i.fa {
+  display: none !important;
+}
+
+.widget-container .heading span.align-right a,
+.widget-container .heading span.align-right .btn,
+.widget-container .heading .align-right a {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 14px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  font-family: var(--ew-font) !important;
+  background: #fff !important;
+  border: none !important;
+  color: var(--ew-navy) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .12) !important;
+  transition: all var(--ew-transition);
+}
+
+.widget-container .heading span.align-right a:hover,
+.widget-container .heading span.align-right .btn:hover,
+.widget-container .heading .align-right a:hover {
+  background: #f8fafc !important;
+  color: var(--ew-navy) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .16) !important;
+}
+
+.widget-container .heading span.align-right a[href*="list"],
+.widget-container .heading span.align-right a[href*="List"],
+.widget-container .heading span.align-right a[href*="_list"],
+.widget-container .heading span.align-right a[href*="view"],
+.widget-container .heading span.align-right a[href*="View"] {
+  background: rgba(255, 255, 255, .12) !important;
+  border: 1px solid rgba(255, 255, 255, .28) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.widget-container .heading span.align-right a[href*="list"]:hover,
+.widget-container .heading span.align-right a[href*="List"]:hover,
+.widget-container .heading span.align-right a[href*="_list"]:hover,
+.widget-container .heading span.align-right a[href*="view"]:hover,
+.widget-container .heading span.align-right a[href*="View"]:hover {
+  background: rgba(255, 255, 255, .22) !important;
+  color: #fff !important;
+  transform: none;
+}
+
+.widget-container .widget-content,
+.widget-container .widget-content.padded {
+  padding: 16px 20px !important;
+}
+
+.widget-container .widget-content .btn-primary,
+.widget-container .widget-content .btn-success,
+.widget-container .widget-content .btn-danger,
+.widget-container .widget-content .btn-default,
+.widget-container .widget-content .btn-info,
+.widget-container .form-horizontal .btn-primary,
+.widget-container .form-horizontal .btn-default {
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 20px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px;
+}
+
+.widget-container .btn-add-new,
+.btn-add-new {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 16px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+}
+
+.widget-container .heading [class^="fa"].pull-right,
+.widget-container .heading [class*="fa"].pull-right {
+  opacity: 1 !important;
+  margin-left: 8px !important;
+}
+
+@media (max-width: 767px) {
+  .widget-container .heading {
+    padding: 9px 14px !important;
+    font-size: 14px !important;
+    min-height: 40px !important;
+  }
+  .widget-container .heading span.align-right a,
+  .widget-container .heading span.align-right .btn {
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 12px !important;
+    font-size: 11px !important;
+  }
 }

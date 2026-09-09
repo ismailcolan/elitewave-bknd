@@ -181,7 +181,7 @@ th.table-title.sorting_disabled {
 											<?php
 											} else {
 											?>
-											<a class="table-actions btn-active" style="color:red;" data-status="<?php echo $row['status'] ?>" title="Active" id="<?php echo $row['vehicle_id'] ?>"><i class="fa fa-times"></i></a>
+											<a class="table-actions btn-active is-inactive" data-status="<?php echo $row['status'] ?>" title="Active" id="<?php echo $row['vehicle_id'] ?>"><i class="fa fa-times"></i></a>
 											<?php
 											}
 											?>

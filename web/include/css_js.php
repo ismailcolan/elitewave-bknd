@@ -32,10 +32,10 @@
 	<link href="stylesheets/jquery.timepicker.css" media="all" rel="stylesheet" type="text/css" />
 	
 	<!-- Modern UI Layer (loaded last to override legacy styles) -->
-	<link href="stylesheets/modern-ui.css" media="all" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/modern-ui.css?v=20260909select2b" media="all" rel="stylesheet" type="text/css" />
 	<link href="stylesheets/ew-datepicker.css?v=20260828" media="all" rel="stylesheet" type="text/css" />
 	<link href="stylesheets/ew-form-validation.css" media="all" rel="stylesheet" type="text/css" />
-	
+	<link href="stylesheets/ew-design-system.css?v=20260909select2b" media="all" rel="stylesheet" type="text/css" />
 	
 	
 	
@@ -96,6 +96,7 @@
 	<script src="javascripts/dropzone.js" type="text/javascript"></script>
 	<script src="javascripts/jquery.nestable.js" type="text/javascript"></script>
 	<script src="javascripts/main.js" type="text/javascript"></script>
+	<script src="javascripts/ew-table-drag-scroll.js?v=20260909fix" type="text/javascript"></script>
 	<script src="javascripts/respond.js" type="text/javascript"></script>
 	<script src="javascripts/highcharts.js" type="text/javascript"></script>
 	<script src="javascripts/jSignature.js" type="text/javascript"></script>

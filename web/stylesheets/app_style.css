@@ -1,4 +1,4 @@
-/* theame css*/
+/* theame css — app-specific styles only; global UI in modern-ui.css */
 /*.navbar {
     background: #04243D;
 }
@@ -63,9 +63,7 @@ div#signature {
 }
 
 body {
-    font-family: Calibri, Candara, Segoe, 'Segoe UI', Optima, Arial, sans-serif !important;
     color: #000;
-    font-weight: 700;
 }
 
 body.login2 .login-wrapper input[type="button"] {
@@ -386,13 +384,7 @@ body.login2 .login-wrapper input[type="button"]:hover {
     margin-right: 14px;
 }
 
-.widget-container .heading {
-    color: #FFF;
-    background: linear-gradient(185deg, var(--ew-navy) 0%, var(--ew-navy-deep) 100%);
-    padding: 8px 20px;
-    height: auto;
-    border-radius: 10px 10px 0 0;
-}
+/* .widget-container .heading — moved to modern-ui.css */
 
 .btn-primary {
     background: #04243D;
@@ -717,9 +709,7 @@ div.alert#alert-container1 {
     padding: 0px 10px;
 }
 
-.btn {
-    padding: 2px 12px;
-}
+/* .btn padding — moved to modern-ui.css */
 
 .search-result-area {
     max-height: 340px;
@@ -2424,6 +2414,4 @@ button.multiselect.dropdown-toggle.btn.btn-primary {
     padding-right: 10px;
 }
 
-.heading span a {
-    color: #fff !important;
-}
+/* .heading span a — moved to modern-ui.css */

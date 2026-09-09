@@ -10,17 +10,6 @@ require_once("include/function.php");
     <?php include("include/css_js.php"); ?>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
     <style>
-        .dataTable th.sorting:before,
-        .dataTable th.sorting_asc:after {
-            top: 4px;
-            right: 2px;
-        }
-
-        .dataTable th.sorting:after,
-        .dataTable th.sorting_desc:after {
-            top: 10px;
-            right: 2px;
-        }
         @media (min-width: 360px) and (max-width:575.98px) { 
 
  

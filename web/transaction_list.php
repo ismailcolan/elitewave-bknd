@@ -267,10 +267,7 @@ $logged_id = $_SESSION['user_id'];
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
-    background: linear-gradient(185deg, var(--ew-navy, #0A1E3D) 0%, var(--ew-navy-deep, #061428) 100%);
-    color: #fff;
     padding: 14px 24px;
-    border-radius: 10px 10px 0 0;
     min-height: 64px;
 }
 .txn-page-header h1 {
@@ -393,24 +390,12 @@ $logged_id = $_SESSION['user_id'];
 .trans_list_table col.col-pod { width: 44px; }
 .trans_list_table col.col-actions { width: 240px; }
 .trans_list_table thead th {
-    background: var(--ew-primary-light, #EEF2F7) !important;
-    color: var(--ew-navy, #0A1E3D) !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase;
-    letter-spacing: .04em;
     padding: 11px 8px !important;
-    border: none !important;
-    border-bottom: 2px solid var(--ew-border, #D8DDE5) !important;
-    border-right: 1px solid var(--ew-border-light, #E2E8F0) !important;
     white-space: nowrap;
     vertical-align: middle !important;
     box-sizing: border-box !important;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-.trans_list_table thead th:last-child {
-    border-right: none !important;
 }
 .trans_list_table thead th.sorting,
 .trans_list_table thead th.sorting_asc,

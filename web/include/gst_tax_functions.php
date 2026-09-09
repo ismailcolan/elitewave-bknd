@@ -20,7 +20,35 @@ function ensure_gst_tax_master_table($conn)
         UNIQUE KEY uq_gst_tax_code (tax_code)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+    $tds_col = mysqli_query($conn, "SHOW COLUMNS FROM gst_tax_master LIKE 'tds_rate'");
+    if ($tds_col && mysqli_num_rows($tds_col) === 0) {
+        mysqli_query($conn, "ALTER TABLE gst_tax_master ADD COLUMN tds_rate DECIMAL(8,2) NOT NULL DEFAULT 0 AFTER cess_rate");
+    }
+
     gst_tax_seed_defaults($conn);
+    gst_tax_seed_tds_defaults($conn);
+}
+
+function gst_tax_seed_tds_defaults($conn)
+{
+    $tds_defaults = array(
+        array('TDS1', 'TDS 1%', 1),
+        array('TDS2', 'TDS 2%', 2),
+        array('TDS5', 'TDS 5%', 5),
+        array('TDS10', 'TDS 10%', 10),
+    );
+    $now = date('d-m-Y');
+    foreach ($tds_defaults as $row) {
+        list($code, $name, $tds) = $row;
+        if (gst_tax_code_exists($conn, $code)) {
+            continue;
+        }
+        $code = mysqli_real_escape_string($conn, $code);
+        $name = mysqli_real_escape_string($conn, $name);
+        mysqli_query($conn, "INSERT INTO gst_tax_master
+            (tax_code, tax_name, gst_rate, cgst_rate, sgst_rate, igst_rate, cess_rate, tds_rate, status, is_deleted, created_at)
+            VALUES ('$code', '$name', '0', '0', '0', '0', '0', '$tds', 1, 0, '$now')");
+    }
 }
 
 function gst_tax_seed_defaults($conn)
@@ -32,21 +60,25 @@ function gst_tax_seed_defaults($conn)
     }
 
     $defaults = array(
-        array('GST0', 'GST 0%', 0, 0, 0, 0, 0),
-        array('GST5', 'GST 5%', 5, 2.5, 2.5, 5, 0),
-        array('GST12', 'GST 12%', 12, 6, 6, 12, 0),
-        array('GST18', 'GST 18%', 18, 9, 9, 18, 0),
-        array('GST28', 'GST 28%', 28, 14, 14, 28, 0),
+        array('GST0', 'GST 0%', 0, 0, 0, 0, 0, 0),
+        array('GST5', 'GST 5%', 5, 2.5, 2.5, 5, 0, 0),
+        array('GST12', 'GST 12%', 12, 6, 6, 12, 0, 0),
+        array('GST18', 'GST 18%', 18, 9, 9, 18, 0, 0),
+        array('GST28', 'GST 28%', 28, 14, 14, 28, 0, 0),
+        array('TDS1', 'TDS 1%', 0, 0, 0, 0, 0, 1),
+        array('TDS2', 'TDS 2%', 0, 0, 0, 0, 0, 2),
+        array('TDS5', 'TDS 5%', 0, 0, 0, 0, 0, 5),
+        array('TDS10', 'TDS 10%', 0, 0, 0, 0, 0, 10),
     );
 
     $now = date('d-m-Y');
     foreach ($defaults as $row) {
-        list($code, $name, $gst, $cgst, $sgst, $igst, $cess) = $row;
+        list($code, $name, $gst, $cgst, $sgst, $igst, $cess, $tds) = $row;
         $code = mysqli_real_escape_string($conn, $code);
         $name = mysqli_real_escape_string($conn, $name);
         mysqli_query($conn, "INSERT IGNORE INTO gst_tax_master
-            (tax_code, tax_name, gst_rate, cgst_rate, sgst_rate, igst_rate, cess_rate, status, is_deleted, created_at)
-            VALUES ('$code', '$name', '$gst', '$cgst', '$sgst', '$igst', '$cess', 1, 0, '$now')");
+            (tax_code, tax_name, gst_rate, cgst_rate, sgst_rate, igst_rate, cess_rate, tds_rate, status, is_deleted, created_at)
+            VALUES ('$code', '$name', '$gst', '$cgst', '$sgst', '$igst', '$cess', '$tds', 1, 0, '$now')");
     }
 }
 
@@ -63,9 +95,9 @@ function gst_tax_calc_components($gst_rate)
     );
 }
 
-function gst_tax_validate_payload($gst_rate, $cgst_rate, $sgst_rate, $igst_rate, $cess_rate)
+function gst_tax_validate_payload($gst_rate, $cgst_rate, $sgst_rate, $igst_rate, $cess_rate, $tds_rate = 0)
 {
-    $rates = array($gst_rate, $cgst_rate, $sgst_rate, $igst_rate, $cess_rate);
+    $rates = array($gst_rate, $cgst_rate, $sgst_rate, $igst_rate, $cess_rate, $tds_rate);
     foreach ($rates as $rate) {
         if (!is_numeric($rate) || (float) $rate < 0) {
             return 'Tax rates cannot be negative.';
@@ -77,11 +109,13 @@ function gst_tax_validate_payload($gst_rate, $cgst_rate, $sgst_rate, $igst_rate,
     $sgst = round((float) $sgst_rate, 2);
     $igst = round((float) $igst_rate, 2);
 
-    if (abs(($cgst + $sgst) - $gst) > 0.01) {
-        return 'CGST + SGST/UTGST must equal GST Rate.';
-    }
-    if (abs($igst - $gst) > 0.01) {
-        return 'IGST must equal GST Rate.';
+    if ($gst > 0) {
+        if (abs(($cgst + $sgst) - $gst) > 0.01) {
+            return 'CGST + SGST/UTGST must equal GST Rate.';
+        }
+        if (abs($igst - $gst) > 0.01) {
+            return 'IGST must equal GST Rate.';
+        }
     }
 
     return '';

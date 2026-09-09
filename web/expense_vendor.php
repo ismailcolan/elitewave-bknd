@@ -1,3 +1,3 @@
 <?php
-header('Location: expense_setup.php?tab=vendor');
+header('Location: dashboard.php');
 exit;

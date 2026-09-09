@@ -165,7 +165,6 @@ $list_q = mysqli_query($conn, "SELECT m.*, c.client_company_name
 				</div>
 			</div>
 		</div>
-	</div>
 	<?php require_once('include/footer.php'); ?>
 </div>
 <script>

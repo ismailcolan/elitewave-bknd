@@ -34,6 +34,44 @@
 	z-index: 10050 !important;
 }
 
+/* Prevent global table thead/tbody rules from breaking calendar header */
+.datepicker table thead th,
+.datepicker-dropdown table thead th {
+	background: transparent !important;
+	border: none !important;
+	text-transform: none;
+	letter-spacing: normal;
+	white-space: nowrap;
+}
+.datepicker .datepicker-days thead tr:first-child,
+.datepicker-dropdown .datepicker-days thead tr:first-child {
+	background: #0A1E3D !important;
+}
+.datepicker .datepicker-days thead tr:first-child th,
+.datepicker-dropdown .datepicker-days thead tr:first-child th {
+	color: #fff !important;
+	background: transparent !important;
+}
+.datepicker .datepicker-days thead tr:nth-child(2) th,
+.datepicker-dropdown .datepicker-days thead tr:nth-child(2) th {
+	background: #f8fafc !important;
+	color: #64748b !important;
+	font-size: 11px !important;
+	font-weight: 600 !important;
+	text-transform: uppercase !important;
+	border-bottom: 1px solid #e2e8f0 !important;
+}
+.datepicker table tbody td,
+.datepicker-dropdown table tbody td {
+	padding: 4px !important;
+	border-bottom: none !important;
+	background: transparent !important;
+}
+.datepicker table tbody tr:hover td,
+.datepicker-dropdown table tbody tr:hover td {
+	background: transparent !important;
+}
+
 /* Month picker dropdown */
 .datepicker.datepicker-dropdown.ew-month-picker {
 	width: 240px !important;

@@ -11,22 +11,6 @@ include_once ('include/function.php');
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <style>
-        .widget-container .widget-content {
-            width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
-        }
-
-        .user_drafttable {
-            margin: 0 auto;
-            width: max-content !important;
-            max-width: unset !important;
-
-            clear: both;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
-
         .dataTable th.sorting:after,
         .dataTable th.sorting_desc:after {
             top: 17px;
@@ -114,12 +98,13 @@ div#dataTable1_length {
                                         <td><?php echo $row['consignee_contact']; ?></td>
                                         <td><?php echo $row['consignee_city']; ?></td>
                                         <td class=" text-center"><?php
-                                    if ($row['status'] == 1)
-                                        echo '<button class="btn btn-warning">Draft</button>';
-                                    else if ($row['status'] == 0)
-                                        echo '<button class="btn btn-danger">Cancelled</button>';
-                                    else if ($row['status'] == 3)
-                                        echo '<button class="btn btn-success">Picked Up</button>';
+                                    if ($row['status'] == 1) {
+                                        echo '<span class="ew-badge ew-badge--draft">Draft</span>';
+                                    } elseif ($row['status'] == 0) {
+                                        echo '<span class="ew-badge ew-badge--cancelled">Cancelled</span>';
+                                    } elseif ($row['status'] == 3) {
+                                        echo '<span class="ew-badge ew-badge--picked-up">Picked Up</span>';
+                                    }
                                     ?></td>
 
                                         <td>

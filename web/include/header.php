@@ -185,7 +185,6 @@ body.page-header-fixed {
   flex-shrink: 0;
 }
 
-/* company name */
 .top-bar .applicatoin-name {
   font-family: var(--font-display);
   font-size: 0.85rem;

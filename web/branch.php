@@ -14,17 +14,6 @@ require_once ('include/function.php');
             color: red;
         }
 
-        .dataTable th.sorting:before,
-        .dataTable th.sorting_asc:after {
-            top: 10px;
-            right: 3px;
-        }
-
-        .dataTable th.sorting:after,
-        .dataTable th.sorting_desc:after {
-            top: 17px;
-            right: 3px;
-        }
         @media (min-width: 360px) and (max-width: 575.98px) {  
    .widget-container .widget-content {
     width: 100%;
@@ -240,8 +229,6 @@ th.table-title.sorting  {
                 </div>
 
             </div>
-        </div>
-
 
         <?php require_once ('include/footer.php'); ?>
     </div>
@@ -254,34 +241,7 @@ th.table-title.sorting  {
             var dup_chk = true;
 
             function duplicate_check() {
-                var department_name = $("#department_name").val();
-                var edit_id = $("#edit_id").val();
-                $.ajax({
-                    cache: false,
-                    url: 'check_existing.php', // url where to submit the request
-                    type: "GET", //type of action POST || GET
-                    dataType: 'json', // data type
-                    async: false,
-                    data: {
-                        cmd: "chk_department",
-                        department_name: department_name,
-                        edit_id: edit_id
-                    }, // post data || get data
-                    success: function(result) {
-                        $(".form-data-saving").hide();
-                        dup_chk = true;
-                        console.log(result);
-                        if (result[0] == 1) {
-                            $(".dup-check").html(result[1]).css("color", "#f00");
-                            dup_chk = false;
-                        } else {
-                            $(".dup-check").html(result[1]).css("color", "green");
-                        }
-                    },
-                    error: function(jqxhr) {
-                        console.log(jqxhr.responseText);
-                    }
-                });
+                dup_chk = true;
             }
 
             $(document).on('change', '#state', function() {
@@ -302,10 +262,11 @@ th.table-title.sorting  {
             });
             //button Save
             $(document).on('click', '#save', function() {
+                var $saveBtn = $(this);
                 var data = $('#form_data').serialize();
                 duplicate_check();
                 if ($('#form_data').valid() == true && dup_chk) {
-                    $(this).attr("disabled", true);
+                    $saveBtn.prop('disabled', true);
                     $.ajax({
                         url: "save_details.php",
                         type: "post",
@@ -322,6 +283,7 @@ th.table-title.sorting  {
                                     location.reload();
                                 });
                             } else {
+                                $saveBtn.prop('disabled', false);
                                 $(".form-data-saving").hide();
                                 $("#alert-status").text("Alert !!! ");
                                 $("#alert-message").text("Data Saving Failed");
@@ -332,6 +294,7 @@ th.table-title.sorting  {
                             }
                         },
                         error: function(jqxhr) {
+                            $saveBtn.prop('disabled', false);
                             console.log(jqxhr.responseText);
                         }
                     });
@@ -448,19 +411,35 @@ th.table-title.sorting  {
                     success: function(result) {
                         console.log(result);
                         $(".form-data-saving").hide();
+                        if (!result || !result.branch_id) {
+                            if (typeof ewToast === 'function') {
+                                ewToast('Could not load branch details.', 'error');
+                            }
+                            return;
+                        }
                         $("#form_name").val("edit_branch");
-                        $("#edit_id").val(result['branch_id']);
-                        $("#branch_code").val(result['branch_code']);
-                        $('#branch_name').val(result['branch_name']);
-                        $('#contact_person').val(result['contact_person']);
-                        $('#contact_no').val(result['contact_no']);
-                        $('#address1').val(result['address1']);
-                        $('#address2').val(result['address2']);
-                        $('#city').val(result['city']);
-                        $('#state').val(result['state']);
-                        $('#pincode').val(result['pincode']);
-                        $('#email').val(result['email']);
-
+                        $("#edit_id").val(result.branch_id);
+                        $("#branch_code").val(result.branch_code);
+                        $('#branch_name').val(result.branch_name);
+                        $('#contact_person').val(result.contact_person);
+                        $('#contact_no').val(result.contact_no);
+                        $('#address1').val(result.address1);
+                        $('#address2').val(result.address2 || '');
+                        $('#pincode').val(result.pincode);
+                        $('#email').val(result.email);
+                        var stateId = result.state;
+                        var cityId = result.city;
+                        $('#state').val(stateId);
+                        $.ajax({
+                            url: 'fetch_details.php',
+                            type: 'post',
+                            data: { cmd: 'get_city_name', state_id: stateId },
+                            success: function(cityHtml) {
+                                $('#city').html(cityHtml);
+                                $('#city').val(cityId);
+                            }
+                        });
+                        $('html, body').animate({ scrollTop: $('#form_data').offset().top - 90 }, 300);
                     },
                     error: function(jqxhr) {
                         ewToast(jqxhr.responseText, 'error');
@@ -473,8 +452,8 @@ th.table-title.sorting  {
             $(document).on('click', '.btn-reset', function(ev) {
                 $('#form_name').val('add_branch');
                 $('#edit_id').val('');
-                $('#department_name').val('');
-                $('#department_code').val('');
+                $('#form_data')[0].reset();
+                $('#city').html('<option value="">Select City</option>');
             });
 
 

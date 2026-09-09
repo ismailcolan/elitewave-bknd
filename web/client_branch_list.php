@@ -10,17 +10,6 @@ require_once ('include/function.php');
     <?php include ('include/css_js.php'); ?>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
     <style>
-        .dataTable th.sorting:after,
-        .dataTable th.sorting_desc:after {
-            top: 17px;
-            right: 2px;
-        }
-
-        .dataTable th.sorting:before,
-        .dataTable th.sorting_asc:after {
-            top: 10px;
-            right: 2px;
-        }
         @media (min-width: 360px) and (max-width:575.98px) { 
 div#dataTable1_filter {
     display: block;
@@ -78,7 +67,7 @@ th.table-title.sorting_disabled {
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <div class="col-md-offset-1 col-md-10 master_left">
+                <div class="col-md-offset-1 col-md-10">
                     <div class="widget-container fluid-height clearfix">
                         <div class="heading"> <i class="fa fa-table"></i> List of Client Branch <span class="align-right"><i class="fa fa-plus"></i><a href="client_branch.php">Add Client Branch</a> </span></div>
                         <div class="widget-content padded clearfix new_dept">
@@ -134,11 +123,10 @@ th.table-title.sorting_disabled {
                         </div>
                     </div>
                 </div>
-
-
-                <?php require_once ('include/footer.php'); ?>
             </div>
 
+            <?php require_once ('include/footer.php'); ?>
+    </div>
 
             <script type="text/javascript">
                 $(document).ready(function() {

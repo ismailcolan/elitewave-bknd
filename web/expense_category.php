@@ -1,3 +1,3 @@
 <?php
-header('Location: expense_setup.php?tab=category');
+header('Location: expense_type_master.php');
 exit;
