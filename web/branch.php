@@ -53,128 +53,23 @@ th.table-title.sorting  {
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <div class="col-md-offset-1 col-md-10">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-plus"></i>Branch </div>
-
-                        <div class="widget-content padded">
-                            <form class="form-horizontal" id="form_data">
-
-                                <input type="hidden" id="form_name" name="form_name" value="add_branch">
-                                <input type="hidden" id="edit_id" name="edit_id" value="">
-
-                                <div id="response" class="alert alert-danger" style="display:none;">
-                                    <div class="message" style="text-align:center"></div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-offset-1 col-md-5">
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Branch Code <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input type="text" id="branch_code" name="branch_code" class="form-control" required autocomplete="off" />
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Branch Name <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input type="text" name="branch_name" id="branch_name" class="form-control" required autocomplete="off" />
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Contact Person <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input type="text" id="contact_person" name="contact_person" class="form-control" required  autocomplete="off"/>
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Contact No <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input type="text" pattern="\d{10}" maxlength=10  minlength=10 name="contact_no" id="contact_no" class="form-control" required onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Address 1 <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input type="text" id="address1" name="address1" class="form-control" required autocomplete="off"/>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-5">
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Address 2:</label>
-                                            <div class="col-lg-8">
-                                                <input type="text" name="address2" id="address2" class="form-control" autocomplete="off"/>
-                                            </div>
-
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">State <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <select name="state" id="state" class="form-control" required>
-                                                    <option value="">Select State</option>
-                                                    <?php
-                                                    $state_query = 'select * from state where status=0 order by state_name';
-                                                    $state_result = mysqli_query($conn, $state_query);
-                                                    while ($state_row = mysqli_fetch_array($state_result)) {
-                                                        ?>
-                                                        <option value="<?php echo $state_row['state_id']; ?>"><?php echo $state_row['state_name']; ?></option>
-                                                    <?php
-                                                    }
-                                                    ?>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">City <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <select name="city" id="city" class="form-control" required>
-                                                    <option value="">Select City</option>
-                                                    <?php
-                                                    $city_query = 'select * from city where status=0';
-                                                    $city_result = mysqli_query($conn, $city_query);
-                                                    while ($city_row = mysqli_fetch_array($city_result)) {
-                                                        ?>
-                                                        <option value="<?php echo $city_row['city_id']; ?>"><?php echo $city_row['city_name']; ?></option>
-                                                    <?php
-                                                    }
-                                                    ?>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Pincode <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-									        <input type="text" name="pincode" id="pincode"  minlength=6  maxlength=6  class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off"/>
-                                               
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Email <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input type="email" name="email" id="email" class="form-control" required autocomplete="off" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                        </div><br />
-                        <div class="row">
-                            <div class="col-md-12 form-action">
-                                <button class="btn btn-primary" type="button" id="save">Submit</button>
-                                <a class="btn btn-default-outline  btn-reset" type="button" href="dashboard.php">Cancel</a>
+                <div class="col-md-12">
+                    <div class="ew-page-v2">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">Branch Master</h1>
                             </div>
                         </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-offset-1 col-md-10">
-
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-table"></i> List of Branch </div>
-                        <div class="widget-content padded clearfix new_dept">
+                        <div class="ew-card">
+                            <div class="ew-card-toolbar">
+                                <h2>Branch List</h2>
+                                <div class="ew-toolbar-right">
+                                    <button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreateBranch">
+                                        Create <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="ew-table-wrap widget-content padded clearfix new_dept">
                             <table class="table table-bordered table-striped branch_tble" id="dataTable1">
                                 <thead>
                                     <th class="table-title" style="width:10%">S.No</th>
@@ -222,12 +117,10 @@ th.table-title.sorting  {
 
                                 </tbody>
                             </table>
-
+                            </div>
                         </div>
                     </div>
-
                 </div>
-
             </div>
 
         <?php require_once ('include/footer.php'); ?>
@@ -260,6 +153,15 @@ th.table-title.sorting  {
                     }
                 });
             });
+            $('#openCreateBranch').on('click', function() {
+                $('#form_name').val('add_branch');
+                $('#edit_id').val('');
+                $('#form_data')[0].reset();
+                $('#city').html('<option value="">Select City</option>');
+                $('#branchModalTitle').text('Create Branch');
+                ewV2OpenModal('branchModal');
+            });
+
             //button Save
             $(document).on('click', '#save', function() {
                 var $saveBtn = $(this);
@@ -439,7 +341,8 @@ th.table-title.sorting  {
                                 $('#city').val(cityId);
                             }
                         });
-                        $('html, body').animate({ scrollTop: $('#form_data').offset().top - 90 }, 300);
+                        $('#branchModalTitle').text('Edit Branch');
+                        ewV2OpenModal('branchModal');
                     },
                     error: function(jqxhr) {
                         ewToast(jqxhr.responseText, 'error');
@@ -454,6 +357,7 @@ th.table-title.sorting  {
                 $('#edit_id').val('');
                 $('#form_data')[0].reset();
                 $('#city').html('<option value="">Select City</option>');
+                ewV2CloseModal('branchModal');
             });
 
 
@@ -501,6 +405,88 @@ th.table-title.sorting  {
                 <button class="btn btn-sm btn-danger delete-error-popup-close" id="">Close</button> <br /> &nbsp; <br />
             </div>
             <!--<span class="popup_close" id="popup_close">X</span>-->
+        </div>
+    </div>
+
+    <div class="ew-v2-modal-backdrop" id="branchModal">
+        <div class="ew-v2-modal ew-v2-modal--lg">
+            <div class="ew-v2-modal-head">
+                <h3 id="branchModalTitle">Create Branch</h3>
+                <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+            </div>
+            <div class="ew-v2-modal-body">
+                <form id="form_data">
+                    <input type="hidden" id="form_name" name="form_name" value="add_branch">
+                    <input type="hidden" id="edit_id" name="edit_id" value="">
+                    <div id="response" class="alert alert-danger" style="display:none;">
+                        <div class="message" style="text-align:center"></div>
+                    </div>
+                    <div class="ew-form-grid">
+                        <div class="ew-field">
+                            <label class="control-label">Branch Code <span style="color:red;">*</span> :</label>
+                            <input type="text" id="branch_code" name="branch_code" class="form-control" required autocomplete="off" />
+                        </div>
+                        <div class="ew-field">
+                            <label class="control-label">Branch Name <span style="color:red;">*</span> :</label>
+                            <input type="text" name="branch_name" id="branch_name" class="form-control" required autocomplete="off" />
+                        </div>
+                        <div class="ew-field">
+                            <label class="control-label">Contact Person <span style="color:red;">*</span> :</label>
+                            <input type="text" id="contact_person" name="contact_person" class="form-control" required autocomplete="off"/>
+                        </div>
+                        <div class="ew-field">
+                            <label class="control-label">Contact No <span style="color:red;">*</span> :</label>
+                            <input type="text" pattern="\d{10}" maxlength="10" minlength="10" name="contact_no" id="contact_no" class="form-control" required onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
+                        </div>
+                        <div class="ew-field span-2">
+                            <label class="control-label">Address 1 <span style="color:red;">*</span> :</label>
+                            <input type="text" id="address1" name="address1" class="form-control" required autocomplete="off"/>
+                        </div>
+                        <div class="ew-field span-2">
+                            <label class="control-label">Address 2 :</label>
+                            <input type="text" name="address2" id="address2" class="form-control" autocomplete="off"/>
+                        </div>
+                        <div class="ew-field">
+                            <label class="control-label">State <span style="color:red;">*</span> :</label>
+                            <select name="state" id="state" class="form-control" required>
+                                <option value="">Select State</option>
+                                <?php
+                                $state_query = 'select * from state where status=0 order by state_name';
+                                $state_result = mysqli_query($conn, $state_query);
+                                while ($state_row = mysqli_fetch_array($state_result)) {
+                                    ?>
+                                    <option value="<?php echo $state_row['state_id']; ?>"><?php echo $state_row['state_name']; ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+                        <div class="ew-field">
+                            <label class="control-label">City <span style="color:red;">*</span> :</label>
+                            <select name="city" id="city" class="form-control" required>
+                                <option value="">Select City</option>
+                                <?php
+                                $city_query = 'select * from city where status=0';
+                                $city_result = mysqli_query($conn, $city_query);
+                                while ($city_row = mysqli_fetch_array($city_result)) {
+                                    ?>
+                                    <option value="<?php echo $city_row['city_id']; ?>"><?php echo $city_row['city_name']; ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+                        <div class="ew-field">
+                            <label class="control-label">Pincode <span style="color:red;">*</span> :</label>
+                            <input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off"/>
+                        </div>
+                        <div class="ew-field">
+                            <label class="control-label">Email <span style="color:red;">*</span> :</label>
+                            <input type="email" name="email" id="email" class="form-control" required autocomplete="off" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="ew-v2-modal-foot">
+                <button type="button" class="btn btn-default-outline btn-reset" data-ew-v2-close>Cancel</button>
+                <button class="btn btn-primary" type="button" id="save">Submit</button>
+            </div>
         </div>
     </div>
 

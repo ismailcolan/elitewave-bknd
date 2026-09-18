@@ -4,9 +4,25 @@
 	width: 100%;
 }
 
-.date-input-inside .form-control {
+.date-input-inside .form-control,
+.form-control.ew-date-field,
+.form-control.ew-date-field[readonly],
+input.form-control[data-ew-datepicker],
+input.form-control[data-ew-datepicker][readonly] {
 	padding-right: 34px;
 	width: 100%;
+	background: #fff !important;
+	color: #1A2332 !important;
+	cursor: pointer !important;
+	opacity: 1 !important;
+}
+
+.ew-page-v2 .ew-field .form-control.ew-date-field[readonly],
+.ew-page-v2 .ew-field .form-control[data-ew-datepicker][readonly],
+.ew-page-v2 .date-input-inside .form-control[readonly] {
+	background: #fff !important;
+	color: #1A2332 !important;
+	cursor: pointer !important;
 }
 
 .date-input-inside .date-field-icon {
@@ -103,7 +119,7 @@
 }
 
 .datepicker.ew-month-picker .datepicker-months thead tr:first-child {
-	background: #EEF2F7;
+	background: #0A1E3D !important;
 	border-radius: 6px;
 }
 
@@ -111,7 +127,7 @@
 	border: none;
 	background: transparent !important;
 	padding: 6px 4px;
-	color: #0A1E3D;
+	color: #fff !important;
 	font-size: 13px;
 	font-weight: 700;
 }
@@ -151,6 +167,8 @@
 	border-radius: 6px;
 	cursor: pointer;
 	box-sizing: border-box;
+	background: #EEF2F7;
+	color: #0A1E3D;
 }
 
 .datepicker table tr td span.active,

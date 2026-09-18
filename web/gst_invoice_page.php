@@ -72,13 +72,7 @@ $consignee_det = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM client WH
 $consignor_det = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM client WHERE client_id='" . $consigner . "'"));
 
 function fmt_addr_lines($det, $conn) {
-    $lines = [];
-    if (!empty($det['address1'])) $lines[] = trim($det['address1']);
-    if (!empty($det['address2'])) $lines[] = trim($det['address2']);
-    $city = get_city_name($conn, $det['city']);
-    $tail = trim($city . ($det['pincode'] ? '-' . $det['pincode'] : ''));
-    if ($tail) $lines[] = $tail;
-    return implode('<br>', $lines);
+    return ew_format_party_address_invoice_html($det, $conn);
 }
 
 $state          = get_statename($conn, $consignee_det['state']);

@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/gst_tax_functions.php';
 require_once __DIR__ . '/gst_tax_report_functions.php';
+require_once __DIR__ . '/billing_note_functions.php';
 
 function ensure_billing_tables($conn)
 {
@@ -59,6 +60,8 @@ function ensure_billing_tables($conn)
         KEY idx_grn (grn_no),
         KEY idx_trans (trans_table, transaction_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    ensure_billing_note_tables($conn);
 }
 
 function billing_format_money($val)

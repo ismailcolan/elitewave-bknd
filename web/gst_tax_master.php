@@ -20,18 +20,6 @@ $tax_rows = gst_tax_fetch_list($conn, array(
     <?php include('include/css_js.php'); ?>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
     <style>
-        .dataTable th.sorting:after,
-        .dataTable th.sorting_desc:after {
-            top: 17px;
-            right: 3px;
-        }
-
-        .dataTable th.sorting:before,
-        .dataTable th.sorting_asc:after {
-            top: 10px;
-            right: 3px;
-        }
-
         .gst_tax_tab {
             width: 100% !important;
             max-width: 100% !important;
@@ -41,35 +29,14 @@ $tax_rows = gst_tax_fetch_list($conn, array(
             text-align: right;
         }
 
-        .gst-search-wrap {
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #e5e5e5;
-            clear: both;
-            overflow: hidden;
+        .ew-page-v2 .ew-table-wrap table.gst_tax_tab {
+            border-left: 1px solid var(--panel-border, #C5D3E0) !important;
+            border-right: 1px solid var(--panel-border, #C5D3E0) !important;
+            border-bottom: 1px solid var(--panel-border, #C5D3E0) !important;
         }
 
-        .gst-search-wrap .form-control {
-            width: 280px;
-            max-width: 100%;
-            display: inline-block;
-            vertical-align: middle;
-        }
-
-        .gst-search-wrap .btn {
-            vertical-align: middle;
-            margin-left: 6px;
-        }
-
-        .gst-table-wrap {
-            clear: both;
-            overflow-x: auto;
-            width: 100%;
-        }
-
-        #gstTaxTable_wrapper {
-            clear: both;
-            width: 100%;
+        .ew-page-v2 .ew-card.ew-erp-list .ew-table-wrap {
+            padding: 12px 16px 0;
         }
 
         #gstTaxTable_wrapper .dataTables_length,
@@ -77,21 +44,8 @@ $tax_rows = gst_tax_fetch_list($conn, array(
             display: none !important;
         }
 
-        #gstTaxTable_wrapper .dataTables_info {
-            padding-top: 10px;
-        }
-
-        #gstTaxTable_wrapper .dataTables_paginate {
-            padding-top: 8px;
-            padding-bottom: 4px;
-        }
-        .btn-default-outline{
-            background: #DD111E !important;
-            color: #fff !important;
-            border: none !important;
-        }
-        .btn-default-outline:hover{
-            border: none !important;
+        #gstTaxSearchClear {
+            margin-left: 8px;
         }
     </style>
 </head>
@@ -107,20 +61,29 @@ $tax_rows = gst_tax_fetch_list($conn, array(
 
         <div class="container-fluid main-content new_dpt_bottom">
             <div class="row">
-                <div class="col-md-offset-1 col-md-10">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading">
-                            <i class="fa fa-table"></i> GST Tax Master
-                            <span class="align-right"><i class="fa fa-plus"></i> <a href="gst_tax_form.php">Add GST Tax</a></span>
-                        </div>
-                        <div class="widget-content padded clearfix new_dept">
-                            <div class="gst-search-wrap">
-                                <input type="text" class="form-control" id="gstTaxSearch"
-                                    placeholder="Search Tax Code / Tax Name" autocomplete="off">
-                                <button type="button" class="btn btn-default-outline" id="gstTaxSearchClear" style="display:none;">Clear</button>
+                <div class="col-md-12">
+                    <div class="ew-page-v2 ew-page-v2--wide-table">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">GST Tax Master</h1>
                             </div>
-
-                            <div class="gst-table-wrap">
+                        </div>
+                        <div class="ew-card ew-erp-list">
+                            <div class="ew-card-toolbar">
+                                <h2>All GST Tax Rates</h2>
+                                <div class="ew-toolbar-right">
+                                    <div class="ew-list-toolbar__tools">
+                                        <div class="ew-search-wrap">
+                                            <i class="fa fa-search" aria-hidden="true"></i>
+                                            <input type="text" class="ew-search-input form-control" id="gstTaxSearch"
+                                                placeholder="Search Tax Code / Tax Name" autocomplete="off">
+                                        </div>
+                                        <button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="gstTaxSearchClear" style="display:none;">Clear</button>
+                                    </div>
+                                    <a href="gst_tax_form.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
+                                </div>
+                            </div>
+                            <div class="ew-table-wrap widget-content padded clearfix new_dept">
                             <table class="table table-bordered table-striped gst_tax_tab" id="gstTaxTable">
                                 <thead>
                                     <tr>
@@ -134,7 +97,7 @@ $tax_rows = gst_tax_fetch_list($conn, array(
                                         <th class="table-title pct" style="width:7%">Cess %</th>
                                         <th class="table-title pct" style="width:7%">TDS %</th>
                                         <th class="table-title" style="width:7%">Status</th>
-                                        <th class="table-title" style="width:11%">Action</th>
+                                        <th class="table-title sorting_disabled" style="width:11%">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -168,7 +131,7 @@ $tax_rows = gst_tax_fetch_list($conn, array(
                                                 <td class="actions center-content">
                                                     <div class="action-buttons">
                                                         <?php if (!$is_deleted) { ?>
-                                                            <a title="Edit" class="table-actions" href="gst_tax_form.php?id=<?php echo (int) $row['gst_tax_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                            <a title="Edit" class="table-actions btn-edit" href="gst_tax_form.php?id=<?php echo (int) $row['gst_tax_id']; ?>"><i class="fa fa-pencil"></i></a>
                                                             <?php if ($is_active) { ?>
                                                                 <a class="table-actions btn-active" style="color:red;" data-status="1" title="Deactivate" id="<?php echo (int) $row['gst_tax_id']; ?>"><i class="fa fa-times"></i></a>
                                                             <?php } else { ?>
@@ -188,6 +151,10 @@ $tax_rows = gst_tax_fetch_list($conn, array(
                                     ?>
                                 </tbody>
                             </table>
+                            </div>
+                            <div class="ew-table-footer gst-tax-table-footer">
+                                <div class="ew-table-footer-left ew-dt-footer-left" id="gstTaxFooterLeft"></div>
+                                <div class="ew-dt-footer-right ew-pagination" id="gstTaxFooterRight"></div>
                             </div>
                         </div>
                     </div>
@@ -210,8 +177,16 @@ $tax_rows = gst_tax_fetch_list($conn, array(
                         aoColumnDefs: [{
                             bSortable: false,
                             aTargets: [0, -1]
-                        }]
+                        }],
+                        fnDrawCallback: function() {
+                            var $wrapper = $('#gstTaxTable_wrapper');
+                            $wrapper.find('.dataTables_info').appendTo('#gstTaxFooterLeft');
+                            $wrapper.find('.dataTables_paginate').appendTo('#gstTaxFooterRight');
+                        }
                     });
+                    var $wrapper = $('#gstTaxTable_wrapper');
+                    $wrapper.find('.dataTables_info').appendTo('#gstTaxFooterLeft');
+                    $wrapper.find('.dataTables_paginate').appendTo('#gstTaxFooterRight');
                 }
 
                 var $gstSearch = $('#gstTaxSearch');

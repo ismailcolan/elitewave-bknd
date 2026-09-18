@@ -10,6 +10,11 @@ $c_date = date('d-m-Y');
 $cities = trip_summary_city_options($conn);
 $modes = trip_summary_mode_options($conn);
 $preselect_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$is_edit = ($preselect_id > 0);
+if (!$is_edit && empty($_GET['create'])) {
+	header('Location: trip_summary_list.php');
+	exit;
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -19,7 +24,7 @@ $preselect_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 	<?php include('include/css_js.php'); ?>
 	<style>
 		.main-content.new_dpt_bottom { max-width: none; padding: 20px 16px 24px; }
-		.trip-shell { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 24px rgba(15,23,42,.06); overflow: hidden; }
+		.ew-page-v2 .trip-shell { background: #fff; border: none; border-radius: 0; box-shadow: none; overflow: hidden; }
 		.trip-toolbar { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px 18px; align-items: end; }
 		.trip-field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748b; margin-bottom: 6px; }
 		.trip-field label .req { color: #dc2626; }
@@ -83,11 +88,19 @@ $preselect_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 		<div class="container-fluid main-content new_dpt_bottom">
 			<div class="row">
 				<div class="col-md-12">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"><i class="fa fa-road"></i> Trip Summary Sheet
-							<span class="align-right"><a href="trip_summary_list.php"><i class="fa fa-list"></i> View List</a></span>
+					<div class="ew-page-v2 ew-page-v2--wide-table">
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<a href="trip_summary_list.php" class="ew-back-btn" title="Back to list"><i class="fa fa-arrow-left"></i></a>
+								<h1 class="ew-page-title"><?php echo $is_edit ? 'Edit Trip Summary' : 'Trip Summary Sheet'; ?></h1>
+							</div>
+							<div class="ew-toolbar-right">
+								<a href="trip_summary_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+							</div>
 						</div>
-						<div class="widget-content padded clearfix">
+						<div class="ew-card">
+							<h2 class="ew-card-section-title">Sheet Details</h2>
+							<div class="ew-form-body" style="padding:0 24px 24px;">
 							<div class="trip-shell">
 
 						<div class="trip-toolbar">
@@ -160,9 +173,10 @@ $preselect_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 						</div>
 
 						<div class="trip-submit-wrap">
-							<button type="button" class="btn btn-primary" id="btn_submit"><i class="fa fa-check"></i> Create Trip Summary</button>
-							<button type="button" class="btn btn-default" id="btn_print" style="display:none;margin-left:10px;"><i class="fa fa-print"></i> Print</button>
+							<button type="button" class="btn btn-primary" id="btn_submit"><i class="fa fa-check"></i> <?php echo $is_edit ? 'Update Trip Summary' : 'Create Trip Summary'; ?></button>
+							<button type="button" class="btn btn-default-outline" id="btn_print" style="display:none;margin-left:10px;"><i class="fa fa-print"></i> Print</button>
 						</div>
+							</div>
 							</div>
 						</div>
 					</div>

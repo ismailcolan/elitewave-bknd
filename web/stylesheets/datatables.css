@@ -93,15 +93,15 @@ table.dataTable {
   transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
 }
 .dataTables_info {
-  float: left;
-  margin-top: 4px;
+  float: none;
+  margin-top: 0;
   font-size: 13px;
 }
 
 .dataTables_paginate {
-  float: right;
+  float: none;
   text-align: right;
-  margin: 5px 0;
+  margin: 0;
 }
 .dataTables_paginate a {
   height: auto;

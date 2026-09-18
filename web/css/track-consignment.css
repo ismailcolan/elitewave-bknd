@@ -18,8 +18,8 @@
 .track-page-wrap {
     width: 100%;
     max-width: 1180px;
-    margin: 24px auto 48px;
-    padding: 0 16px;
+    margin: 0 auto 48px;
+    padding: 0;
 }
 .track-panel {
     background: transparent;
@@ -27,14 +27,7 @@
     box-shadow: none;
 }
 .track-panel-head {
-    text-align: center;
-    padding: 8px 0 18px;
-}
-.track-panel-head h4 {
-    margin: 0;
-    font-size: 26px;
-    font-weight: 700;
-    color: #1a2332;
+    display: none;
 }
 .track-panel-body {
     padding: 0;
@@ -43,13 +36,6 @@
     display: flex;
     gap: 10px;
     align-items: flex-end;
-    max-width: 640px;
-    margin: 0 auto 18px;
-    background: #fff;
-    border: 1px solid #e6ebf0;
-    border-radius: 12px;
-    padding: 10px 12px;
-    box-shadow: 0 6px 20px rgba(26, 35, 50, .05);
 }
 .track-search-field {
     flex: 1;

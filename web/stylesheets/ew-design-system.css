@@ -66,8 +66,23 @@ body.page-header-fixed {
   padding-bottom: 16px !important;
   padding-left: 12px !important;
   padding-right: 12px !important;
-  max-width: 100%;
+  margin-left: var(--sidebar-width, 336px) !important;
+  width: calc(100% - var(--sidebar-width, 336px)) !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
   overflow-x: hidden;
+  transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.sidebar-collapsed .container-fluid.main-content,
+body.sidebar-collapsed .main-content,
+body.sidebar-collapsed .main-content.new_dpt_bottom,
+.container-fluid.main-content.collapsed,
+.main-content.collapsed,
+.main-content.new_dpt_bottom.collapsed {
+  margin-left: var(--sidebar-collapsed, 88px) !important;
+  width: calc(100% - var(--sidebar-collapsed, 88px)) !important;
 }
 
 /* Bootstrap grid — never flex the row (hub/city master_left + master_right) */
@@ -116,8 +131,8 @@ body.page-header-fixed > .ew-footer,
 
 .ew-footer {
   flex-shrink: 0;
-  margin-left: var(--sidebar-width, 260px);
-  width: calc(100% - var(--sidebar-width, 260px));
+  margin-left: var(--sidebar-width, 336px) !important;
+  width: calc(100% - var(--sidebar-width, 336px)) !important;
   margin-bottom: 0 !important;
   padding: 14px 24px !important;
   background: #fff !important;
@@ -127,9 +142,11 @@ body.page-header-fixed > .ew-footer,
   transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+body.sidebar-collapsed .ew-footer,
+body.sidebar-collapsed .modal-shiftfix > .ew-footer,
 .main-content.collapsed ~ .ew-footer {
-  margin-left: var(--sidebar-collapsed, 64px);
-  width: calc(100% - var(--sidebar-collapsed, 64px));
+  margin-left: var(--sidebar-collapsed, 88px) !important;
+  width: calc(100% - var(--sidebar-collapsed, 88px)) !important;
 }
 
 .ew-footer p {
@@ -154,7 +171,20 @@ body.page-header-fixed > .ew-footer,
     padding-top: 60px !important;
   }
 
+  .container-fluid.main-content,
+  .main-content,
+  .main-content.new_dpt_bottom,
+  body.sidebar-collapsed .container-fluid.main-content,
+  body.sidebar-collapsed .main-content,
+  body.sidebar-collapsed .main-content.new_dpt_bottom,
+  .container-fluid.main-content.collapsed,
+  .main-content.collapsed {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
   .ew-footer,
+  body.sidebar-collapsed .ew-footer,
   .main-content.collapsed ~ .ew-footer {
     margin-left: 0 !important;
     width: 100% !important;
@@ -478,19 +508,57 @@ input.form-control:not([type="checkbox"]):not([type="radio"]) {
 
 /* Bootstrap multiselect (hub / train / flight / role) */
 .btn-group.multiselect-group,
+.btn-group.multi-select-list,
 .form-group .btn-group:has(.multiselect) {
   display: block !important;
+  float: none !important;
+  position: relative !important;
   width: 100% !important;
   max-width: 100% !important;
+  clear: both;
+}
+
+/* Native select only — multiselect btn-group is a sibling inside this span */
+.form-group span.hide-native-select {
+  display: block;
+  position: relative;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.form-group span.hide-native-select > select.form-control,
+.form-group span.hide-native-select > select {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  clip: rect(0, 0, 0, 0) !important;
+  overflow: hidden !important;
+}
+
+.form-group span.hide-native-select > .btn-group.multi-select-list,
+.form-group span.hide-native-select > .btn-group {
+  display: block !important;
+  position: relative !important;
+  width: 100% !important;
+  float: none !important;
 }
 
 .multiselect.btn,
 .multiselect.dropdown-toggle {
+  float: none !important;
+  display: block !important;
   width: 100% !important;
   max-width: 100% !important;
   height: var(--ew-control-h) !important;
   min-height: var(--ew-control-h) !important;
-  padding: 0 38px 0 10px !important;
+  padding: 0 34px 0 10px !important;
   text-align: left !important;
   font-size: var(--ew-btn-font) !important;
   font-weight: 400 !important;
@@ -499,45 +567,113 @@ input.form-control:not([type="checkbox"]):not([type="radio"]) {
   border: 1px solid var(--ew-border) !important;
   border-radius: var(--ew-control-radius) !important;
   box-shadow: none !important;
-  position: relative;
+  position: relative !important;
+  overflow: hidden;
+}
+
+.multiselect.btn:hover,
+.multiselect.dropdown-toggle:hover,
+.btn-group.open > .multiselect.btn,
+.btn-group.open > .multiselect.dropdown-toggle,
+.multiselect.btn:focus,
+.multiselect.dropdown-toggle:focus {
+  color: #1e293b !important;
+  background: #fff !important;
+  border-color: var(--ew-border) !important;
+  box-shadow: none !important;
+}
+
+.multiselect.btn .multiselect-selected-text,
+.multiselect.dropdown-toggle .multiselect-selected-text {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: calc(var(--ew-control-h) - 2px) !important;
+  background: transparent !important;
 }
 
 .multiselect.btn .caret,
 .multiselect.dropdown-toggle .caret {
   position: absolute !important;
-  right: 0 !important;
-  top: 1px !important;
-  bottom: 1px !important;
-  width: 34px !important;
-  height: auto !important;
-  margin: 0 !important;
+  right: 10px !important;
+  top: 50% !important;
+  bottom: auto !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: -2px 0 0 0 !important;
   border: none !important;
-  border-left: 1px solid var(--ew-border-light) !important;
-  background: #f8fafc !important;
-  border-radius: 0 7px 7px 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  border-top: 5px solid #64748b !important;
+  border-left: 5px solid transparent !important;
+  border-right: 5px solid transparent !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  display: block !important;
 }
 
-.multiselect-container {
+.master_left .widget-container,
+.master_left .widget-content,
+.master_left .form-group {
+  overflow: visible !important;
+}
+
+.btn-group.multi-select-list > .multiselect-container.dropdown-menu,
+.btn-group.multi-select-list > .cust-multiselect-container.dropdown-menu,
+.form-group .btn-group:has(.multiselect) > .multiselect-container.dropdown-menu,
+.form-group .btn-group:has(.multiselect) > .cust-multiselect-container.dropdown-menu,
+.multiselect-container.dropdown-menu,
+.cust-multiselect-container.dropdown-menu {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  float: none !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  margin-top: 2px !important;
+  z-index: 1060 !important;
   border: 1px solid var(--ew-border) !important;
   border-radius: var(--ew-control-radius) !important;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1) !important;
   max-height: 260px;
   overflow-y: auto;
+  padding: 4px 0 !important;
 }
 
-.multiselect-container > li > a > label {
+.multiselect-container.dropdown-menu > li.active > a,
+.multiselect-container.dropdown-menu > li.active > a:hover,
+.multiselect-container.dropdown-menu > li.active > a:focus,
+.cust-multiselect-container.dropdown-menu > li.active > a,
+.cust-multiselect-container.dropdown-menu > li.active > a:hover,
+.cust-multiselect-container.dropdown-menu > li.active > a:focus {
+  background-color: transparent !important;
+  background-image: none !important;
+  color: inherit !important;
+}
+
+.multiselect-container > li > a,
+.cust-multiselect-container > li > a {
+  padding: 0 !important;
+  margin: 0 4px !important;
+  border-radius: 6px !important;
+}
+
+.multiselect-container > li > a > label,
+.cust-multiselect-container > li > a > label {
   font-size: var(--ew-btn-font) !important;
   padding: 6px 12px 6px 32px !important;
+  margin: 0 !important;
+  width: 100% !important;
+  border-radius: 6px !important;
+  font-weight: 400 !important;
 }
 
 .multiselect-container > li > a > label:hover,
-.multiselect-container > li.active > a > label {
+.multiselect-container > li.active > a > label,
+.cust-multiselect-container > li > a > label:hover,
+.cust-multiselect-container > li.active > a > label {
   background: #eff6ff !important;
   color: var(--ew-navy) !important;
 }
@@ -747,7 +883,6 @@ a.btn-default-outline.btn-reset:hover {
 }
 
 .act-edit,
-.table-actions .fa-pencil,
 #dataTable_exp_type .table-actions a:first-child {
   background: #fef3c7 !important;
   color: #d97706 !important;
@@ -1164,11 +1299,168 @@ a.table-actions:not(:has(i)) {
 
 /* DataTables — wrapper stays full width; pagination never scrolls off-screen */
 div.dataTables_wrapper {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: stretch !important;
   width: 100% !important;
   max-width: 100% !important;
   overflow: visible !important;
   clear: both;
   padding-bottom: 6px;
+}
+
+div.dataTables_wrapper > .dataTables_scroll,
+div.dataTables_wrapper > .dataTables_processing,
+div.dataTables_wrapper > table,
+div.dataTables_wrapper > .table-scroll-wrapper,
+div.dataTables_wrapper > .ew-table-scroll-wrap,
+div.dataTables_wrapper > .ew-table-scroll-inner {
+  flex: 0 0 100% !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  order: 10;
+}
+
+/*
+ * DT 1.9 custom sDom groups (e.g. '<"txn-dt-top"lf>rt<"txn-dt-bottom"ip>').
+ * Length/filter and info/paginate are nested inside these divs — NOT direct
+ * children of .dataTables_wrapper — so they miss the rules below unless we
+ * style the group rows themselves at full width.
+ */
+div.dataTables_wrapper > .txn-dt-top,
+div.dataTables_wrapper > .txn-dt-bottom {
+  flex: 0 0 100% !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+  float: none !important;
+  clear: both !important;
+}
+
+div.dataTables_wrapper > .txn-dt-top {
+  order: 0;
+  padding: 10px 16px 8px !important;
+  min-height: 44px !important;
+}
+
+div.dataTables_wrapper > .txn-dt-bottom {
+  order: 22;
+  padding: 12px 16px !important;
+  min-height: 48px !important;
+}
+
+div.dataTables_wrapper .txn-dt-top .dataTables_length,
+div.dataTables_wrapper .txn-dt-top .dataTables_filter,
+div.dataTables_wrapper .txn-dt-bottom .dataTables_info,
+div.dataTables_wrapper .txn-dt-bottom .dataTables_paginate {
+  float: none !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  max-width: none !important;
+  order: unset !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+}
+
+div.dataTables_wrapper .txn-dt-top .dataTables_length {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+div.dataTables_wrapper .txn-dt-top .dataTables_filter {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  text-align: right !important;
+  margin-left: auto !important;
+}
+
+div.dataTables_wrapper .txn-dt-bottom .dataTables_info {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+div.dataTables_wrapper .txn-dt-bottom .dataTables_paginate {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  text-align: right !important;
+  margin-left: auto !important;
+}
+
+div.dataTables_wrapper .txn-dt-top .dataTables_length label,
+div.dataTables_wrapper .txn-dt-top .dataTables_filter label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px;
+  margin: 0 !important;
+  width: auto !important;
+}
+
+div.dataTables_wrapper .txn-dt-top .dataTables_filter label {
+  justify-content: flex-end !important;
+}
+
+@media (max-width: 767px) {
+  div.dataTables_wrapper > .txn-dt-top,
+  div.dataTables_wrapper > .txn-dt-bottom {
+    flex-wrap: wrap !important;
+  }
+
+  div.dataTables_wrapper .txn-dt-top .dataTables_filter,
+  div.dataTables_wrapper .txn-dt-bottom .dataTables_paginate {
+    margin-left: 0 !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+}
+
+/* Top toolbar — Show entries left, Search right */
+div.dataTables_wrapper > .dataTables_length,
+div.dataTables_wrapper > .dataTables_filter {
+  flex: 1 1 50% !important;
+  width: 50% !important;
+  max-width: 50% !important;
+  box-sizing: border-box !important;
+  float: none !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 10px 16px 8px !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+}
+div.dataTables_wrapper > .dataTables_length {
+  order: 1;
+  justify-content: flex-start !important;
+}
+div.dataTables_wrapper > .dataTables_filter {
+  order: 2;
+  justify-content: flex-end !important;
+  text-align: right !important;
+}
+div.dataTables_wrapper > .dataTables_length label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px;
+  margin: 0 !important;
+  width: auto !important;
+}
+div.dataTables_wrapper > .dataTables_filter label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px;
+  margin: 0 !important;
+  width: 100% !important;
 }
 
 div.dataTables_wrapper::after {
@@ -1177,33 +1469,47 @@ div.dataTables_wrapper::after {
   clear: both;
 }
 
+div.dataTables_wrapper > .dataTables_info,
 div.dataTables_wrapper .dataTables_info {
-  float: left !important;
-  width: auto !important;
-  max-width: 50%;
-  padding: 14px 0 8px !important;
+  float: none !important;
+  flex: 1 1 50% !important;
+  width: 50% !important;
+  max-width: 50% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding: 12px 16px !important;
+  min-height: 48px !important;
   font-size: 12px !important;
   color: #64748b !important;
   line-height: 1.5;
+  order: 20;
+  margin: 0 !important;
 }
 
+div.dataTables_wrapper > .dataTables_paginate,
 div.dataTables_wrapper .dataTables_paginate {
-  float: right !important;
-  width: auto !important;
-  max-width: 100%;
-  padding: 10px 0 8px !important;
+  float: none !important;
+  flex: 1 1 50% !important;
+  width: 50% !important;
+  max-width: 50% !important;
+  box-sizing: border-box !important;
+  padding: 12px 16px !important;
   text-align: right !important;
-  clear: both !important;
+  clear: none !important;
   white-space: normal !important;
   line-height: normal !important;
-  display: inline-flex !important;
+  display: flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
   flex-wrap: wrap !important;
   gap: 6px !important;
   row-gap: 6px !important;
   height: auto !important;
-  min-height: 32px !important;
+  min-height: 48px !important;
+  margin-top: 0 !important;
+  order: 21;
 }
 
 div.dataTables_wrapper .dataTables_paginate > * {
@@ -1338,7 +1644,7 @@ div.dataTables_wrapper .dataTables_paginate .paginate_disabled_next {
 
 div.dataTables_wrapper .dataTables_info + .dataTables_paginate,
 div.dataTables_wrapper .dataTables_paginate {
-  margin-top: 4px !important;
+  margin-top: 0 !important;
 }
 
 div.dataTables_wrapper .dataTables_paginate .paginate_button:hover,
@@ -1367,13 +1673,24 @@ div.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
 }
 
 @media (max-width: 767px) {
+  div.dataTables_wrapper > .dataTables_length,
+  div.dataTables_wrapper > .dataTables_filter,
+  div.dataTables_wrapper > .dataTables_info,
+  div.dataTables_wrapper > .dataTables_paginate,
   div.dataTables_wrapper .dataTables_info,
   div.dataTables_wrapper .dataTables_paginate {
     float: none !important;
+    flex: 0 0 100% !important;
     width: 100% !important;
     max-width: 100% !important;
+    justify-content: center !important;
     text-align: center !important;
-    justify-content: center;
+    padding: 10px 12px !important;
+    min-height: auto !important;
+  }
+
+  div.dataTables_wrapper > .dataTables_filter label {
+    justify-content: center !important;
   }
 
   div.dataTables_wrapper .dataTables_paginate {
@@ -1421,15 +1738,7 @@ div.dataTables_wrapper .ew-table-scroll-inner table.dataTable {
 div.dataTables_wrapper .dataTables_length,
 div.dataTables_wrapper .dataTables_filter {
   width: auto;
-}
-
-div.dataTables_wrapper .dataTables_filter {
-  text-align: right;
-  float: right;
-}
-
-div.dataTables_wrapper .dataTables_length {
-  float: left;
+  float: none !important;
 }
 
 /* Truncate long address/text cells — keeps row height compact */
@@ -1547,42 +1856,87 @@ th.table-title.sorting_desc:after {
   border-left-width: 4px !important;
 }
 
-/* Dual arrows — unsorted column */
+/* Sort icons — Font Awesome (dual-arrow / single-arrow) */
 table.dataTable thead th.sorting:before,
+table.dataTable thead th.sorting:after,
 .dataTable th.sorting:before,
-th.table-title.sorting:before {
-  top: 50% !important;
-  margin-top: -8px !important;
-  border-bottom: 4px solid rgba(255, 255, 255, .45) !important;
-  border-top: none !important;
+.dataTable th.sorting:after,
+th.table-title.sorting:before,
+th.table-title.sorting:after,
+table.dataTable thead th.sorting_asc:before,
+.dataTable th.sorting_asc:before,
+th.table-title.sorting_asc:before,
+table.dataTable thead th.sorting_desc:before,
+.dataTable th.sorting_desc:before,
+th.table-title.sorting_desc:before {
+  content: none !important;
+  display: none !important;
+  border: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 table.dataTable thead th.sorting:after,
 .dataTable th.sorting:after,
 th.table-title.sorting:after {
+  content: "\f0dc" !important;
+  display: inline-block !important;
+  font-family: FontAwesome !important;
+  font-size: 11px !important;
+  font-weight: normal !important;
+  color: #94a3b8 !important;
+  position: absolute !important;
+  right: 10px !important;
   top: 50% !important;
-  margin-top: 2px !important;
-  border-top: 4px solid rgba(255, 255, 255, .45) !important;
-  border-bottom: none !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+  border: none !important;
+  width: auto !important;
+  height: auto !important;
+  line-height: 1 !important;
+  opacity: 1 !important;
 }
 
-/* Single arrow — sorted asc/desc */
 table.dataTable thead th.sorting_asc:after,
 .dataTable th.sorting_asc:after,
 th.table-title.sorting_asc:after {
+  content: "\f0de" !important;
+  display: inline-block !important;
+  font-family: FontAwesome !important;
+  font-size: 11px !important;
+  font-weight: normal !important;
+  color: var(--ew-text, #1A2332) !important;
+  position: absolute !important;
+  right: 10px !important;
   top: 50% !important;
-  margin-top: -2px !important;
-  border-bottom: 5px solid #fff !important;
-  border-top: none !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+  border: none !important;
+  width: auto !important;
+  height: auto !important;
+  line-height: 1 !important;
+  opacity: 1 !important;
 }
 
 table.dataTable thead th.sorting_desc:after,
 .dataTable th.sorting_desc:after,
 th.table-title.sorting_desc:after {
+  content: "\f0dd" !important;
+  display: inline-block !important;
+  font-family: FontAwesome !important;
+  font-size: 11px !important;
+  font-weight: normal !important;
+  color: var(--ew-text, #1A2332) !important;
+  position: absolute !important;
+  right: 10px !important;
   top: 50% !important;
-  margin-top: -2px !important;
-  border-top: 5px solid #fff !important;
-  border-bottom: none !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+  border: none !important;
+  width: auto !important;
+  height: auto !important;
+  line-height: 1 !important;
+  opacity: 1 !important;
 }
 
 /* Suppress sort arrows on non-sortable action columns */

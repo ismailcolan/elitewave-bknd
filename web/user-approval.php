@@ -59,15 +59,21 @@ div#dataTable1_length {
         </div>
     <div class="container-fluid main-content new_dpt_bottom">
         <div class="row">
-            <div class="col-md-offset-1 col-md-10">
-                <div class="widget-container fluid-height clearfix">
-                    <div class="heading"> <i class="fa fa-table"></i> List of User 
-                    <!-- <span class="align-right"><i class="fa fa-plus"></i> 
-                    <a href="client.php">Add Client</a></span>  -->
-                </div>
-                    <div class="widget-content padded clearfix new_dept">
+            <div class="col-md-12">
+                <div class="ew-page-v2">
+                    <div class="ew-page-head">
+                        <div class="ew-page-head-left">
+                            <h1 class="ew-page-title">User Approval</h1>
+                        </div>
+                    </div>
+                    <div class="ew-card">
+                        <div class="ew-card-toolbar">
+                            <h2>List of Users</h2>
+                        </div>
+                        <div class="ew-table-wrap widget-content padded clearfix new_dept">
                         <table class="table table-bordered table-striped user_appr_tbl" id="dataTable1">
                             <thead>
+                                <tr>
                                 <th class="table-title" style="width:10%">S.No</th>
                                 <th class="table-title" style="width:30%">Name</th>
                                 <th class="table-title" style="width:30%">Username/Email</th>
@@ -76,6 +82,7 @@ div#dataTable1_length {
                                 <!-- <th class="table-title" style="width:30%">City</th> -->
                                 <th class="table-title" style="width:30%">Status</th>
                                 <th class="table-title" style="width:10%">Action</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 <?php
@@ -144,8 +151,8 @@ div#dataTable1_length {
                             </tbody>
                         </table>
 
+                        </div>
                     </div>
-
                 </div>
             </div>
         </div>

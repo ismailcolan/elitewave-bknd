@@ -125,3 +125,20 @@ td label.field-inline-error {
 	visibility: hidden !important;
 	pointer-events: none !important;
 }
+
+/* Win over v2 field label styling (ew-pages-v2 loads nearby) */
+.ew-page-v2 .ew-field label.error,
+.ew-page-v2 .ew-field label.field-inline-error,
+.ew-page-v2 label.error,
+.ew-page-v2 label.field-inline-error,
+.ew-form-grid label.error,
+.ew-form-grid label.field-inline-error,
+.form-horizontal label.error,
+.form-horizontal label.field-inline-error,
+td label.error,
+td label.field-inline-error {
+	color: var(--ew-validation, #DD111E) !important;
+	font-weight: 500 !important;
+	text-transform: none !important;
+	letter-spacing: normal !important;
+}

@@ -244,6 +244,33 @@
 		});
 	};
 
+	/** Legacy save/delete handlers reload in slideUp callback — toast intercept stops that animation */
+	function ewShouldReloadAfterAlertSuccess(msg) {
+		var m = String(msg || '').toLowerCase();
+		if (/booking cancelled successfully/.test(m)) {
+			return false;
+		}
+		if (/successfully.*please wait until page refresh/.test(m)) {
+			return true;
+		}
+		if (m.indexOf('deleted successfully') !== -1) {
+			return true;
+		}
+		if (/\bis (activated|in-activated|inactivated)\b/.test(m)) {
+			return true;
+		}
+		return false;
+	}
+
+	function ewReloadAfterMasterSave() {
+		if (typeof window.ewV2CloseModal === 'function') {
+			$('.ew-v2-modal-backdrop.open').each(function() {
+				window.ewV2CloseModal(this.id);
+			});
+		}
+		window.location.reload();
+	}
+
 	/** Convert legacy #alert-container success/error banners into bottom toasts */
 	window.ewBindAlertContainerToToast = function bindAlertContainerToToast() {
 		var el = document.getElementById('alert-container');
@@ -279,6 +306,9 @@
 			ewFormToast(msg, type, 5000);
 			$box.stop(true, true).hide().removeClass('alert-success alert-danger alert-warning');
 			$('#alert-status, #alert-message').text('');
+			if (type === 'success' && ewShouldReloadAfterAlertSuccess(msg)) {
+				setTimeout(ewReloadAfterMasterSave, 400);
+			}
 		}
 
 		var observer = new MutationObserver(function() {

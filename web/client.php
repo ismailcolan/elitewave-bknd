@@ -22,6 +22,10 @@ $row = array(
     'automation' => 0,
 );
 $is_edit = ($key != '');
+if (!$is_edit && empty($_GET['create'])) {
+    header('Location:client_list.php');
+    exit;
+}
 if ($is_edit) {
     $client_query = "select * from client where md5(client_id)='" . mysqli_real_escape_string($conn, $key) . "'";
     $client_result = mysqli_query($conn, $client_query);
@@ -44,47 +48,20 @@ if ($is_edit) {
             color: red;
         }
 
-        #client_form .row.client-form-row {
-            margin-left: 0;
-            margin-right: 0;
-        }
-
-        #client_form .row.client-form-row > [class*="col-"] {
-            padding-left: 15px;
-            padding-right: 15px;
-        }
-
-        #client_form .form-group > .control-label {
-            display: block;
-            float: none;
-            width: 100%;
-            text-align: left;
-            padding-top: 0;
-        }
-
-        #client_form .form-group.client-check-group > .control-label {
-            visibility: hidden;
-            height: 0;
-            margin: 0;
-            padding: 0;
-            line-height: 0;
-        }
-
         #client_form .client-check-wrap {
-            display: block;
-            padding-top: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 38px;
         }
 
         #client_form .client-check-wrap input[type="checkbox"] {
-            margin: 0 8px 0 0;
-            vertical-align: middle;
+            margin: 0;
         }
 
         #client_form .client-check-wrap .client-check-text {
-            display: inline;
             font-weight: normal;
             margin: 0;
-            vertical-align: middle;
             line-height: 1.4;
         }
     </style>
@@ -104,12 +81,20 @@ if ($is_edit) {
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <div class="col-md-offset-1 col-md-10">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-plus"></i>Client <span class="align-right"><i class="fa fa-plus"></i><a href="client_list.php">View List</a></span></div>
-
-                        <div class="widget-content padded">
-                            <form class="form-horizontal" id="client_form">
+                <div class="col-md-12">
+                    <div class="ew-page-v2">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <a href="client_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+                                <h1 class="ew-page-title"><?php echo $is_edit ? 'Edit Client' : 'Add Client'; ?></h1>
+                            </div>
+                            <div class="ew-toolbar-right">
+                                <a href="client_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+                            </div>
+                        </div>
+                        <div class="ew-card">
+                            <div class="ew-form-body">
+                            <form id="client_form">
 
                                 <input type="hidden" id="form_name" name="form_name" value="add_client">
                                 <input type="hidden" id="edit_id" name="edit_id" value="<?php echo htmlspecialchars($key); ?>">
@@ -118,122 +103,115 @@ if ($is_edit) {
                                     <div class="message" style="text-align:center"></div>
                                 </div>
 
-                                <div class="row client-form-row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="control-label">Client Company Name <span style="color:red;">*</span> :</label>
-                                            <input type="text" id="company_name" name="company_name" value="<?php echo htmlspecialchars($row['client_company_name']); ?>" class="form-control" required autocomplete="off" />
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Contact Person <span style="color:red;">*</span> :</label>
-                                            <input type="text" name="contact_person" id="contact_person" value="<?php echo htmlspecialchars($row['contact_person']); ?>" class="form-control" required autocomplete="off" />
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Address1 <span style="color:red;">*</span> :</label>
-                                            <input type="text" name="address1" id="address1" class="form-control" value="<?php echo htmlspecialchars($row['address1']); ?>" required autocomplete="off" />
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Address2:</label>
-                                            <input type="text" name="address2" id="address2" value="<?php echo htmlspecialchars($row['address2']); ?>" class="form-control" autocomplete="off" />
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">State <span style="color:red;">*</span> :</label>
-                                            <select name="state" id="state" class="form-control" required>
-                                                <option value="">Select State</option>
-                                                <?php
-                                                $state_query = "select * from state where status=0 order by state_name";
-                                                $state_result = mysqli_query($conn, $state_query);
-                                                while ($state_row = mysqli_fetch_array($state_result)) {
-                                                ?>
-                                                    <option value="<?php echo $state_row['state_id']; ?>" <?php if ($row['state'] == $state_row['state_id']) echo 'selected'; ?>><?php echo $state_row['state_name']; ?></option>
-                                                <?php } ?>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">City <span style="color:red;">*</span> :</label>
-                                            <select name="city" id="city" class="form-control" required>
-                                                <option value="">Select City</option>
-                                                <?php
-                                                $city_query = "select * from city where status=0 order by city_name";
-                                                $city_result = mysqli_query($conn, $city_query);
-                                                while ($city_row = mysqli_fetch_array($city_result)) {
-                                                ?>
-                                                    <option value="<?php echo $city_row['city_id']; ?>" <?php if ($row['city'] == $city_row['city_id']) echo 'selected'; ?>><?php echo $city_row['city_name']; ?></option>
-                                                <?php } ?>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">GST No <span style="color:red;">*</span> :</label>
-                                            <input type="text" name="gst_no" id="gst_no" class="form-control" value="<?php echo htmlspecialchars($row['gst_no']); ?>" required autocomplete="off" />
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">PAN No <span style="color:red;">*</span> :</label>
-                                            <input type="text" name="pan_no" id="pan_no" class="form-control" value="<?php echo htmlspecialchars($row['pan_no']); ?>" required autocomplete="off" />
-                                            <span class="dup-check"></span>
+                                <div class="ew-form-grid">
+                                    <div class="ew-section-label">General</div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Client Company Name <span style="color:red;">*</span> :</label>
+                                        <input type="text" id="company_name" name="company_name" value="<?php echo htmlspecialchars($row['client_company_name']); ?>" class="form-control" required autocomplete="off" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Contact Person <span style="color:red;">*</span> :</label>
+                                        <input type="text" name="contact_person" id="contact_person" value="<?php echo htmlspecialchars($row['contact_person']); ?>" class="form-control" required autocomplete="off" />
+                                        <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Client Code <span style="color:red;">*</span> :</label>
+                                        <input type="text" style="text-transform:uppercase" maxlength="4" name="billing_code" id="billing_code" value="<?php echo htmlspecialchars($row['billing_code']); ?>" class="form-control" required autocomplete="off" <?php if ($is_edit) echo 'readonly'; ?> />
+                                        <span class="bill_dup-check"></span>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Pincode:</label>
+                                        <input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" value="<?php echo htmlspecialchars($row['pincode']); ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
+                                    </div>
+                                    <div class="ew-field span-2">
+                                        <label class="control-label">Address1 <span style="color:red;">*</span> :</label>
+                                        <input type="text" name="address1" id="address1" class="form-control" value="<?php echo htmlspecialchars($row['address1']); ?>" required autocomplete="off" />
+                                        <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field span-2">
+                                        <label class="control-label">Address2:</label>
+                                        <input type="text" name="address2" id="address2" value="<?php echo htmlspecialchars($row['address2']); ?>" class="form-control" autocomplete="off" />
+                                        <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">State <span style="color:red;">*</span> :</label>
+                                        <select name="state" id="state" class="form-control" required>
+                                            <option value="">Select State</option>
+                                            <?php
+                                            $state_query = "select * from state where status=0 order by state_name";
+                                            $state_result = mysqli_query($conn, $state_query);
+                                            while ($state_row = mysqli_fetch_array($state_result)) {
+                                            ?>
+                                                <option value="<?php echo $state_row['state_id']; ?>" <?php if ($row['state'] == $state_row['state_id']) echo 'selected'; ?>><?php echo $state_row['state_name']; ?></option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">City <span style="color:red;">*</span> :</label>
+                                        <select name="city" id="city" class="form-control" required>
+                                            <option value="">Select City</option>
+                                            <?php
+                                            $city_query = "select * from city where status=0 order by city_name";
+                                            $city_result = mysqli_query($conn, $city_query);
+                                            while ($city_row = mysqli_fetch_array($city_result)) {
+                                            ?>
+                                                <option value="<?php echo $city_row['city_id']; ?>" <?php if ($row['city'] == $city_row['city_id']) echo 'selected'; ?>><?php echo $city_row['city_name']; ?></option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">GST No <span style="color:red;">*</span> :</label>
+                                        <input type="text" name="gst_no" id="gst_no" class="form-control" value="<?php echo htmlspecialchars($row['gst_no']); ?>" required autocomplete="off" />
+                                        <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">PAN No <span style="color:red;">*</span> :</label>
+                                        <input type="text" name="pan_no" id="pan_no" class="form-control" value="<?php echo htmlspecialchars($row['pan_no']); ?>" required autocomplete="off" />
+                                        <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Email <span style="color:red;">*</span> :</label>
+                                        <input type="email" name="email" id="email" value="<?php echo htmlspecialchars($row['email']); ?>" class="form-control email_dup-check" required autocomplete="off" />
+                                        <span class="email_dup-check-text-status p_css"></span>
+                                        <input type="hidden" class="dup-check-status" id="email_val" value="" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Email 2 :</label>
+                                        <input type="email" name="email1" id="email1" value="<?php echo htmlspecialchars($row['email1']); ?>" class="form-control" autocomplete="off" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Contact No <span style="color:red;">*</span> :</label>
+                                        <input type="text" name="contact_no" pattern="\d{10}" minlength="10" maxlength="10" id="contact_no" value="<?php echo htmlspecialchars($row['contact_no']); ?>" class="form-control" required autocomplete="off" onpaste="return false;" />
+                                        <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Contact No 2 :</label>
+                                        <input type="text" name="contact_no1" id="contact_no1" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($row['contact_no1']); ?>" class="form-control" autocomplete="off" onpaste="return false;" />
+                                        <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field span-2">
+                                        <div class="client-check-wrap">
+                                            <input type="checkbox" name="multiple_branches" <?php if ($row['multiple_branches'] == 1) echo 'checked'; ?> id="multiple_branches" />
+                                            <label for="multiple_branches" class="client-check-text control-label">Click, If client have multiple branches:</label>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="control-label">Client Code <span style="color:red;">*</span> :</label>
-                                            <input type="text" style="text-transform:uppercase" maxlength="4" name="billing_code" id="billing_code" value="<?php echo htmlspecialchars($row['billing_code']); ?>" class="form-control" required autocomplete="off" <?php if ($is_edit) echo 'readonly'; ?> />
-                                            <span class="bill_dup-check"></span>
+                                    <div class="ew-field span-2">
+                                        <div class="client-check-wrap">
+                                            <input type="checkbox" name="transit_automation" id="transit_automation" <?php if ($row['automation'] == 1) echo 'checked'; ?> />
+                                            <label for="transit_automation" class="client-check-text control-label">In Transit Automation, Not Required.:</label>
                                         </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Pincode:</label>
-                                            <input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" value="<?php echo htmlspecialchars($row['pincode']); ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Email <span style="color:red;">*</span> :</label>
-                                            <input type="email" name="email" id="email" value="<?php echo htmlspecialchars($row['email']); ?>" class="form-control email_dup-check" required autocomplete="off" />
-                                            <span class="email_dup-check-text-status p_css"></span>
-                                            <input type="hidden" class="dup-check-status" id="email_val" value="" />
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Email 2 :</label>
-                                            <input type="email" name="email1" id="email1" value="<?php echo htmlspecialchars($row['email1']); ?>" class="form-control" autocomplete="off" />
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Contact No <span style="color:red;">*</span> :</label>
-                                            <input type="text" name="contact_no" pattern="\d{10}" minlength="10" maxlength="10" id="contact_no" value="<?php echo htmlspecialchars($row['contact_no']); ?>" class="form-control" required autocomplete="off" onpaste="return false;" />
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Contact No 2 :</label>
-                                            <input type="text" name="contact_no1" id="contact_no1" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($row['contact_no1']); ?>" class="form-control" autocomplete="off" onpaste="return false;" />
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group client-check-group">
-                                            <label class="control-label">&nbsp;</label>
-                                            <div class="client-check-wrap">
-                                                <input type="checkbox" name="multiple_branches" <?php if ($row['multiple_branches'] == 1) echo 'checked'; ?> id="multiple_branches" />
-                                                <label for="multiple_branches" class="client-check-text control-label">Click, If client have multiple branches:</label>
-                                            </div>
-                                        </div>
-                                        <div class="form-group client-check-group">
-                                            <label class="control-label">&nbsp;</label>
-                                            <div class="client-check-wrap">
-                                                <input type="checkbox" name="transit_automation" id="transit_automation" <?php if ($row['automation'] == 1) echo 'checked'; ?> />
-                                                <label for="transit_automation" class="client-check-text control-label">In Transit Automation, Not Required.:</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div><br />
-                                <div class="row">
-                                    <div class="col-md-12 form-action">
-                                        <?php if (!$is_edit) { ?>
-                                            <button class="btn btn-primary" type="button" id="save">Submit</button>
-                                            <a class="btn btn-default-outline btn-reset" href="client.php" type="button">Cancel</a>
-                                        <?php } else { ?>
-                                            <button class="btn btn-primary" type="button" id="update">Update</button>
-                                            <a class="btn btn-default-outline btn-reset" href="client.php" type="button">Cancel</a>
-                                        <?php } ?>
                                     </div>
                                 </div>
                             </form>
+                            </div>
+                            <div class="ew-form-footer">
+                                <a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="client_list.php">Cancel</a>
+                                <?php if (!$is_edit) { ?>
+                                    <button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save">Submit</button>
+                                <?php } else { ?>
+                                    <button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="update">Update</button>
+                                <?php } ?>
+                            </div>
                         </div>
                     </div>
                 </div>

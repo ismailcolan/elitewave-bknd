@@ -18,7 +18,7 @@ mysqli_query($conn, 'UPDATE user_registrations SET read_status = 1 WHERE read_st
             cursor: default;
         }
 
-        .widget-container .widget-content {
+        .ew-table-wrap.widget-content {
             width: 100%;
             overflow-x: auto;
             overflow-y: hidden;
@@ -95,10 +95,18 @@ mysqli_query($conn, 'UPDATE user_registrations SET read_status = 1 WHERE read_st
         </div>
     <div class="container-fluid main-content new_dpt_bottom">
         <div class="row">
-            <div class="col-md-offset-1 col-md-10">
-                <div class="widget-container fluid-height clearfix">
-                    <div class="heading"> <i class="fa fa-table"></i>User Registraion Request</div>
-                    <div class="widget-content padded clearfix new_dept ">
+            <div class="col-md-12">
+                <div class="ew-page-v2 ew-page-v2--wide-table">
+                    <div class="ew-page-head">
+                        <div class="ew-page-head-left">
+                            <h1 class="ew-page-title">Registration Request</h1>
+                        </div>
+                    </div>
+                    <div class="ew-card">
+                        <div class="ew-card-toolbar">
+                            <h2>User Registration Request</h2>
+                        </div>
+                        <div class="ew-table-wrap widget-content padded clearfix new_dept">
                         <table class="table table-bordered table-striped w-100" id="dataTable1"> <!--user-inquiry_tbl-->
                             <thead>
                                 <tr>
@@ -180,8 +188,8 @@ mysqli_query($conn, 'UPDATE user_registrations SET read_status = 1 WHERE read_st
                             </tbody>
                         </table>
 
+                        </div>
                     </div>
-
                 </div>
             </div>
         </div>

@@ -9,39 +9,17 @@ require_once("include/function.php");
   <?php include("include/css_js.php"); ?>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 <style>
-  .dataTable th.sorting:after, .dataTable th.sorting_desc:after {
-    top: 9px;
-    right: 2px;
-}
-.dataTable th.sorting:before, .dataTable th.sorting_asc:after {
-    top: 3px;
-    right: 2px;
-}  
-@media (min-width: 360px) and (max-width:575.98px) { 
-div#dataTable1_filter {
-    display: block;
-}
+	.dataTable th.sorting:after,
+	.dataTable th.sorting_desc:after {
+		top: 17px;
+		right: 3px;
+	}
 
-
-div#dataTable1_length {
-    display: block;
-}
-.dataTables_filter input {
-    width: 112px;
- 
-}
-.dataTables_length {
-    width: 43%;
-    float: left;
-    margin: 5px 0 10px;
-}
-.dataTables_filter {
-    width: 53%;
-    float: right;
-    text-align: right;
-    color: #5f5f5f;
-}
-}
+	.dataTable th.sorting:before,
+	.dataTable th.sorting_asc:after {
+		top: 10px;
+		right: 3px;
+	}
 </style>
   </head>
   <body class="page-header-fixed bg-1">
@@ -56,21 +34,33 @@ div#dataTable1_length {
       
 	</div>
 <div class="container-fluid main-content new_dpt_bottom">
-  
 		<div class="row">
-		  <div class="col-md-offset-1 col-md-10 master_left">
-				<div class="widget-container fluid-height clearfix">
-						<div class="heading"> <i class="fa fa-table" ></i> List of Users <span class="align-right"><i class="fa fa-plus" ></i><a href="users.php">Add Users</a> </span></div>
-					<div class="widget-content padded clearfix new_dept">
+			<div class="col-md-12">
+				<div class="ew-page-v2">
+					<div class="ew-page-head">
+						<div class="ew-page-head-left">
+							<h1 class="ew-page-title">Users</h1>
+						</div>
+					</div>
+					<div class="ew-card ew-erp-list">
+						<div class="ew-card-toolbar">
+							<h2>User List</h2>
+							<div class="ew-toolbar-right">
+								<div class="ew-list-toolbar__tools"></div>
+								<a href="users.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
+							</div>
+						</div>
+						<div class="ew-table-wrap widget-content padded clearfix new_dept">
 						<table class="table table-bordered table-striped us_list_tbl" id="dataTable1">
 							<thead>
-								<th class="table-title" style="width:10%">S.No</th>
-								<th class="table-title" style="width:20%">Company Name</th>
-								<th class="table-title" style="width:20%">Branch Name</th>
-								<th class="table-title" style="width:20%">Email</th>
-								<th class="table-title" style="width:20%">Contact Person</th>
-							
-								<th class="table-title" style="width:10%">Action</th>              
+								<tr>
+									<th class="table-title" style="width:8%">S.No</th>
+									<th class="table-title" style="width:20%">Company Name</th>
+									<th class="table-title" style="width:18%">Branch Name</th>
+									<th class="table-title" style="width:22%">Email</th>
+									<th class="table-title" style="width:20%">Contact Person</th>
+									<th class="table-title sorting_disabled" style="width:12%">Action</th>
+								</tr>
 							</thead>
 							<tbody>
 							<?php 
@@ -118,11 +108,11 @@ div#dataTable1_length {
 	
 							</tbody>
 						</table>
-				
+						</div>
 					</div>
-					</div>
+				</div>
+			</div>
 		</div>
-	
 
 		<?php require_once("include/footer.php"); ?>
 	</div>	

@@ -78,58 +78,23 @@ th.table-title.sorting_disabled {
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <div class="col-md-3 master_left">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-plus"></i>Mode Of Transportation:</div>
-
-                        <div class="widget-content padded">
-                            <form class="form-horizontal" id="transportation_form">
-                                <input type="hidden" id="form_name" name="form_name" value="add_mode_of_transportation">
-                                <input type="hidden" id="edit_id" name="edit_id" value="">
-                                <div id="response" class="alert alert-danger" style="display:none;">
-                                    <div class="message" style="text-align:center"></div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label class="control-label">Mode Type <span style="color:red;">*</span> :</label>
-                                            <select class="form-control" name="mode_type" id="mode_type" required>
-                                                <option value="">Select Mode Type</option>
-                                                <option value="Premium Air Cargo">Premium Air Cargo</option>
-                                                <option value="Premium Train Cargo">Premium Train Cargo</option>
-                                                <option value="Express Delivery">Express Delivery</option>
-                                                <option value="Road Freight">Road Freight</option>
-                                                <option value="Full Truck Load">Full Truck Load</option>
-                                                <option value="Part Load">Part Load</option>
-
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Delivery <span style="color:red;">*</span> :</label>
-                                            <input type="text" name="delivery" id="delivery" class="form-control" required autocomplete="off" />
-                                            Hours max.
-                                        </div>
-                                            <div class="form-group">
-                                            <label class="control-label">SAC Code <span style="color:red;">*</span> :</label>
-                                            <input type="text" name="sac_code" id="sac_code" class="form-control" required autocomplete="off" />
-                                           
-                                        </div>
-                                    </div>
-                                </div><br />
-                                <div class="row">
-                                    <div class="col-md-12 form-action">
-                                        <button class="btn btn-primary" type="button" id="save">Submit</button>
-                                        <a class="btn btn-default-outline  btn-reset" href="mode_of_transportation.php" type="button">Cancel</a>
-                                    </div>
-                                </div>
-                            </form>
+                <div class="col-md-12">
+                    <div class="ew-page-v2">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">Mode Of Transport</h1>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class=" col-md-9 master_right">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-table"></i> List of Mode </div>
-                        <div class="widget-content padded clearfix new_dept">
+                        <div class="ew-card">
+                            <div class="ew-card-toolbar">
+                                <h2>Mode List</h2>
+                                <div class="ew-toolbar-right">
+                                    <button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreateMode">
+                                        Create <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="ew-table-wrap widget-content padded clearfix new_dept">
                             <table class="table table-bordered table-striped mode_tab" id="dataTable1">
                                 <thead>
                                     <th class="table-title" style="width:10%">S.No</th>
@@ -176,7 +141,7 @@ th.table-title.sorting_disabled {
 
                                 </tbody>
                             </table>
-
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -357,6 +322,16 @@ th.table-title.sorting_disabled {
                 });
 
 
+                $('#openCreateMode').on('click', function() {
+                    $('#form_name').val('add_mode_of_transportation');
+                    $('#edit_id').val('');
+                    $('#mode_type').val('');
+                    $('#delivery').val('');
+                    $('#sac_code').val('');
+                    $('#modeModalTitle').text('Create Mode');
+                    ewV2OpenModal('modeModal');
+                });
+
                 //	Button Edit
                 $(document).on('click', '.btn-edit', function(ev) {
                     $(".form-data-saving").show();
@@ -379,7 +354,8 @@ th.table-title.sorting_disabled {
                             $("#mode_type").val(result['mode_type']);
                             $('#delivery').val(result['max_hrs_delivery']);
                         $('#sac_code').val(result['sac_code']);
-
+                            $('#modeModalTitle').text('Edit Mode');
+                            ewV2OpenModal('modeModal');
                         },
                         error: function(jqxhr) {
                             ewToast(jqxhr.responseText, 'error');
@@ -390,10 +366,12 @@ th.table-title.sorting_disabled {
 
                 //Button Reset
                 $(document).on('click', '.btn-reset', function(ev) {
-                    $('#form_name').val('add_branch');
+                    $('#form_name').val('add_mode_of_transportation');
                     $('#edit_id').val('');
-                    $('#department_name').val('');
-                    $('#department_code').val('');
+                    $('#mode_type').val('');
+                    $('#delivery').val('');
+                    $('#sac_code').val('');
+                    ewV2CloseModal('modeModal');
                 });
 
 
@@ -441,6 +419,49 @@ th.table-title.sorting_disabled {
                     <button class="btn btn-sm btn-danger delete-error-popup-close" id="">Close</button> <br /> &nbsp; <br />
                 </div>
                 <!--<span class="popup_close" id="popup_close">X</span>-->
+            </div>
+        </div>
+
+        <div class="ew-v2-modal-backdrop" id="modeModal">
+            <div class="ew-v2-modal">
+                <div class="ew-v2-modal-head">
+                    <h3 id="modeModalTitle">Create Mode</h3>
+                    <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+                </div>
+                <div class="ew-v2-modal-body">
+                    <form class="form-horizontal" id="transportation_form">
+                        <input type="hidden" id="form_name" name="form_name" value="add_mode_of_transportation">
+                        <input type="hidden" id="edit_id" name="edit_id" value="">
+                        <div id="response" class="alert alert-danger" style="display:none;">
+                            <div class="message" style="text-align:center"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Mode Type <span style="color:red;">*</span> :</label>
+                            <select class="form-control" name="mode_type" id="mode_type" required>
+                                <option value="">Select Mode Type</option>
+                                <option value="Premium Air Cargo">Premium Air Cargo</option>
+                                <option value="Premium Train Cargo">Premium Train Cargo</option>
+                                <option value="Express Delivery">Express Delivery</option>
+                                <option value="Road Freight">Road Freight</option>
+                                <option value="Full Truck Load">Full Truck Load</option>
+                                <option value="Part Load">Part Load</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Delivery <span style="color:red;">*</span> :</label>
+                            <input type="text" name="delivery" id="delivery" class="form-control" required autocomplete="off" />
+                            Hours max.
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">SAC Code <span style="color:red;">*</span> :</label>
+                            <input type="text" name="sac_code" id="sac_code" class="form-control" required autocomplete="off" />
+                        </div>
+                    </form>
+                </div>
+                <div class="ew-v2-modal-foot">
+                    <button type="button" class="btn btn-default-outline btn-reset" data-ew-v2-close>Cancel</button>
+                    <button class="btn btn-primary" type="button" id="save">Submit</button>
+                </div>
             </div>
         </div>
 

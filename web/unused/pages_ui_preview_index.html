@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERP UI Preview Hub — Elite Wave 360</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="stylesheets/ew-preview-shell.css?v=20260911" rel="stylesheet">
+</head>
+<body>
+  <div class="preview-index">
+    <h2>Elite Wave 360 — ERP UI Preview Pack</h2>
+    <p class="lead">Phase 0 previews · Phase 1–6 live · Book Consignment v2 live · Manual booking v2 live · rollback: <code>bash rollback10.sh</code> / <code>bash rollback11.sh</code> · Phase 6: <code>bash rollback8.sh</code></p>
+
+    <div class="preview-grid">
+      <a class="preview-card-link" href="pages_ui_preview.html">
+        <h3>Core Patterns</h3>
+        <p>List page, Create page, and Master + Popup — the 4 base templates with sidebar expand/collapse demo.</p>
+        <span class="tag">Start here</span>
+      </a>
+      <a class="preview-card-link" href="pages_ui_preview_masters.html">
+        <h3>Setup &amp; Transport Masters</h3>
+        <p>State, City, Hub, Mode of Transport — full-width list + create popup (replaces split form+list).</p>
+        <span class="tag">Phase 2–3</span>
+      </a>
+      <a class="preview-card-link" href="pages_ui_preview_forms.html">
+        <h3>Billing &amp; Party Forms</h3>
+        <p>Rates, Charges, Expected Delivery, Client — 4-column ERP forms with back navigation.</p>
+        <span class="tag">Phase 4 · Live</span>
+      </a>
+      <a class="preview-card-link" href="pages_ui_preview_ops.html">
+        <h3>Consignment Operations</h3>
+        <p>Transactions, Pickup, Status change, Draft consignment wide table.</p>
+        <span class="tag">Phase 5 · Live</span>
+      </a>
+      <a class="preview-card-link" href="pages_ui_preview_consignment_forms.html">
+        <h3>Consignment Booking Forms</h3>
+        <p>Field parity (Manual vs Standard) · Standard booking v2 live · Manual booking v2 live.</p>
+        <span class="tag">Both live</span>
+      </a>
+      <a class="preview-card-link" href="pages_ui_preview_transactions_alt.html">
+        <h3>Book Consignment — Alt Designs</h3>
+        <p>Compare current live layout vs Tabbed, Step Wizard, and Accordion alternatives for transactions.php.</p>
+        <span class="tag">Pick a design</span>
+      </a>
+      <a class="preview-card-link" href="pages_ui_preview_dashboard.html">
+        <h3>Dashboard</h3>
+        <p>Compare live dashboard vs ERP Workbench vs Command Center — pick a layout before applying to dashboard.php.</p>
+        <span class="tag">Pick a design</span>
+      </a>
+      <a class="preview-card-link" href="pages_ui_preview_reports.html">
+        <h3>MIS &amp; Reports</h3>
+        <p>Consignment report, Cargo booking, GST report — list + export/filter toolbar.</p>
+        <span class="tag">Phase 6 · Live</span>
+      </a>
+      <a class="preview-card-link" href="sidebar_dual_rail_preview.html">
+        <h3>Sidebar (Live)</h3>
+        <p>Dual-rail navigation already implemented — complements the page layouts above.</p>
+        <span class="tag">Done</span>
+      </a>
+    </div>
+
+    <div class="ew-compare" style="margin-top:32px">
+      <h3>Rollback plan</h3>
+      <ul>
+        <li><strong>rollback4</strong> — reverted the earlier 4-page pilot</li>
+        <li><strong>rollback10</strong> — restores <code>transactions.php</code> (see <code>rollback10.sh</code>)</li>
+        <li><strong>rollback11</strong> — restores <code>transactions_manual.php</code> (see <code>rollback11.sh</code>)</li>
+        <li><strong>rollback8</strong> — restores Phase 6 pages (see <code>rollback8.sh</code>)</li>
+        <li><strong>rollback7</strong> — restores Phase 5 pages (see <code>rollback7.sh</code>)</li>
+        <li><strong>rollback6</strong> — restores Phase 4 pages (see <code>rollback6.sh</code>)</li>
+        <li><strong>rollback5</strong> — restores Phase 1–3 pages (see <code>rollback5.sh</code>)</li>
+        <li>Phase 1: state, pickup_list, request_for_new_pickup, user-draftconsignment</li>
+        <li>Phase 2: city, hub, mode_of_transportation</li>
+        <li>Phase 3: consignment_mode, package_type, train, flight, vehicle_list, vehicle</li>
+        <li>Phase 4: rate_calculator_form, rate_calc_list, consigner_payment_form, consigner_payment_list, expected_delivery_form, expected_delivery_list, client, client_list</li>
+        <li>Phase 5: transaction_list, transaction_status (+ pickup_list, user-draftconsignment from Phase 1)</li>
+        <li>Phase 6: consignment_report, cargo_booking_report, gst_tax_report</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

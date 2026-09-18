@@ -64,21 +64,30 @@ $list_rows = expense_gcn_fetch_list($conn);
 		</div>
 		<div class="container-fluid main-content new_dpt_bottom">
 			<div class="row">
-				<div class="col-md-offset-1 col-md-10">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"><i class="fa fa-table"></i> GCN Expense List
-							<span class="align-right"><i class="fa fa-plus"></i><a href="expense_gcn.php">ADD GCN EXPENSE</a></span>
+				<div class="col-md-12">
+					<div class="ew-page-v2 ew-page-v2--wide-table">
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<h1 class="ew-page-title">Expense against GCN</h1>
+							</div>
 						</div>
-						<div class="widget-content padded clearfix new_dept">
+						<div class="ew-card ew-erp-list">
+							<div class="ew-card-toolbar">
+								<h2>GCN Expense List</h2>
+								<div class="ew-toolbar-right">
+									<div class="ew-list-toolbar__tools"></div>
+									<a href="expense_gcn.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
+								</div>
+							</div>
+							<div class="ew-table-wrap widget-content padded clearfix new_dept">
 							<?php if (empty($list_rows)) { ?>
-								<div class="egcn-empty">
+								<div class="egcn-empty" style="padding:24px;text-align:center;color:#64748b;">
 									No GCN expenses saved yet.
 									<br><br>
-									<a href="expense_gcn.php" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> Add Expense against GCN</a>
+									<a href="expense_gcn.php?create=1" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-plus"></i> Add Expense against GCN</a>
 								</div>
 							<?php } else { ?>
-								<div class="table-scroll-wrapper">
-									<table class="table" id="egcn_list_table">
+									<table class="table table-bordered table-striped egcn_list_tab" id="dataTable1">
 										<thead>
 											<tr>
 												<th>S.No</th>
@@ -90,7 +99,7 @@ $list_rows = expense_gcn_fetch_list($conn);
 												<th>Expenses</th>
 												<th>Profit</th>
 												<th>Last Updated</th>
-												<th class="col-actions">Action</th>
+												<th class="table-title sorting_disabled col-actions">Action</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -157,8 +166,8 @@ $list_rows = expense_gcn_fetch_list($conn);
 											<?php } ?>
 										</tbody>
 									</table>
-								</div>
 							<?php } ?>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -169,16 +178,6 @@ $list_rows = expense_gcn_fetch_list($conn);
 	<?php if (!empty($list_rows)) { ?>
 	<script>
 		$(function() {
-			if ($.fn.DataTable) {
-				$('#egcn_list_table').DataTable({
-					pageLength: 25,
-					order: [[0, 'asc']],
-					aoColumnDefs: [
-						{ bSortable: false, aTargets: [-1], sClass: 'col-actions' }
-					]
-				});
-			}
-
 			$(document).on('click', '.btn-delete-gcn-expense', function() {
 				var id = $(this).data('id');
 				var gcn = $(this).data('gcn') || '';

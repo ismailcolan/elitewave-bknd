@@ -42,6 +42,10 @@ $row = array(
 	'bank_branch' => '',
 );
 $is_edit = ($key != '');
+if (!$is_edit && empty($_GET['create'])) {
+	header('Location:vendor_list.php');
+	exit;
+}
 if ($is_edit) {
 	$vendor_query = "SELECT * FROM vendor_master WHERE md5(vendor_id)='" . mysqli_real_escape_string($conn, $key) . "'";
 	$vendor_result = mysqli_query($conn, $vendor_query);
@@ -82,47 +86,81 @@ if (empty($bank_accounts)) {
 	<?php include("include/css_js.php"); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<style>
-		#vendor_form .row.vendor-form-row {
-			margin-left: 0;
-			margin-right: 0;
+		.ew-form-grid--vendor .ew-section-label {
+			margin-top: 8px;
 		}
 
-		#vendor_form .row.vendor-form-row>[class*="col-"] {
-			padding-left: 15px;
-			padding-right: 15px;
-		}
-
-		#vendor_form .form-group>.control-label {
-			display: block;
-			float: none;
-			width: 100%;
-			text-align: left;
-			padding-top: 0;
-		}
-
-		#vendor_form .vendor-section-title {
-			margin: 18px 0 12px;
-			padding-bottom: 6px;
-			border-bottom: 1px solid #e4e4e4;
-			font-size: 15px;
-			font-weight: 600;
-			color: #333;
-		}
-
-		#vendor_form .vendor-section-title:first-child {
+		.ew-form-grid--vendor .ew-section-label:first-child {
 			margin-top: 0;
+		}
+
+		.ew-page-v2 .ew-form-grid--vendor {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+
+		@media (max-width: 991px) {
+			.ew-page-v2 .ew-form-grid--vendor {
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+			}
+		}
+
+		@media (max-width: 640px) {
+			.ew-page-v2 .ew-form-grid--vendor {
+				grid-template-columns: 1fr;
+			}
 		}
 
 		.vendor-type-wrap {
 			display: flex;
 			gap: 8px;
-			align-items: stretch;
+			align-items: center;
 		}
 
 		.vendor-type-wrap select {
 			flex: 1;
+			min-width: 0;
 		}
 
+		.vendor-type-wrap .btn-add-inline {
+			flex: 0 0 auto;
+			height: 40px;
+			padding: 0 12px;
+			white-space: nowrap;
+		}
+
+		.vendor-yesno-row {
+			display: flex;
+			align-items: center;
+			gap: 16px;
+			min-height: 40px;
+		}
+
+		.vendor-yesno-row label {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			margin: 0;
+			font-weight: 500;
+			cursor: pointer;
+		}
+
+		.ew-field.vendor-conditional-field {
+			display: none;
+		}
+
+		.ew-field.vendor-conditional-field.visible {
+			display: block;
+		}
+
+		.ew-vendor-bank-block {
+			grid-column: 1 / -1;
+		}
+
+		.ew-vendor-bank-note {
+			margin: 0 0 12px;
+			font-size: 13px;
+			color: var(--ew-text-muted, #6B7A8D);
+		}
 
 		.bank-accounts-wrap {
 			display: flex;
@@ -131,27 +169,23 @@ if (empty($bank_accounts)) {
 		}
 
 		.bank-account-row {
-			border: 1px solid #e4e4e4;
+			border: 1px solid var(--ew-border-light, #E9ECF0);
 			border-radius: 8px;
-			padding: 14px;
-			background: #fafbfc;
+			padding: 16px;
+			background: #FAFBFC;
 		}
 
-		.bank-account-row .row {
-			margin-left: -10px;
-			margin-right: -10px;
-		}
-
-		.bank-account-row .row>[class*="col-"] {
-			padding-left: 10px;
-			padding-right: 10px;
+		.ew-form-grid--bank {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 16px;
 		}
 
 		.bank-role-row {
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			margin-top: 8px;
+			margin-top: 12px;
 			flex-wrap: wrap;
 			gap: 10px;
 		}
@@ -160,10 +194,6 @@ if (empty($bank_accounts)) {
 			font-weight: 500;
 			margin-right: 16px;
 			cursor: pointer;
-		}
-
-		.bank-role-options input {
-			margin-right: 4px;
 		}
 
 		.btn-remove-bank {
@@ -178,27 +208,16 @@ if (empty($bank_accounts)) {
 			text-decoration: underline;
 		}
 
-		.vendor-yesno-row {
-			display: flex;
-			gap: 16px;
-			margin-top: 4px;
+		@media (max-width: 991px) {
+			.ew-form-grid--bank {
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+			}
 		}
 
-		.vendor-yesno-row label {
-			font-weight: 500;
-			cursor: pointer;
-		}
-
-		.vendor-yesno-row input {
-			margin-right: 4px;
-		}
-
-		.vendor-conditional-field {
-			display: none;
-		}
-
-		.vendor-conditional-field.visible {
-			display: block;
+		@media (max-width: 640px) {
+			.ew-form-grid--bank {
+				grid-template-columns: 1fr;
+			}
 		}
 	</style>
 </head>
@@ -213,11 +232,20 @@ if (empty($bank_accounts)) {
 		</div>
 		<div class="container-fluid main-content new_dpt_bottom">
 			<div class="row">
-				<div class="col-md-offset-1 col-md-10">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"><i class="fa fa-plus"></i>Vendor <span class="align-right"><i class="fa fa-plus"></i><a href="vendor_list.php">View List</a></span></div>
-						<div class="widget-content padded">
-							<form class="form-horizontal" id="vendor_form">
+				<div class="col-md-12">
+					<div class="ew-page-v2">
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<a href="vendor_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+								<h1 class="ew-page-title"><?php echo $is_edit ? 'Edit Vendor' : 'Add Vendor'; ?></h1>
+							</div>
+							<div class="ew-toolbar-right">
+								<a href="vendor_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+							</div>
+						</div>
+						<div class="ew-card">
+							<div class="ew-form-body">
+							<form id="vendor_form">
 								<input type="hidden" id="form_name" name="form_name" value="add_vendor">
 								<input type="hidden" id="edit_id" name="edit_id" value="<?php echo htmlspecialchars($key); ?>">
 
@@ -225,237 +253,189 @@ if (empty($bank_accounts)) {
 									<div class="message" style="text-align:center"></div>
 								</div>
 
-								<div class="row vendor-form-row">
-									<div class="col-md-12">
-										<div class="vendor-section-title">Vendor Information</div>
+								<div class="ew-form-grid ew-form-grid--vendor">
+									<div class="ew-section-label">Vendor Information</div>
+									<div class="ew-field">
+										<label class="control-label">Vendor Name <span style="color:red;">*</span> :</label>
+										<input type="text" id="vendor_name" name="vendor_name" value="<?php echo htmlspecialchars($row['vendor_name']); ?>" class="form-control" required autocomplete="off" />
+										<span class="name_dup-check"></span>
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Vendor Name <span style="color:red;">*</span> :</label>
-											<input type="text" id="vendor_name" name="vendor_name" value="<?php echo htmlspecialchars($row['vendor_name']); ?>" class="form-control" required autocomplete="off" />
-											<span class="name_dup-check"></span>
-										</div>
-										<div class="form-group">
-											<label class="control-label">Vendor Code <span style="color:red;">*</span> :</label>
-											<input type="text" name="vendor_code" id="vendor_code" value="<?php echo htmlspecialchars($row['vendor_code']); ?>" class="form-control" readonly required autocomplete="off" />
-										</div>
-										<div class="form-group">
-											<label class="control-label">Vendor Type <span style="color:red;">*</span> :</label>
-											<div class="vendor-type-wrap">
-												<select name="vendor_type" id="vendor_type" class="form-control" required>
-													<?php echo ew_vendor_type_select_html($conn, $row['vendor_type']); ?>
-												</select>
-												<button type="button" class="btn btn-primary btn-add-inline" id="btn_add_vendor_type" title="Add new vendor type">+ Add</button>
-											</div>
-										</div>
-										<div class="form-group">
-											<label class="control-label">Address 1 <span style="color:red;">*</span> :</label>
-											<input type="text" name="address1" id="address1" class="form-control" value="<?php echo htmlspecialchars($row['address1']); ?>" required autocomplete="off" />
-										</div>
-										<div class="form-group">
-											<label class="control-label">Address 2 :</label>
-											<input type="text" name="address2" id="address2" value="<?php echo htmlspecialchars($row['address2']); ?>" class="form-control" autocomplete="off" />
-										</div>
+									<div class="ew-field">
+										<label class="control-label">State <span style="color:red;">*</span> :</label>
+										<select name="state" id="state" class="form-control" required>
+											<option value="">Select State</option>
+											<?php
+											$state_query = "SELECT * FROM state WHERE status=0 ORDER BY state_name";
+											$state_result = mysqli_query($conn, $state_query);
+											while ($state_row = mysqli_fetch_array($state_result)) {
+											?>
+												<option value="<?php echo $state_row['state_id']; ?>" <?php if ($row['state'] == $state_row['state_id']) echo 'selected'; ?>><?php echo htmlspecialchars($state_row['state_name']); ?></option>
+											<?php } ?>
+										</select>
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">State <span style="color:red;">*</span> :</label>
-											<select name="state" id="state" class="form-control" required>
-												<option value="">Select State</option>
-												<?php
-												$state_query = "SELECT * FROM state WHERE status=0 ORDER BY state_name";
-												$state_result = mysqli_query($conn, $state_query);
-												while ($state_row = mysqli_fetch_array($state_result)) {
-												?>
-													<option value="<?php echo $state_row['state_id']; ?>" <?php if ($row['state'] == $state_row['state_id']) echo 'selected'; ?>><?php echo $state_row['state_name']; ?></option>
-												<?php } ?>
+									<div class="ew-field">
+										<label class="control-label">Vendor Code <span style="color:red;">*</span> :</label>
+										<input type="text" name="vendor_code" id="vendor_code" value="<?php echo htmlspecialchars($row['vendor_code']); ?>" class="form-control" readonly required autocomplete="off" />
+									</div>
+									<div class="ew-field">
+										<label class="control-label">City <span style="color:red;">*</span> :</label>
+										<select name="city" id="city" class="form-control" required>
+											<option value="">Select City</option>
+											<?php
+											if (!empty($row['state'])) {
+												$city_query = "SELECT * FROM city WHERE status=0 AND state='" . (int) $row['state'] . "' ORDER BY city_name";
+												$city_result = mysqli_query($conn, $city_query);
+												while ($city_row = mysqli_fetch_array($city_result)) {
+											?>
+													<option value="<?php echo $city_row['city_id']; ?>" <?php if ($row['city'] == $city_row['city_id']) echo 'selected'; ?>><?php echo htmlspecialchars($city_row['city_name']); ?></option>
+											<?php }
+											} ?>
+										</select>
+									</div>
+									<div class="ew-field">
+										<label class="control-label">Vendor Type <span style="color:red;">*</span> :</label>
+										<div class="vendor-type-wrap">
+											<select name="vendor_type" id="vendor_type" class="form-control" required>
+												<?php echo ew_vendor_type_select_html($conn, $row['vendor_type']); ?>
 											</select>
-										</div>
-										<div class="form-group">
-											<label class="control-label">City <span style="color:red;">*</span> :</label>
-											<select name="city" id="city" class="form-control" required>
-												<option value="">Select City</option>
-												<?php
-												if (!empty($row['state'])) {
-													$city_query = "SELECT * FROM city WHERE status=0 AND state='" . (int) $row['state'] . "' ORDER BY city_name";
-													$city_result = mysqli_query($conn, $city_query);
-													while ($city_row = mysqli_fetch_array($city_result)) {
-												?>
-														<option value="<?php echo $city_row['city_id']; ?>" <?php if ($row['city'] == $city_row['city_id']) echo 'selected'; ?>><?php echo $city_row['city_name']; ?></option>
-												<?php }
-												} ?>
-											</select>
-										</div>
-										<div class="form-group">
-											<label class="control-label">Pincode :</label>
-											<input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" value="<?php echo htmlspecialchars($row['pincode']); ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
-										</div>
-										<div class="form-group">
-											<label class="control-label">Status :</label>
-											<select name="status" id="status" class="form-control">
-												<option value="0" <?php if ((int) $row['status'] === 0) echo 'selected'; ?>>Active</option>
-												<option value="1" <?php if ((int) $row['status'] === 1) echo 'selected'; ?>>Inactive</option>
-											</select>
+											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-add-inline" id="btn_add_vendor_type" title="Add new vendor type">+ Add</button>
 										</div>
 									</div>
-								</div>
+									<div class="ew-field">
+										<label class="control-label">Pincode :</label>
+										<input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" value="<?php echo htmlspecialchars($row['pincode']); ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
+									</div>
+									<div class="ew-field">
+										<label class="control-label">Address 1 <span style="color:red;">*</span> :</label>
+										<input type="text" name="address1" id="address1" class="form-control" value="<?php echo htmlspecialchars($row['address1']); ?>" required autocomplete="off" />
+									</div>
+									<div class="ew-field">
+										<label class="control-label">Address 2 :</label>
+										<input type="text" name="address2" id="address2" value="<?php echo htmlspecialchars($row['address2']); ?>" class="form-control" autocomplete="off" />
+									</div>
+									<div class="ew-field">
+										<label class="control-label">Status :</label>
+										<select name="status" id="status" class="form-control">
+											<option value="0" <?php if ((int) $row['status'] === 0) echo 'selected'; ?>>Active</option>
+											<option value="1" <?php if ((int) $row['status'] === 1) echo 'selected'; ?>>Inactive</option>
+										</select>
+									</div>
 
-								<div class="row vendor-form-row">
-									<div class="col-md-12">
-										<div class="vendor-section-title">Primary Contact Person</div>
+									<div class="ew-section-label">Primary Contact Person</div>
+									<div class="ew-field">
+										<label class="control-label">Primary Contact Person <span style="color:red;">*</span> :</label>
+										<input type="text" name="contact_person" id="contact_person" value="<?php echo htmlspecialchars($row['contact_person']); ?>" class="form-control" required autocomplete="off" />
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Primary Contact Person <span style="color:red;">*</span> :</label>
-											<input type="text" name="contact_person" id="contact_person" value="<?php echo htmlspecialchars($row['contact_person']); ?>" class="form-control" required autocomplete="off" />
-										</div>
-										<div class="form-group">
-											<label class="control-label">Designation :</label>
-											<input type="text" name="contact_designation" id="contact_designation" value="<?php echo htmlspecialchars($row['contact_designation'] ?? ''); ?>" class="form-control" autocomplete="off" />
-										</div>
-										<div class="form-group">
-											<label class="control-label">Mobile No <span style="color:red;">*</span> :</label>
-											<input type="text" name="contact_no" pattern="\d{10}" minlength="10" maxlength="10" id="contact_no" value="<?php echo htmlspecialchars($row['contact_no']); ?>" class="form-control" required autocomplete="off" onpaste="return false;" />
-										</div>
-										<div class="form-group">
-											<label class="control-label">Alternate Mobile :</label>
-											<input type="text" name="contact_no2" id="contact_no2" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($row['contact_no2']); ?>" class="form-control" autocomplete="off" onpaste="return false;" />
-										</div>
+									<div class="ew-field">
+										<label class="control-label">Email <span style="color:red;">*</span> :</label>
+										<input type="email" name="email" id="email" value="<?php echo htmlspecialchars($row['email']); ?>" class="form-control" required autocomplete="off" />
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Email <span style="color:red;">*</span> :</label>
-											<input type="email" name="email" id="email" value="<?php echo htmlspecialchars($row['email']); ?>" class="form-control" required autocomplete="off" />
-										</div>
-										<div class="form-group">
-											<label class="control-label">Alternate Email :</label>
-											<input type="email" name="email_alt" id="email_alt" value="<?php echo htmlspecialchars($row['email_alt']); ?>" class="form-control" autocomplete="off" />
-										</div>
-										<div class="form-group">
-											<label class="control-label">Website :</label>
-											<input type="text" name="website" id="website" value="<?php echo htmlspecialchars($row['website'] ?? ''); ?>" class="form-control" placeholder="https://example.com" autocomplete="off" />
-										</div>
+									<div class="ew-field">
+										<label class="control-label">Designation :</label>
+										<input type="text" name="contact_designation" id="contact_designation" value="<?php echo htmlspecialchars($row['contact_designation'] ?? ''); ?>" class="form-control" autocomplete="off" />
 									</div>
-								</div>
+									<div class="ew-field">
+										<label class="control-label">Mobile No <span style="color:red;">*</span> :</label>
+										<input type="text" name="contact_no" pattern="\d{10}" minlength="10" maxlength="10" id="contact_no" value="<?php echo htmlspecialchars($row['contact_no']); ?>" class="form-control" required autocomplete="off" onpaste="return false;" />
+									</div>
+									<div class="ew-field">
+										<label class="control-label">Alternate Email :</label>
+										<input type="email" name="email_alt" id="email_alt" value="<?php echo htmlspecialchars($row['email_alt']); ?>" class="form-control" autocomplete="off" />
+									</div>
+									<div class="ew-field">
+										<label class="control-label">Website :</label>
+										<input type="text" name="website" id="website" value="<?php echo htmlspecialchars($row['website'] ?? ''); ?>" class="form-control" placeholder="https://example.com" autocomplete="off" />
+									</div>
+									<div class="ew-field">
+										<label class="control-label">Alternate Mobile :</label>
+										<input type="text" name="contact_no2" id="contact_no2" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($row['contact_no2']); ?>" class="form-control" autocomplete="off" onpaste="return false;" />
+									</div>
 
-								<div class="row vendor-form-row">
-									<div class="col-md-12">
-										<div class="vendor-section-title">Tax &amp; Registration</div>
-									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">GST Registered <span style="color:red;">*</span> :</label>
-											<div class="vendor-yesno-row">
-												<label><input type="radio" name="gst_registered" value="1" class="gst-registered-toggle" <?php echo ((int) ($row['gst_registered'] ?? 0) === 1) ? 'checked' : ''; ?>> Yes</label>
-												<label><input type="radio" name="gst_registered" value="0" class="gst-registered-toggle" <?php echo ((int) ($row['gst_registered'] ?? 0) !== 1) ? 'checked' : ''; ?>> No</label>
-											</div>
-										</div>
-										<div class="form-group vendor-conditional-field gstin-wrap<?php echo ((int) ($row['gst_registered'] ?? 0) === 1) ? ' visible' : ''; ?>">
-											<label class="control-label">GSTIN <span style="color:red;">*</span> :</label>
-											<input type="text" style="text-transform:uppercase" name="gstin" id="gstin" maxlength="15" placeholder="e.g. 29AABCU9603R1ZM" class="form-control" value="<?php echo htmlspecialchars($row['gstin']); ?>" autocomplete="off" />
-											<span class="gst_dup-check"></span>
-										</div>
-										<div class="form-group">
-											<label class="control-label">GST Exemption :</label>
-											<div class="vendor-yesno-row">
-												<label><input type="radio" name="gst_exemption" value="1" <?php echo ((int) ($row['gst_exemption'] ?? 0) === 1) ? 'checked' : ''; ?>> Yes</label>
-												<label><input type="radio" name="gst_exemption" value="0" <?php echo ((int) ($row['gst_exemption'] ?? 0) !== 1) ? 'checked' : ''; ?>> No</label>
-											</div>
+									<div class="ew-section-label">Tax &amp; Registration</div>
+									<div class="ew-field">
+										<label class="control-label">GST Registered <span style="color:red;">*</span> :</label>
+										<div class="vendor-yesno-row">
+											<label><input type="radio" name="gst_registered" value="1" class="gst-registered-toggle" <?php echo ((int) ($row['gst_registered'] ?? 0) === 1) ? 'checked' : ''; ?>> Yes</label>
+											<label><input type="radio" name="gst_registered" value="0" class="gst-registered-toggle" <?php echo ((int) ($row['gst_registered'] ?? 0) !== 1) ? 'checked' : ''; ?>> No</label>
 										</div>
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">TDS Applicable :</label>
-											<div class="vendor-yesno-row">
-												<label><input type="radio" name="tds_applicable" value="1" class="tds-applicable-toggle" <?php echo ((int) ($row['tds_applicable'] ?? 0) === 1) ? 'checked' : ''; ?>> Yes</label>
-												<label><input type="radio" name="tds_applicable" value="0" class="tds-applicable-toggle" <?php echo ((int) ($row['tds_applicable'] ?? 0) !== 1) ? 'checked' : ''; ?>> No</label>
-											</div>
-										</div>
-										<div class="form-group vendor-conditional-field tds-rate-wrap<?php echo ((int) ($row['tds_applicable'] ?? 0) === 1) ? ' visible' : ''; ?>">
-											<label class="control-label">TDS Rate (%) <span style="color:red;">*</span> :</label>
-											<input type="number" name="tds_rate" id="tds_rate" min="0" max="100" step="0.01" class="form-control" value="<?php echo htmlspecialchars($row['tds_rate'] ?? ''); ?>" autocomplete="off" />
-										</div>
-										<div class="form-group">
-											<label class="control-label">PAN No <span style="color:red;">*</span> :</label>
-											<input type="text" style="text-transform:uppercase" name="pan_no" id="pan_no" maxlength="10" class="form-control" value="<?php echo htmlspecialchars($row['pan_no']); ?>" required autocomplete="off" />
-											<span class="pan_dup-check"></span>
+									<div class="ew-field">
+										<label class="control-label">TDS Applicable :</label>
+										<div class="vendor-yesno-row">
+											<label><input type="radio" name="tds_applicable" value="1" class="tds-applicable-toggle" <?php echo ((int) ($row['tds_applicable'] ?? 0) === 1) ? 'checked' : ''; ?>> Yes</label>
+											<label><input type="radio" name="tds_applicable" value="0" class="tds-applicable-toggle" <?php echo ((int) ($row['tds_applicable'] ?? 0) !== 1) ? 'checked' : ''; ?>> No</label>
 										</div>
 									</div>
-								</div>
+									<div class="ew-field">
+										<label class="control-label">GST Exemption :</label>
+										<div class="vendor-yesno-row">
+											<label><input type="radio" name="gst_exemption" value="1" <?php echo ((int) ($row['gst_exemption'] ?? 0) === 1) ? 'checked' : ''; ?>> Yes</label>
+											<label><input type="radio" name="gst_exemption" value="0" <?php echo ((int) ($row['gst_exemption'] ?? 0) !== 1) ? 'checked' : ''; ?>> No</label>
+										</div>
+									</div>
+									<div class="ew-field vendor-conditional-field gstin-wrap<?php echo ((int) ($row['gst_registered'] ?? 0) === 1) ? ' visible' : ''; ?>">
+										<label class="control-label">GSTIN <span style="color:red;">*</span> :</label>
+										<input type="text" style="text-transform:uppercase" name="gstin" id="gstin" maxlength="15" placeholder="e.g. 29AABCU9603R1ZM" class="form-control" value="<?php echo htmlspecialchars($row['gstin']); ?>" autocomplete="off" />
+										<span class="gst_dup-check"></span>
+									</div>
+									<div class="ew-field vendor-conditional-field tds-rate-wrap<?php echo ((int) ($row['tds_applicable'] ?? 0) === 1) ? ' visible' : ''; ?>">
+										<label class="control-label">TDS Rate (%) <span style="color:red;">*</span> :</label>
+										<input type="number" name="tds_rate" id="tds_rate" min="0" max="100" step="0.01" class="form-control" value="<?php echo htmlspecialchars($row['tds_rate'] ?? ''); ?>" autocomplete="off" />
+									</div>
+									<div class="ew-field">
+										<label class="control-label">PAN No <span style="color:red;">*</span> :</label>
+										<input type="text" style="text-transform:uppercase" name="pan_no" id="pan_no" maxlength="10" class="form-control" value="<?php echo htmlspecialchars($row['pan_no']); ?>" required autocomplete="off" />
+										<span class="pan_dup-check"></span>
+									</div>
 
-								<div class="row vendor-form-row">
-									<div class="col-md-12">
-										<div class="vendor-section-title">Payment Terms</div>
+									<div class="ew-section-label">Payment Terms</div>
+									<div class="ew-field">
+										<label class="control-label">Payment Terms :</label>
+										<input type="text" name="payment_terms" id="payment_terms" value="<?php echo htmlspecialchars($row['payment_terms']); ?>" class="form-control" autocomplete="off" />
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Payment Terms :</label>
-											<input type="text" name="payment_terms" id="payment_terms" value="<?php echo htmlspecialchars($row['payment_terms']); ?>" class="form-control" autocomplete="off" />
-										</div>
+									<div class="ew-field">
+										<label class="control-label">Credit Days :</label>
+										<input type="number" min="0" name="credit_days" id="credit_days" value="<?php echo htmlspecialchars($row['credit_days']); ?>" class="form-control" autocomplete="off" />
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Credit Days :</label>
-											<input type="number" min="0" name="credit_days" id="credit_days" value="<?php echo htmlspecialchars($row['credit_days']); ?>" class="form-control" autocomplete="off" />
-										</div>
-									</div>
-								</div>
 
-								<div class="row vendor-form-row">
-									<div class="col-md-12">
-										<div class="vendor-section-title">Bank &amp; Payment Details</div>
-										<p class="text-muted" style="margin:-6px 0 12px;font-size:13px;">Add bank accounts and mark one as <strong>Primary</strong> (required). All bank fields are mandatory for each account added.</p>
-									</div>
-									<div class="col-md-12">
+									<div class="ew-section-label">Bank &amp; Payment Details</div>
+									<div class="ew-vendor-bank-block">
+										<p class="ew-vendor-bank-note">Add bank accounts and mark one as <strong>Primary</strong> (required). All bank fields are mandatory for each account added.</p>
 										<div class="bank-accounts-wrap" id="bank_accounts_wrap">
 											<?php foreach ($bank_accounts as $idx => $acc) {
 												$role = strtoupper($acc['account_role'] ?? 'OTHER');
 											?>
 											<div class="bank-account-row" data-index="<?php echo (int) $idx; ?>">
-												<div class="row">
-													<div class="col-md-6">
-														<div class="form-group">
-															<label class="control-label">Account Holder Name <span style="color:red;">*</span> :</label>
-															<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_holder_name]" value="<?php echo htmlspecialchars($acc['account_holder_name'] ?? ''); ?>" class="form-control" required autocomplete="off" />
-														</div>
+												<div class="ew-form-grid ew-form-grid--bank">
+													<div class="ew-field">
+														<label class="control-label">Account Holder Name <span style="color:red;">*</span> :</label>
+														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_holder_name]" value="<?php echo htmlspecialchars($acc['account_holder_name'] ?? ''); ?>" class="form-control" required autocomplete="off" />
 													</div>
-													<div class="col-md-6">
-														<div class="form-group">
-															<label class="control-label">Bank Name <span style="color:red;">*</span> :</label>
-															<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][bank_name]" value="<?php echo htmlspecialchars($acc['bank_name'] ?? ''); ?>" class="form-control" required autocomplete="off" />
-														</div>
+													<div class="ew-field">
+														<label class="control-label">Bank Name <span style="color:red;">*</span> :</label>
+														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][bank_name]" value="<?php echo htmlspecialchars($acc['bank_name'] ?? ''); ?>" class="form-control" required autocomplete="off" />
 													</div>
-													<div class="col-md-6">
-														<div class="form-group">
-															<label class="control-label">Branch Name <span style="color:red;">*</span> :</label>
-															<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][bank_branch]" value="<?php echo htmlspecialchars($acc['bank_branch'] ?? ''); ?>" class="form-control" required autocomplete="off" />
-														</div>
+													<div class="ew-field">
+														<label class="control-label">Branch Name <span style="color:red;">*</span> :</label>
+														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][bank_branch]" value="<?php echo htmlspecialchars($acc['bank_branch'] ?? ''); ?>" class="form-control" required autocomplete="off" />
 													</div>
-													<div class="col-md-6">
-														<div class="form-group">
-															<label class="control-label">Account Type <span style="color:red;">*</span> :</label>
-															<select name="bank_accounts[<?php echo (int) $idx; ?>][account_type]" class="form-control" required>
-																<?php echo ew_vendor_account_type_select_html($acc['account_type'] ?? ''); ?>
-															</select>
-														</div>
+													<div class="ew-field">
+														<label class="control-label">Account Type <span style="color:red;">*</span> :</label>
+														<select name="bank_accounts[<?php echo (int) $idx; ?>][account_type]" class="form-control" required>
+															<?php echo ew_vendor_account_type_select_html($acc['account_type'] ?? ''); ?>
+														</select>
 													</div>
-													<div class="col-md-6">
-														<div class="form-group">
-															<label class="control-label">Account Number <span style="color:red;">*</span> :</label>
-															<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_number]" value="<?php echo htmlspecialchars($acc['account_number'] ?? ''); ?>" class="form-control bank-account-number" required autocomplete="off" />
-														</div>
+													<div class="ew-field">
+														<label class="control-label">Account Number <span style="color:red;">*</span> :</label>
+														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_number]" value="<?php echo htmlspecialchars($acc['account_number'] ?? ''); ?>" class="form-control bank-account-number" required autocomplete="off" />
 													</div>
-													<div class="col-md-6">
-														<div class="form-group">
-															<label class="control-label">Confirm Account Number <span style="color:red;">*</span> :</label>
-															<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_number_confirm]" value="<?php echo htmlspecialchars($acc['account_number_confirm'] ?? ($acc['account_number'] ?? '')); ?>" class="form-control bank-account-confirm" required autocomplete="off" />
-														</div>
+													<div class="ew-field">
+														<label class="control-label">Confirm Account Number <span style="color:red;">*</span> :</label>
+														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_number_confirm]" value="<?php echo htmlspecialchars($acc['account_number_confirm'] ?? ($acc['account_number'] ?? '')); ?>" class="form-control bank-account-confirm" required autocomplete="off" />
 													</div>
-													<div class="col-md-6">
-														<div class="form-group">
-															<label class="control-label">IFSC Code <span style="color:red;">*</span> :</label>
-															<input type="text" style="text-transform:uppercase" name="bank_accounts[<?php echo (int) $idx; ?>][ifsc]" maxlength="11" value="<?php echo htmlspecialchars($acc['ifsc'] ?? ''); ?>" class="form-control bank-ifsc" required autocomplete="off" />
-														</div>
+													<div class="ew-field">
+														<label class="control-label">IFSC Code <span style="color:red;">*</span> :</label>
+														<input type="text" style="text-transform:uppercase" name="bank_accounts[<?php echo (int) $idx; ?>][ifsc]" maxlength="11" value="<?php echo htmlspecialchars($acc['ifsc'] ?? ''); ?>" class="form-control bank-ifsc" required autocomplete="off" />
 													</div>
 												</div>
 												<div class="bank-role-row">
@@ -468,23 +448,20 @@ if (empty($bank_accounts)) {
 											</div>
 											<?php } ?>
 										</div>
-										<button type="button" class="btn btn-default-outline" id="btn_add_bank_account" style="margin-top:10px;"><i class="fa fa-plus"></i> Add Bank Account</button>
+										<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_add_bank_account" style="margin-top:10px;"><i class="fa fa-plus"></i> Add Bank Account</button>
 									</div>
 								</div>
 
-								<br />
-								<div class="row">
-									<div class="col-md-12 form-action">
-										<?php if (!$is_edit) { ?>
-											<button class="btn btn-primary" type="button" id="save">Submit</button>
-											<a class="btn btn-default-outline btn-reset" href="vendor.php" type="button">Cancel</a>
-										<?php } else { ?>
-											<button class="btn btn-primary" type="button" id="update">Update</button>
-											<a class="btn btn-default-outline btn-reset" href="vendor.php" type="button">Cancel</a>
-										<?php } ?>
-									</div>
-								</div>
 							</form>
+							</div>
+							<div class="ew-form-footer">
+								<a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="vendor_list.php">Cancel</a>
+								<?php if (!$is_edit) { ?>
+									<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save"><i class="fa fa-save"></i> Submit</button>
+								<?php } else { ?>
+									<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="update"><i class="fa fa-save"></i> Update</button>
+								<?php } ?>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -519,14 +496,14 @@ if (empty($bank_accounts)) {
 
 	<script type="text/template" id="bank-row-template">
 	<div class="bank-account-row" data-index="__INDEX__">
-		<div class="row">
-			<div class="col-md-6"><div class="form-group"><label class="control-label">Account Holder Name <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][account_holder_name]" class="form-control" required autocomplete="off" /></div></div>
-			<div class="col-md-6"><div class="form-group"><label class="control-label">Bank Name <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][bank_name]" class="form-control" required autocomplete="off" /></div></div>
-			<div class="col-md-6"><div class="form-group"><label class="control-label">Branch Name <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][bank_branch]" class="form-control" required autocomplete="off" /></div></div>
-			<div class="col-md-6"><div class="form-group"><label class="control-label">Account Type <span style="color:red;">*</span> :</label><select name="bank_accounts[__INDEX__][account_type]" class="form-control" required><?php echo ew_vendor_account_type_select_html(''); ?></select></div></div>
-			<div class="col-md-6"><div class="form-group"><label class="control-label">Account Number <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][account_number]" class="form-control bank-account-number" required autocomplete="off" /></div></div>
-			<div class="col-md-6"><div class="form-group"><label class="control-label">Confirm Account Number <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][account_number_confirm]" class="form-control bank-account-confirm" required autocomplete="off" /></div></div>
-			<div class="col-md-6"><div class="form-group"><label class="control-label">IFSC Code <span style="color:red;">*</span> :</label><input type="text" style="text-transform:uppercase" name="bank_accounts[__INDEX__][ifsc]" maxlength="11" class="form-control bank-ifsc" required autocomplete="off" /></div></div>
+		<div class="ew-form-grid ew-form-grid--bank">
+			<div class="ew-field"><label class="control-label">Account Holder Name <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][account_holder_name]" class="form-control" required autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">Bank Name <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][bank_name]" class="form-control" required autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">Branch Name <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][bank_branch]" class="form-control" required autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">Account Type <span style="color:red;">*</span> :</label><select name="bank_accounts[__INDEX__][account_type]" class="form-control" required><?php echo ew_vendor_account_type_select_html(''); ?></select></div>
+			<div class="ew-field"><label class="control-label">Account Number <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][account_number]" class="form-control bank-account-number" required autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">Confirm Account Number <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][account_number_confirm]" class="form-control bank-account-confirm" required autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">IFSC Code <span style="color:red;">*</span> :</label><input type="text" style="text-transform:uppercase" name="bank_accounts[__INDEX__][ifsc]" maxlength="11" class="form-control bank-ifsc" required autocomplete="off" /></div>
 		</div>
 		<div class="bank-role-row">
 			<div class="bank-role-options">

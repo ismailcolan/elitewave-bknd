@@ -31,26 +31,29 @@ $tracking_code = $grn_no;
         <div class="container-fluid main-content new_dpt_bottom track-page-shell">
             <div class="row">
                 <div class="col-md-12">
-                    <div class="track-page-wrap">
-                        <div class="track-panel">
-                            <div class="track-panel-head">
-                                <div>
-                                    <h4>Track Consignment</h4>
-                                </div>
+                    <div class="ew-page-v2 ew-page-v2--track">
+                        <div class="ew-page-head ew-page-head--center">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">Track Consignment</h1>
                             </div>
+                        </div>
+                        <div class="ew-card ew-track-search-card">
+                            <form class="form-horizontal" id="transaction_form">
+                                <div id="response" class="alert alert-danger" style="display:none;">
+                                    <div class="message" style="text-align:center"></div>
+                                </div>
+                                <div class="track-search-row">
+                                    <div class="track-search-field">
+                                        <label>GCN / PNR Number <span class="req">*</span></label>
+                                        <input type="text" autocomplete="off" name="grn_no" id="grn_no" value="<?php echo htmlspecialchars($grn_no, ENT_QUOTES, 'UTF-8'); ?>" class="form-control" placeholder="Enter GCN or PNR number">
+                                    </div>
+                                    <button class="track-search-btn" type="submit" id="search"><i class="fa fa-search" aria-hidden="true"></i> Track Now</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="track-page-wrap">
+                            <div class="track-panel">
                             <div class="track-panel-body">
-                                <form class="form-horizontal" id="transaction_form">
-                                    <div id="response" class="alert alert-danger" style="display:none;">
-                                        <div class="message" style="text-align:center"></div>
-                                    </div>
-
-                                    <div class="track-search-row">
-                                        <div class="track-search-field">
-                                            <label>GCN / PNR Number <span class="req">*</span></label>
-                                            <input type="text" autocomplete="off" name="grn_no" id="grn_no" value="<?php echo htmlspecialchars($grn_no, ENT_QUOTES, 'UTF-8'); ?>" class="form-control" placeholder="Enter GCN or PNR number">
-                                        </div>
-                                        <button class="track-search-btn" type="submit" id="search"><i class="fa fa-search" aria-hidden="true"></i> Track Now</button>
-                                    </div>
 
                                     <?php
                                     require_once 'include/connect.php';
@@ -564,9 +567,9 @@ if ($scan_is_partial) {
                                         }
                                     }
                                     ?>
-                                </form>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Consignment — Alternative Designs Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="stylesheets/font-awesome.min.css" rel="stylesheet">
+  <link href="stylesheets/ew-preview-shell.css?v=20260911alt" rel="stylesheet">
+  <style>
+    .design-note {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      line-height: 1.55;
+    }
+    .design-note strong { color: #1e3a8a; }
+    .design-compare {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 900px) { .design-compare { grid-template-columns: 1fr; } }
+    .design-chip {
+      border: 1px solid var(--ew-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: #fff;
+      font-size: 12px;
+      color: var(--ew-text-secondary);
+    }
+    .design-chip h4 { margin: 0 0 6px; font-size: 13px; color: var(--ew-text); }
+    .tag-live, .tag-alt, .tag-rec {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 6px;
+    }
+    .tag-live { background: #dcfce7; color: #166534; }
+    .tag-alt { background: #e0e7ff; color: #3730a3; }
+    .tag-rec { background: #fef3c7; color: #92400e; }
+
+    /* Shared mock fields */
+    .mock-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .mock-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .mock-grid .span-2 { grid-column: span 2; }
+    .mock-grid .span-4 { grid-column: 1 / -1; }
+    @media (max-width: 1100px) { .mock-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 640px) { .mock-grid { grid-template-columns: 1fr; } .mock-grid .span-2, .mock-grid .span-4 { grid-column: span 1; } }
+    .mf label { display: block; font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px; }
+    .mf .box {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      min-height: 38px;
+      padding: 9px 11px;
+      font-size: 13px;
+      color: #334155;
+    }
+    .mf .box.muted { color: #94a3b8; }
+    .mock-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .mock-table th, .mock-table td { border: 1px solid #e2e8f0; padding: 7px 8px; vertical-align: middle; }
+    .mock-table th { background: #1e293b; color: #fff; font-weight: 600; font-size: 11px; }
+    .mock-table td .box { min-height: 32px; padding: 6px 8px; font-size: 12px; }
+    .pkg-act { width: 40px; text-align: center; }
+    .pkg-btn {
+      width: 26px; height: 26px; border-radius: 6px; border: 1px solid #86efac;
+      background: #ecfdf5; color: #059669; display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px;
+    }
+    .section-title {
+      margin: 0 0 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--ew-border-light);
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* Design A — current live */
+    .live-section { margin-bottom: 24px; }
+
+    /* Design B — tabbed */
+    .alt-tab-bar {
+      display: flex;
+      gap: 4px;
+      padding: 8px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--ew-border-light);
+      overflow-x: auto;
+    }
+    .alt-tab {
+      border: 1px solid transparent;
+      background: transparent;
+      color: #64748b;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .alt-tab:hover { background: #fff; color: #334155; }
+    .alt-tab.active {
+      background: #fff;
+      color: var(--ew-navy);
+      border-color: var(--ew-border);
+      box-shadow: 0 1px 2px rgba(10,30,61,.06);
+    }
+    .alt-tab-panel { display: none; padding: 20px 24px; }
+    .alt-tab-panel.active { display: block; }
+    .alt-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px 0;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .alt-progress-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1;
+    }
+    .alt-progress-dot.done { background: #22c55e; }
+    .alt-progress-dot.current { background: var(--ew-navy); box-shadow: 0 0 0 3px rgba(10,30,61,.12); }
+
+    /* Design C — wizard + sticky summary */
+    .wizard-layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr) 280px;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 1200px) {
+      .wizard-layout { grid-template-columns: 1fr; }
+      .wizard-steps, .wizard-summary { order: 2; }
+      .wizard-main { order: 1; }
+    }
+    .wizard-steps {
+      background: #fff;
+      border: 1px solid var(--ew-border-light);
+      border-radius: var(--ew-radius);
+      padding: 12px;
+      position: sticky;
+      top: calc(var(--preview-bar-h) + var(--top-bar-h) + 16px);
+    }
+    .wizard-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+    }
+    .wizard-step:hover { background: #f8fafc; }
+    .wizard-step.active { background: #eff6ff; }
+    .wizard-step.done .ws-num { background: #22c55e; color: #fff; border-color: #22c55e; }
+    .wizard-step.active .ws-num { background: var(--ew-navy); color: #fff; border-color: var(--ew-navy); }
+    .ws-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid #cbd5e1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #64748b; flex-shrink: 0;
+    }
+    .ws-text strong { display: block; font-size: 12px; color: #0f172a; }
+    .ws-text span { font-size: 11px; color: #64748b; }
+    .wizard-main .ew-card { min-height: 420px; }
+    .wizard-summary {
+      background: #fff;
+      border: 1px solid var(--ew-border-light);
+      border-radius: var(--ew-radius);
+      padding: 16px;
+      position: sticky;
+      top: calc(var(--preview-bar-h) + var(--top-bar-h) + 16px);
+      box-shadow: var(--ew-shadow);
+    }
+    .wizard-summary h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; }
+    .sum-row { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; color: #475569; }
+    .sum-row:last-child { border-bottom: none; }
+    .sum-row.total { font-size: 14px; font-weight: 700; color: #0f172a; padding-top: 10px; margin-top: 4px; border-top: 2px solid #e2e8f0; }
+    .sum-row.total span:last-child { color: var(--ew-accent); }
+    .route-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #f1f5f9; border-radius: 999px; padding: 6px 10px;
+      font-size: 11px; font-weight: 600; color: #334155; margin-bottom: 12px;
+    }
+    .wizard-panel { display: none; padding: 20px 24px; }
+    .wizard-panel.active { display: block; }
+
+    /* Design D — accordion */
+    .accordion-item { border-bottom: 1px solid var(--ew-border-light); }
+    .accordion-item:last-child { border-bottom: none; }
+    .accordion-head {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 24px;
+      border: none;
+      background: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+    }
+    .accordion-head:hover { background: #fafbfc; }
+    .accordion-head .left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .acc-num {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: #f1f5f9; color: #475569;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .accordion-item.open .acc-num { background: var(--ew-navy); color: #fff; }
+    .accordion-head strong { font-size: 14px; color: #0f172a; display: block; }
+    .accordion-head small { font-size: 11px; color: #64748b; }
+    .acc-status { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 3px 8px; border-radius: 999px; }
+    .acc-status.done { background: #dcfce7; color: #166534; }
+    .acc-status.open { background: #dbeafe; color: #1d4ed8; }
+    .acc-status.todo { background: #f1f5f9; color: #64748b; }
+    .accordion-body { display: none; padding: 0 24px 20px; }
+    .accordion-item.open .accordion-body { display: block; }
+    .accordion-item.open .accordion-head .fa-chevron-down { transform: rotate(180deg); }
+    .accordion-head .fa-chevron-down { transition: transform .2s; color: #94a3b8; }
+
+    .ew-form-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 14px 24px;
+      border-top: 1px solid var(--ew-border-light);
+      background: #fafbfc;
+      margin-top: 16px;
+      border-radius: 0 0 var(--ew-radius) var(--ew-radius);
+    }
+    .ew-form-footer.sticky-footer {
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+      box-shadow: 0 -4px 12px rgba(10,30,61,.06);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="preview-banner">
+    <div>
+      <h1>Book Consignment — Alternative Layouts</h1>
+      <p>Compare current live design vs 3 alternatives · <a class="preview-nav-link" href="pages_ui_preview_index.html">&larr; All previews</a></p>
+    </div>
+    <div class="preview-tabs">
+      <button type="button" class="preview-tab active" data-view="current">A · Current (Live)</button>
+      <button type="button" class="preview-tab" data-view="tabbed">B · Tabbed Sections</button>
+      <button type="button" class="preview-tab" data-view="wizard">C · Step Wizard</button>
+      <button type="button" class="preview-tab" data-view="accordion">D · Accordion</button>
+    </div>
+    <div class="preview-utils">
+      <button type="button" class="preview-util-btn" id="toggleSidebar">Toggle Submenu</button>
+      <span class="width-indicator">Width: <strong id="contentWidth">—</strong></span>
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="top-bar">
+      <div class="brand">EliteWave360<small>LOGISTICS</small></div>
+      <div class="spacer"></div>
+      <div class="top-user"><div class="avatar">EW</div><span>Administrator</span></div>
+    </header>
+    <div class="shell-body">
+      <aside class="dual-sidebar">
+        <nav class="icon-rail">
+          <button type="button" class="rail-item active"><i class="fa fa-truck"></i>Consign</button>
+        </nav>
+        <div class="sub-panel">
+          <div class="panel-head"><span class="panel-pill">Consignment</span></div>
+          <div class="panel-links">
+            <a href="#" class="panel-link active">Book Consignment</a>
+            <a href="#" class="panel-link">Manual Consignment</a>
+            <a href="#" class="panel-link">List of Consignments</a>
+          </div>
+        </div>
+      </aside>
+      <main class="main-content" id="mainContent">
+
+        <!-- ═══ DESIGN A — CURRENT LIVE ═══ -->
+        <section id="view-current" class="preview-page active">
+          <div class="design-note">
+            <span class="tag-live">Live now</span> <strong>Design A — Long scroll, stacked sections.</strong>
+            Single card, all sections visible. Familiar ERP pattern; works well for power users who edit multiple areas at once. Long page on smaller screens.
+          </div>
+          <div class="ew-page-head">
+            <div class="ew-page-head-left">
+              <a href="#" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+              <h1 class="ew-page-title">Book a Consignment</h1>
+            </div>
+            <div class="ew-page-head-actions"><button class="ew-head-btn">View List</button></div>
+          </div>
+          <div class="ew-card">
+            <div style="padding:20px 24px">
+              <div class="live-section">
+                <h2 class="section-title">GCN Information</h2>
+                <div class="mock-grid">
+                  <div class="mf"><label>GCN No</label><div class="box">MUZ00123</div></div>
+                  <div class="mf"><label>GCN Date</label><div class="box">11-09-2026</div></div>
+                  <div class="mf"><label>Mode of Transport</label><div class="box">Surface</div></div>
+                  <div class="mf"><label>Mode of Consignment</label><div class="box">Express</div></div>
+                  <div class="mf"><label>Origin</label><div class="box">Mumbai</div></div>
+                  <div class="mf"><label>Destination</label><div class="box">Delhi</div></div>
+                </div>
+              </div>
+              <div class="live-section">
+                <h2 class="section-title">Consignor &amp; Consignee</h2>
+                <div class="mock-grid">
+                  <div class="mf"><label>Consignor</label><div class="box">ABC Logistics Pvt Ltd</div></div>
+                  <div class="mf"><label>Consignor Branch</label><div class="box">Mumbai Hub</div></div>
+                  <div class="mf"><label>Consignee</label><div class="box">XYZ Retail India</div></div>
+                  <div class="mf"><label>Consignee Branch</label><div class="box">Delhi Branch</div></div>
+                </div>
+              </div>
+              <div class="live-section">
+                <h2 class="section-title">Package Information</h2>
+                <table class="mock-table">
+                  <thead><tr><th>S.No</th><th>No of Pkgs</th><th>Type</th><th>Invoice No</th><th>Invoice Date</th><th>Contents</th><th>Qty</th><th>Gross Wt</th><th>Charged Wt</th><th class="pkg-act"></th></tr></thead>
+                  <tbody>
+                    <tr><td>1</td><td><div class="box">2</div></td><td><div class="box">Box</div></td><td><div class="box">INV-001</div></td><td><div class="box muted">dd-mm-yyyy</div></td><td><div class="box">Garments</div></td><td><div class="box">10</div></td><td><div class="box">50</div></td><td><div class="box">52</div></td><td class="pkg-act"><span class="pkg-btn"><i class="fa fa-plus"></i></span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="live-section">
+                <div class="mock-grid cols-2">
+                  <div>
+                    <h2 class="section-title">Volumetric Consignment</h2>
+                    <div class="mock-grid cols-2">
+                      <div class="mf"><label>E-Way Number</label><div class="box">EWB123456789</div></div>
+                      <div class="mf"><label>Vehicle No</label><div class="box">MH-01-AB-1234</div></div>
+                      <div class="mf span-2"><label>Description of Goods</label><div class="box">Textile goods — cotton garments</div></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h2 class="section-title">Payment &amp; GST</h2>
+                    <table class="mock-table">
+                      <thead><tr><th>Particulars</th><th>Amount</th></tr></thead>
+                      <tbody>
+                        <tr><td>Freight</td><td>₹ 624</td></tr>
+                        <tr><td>GST (CGST + SGST)</td><td>₹ 112</td></tr>
+                        <tr><td><strong>Grand Total</strong></td><td><strong>₹ 736</strong></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="ew-form-footer sticky-footer">
+              <button class="ew-btn ew-btn-outline">Cancel</button>
+              <button class="ew-btn ew-btn-primary"><i class="fa fa-save"></i> Submit Booking</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ DESIGN B — TABBED ═══ -->
+        <section id="view-tabbed" class="preview-page">
+          <div class="design-note">
+            <span class="tag-rec">Recommended</span> <strong>Design B — Horizontal tabs, one section at a time.</strong>
+            Reduces scroll fatigue. Clear progress. Prev / Next guides operators through booking. Payment tab keeps GST visible before submit.
+          </div>
+          <div class="design-compare">
+            <div class="design-chip"><h4>Best for</h4>New operators, training, mobile tablets</div>
+            <div class="design-chip"><h4>Trade-off</h4>Can't see all sections at once — use tab jump for edits</div>
+            <div class="design-chip"><h4>Rollback</h4>Separate CSS class <code>ew-page-v2--consignment-tabs</code></div>
+          </div>
+          <div class="ew-page-head">
+            <div class="ew-page-head-left">
+              <a href="#" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+              <h1 class="ew-page-title">Book a Consignment</h1>
+            </div>
+            <div class="ew-page-head-actions"><button class="ew-head-btn">View List</button></div>
+          </div>
+          <div class="ew-card">
+            <div class="alt-progress" id="tabProgress">
+              <span class="alt-progress-dot current"></span><span class="alt-progress-dot"></span><span class="alt-progress-dot"></span><span class="alt-progress-dot"></span><span class="alt-progress-dot"></span>
+              <span style="margin-left:4px">Step <strong id="tabStepNum">1</strong> of 5</span>
+            </div>
+            <div class="alt-tab-bar" id="altTabBar">
+              <button type="button" class="alt-tab active" data-tab="t1">1 · GCN &amp; Route</button>
+              <button type="button" class="alt-tab" data-tab="t2">2 · Parties</button>
+              <button type="button" class="alt-tab" data-tab="t3">3 · Packages</button>
+              <button type="button" class="alt-tab" data-tab="t4">4 · Goods &amp; Volumetric</button>
+              <button type="button" class="alt-tab" data-tab="t5">5 · Payment &amp; Finish</button>
+            </div>
+            <div class="alt-tab-panel active" data-panel="t1">
+              <h2 class="section-title">GCN Information</h2>
+              <div class="mock-grid">
+                <div class="mf"><label>GCN No</label><div class="box">MUZ00123 (auto)</div></div>
+                <div class="mf"><label>GCN Date</label><div class="box">11-09-2026</div></div>
+                <div class="mf"><label>Mode of Transport</label><div class="box">Surface</div></div>
+                <div class="mf"><label>Mode of Consignment</label><div class="box">Express</div></div>
+                <div class="mf"><label>Origin</label><div class="box">Mumbai</div></div>
+                <div class="mf"><label>Destination</label><div class="box">Delhi</div></div>
+              </div>
+            </div>
+            <div class="alt-tab-panel" data-panel="t2">
+              <h2 class="section-title">Consignor &amp; Consignee</h2>
+              <div class="mock-grid">
+                <div class="mf"><label>Consignor</label><div class="box">ABC Logistics Pvt Ltd</div></div>
+                <div class="mf"><label>Consignor Branch</label><div class="box">Mumbai Hub</div></div>
+                <div class="mf"><label>Consignee</label><div class="box">XYZ Retail India</div></div>
+                <div class="mf"><label>Consignee Branch</label><div class="box">Delhi Branch</div></div>
+                <div class="mf span-4"><label>Shipping Address (optional)</label><div class="box muted">Recipient name · Address · GST · Phone</div></div>
+              </div>
+            </div>
+            <div class="alt-tab-panel" data-panel="t3">
+              <h2 class="section-title">Package Information</h2>
+              <table class="mock-table">
+                <thead><tr><th>S.No</th><th>Pkgs</th><th>Type</th><th>Invoice No</th><th>Date</th><th>Contents</th><th>Qty</th><th>Gross</th><th>Charged</th><th class="pkg-act"></th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td><div class="box">2</div></td><td><div class="box">Box</div></td><td><div class="box">INV-001</div></td><td><div class="box muted">11-09-2026</div></td><td><div class="box">Garments</div></td><td><div class="box">10</div></td><td><div class="box">50</div></td><td><div class="box">52</div></td><td class="pkg-act"><span class="pkg-btn"><i class="fa fa-plus"></i></span></td></tr>
+                </tbody>
+              </table>
+              <p style="font-size:11px;color:#64748b;margin:10px 0 0"><i class="fa fa-info-circle"></i> + adds row (max 5). Previous row shows − when a new row is added.</p>
+            </div>
+            <div class="alt-tab-panel" data-panel="t4">
+              <h2 class="section-title">Goods &amp; Volumetric</h2>
+              <div class="mock-grid">
+                <div class="mf"><label>Supplier Invoice Value</label><div class="box">₹ 1,25,000</div></div>
+                <div class="mf"><label>E-Way Number</label><div class="box">EWB123456789</div></div>
+                <div class="mf"><label>LC Number</label><div class="box">LC/2026/001</div></div>
+                <div class="mf"><label>Vehicle No</label><div class="box">MH-01-AB-1234</div></div>
+                <div class="mf span-2"><label>Description of Goods</label><div class="box">Textile goods</div></div>
+                <div class="mf span-2"><label>Dimensions L × W × H × Q</label><div class="box">100 × 80 × 60 × 2 = 960 kg vol.</div></div>
+              </div>
+            </div>
+            <div class="alt-tab-panel" data-panel="t5">
+              <div class="mock-grid cols-2">
+                <div>
+                  <h2 class="section-title">Payment &amp; GST</h2>
+                  <table class="mock-table">
+                    <thead><tr><th>Particulars</th><th>Rate</th><th>Amount</th></tr></thead>
+                    <tbody>
+                      <tr><td>Freight</td><td>12.00</td><td>624</td></tr>
+                      <tr><td>Doc Charges</td><td>—</td><td>50</td></tr>
+                      <tr><td>Mamul / Halting / Loading</td><td>—</td><td>150</td></tr>
+                      <tr><td colspan="3" style="background:#f8fafc;font-size:11px"><strong>GST18</strong> · Auto Intra-State · CGST 9% + SGST 9%</td></tr>
+                      <tr><td><strong>Grand Total</strong></td><td></td><td><strong>₹ 918</strong></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div>
+                  <h2 class="section-title">Attachments &amp; Signature</h2>
+                  <div class="mf"><label>Upload</label><div class="box" style="min-height:72px;text-align:center;padding:20px"><i class="fa fa-cloud-upload"></i> Drop files or browse</div></div>
+                  <div class="mf" style="margin-top:12px"><label>Consignor Signature</label><div class="box" style="min-height:72px">Signature canvas</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="ew-form-footer sticky-footer">
+              <button class="ew-btn ew-btn-outline" id="tabPrev" disabled><i class="fa fa-arrow-left"></i> Previous</button>
+              <button class="ew-btn ew-btn-outline">Cancel</button>
+              <button class="ew-btn ew-btn-primary" id="tabNext">Next <i class="fa fa-arrow-right"></i></button>
+              <button class="ew-btn ew-btn-primary" id="tabSubmit" style="display:none"><i class="fa fa-save"></i> Submit Booking</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ DESIGN C — WIZARD + STICKY SUMMARY ═══ -->
+        <section id="view-wizard" class="preview-page">
+          <div class="design-note">
+            <span class="tag-alt">Alternative</span> <strong>Design C — Left stepper + sticky payment summary.</strong>
+            Operators always see route &amp; totals while filling the form. Great for billing-heavy bookings. Needs wider screen (summary column).
+          </div>
+          <div class="ew-page-head">
+            <div class="ew-page-head-left">
+              <a href="#" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+              <h1 class="ew-page-title">Book a Consignment</h1>
+            </div>
+            <div class="ew-page-head-actions"><button class="ew-head-btn">View List</button></div>
+          </div>
+          <div class="wizard-layout">
+            <nav class="wizard-steps" id="wizardSteps">
+              <button type="button" class="wizard-step active" data-step="1"><span class="ws-num">1</span><span class="ws-text"><strong>GCN &amp; Route</strong><span>Transport &amp; origin</span></span></button>
+              <button type="button" class="wizard-step" data-step="2"><span class="ws-num">2</span><span class="ws-text"><strong>Parties</strong><span>Consignor &amp; consignee</span></span></button>
+              <button type="button" class="wizard-step" data-step="3"><span class="ws-num">3</span><span class="ws-text"><strong>Packages</strong><span>Invoice lines</span></span></button>
+              <button type="button" class="wizard-step" data-step="4"><span class="ws-num">4</span><span class="ws-text"><strong>Goods</strong><span>Volumetric &amp; e-way</span></span></button>
+              <button type="button" class="wizard-step" data-step="5"><span class="ws-num">5</span><span class="ws-text"><strong>Payment</strong><span>GST &amp; signature</span></span></button>
+            </nav>
+            <div class="wizard-main">
+              <div class="ew-card">
+                <div class="wizard-panel active" data-wpanel="1">
+                  <h2 class="section-title">GCN Information</h2>
+                  <div class="mock-grid">
+                    <div class="mf"><label>GCN No</label><div class="box">MUZ00123</div></div>
+                    <div class="mf"><label>GCN Date</label><div class="box">11-09-2026</div></div>
+                    <div class="mf"><label>Mode of Transport</label><div class="box">Surface</div></div>
+                    <div class="mf"><label>Origin → Destination</label><div class="box">Mumbai → Delhi</div></div>
+                  </div>
+                </div>
+                <div class="wizard-panel" data-wpanel="2">
+                  <h2 class="section-title">Consignor &amp; Consignee</h2>
+                  <div class="mock-grid">
+                    <div class="mf"><label>Consignor</label><div class="box">ABC Logistics</div></div>
+                    <div class="mf"><label>Branch</label><div class="box">Mumbai Hub</div></div>
+                    <div class="mf"><label>Consignee</label><div class="box">XYZ Retail</div></div>
+                    <div class="mf"><label>Branch</label><div class="box">Delhi Branch</div></div>
+                  </div>
+                </div>
+                <div class="wizard-panel" data-wpanel="3">
+                  <h2 class="section-title">Package Information</h2>
+                  <table class="mock-table">
+                    <thead><tr><th>S.No</th><th>Pkgs</th><th>Type</th><th>Invoice</th><th>Charged Wt</th><th class="pkg-act"></th></tr></thead>
+                    <tbody><tr><td>1</td><td><div class="box">2</div></td><td><div class="box">Box</div></td><td><div class="box">INV-001</div></td><td><div class="box">52</div></td><td class="pkg-act"><span class="pkg-btn"><i class="fa fa-plus"></i></span></td></tr></tbody>
+                  </table>
+                </div>
+                <div class="wizard-panel" data-wpanel="4">
+                  <h2 class="section-title">Goods &amp; Volumetric</h2>
+                  <div class="mock-grid">
+                    <div class="mf"><label>E-Way</label><div class="box">EWB123456789</div></div>
+                    <div class="mf"><label>Vehicle No</label><div class="box">MH-01-AB-1234</div></div>
+                    <div class="mf span-2"><label>Description</label><div class="box">Textile goods</div></div>
+                  </div>
+                </div>
+                <div class="wizard-panel" data-wpanel="5">
+                  <h2 class="section-title">Payment, Attachments &amp; Signature</h2>
+                  <div class="mock-grid cols-2">
+                    <div class="mf"><label>Freight Amount</label><div class="box">₹ 624</div></div>
+                    <div class="mf"><label>GST Profile</label><div class="box">GST18 · Auto</div></div>
+                    <div class="mf span-2"><label>Signature</label><div class="box" style="min-height:64px">Canvas</div></div>
+                  </div>
+                </div>
+                <div class="ew-form-footer">
+                  <button class="ew-btn ew-btn-outline" id="wizPrev" disabled>Previous</button>
+                  <button class="ew-btn ew-btn-primary" id="wizNext">Continue</button>
+                  <button class="ew-btn ew-btn-primary" id="wizSubmit" style="display:none"><i class="fa fa-save"></i> Submit</button>
+                </div>
+              </div>
+            </div>
+            <aside class="wizard-summary">
+              <div class="route-pill"><i class="fa fa-map-marker"></i> Mumbai → Delhi · Surface</div>
+              <h3>Booking Summary</h3>
+              <div class="sum-row"><span>GCN No</span><span>MUZ00123</span></div>
+              <div class="sum-row"><span>Packages</span><span>2 Box</span></div>
+              <div class="sum-row"><span>Charged Weight</span><span>52 Kgs</span></div>
+              <div class="sum-row"><span>Freight</span><span>₹ 624</span></div>
+              <div class="sum-row"><span>Other Charges</span><span>₹ 200</span></div>
+              <div class="sum-row"><span>GST (18%)</span><span>₹ 148</span></div>
+              <div class="sum-row total"><span>Grand Total</span><span>₹ 972</span></div>
+              <p style="font-size:11px;color:#64748b;margin:12px 0 0;line-height:1.5">Summary updates live as you fill each step — no need to scroll to payment section.</p>
+            </aside>
+          </div>
+        </section>
+
+        <!-- ═══ DESIGN D — ACCORDION ═══ -->
+        <section id="view-accordion" class="preview-page">
+          <div class="design-note">
+            <span class="tag-alt">Alternative</span> <strong>Design D — Collapsible accordion sections.</strong>
+            All sections on one page but only one expanded at a time. Compact header shows completion status. Good middle ground between scroll and tabs.
+          </div>
+          <div class="ew-page-head">
+            <div class="ew-page-head-left">
+              <a href="#" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+              <h1 class="ew-page-title">Book a Consignment</h1>
+            </div>
+            <div class="ew-page-head-actions"><button class="ew-head-btn">View List</button></div>
+          </div>
+          <div class="ew-card">
+            <div class="accordion-item open" data-acc="1">
+              <button type="button" class="accordion-head">
+                <span class="left"><span class="acc-num">1</span><span><strong>GCN Information</strong><small>GRN no, date, transport, route</small></span></span>
+                <span class="acc-status open">Editing</span>
+                <i class="fa fa-chevron-down"></i>
+              </button>
+              <div class="accordion-body">
+                <div class="mock-grid">
+                  <div class="mf"><label>GCN No</label><div class="box">MUZ00123</div></div>
+                  <div class="mf"><label>GCN Date</label><div class="box">11-09-2026</div></div>
+                  <div class="mf"><label>Origin</label><div class="box">Mumbai</div></div>
+                  <div class="mf"><label>Destination</label><div class="box">Delhi</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item" data-acc="2">
+              <button type="button" class="accordion-head">
+                <span class="left"><span class="acc-num">2</span><span><strong>Consignor &amp; Consignee</strong><small>Party details &amp; shipping</small></span></span>
+                <span class="acc-status todo">Pending</span>
+                <i class="fa fa-chevron-down"></i>
+              </button>
+              <div class="accordion-body">
+                <div class="mock-grid">
+                  <div class="mf"><label>Consignor</label><div class="box muted">Select consignor…</div></div>
+                  <div class="mf"><label>Consignee</label><div class="box muted">Select consignee…</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item" data-acc="3">
+              <button type="button" class="accordion-head">
+                <span class="left"><span class="acc-num">3</span><span><strong>Package Information</strong><small>Invoice lines — +/− rows (max 5)</small></span></span>
+                <span class="acc-status todo">Pending</span>
+                <i class="fa fa-chevron-down"></i>
+              </button>
+              <div class="accordion-body">
+                <table class="mock-table">
+                  <thead><tr><th>S.No</th><th>Pkgs</th><th>Type</th><th>Invoice</th><th>Charged Wt</th><th class="pkg-act"></th></tr></thead>
+                  <tbody><tr><td>1</td><td><div class="box muted">—</div></td><td><div class="box muted">Select</div></td><td><div class="box muted">—</div></td><td><div class="box muted">—</div></td><td class="pkg-act"><span class="pkg-btn"><i class="fa fa-plus"></i></span></td></tr></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="accordion-item" data-acc="4">
+              <button type="button" class="accordion-head">
+                <span class="left"><span class="acc-num">4</span><span><strong>Goods &amp; Volumetric</strong><small>E-way, dimensions, vehicle</small></span></span>
+                <span class="acc-status todo">Pending</span>
+                <i class="fa fa-chevron-down"></i>
+              </button>
+              <div class="accordion-body">
+                <div class="mock-grid">
+                  <div class="mf"><label>E-Way Number</label><div class="box muted">Optional</div></div>
+                  <div class="mf"><label>Vehicle No</label><div class="box muted">Optional</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item" data-acc="5">
+              <button type="button" class="accordion-head">
+                <span class="left"><span class="acc-num">5</span><span><strong>Payment, GST &amp; Finish</strong><small>Charges, signature, attachments</small></span></span>
+                <span class="acc-status todo">Pending</span>
+                <i class="fa fa-chevron-down"></i>
+              </button>
+              <div class="accordion-body">
+                <div class="mock-grid cols-2">
+                  <div class="mf"><label>Grand Total</label><div class="box">₹ 0.00</div></div>
+                  <div class="mf"><label>GST Profile</label><div class="box">GST18 · Auto</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="ew-form-footer sticky-footer">
+              <button class="ew-btn ew-btn-outline">Cancel</button>
+              <button class="ew-btn ew-btn-primary"><i class="fa fa-save"></i> Submit Booking</button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="javascripts/ew-preview-shell.js?v=20260911alt"></script>
+  <script>
+  (function () {
+    /* Tabbed design (B) */
+    var tabOrder = ['t1','t2','t3','t4','t5'];
+    var tabIdx = 0;
+    var tabs = document.querySelectorAll('#altTabBar .alt-tab');
+    var panels = document.querySelectorAll('.alt-tab-panel');
+    var dots = document.querySelectorAll('#tabProgress .alt-progress-dot');
+    var tabPrev = document.getElementById('tabPrev');
+    var tabNext = document.getElementById('tabNext');
+    var tabSubmit = document.getElementById('tabSubmit');
+    var tabStepNum = document.getElementById('tabStepNum');
+
+    function setTab(i) {
+      tabIdx = Math.max(0, Math.min(tabOrder.length - 1, i));
+      var id = tabOrder[tabIdx];
+      tabs.forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-tab') === id); });
+      panels.forEach(function (p) { p.classList.toggle('active', p.getAttribute('data-panel') === id); });
+      dots.forEach(function (d, n) {
+        d.classList.remove('done', 'current');
+        if (n < tabIdx) d.classList.add('done');
+        if (n === tabIdx) d.classList.add('current');
+      });
+      if (tabStepNum) tabStepNum.textContent = String(tabIdx + 1);
+      if (tabPrev) tabPrev.disabled = tabIdx === 0;
+      if (tabNext) tabNext.style.display = tabIdx === tabOrder.length - 1 ? 'none' : '';
+      if (tabSubmit) tabSubmit.style.display = tabIdx === tabOrder.length - 1 ? '' : 'none';
+    }
+    tabs.forEach(function (t, i) { t.addEventListener('click', function () { setTab(i); }); });
+    if (tabPrev) tabPrev.addEventListener('click', function () { setTab(tabIdx - 1); });
+    if (tabNext) tabNext.addEventListener('click', function () { setTab(tabIdx + 1); });
+    setTab(0);
+
+    /* Wizard design (C) */
+    var wizSteps = document.querySelectorAll('#wizardSteps .wizard-step');
+    var wizPanels = document.querySelectorAll('.wizard-panel');
+    var wizIdx = 0;
+    var wizPrev = document.getElementById('wizPrev');
+    var wizNext = document.getElementById('wizNext');
+    var wizSubmit = document.getElementById('wizSubmit');
+
+    function setWiz(i) {
+      wizIdx = Math.max(0, Math.min(wizSteps.length - 1, i));
+      wizSteps.forEach(function (s, n) {
+        s.classList.toggle('active', n === wizIdx);
+        s.classList.toggle('done', n < wizIdx);
+      });
+      wizPanels.forEach(function (p) {
+        p.classList.toggle('active', p.getAttribute('data-wpanel') === String(wizIdx + 1));
+      });
+      if (wizPrev) wizPrev.disabled = wizIdx === 0;
+      if (wizNext) wizNext.style.display = wizIdx === wizSteps.length - 1 ? 'none' : '';
+      if (wizSubmit) wizSubmit.style.display = wizIdx === wizSteps.length - 1 ? '' : 'none';
+    }
+    wizSteps.forEach(function (s, i) { s.addEventListener('click', function () { setWiz(i); }); });
+    if (wizPrev) wizPrev.addEventListener('click', function () { setWiz(wizIdx - 1); });
+    if (wizNext) wizNext.addEventListener('click', function () { setWiz(wizIdx + 1); });
+    setWiz(0);
+
+    /* Accordion design (D) */
+    document.querySelectorAll('.accordion-head').forEach(function (head) {
+      head.addEventListener('click', function () {
+        var item = head.closest('.accordion-item');
+        var wasOpen = item.classList.contains('open');
+        document.querySelectorAll('.accordion-item').forEach(function (el) {
+          el.classList.remove('open');
+          var st = el.querySelector('.acc-status');
+          if (st) { st.className = 'acc-status todo'; st.textContent = 'Pending'; }
+        });
+        if (!wasOpen) {
+          item.classList.add('open');
+          var st = item.querySelector('.acc-status');
+          if (st) { st.className = 'acc-status open'; st.textContent = 'Editing'; }
+        }
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

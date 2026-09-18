@@ -1,0 +1,108 @@
+@keyframes ew-skel-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.ew-skel,
+.ew-skel-line,
+.ew-skel-block,
+.ew-skel-circle {
+  background: linear-gradient(90deg, #E8EDF4 0%, #F4F7FB 40%, #E8EDF4 80%);
+  background-size: 200% 100%;
+  animation: ew-skel-shimmer 1.15s ease-in-out infinite;
+}
+
+.ew-skel-line {
+  display: block;
+  height: 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.ew-skel-line.lg { height: 18px; width: 56%; }
+.ew-skel-line.md { width: 78%; }
+.ew-skel-line.sm { width: 42%; height: 10px; margin-bottom: 0; }
+.ew-skel-block { border-radius: 12px; }
+.ew-skel-circle { border-radius: 50%; }
+
+/* Full-screen overlay — replaces gif loaders project-wide */
+.loading-page,
+.form-data-saving,
+.ew-skel-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: rgba(241, 243, 247, 0.92);
+  z-index: 4000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.loading-page[style*="display: block"],
+.loading-page[style*="display:block"],
+.form-data-saving[style*="display: block"],
+.form-data-saving[style*="display:block"] {
+  display: flex !important;
+}
+.loading-page img,
+.form-data-saving img {
+  display: none !important;
+}
+
+.ew-skel-card {
+  width: min(420px, 92vw);
+  background: #fff;
+  border: 1px solid #D8DDE5;
+  border-radius: 14px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 10px 30px rgba(10, 30, 61, 0.08);
+}
+.ew-skel-card .ew-skel-kicker {
+  height: 8px;
+  width: 88px;
+  border-radius: 99px;
+  margin-bottom: 14px;
+}
+.ew-skel-card .ew-skel-rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.ew-skel-card .ew-skel-tile {
+  height: 52px;
+  border-radius: 10px;
+}
+
+/* In-page dashboard / content skeleton */
+.ew-skel-page { padding: 4px 0 24px; }
+.ew-skel-flow {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ew-skel-flow .ew-skel-block { height: 88px; }
+.ew-skel-grid2 {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.ew-skel-grid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+.ew-skel-chart { height: 220px; }
+.ew-skel-chart.sm { height: 180px; }
+
+@media (max-width: 980px) {
+  .ew-skel-flow,
+  .ew-skel-grid2,
+  .ew-skel-grid3 { grid-template-columns: 1fr 1fr; }
+}

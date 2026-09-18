@@ -2,13 +2,16 @@
 require_once("include/connect.php");
 require_once("include/function.php"); 
 
-$key = $_REQUEST['key'];
-if($key !=''){
-	$client_query = "select * from client where md5(client_id)='".$key."'";
-	$client_result = mysqli_query($conn,$client_query);
-	$client_count = mysqli_num_rows($client_result);
-	if($client_count == 0){
-		header('Location:client_list.php');
+$key = $_REQUEST['key'] ?? '';
+if ($key === '' && empty($_GET['create'])) {
+	header('Location:consigner_payment_list.php');
+	exit;
+}
+if ($key != '') {
+	$payment_check = mysqli_query($conn, "select id from consignor_payment where md5(id)='" . mysqli_real_escape_string($conn, $key) . "'");
+	if (!$payment_check || mysqli_num_rows($payment_check) == 0) {
+		header('Location:consigner_payment_list.php');
+		exit;
 	}
 }
 ?>
@@ -34,12 +37,21 @@ if($key !=''){
 <div class="container-fluid main-content new_dpt_bottom">
   
 		<div class="row">
-		  <div class="col-md-offset-1 col-md-10">
-			<div class="widget-container fluid-height clearfix">
-			  <div class="heading"> <i class="fa fa-plus"></i>Add Charges <span class="align-right"><i class="fa fa-plus"></i><a href="consigner_payment_list.php">View List</a></span></div>
-			  
-			  <div class="widget-content padded">
-				<form class="form-horizontal" id="add_payment_info_form">
+		  <div class="col-md-12">
+			<div class="ew-page-v2">
+			  <div class="ew-page-head">
+				<div class="ew-page-head-left">
+				  <a href="consigner_payment_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+				  <h1 class="ew-page-title"><?php echo ($_REQUEST['key'] != '') ? 'Edit Charges' : 'Add Charges'; ?></h1>
+				</div>
+				<div class="ew-toolbar-right">
+				  <a href="consigner_payment_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+				</div>
+			  </div>
+			  <div class="ew-card">
+				<h2 class="ew-card-section-title">Client Charge Configuration</h2>
+				<div class="ew-form-body">
+				<form id="add_payment_info_form">
 				
 				<?php if($_REQUEST['key'] != ''){?>
 					<input type="hidden" id="form_name" name="form_name" value="edit_payment_info_form">
@@ -54,127 +66,96 @@ if($key !=''){
 						<div class="message" style="text-align:center"></div>
 					</div>
 					
-				<br/>
-				 <div class="row">
-						<div class="col-md-offset-1 col-md-5">
+				  <div class="ew-form-grid">
 						<?php
-							//$conn = mysqli_connect("localhost","root","","bookconsignment");
 							$query = "select * from consignor_payment where md5(id)='".$_REQUEST['key']."'";
 							$result = mysqli_query($conn,$query);
 							$row = mysqli_fetch_array($result);
-							?>
-							<div class="form-group">
+						?>
+						<div class="ew-field">
 							<label class="control-label">Client <span style="color:red;">*</span> :</label>
-							
 							<select name="consigner_id" id="consigner_id" class="form-control" required>
 								<option value="">Select Client</option>
 							<?php
 							$query = "select * from client";
 							$result = mysqli_query($conn,$query);
-
 							while($row1 = mysqli_fetch_array($result)){?>
-
 								<option value="<?php echo $row1['client_id'];?>"<?php if($row1['client_id'] == $row['consigner_id']) echo "selected";?>><?php echo $row1['client_company_name'];?></option>
-								<?php 
-							}
-							?>
+							<?php } ?>
 							</select>
-						
 							<span id="client_dup-check"></span>
-							</div>
-							<div class="form-group">
+						</div>
+						<div class="ew-field">
 							<label class="control-label">Destination <span style="color:red;">*</span> :</label>
 							<select name="city" class="form-control" id="city" required>
-									<option value="">Select Destination</option>
-									<?php 
-										$city_query ="select * from city where status=0 order by city_name";
-										$city_result = mysqli_query($conn,$city_query);
-										while($city_row= mysqli_fetch_array($city_result)){
-									?>
-									<option value="<?php echo $city_row['city_id']; ?>"<?php if($row['destination'] == $city_row['city_id']) echo "selected";?>><?php echo $city_row['city_name']; ?></option>
-									<?php
-									}
-									?>
-								</select>
-								<span id="destination_dup-check"></span>
-							</div>
-							<div class="form-group"> 
-								<label class="control-label">Loading / Unloading Charges:</label>
-								<input type="text"   name="loading_unloading_chrgs" id="loading_unloading_chrgs" value="<?php echo $row['loading_unloading_chrgs']; ?>" class="form-control" placeholder="Enter Loading Unloading Chrgs" autocomplete="off"/>
-								
-							</div>
-							<div class="form-group">
-								<label class="control-label">Crane / Lift_Fork Charges:</label>
-								<input type="text" name="crane_fork_lift_chrgs" id="crane_fork_lift_chrgs" value="<?php echo $row['crane_fork_lift_chrgs']; ?>" class="form-control" placeholder="Enter Crane / Fork Lift Chrgs" autocomplete="off" />
-								
-							</div>
-							<div class="form-group">
-								<label class="control-label">Document Charges:</label>
-								<input type="text" name="doc_chrgs" id="doc_chrgs" class="form-control"  value="<?php echo $row['doc_chrgs']; ?>"placeholder="Enter Docs Chrgs" autocomplete="off" />
-							
-							</div>
-						
-							<div class="form-group">
-								<label class="control-label">Labour Charges:</label>
-								<input type="text" name="labour_charges" id="labour_charges" class="form-control"  value="<?php echo $row['labour_charges']; ?>"placeholder="Enter Labour Chrgs" autocomplete="off" />
-							
-							</div>
-							
+								<option value="">Select Destination</option>
+								<?php 
+									$city_query ="select * from city where status=0 order by city_name";
+									$city_result = mysqli_query($conn,$city_query);
+									while($city_row= mysqli_fetch_array($city_result)){
+								?>
+								<option value="<?php echo $city_row['city_id']; ?>"<?php if($row['destination'] == $city_row['city_id']) echo "selected";?>><?php echo $city_row['city_name']; ?></option>
+								<?php } ?>
+							</select>
+							<span id="destination_dup-check"></span>
 						</div>
-						<div class="col-md-5">
-						
-							
-						<div class="form-group">
-								<label class="control-label">Other Charges:</label>
-								<input type="text" name="other_chrgs" id="other_chrgs" class="form-control" value="<?php echo $row['other_chrgs']; ?>"  placeholder="Enter Other Chrgs" autocomplete="off" />
-								<span class="dup-check"></span>
-							</div>
-							
-							
-							<div class="form-group">
-								<label class="control-label">Air:</label>
-								<input type="text" name="air" id="air" value="<?php echo $row['air']; ?>" class="form-control" placeholder="Enter Air Chrgs" autocomplete="off" />
-								<span class="dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Train:</label>
-								<input type="text" name="train" id="train" value="<?php echo $row['train']; ?>" class="form-control" placeholder="Enter Air Chrgs" autocomplete="off" />
-								<span class="dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Surface PTL:</label>
-								<input type="text" name="ptl" id="ptl" value="<?php if($row['ptl'] != '') echo $row['ptl'] ; else echo 3850; ?>" class="form-control" placeholder="Enter Part Truck Load Chrgs" autocomplete="off"/>
-								<span class="dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Express:</label>
-								<input type="text" name="express" id="express" value="<?php echo $row['express']; ?>" class="form-control" placeholder="Enter Express Chrgs" autocomplete="off"/>
-								<span class="dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Local Delivery:</label>
-								<input type="text" name="local_delivery" id="local_delivery" value="<?php echo $row['local_delivery']; ?>" class="form-control" placeholder="Enter Express Chrgs" autocomplete="off"/>
-								<span class="dup-check"></span>
-							</div>
-							
-						
-						
+						<div class="ew-field">
+							<label class="control-label">Loading / Unloading Charges:</label>
+							<input type="text" name="loading_unloading_chrgs" id="loading_unloading_chrgs" value="<?php echo $row['loading_unloading_chrgs']; ?>" class="form-control" placeholder="Enter Loading Unloading Chrgs" autocomplete="off"/>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Crane / Lift_Fork Charges:</label>
+							<input type="text" name="crane_fork_lift_chrgs" id="crane_fork_lift_chrgs" value="<?php echo $row['crane_fork_lift_chrgs']; ?>" class="form-control" placeholder="Enter Crane / Fork Lift Chrgs" autocomplete="off" />
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Document Charges:</label>
+							<input type="text" name="doc_chrgs" id="doc_chrgs" class="form-control" value="<?php echo $row['doc_chrgs']; ?>" placeholder="Enter Docs Chrgs" autocomplete="off" />
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Labour Charges:</label>
+							<input type="text" name="labour_charges" id="labour_charges" class="form-control" value="<?php echo $row['labour_charges']; ?>" placeholder="Enter Labour Chrgs" autocomplete="off" />
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Other Charges:</label>
+							<input type="text" name="other_chrgs" id="other_chrgs" class="form-control" value="<?php echo $row['other_chrgs']; ?>" placeholder="Enter Other Chrgs" autocomplete="off" />
+							<span class="dup-check"></span>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Air:</label>
+							<input type="text" name="air" id="air" value="<?php echo $row['air']; ?>" class="form-control" placeholder="Enter Air Chrgs" autocomplete="off" />
+							<span class="dup-check"></span>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Train:</label>
+							<input type="text" name="train" id="train" value="<?php echo $row['train']; ?>" class="form-control" placeholder="Enter Train Chrgs" autocomplete="off" />
+							<span class="dup-check"></span>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Surface PTL:</label>
+							<input type="text" name="ptl" id="ptl" value="<?php if($row['ptl'] != '') echo $row['ptl'] ; else echo 3850; ?>" class="form-control" placeholder="Enter Part Truck Load Chrgs" autocomplete="off"/>
+							<span class="dup-check"></span>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Express:</label>
+							<input type="text" name="express" id="express" value="<?php echo $row['express']; ?>" class="form-control" placeholder="Enter Express Chrgs" autocomplete="off"/>
+							<span class="dup-check"></span>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Local Delivery:</label>
+							<input type="text" name="local_delivery" id="local_delivery" value="<?php echo $row['local_delivery']; ?>" class="form-control" placeholder="Enter Local Delivery Chrgs" autocomplete="off"/>
+							<span class="dup-check"></span>
 						</div>
 				 </div>
-				   <div class="row">
-					<div class="col-md-12 form-action">
-					<?php if($_REQUEST['key']== ''){?>
-						<button class="btn btn-primary" type="button" id="save">Submit</button>
-						<button  class="btn btn-default-outline  btn-reset" type="button" onclick="window.location.href='consigner_payment_list.php';">Cancel</button>
-					</div>
-					<?php 
-					}else{?>
-						<button class="btn btn-primary" type="button" id="update">Update</button>
-						<button  class="btn btn-default-outline  btn-reset" type="button" onclick="window.location.href='consigner_payment_list.php';">Cancel</button>
-					<?php }?>
-					</div>
-				  </div>
 				</form>
+				</div>
+				<div class="ew-form-footer">
+					<a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="consigner_payment_list.php">Cancel</a>
+					<?php if($_REQUEST['key']== ''){?>
+						<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save">Submit</button>
+					<?php } else { ?>
+						<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="update">Update</button>
+					<?php } ?>
+				</div>
 			  </div>
 			</div>
 		  </div>

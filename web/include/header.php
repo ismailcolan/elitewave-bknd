@@ -1,26 +1,21 @@
 <?php
-if (isset($_SESSION['LAST_ACTIVITY'])) {
-  if (empty($_SESSION['admin_id']) && empty($_SESSION['LAST_ACTIVITY']) or (time() - $_SESSION['LAST_ACTIVITY'] > 103600)) {
-    echo '<script> location.href="index.php"; </script>';
-    exit;
-  }
-} else if (!isset($_SESSION['admin_id'])) {
-  echo '<script> location.href="index.php"; </script>';
-  exit;
-} else {
+if (empty($_SESSION['user_id']) || empty($_SESSION['LAST_ACTIVITY']) || (time() - $_SESSION['LAST_ACTIVITY'] > 103600)) {
   echo '<script> location.href="index.php"; </script>';
   exit;
 }
 require_once ('include/function.php');
+require_once ('include/ew_skeleton.php');
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 :root {
-  --sidebar-width:     260px;
-  --sidebar-collapsed: 64px;
-  --top-bar-h:         64px;
+  --rail-w:            88px;
+  --panel-w:           248px;
+  --sidebar-width:     calc(var(--rail-w) + var(--panel-w));
+  --sidebar-collapsed: var(--rail-w);
+  --top-bar-h:         72px;
   --ew-navy:           #06416F;
   --ew-navy-deep:      #042C4A;
   --ew-navy-light:     #0A5688;
@@ -74,40 +69,36 @@ body.page-header-fixed {
 
 /* ---- Hamburger button ---- */
 .hamburger-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   border: none;
-  background: transparent;
+  background: #EEF3F7;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   flex-shrink: 0;
-  transition: background 0.2s ease;
-  margin-right: 12px;
+  margin-left: 8px;
+  margin-right: 18px;
 }
-.hamburger-btn:hover { background: #EEF3F7; }
+.hamburger-btn:hover { background: #E2EAF1; }
 
 .hamburger-btn .hb-line {
   display: block;
-  width: 20px;
+  width: 16px;
   height: 2px;
-  border-radius: 2px;
+  border-radius: 1px;
   background: var(--ew-navy);
-  transition: transform 0.3s ease, opacity 0.2s ease;
-  transform-origin: center;
 }
-.hamburger-btn.is-open .hb-line:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.hamburger-btn.is-open .hb-line:nth-child(2) { opacity: 0; transform: scaleX(0); }
-.hamburger-btn.is-open .hb-line:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
 /* ---- Logo ---- */
 .top-bar .app-logo {
+  height: 58px;
   width: auto;
-  max-width: 150px;
+  max-width: 280px;
   display: block;
   object-fit: contain;
   flex-shrink: 0;
@@ -210,20 +201,14 @@ body.page-header-fixed {
 .top-bar .user-avatar {
   width: 36px; height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--ew-navy), var(--ew-navy-deep));
-  color: #fff;
+  background: #E8EDF4;
+  color: var(--ew-navy);
   display: flex; align-items: center; justify-content: center;
   font-weight: 700;
-  font-family: var(--font-display);
-  font-size: 13px;
+  font-family: Inter, "Segoe UI", sans-serif;
+  font-size: 12px;
+  letter-spacing: .04em;
   flex-shrink: 0;
-  overflow: hidden;
-  border: 2px solid #E8EDF4;
-}
-.top-bar .user-avatar img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
 }
 
 .top-bar .user-meta {
@@ -233,7 +218,7 @@ body.page-header-fixed {
   min-width: 0;
 }
 .top-bar .user-meta .user-name {
-  font-size: 0.82rem;
+  font-size: 15px;
   font-weight: 600;
   color: var(--ew-text);
   white-space: nowrap;
@@ -290,7 +275,7 @@ body.page-header-fixed {
 
 @media (max-width: 767px) {
   .top-bar { padding: 0 10px 0 12px; }
-  .top-bar .app-logo { max-width: 120px; }
+  .top-bar .app-logo { height: 48px; max-width: 220px; }
   .top-bar .applicatoin-name { display: none !important; }
   .top-bar .header-divider { display: none; }
   .top-bar .user-meta { display: none; }
@@ -310,13 +295,13 @@ body.page-header-fixed {
 
 <div class="top-bar" id="topBar">
 
-  <a href="dashboard.php" style="display:flex;align-items:center;text-decoration:none;">
+  <a href="dashboard.php" class="tb-brand" style="display:flex;align-items:center;text-decoration:none;height:58px;">
     <img src="./images/elitewave-light.png" class="app-logo" alt="Elite Wave 360">
   </a>
 
   <div class="tb-spacer"></div>
 
-  <button class="hamburger-btn is-open" id="hamburgerBtn" onclick="toggleSidebar()" title="Toggle sidebar" aria-label="Toggle sidebar">
+  <button class="hamburger-btn" type="button" id="hamburgerBtn" onclick="toggleSidebar()" title="Toggle sidebar" aria-label="Toggle sidebar">
     <span class="hb-line"></span>
     <span class="hb-line"></span>
     <span class="hb-line"></span>
@@ -347,10 +332,18 @@ body.page-header-fixed {
     <div class="header-divider"></div>
 
     <div class="top-left" id="userMenuToggle">
-      <?php $username = get_user($conn, $_SESSION['user_id']); ?>
-      <div class="user-avatar">
-        <img src="images/no_profile.png" alt="">
-      </div>
+      <?php
+      $username = get_user($conn, $_SESSION['user_id']);
+      $initial_src = preg_replace('/[^A-Za-z]/', '', (string) $username);
+      if (strlen($initial_src) >= 2) {
+        $user_initials = strtoupper(substr($initial_src, 0, 2));
+      } elseif ($initial_src !== '') {
+        $user_initials = strtoupper(substr($initial_src, 0, 1));
+      } else {
+        $user_initials = 'U';
+      }
+      ?>
+      <div class="user-avatar"><?php echo htmlspecialchars($user_initials); ?></div>
       <div class="user-meta">
         <span class="user-name"><?php echo $username; ?></span>
         <span class="user-role">
@@ -377,8 +370,8 @@ body.page-header-fixed {
   </div>
 </div>
 
-<div class="loading-page" style="display:none;"><img src="images/ajax_loader.gif" alt="" /></div>
-<div class="form-data-saving" style="display:none;"><img src="images/loading.png" alt="" /></div>
+<div class="loading-page" style="display:none;"><?php echo ew_skeleton_card_inner(); ?></div>
+<div class="form-data-saving" style="display:none;"><?php echo ew_skeleton_card_inner(); ?></div>
 
 <script>
 $(document).ready(function(){
@@ -452,13 +445,17 @@ $(document).ready(function(){
     $('.dropdown-menu1').hide();
   });
 
-  var sidebarCollapsed = localStorage.getItem('sidebar_collapsed') === '1';
-  if (window.matchMedia('(max-width: 767px)').matches) {
-    $('#hamburgerBtn').removeClass('is-open');
-  } else if(!sidebarCollapsed){
-    $('#hamburgerBtn').addClass('is-open');
-  } else {
-    $('#hamburgerBtn').removeClass('is-open');
+  function keepSkelFlex() {
+    $('.loading-page, .form-data-saving').each(function () {
+      if (this.style.display === 'block') {
+        this.style.display = 'flex';
+      }
+    });
+  }
+  if (window.MutationObserver) {
+    $('.loading-page, .form-data-saving').each(function () {
+      new MutationObserver(keepSkelFlex).observe(this, { attributes: true, attributeFilter: ['style'] });
+    });
   }
 
   /* Fallback: always hide loading overlay — $(window).load() can be unreliable */

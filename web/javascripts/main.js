@@ -353,8 +353,24 @@
      *   DataTables
      * =============================================================================
      */
+    if ($.fn.dataTable) {
+      $.extend(true, $.fn.dataTable.defaults, {
+        oSearch: {
+          sSearch: "",
+          bSmart: false,
+          bRegex: false,
+          bCaseInsensitive: true
+        }
+      });
+    }
     $("#dataTable1").dataTable({
       "sPaginationType": "full_numbers",
+      oSearch: {
+        sSearch: "",
+        bSmart: false,
+        bRegex: false,
+        bCaseInsensitive: true
+      },
       aoColumnDefs: [
         {
           bSortable: false,

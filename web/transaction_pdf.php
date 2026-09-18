@@ -181,17 +181,7 @@ switch ($mode_name) {
 // ─── Address helper ───────────────────────────────────────────────────────────
 function fmt_addr($det, $conn)
 {
-    $parts = [];
-    if (!empty($det['address1']) && strtoupper(trim($det['address1'])) != 'NULL')
-        $parts[] = trim($det['address1']);
-    if (!empty($det['address2']) && strtoupper(trim($det['address2'])) != 'NULL')
-        $parts[] = trim($det['address2']);
-    $city = get_city_name($conn, $det['city']);
-    if (!empty($city) && strtoupper(trim($city)) != 'NULL')
-        $parts[] = trim($city);
-    if (!empty($det['pincode']) && strtoupper(trim($det['pincode'])) != 'NULL')
-        $parts[] = trim($det['pincode']);
-    return implode(', ', $parts);
+    return ew_format_party_address_gcn($det, $conn);
 }
 
 $consignor_addr   = fmt_addr($consignor_det, $conn);
@@ -202,17 +192,7 @@ if (trim($shipping_address) == '') {
 
     $shipping_name_display = get_client_name($conn, $consignee);
 
-    $shipping_addr_display =
-        $consignee_det['address1'];
-
-    if (!empty($consignee_det['address2'])) {
-        $shipping_addr_display .= '<br>' . $consignee_det['address2'];
-    }
-
-    $shipping_addr_display .= '<br>'
-        . get_city_name($conn, $consignee_det['city']) . ', '
-        . get_state_name($conn, $consignee_det['state']) . ' '
-        . $consignee_det['pincode'];
+    $shipping_addr_display = ew_format_party_address_invoice_html($consignee_det, $conn);
 
     $shipping_gst_display   = $consignee_det['gst_no'];
     $shipping_phone_display = $consignee_det['contact_no'];

@@ -2,13 +2,16 @@
 require_once("include/connect.php");
 require_once("include/function.php"); 
 
-$key = $_REQUEST['key'];
-if($key !=''){
-	$client_query = "select * from client where md5(client_id)='".$key."'";
-	$client_result = mysqli_query($conn,$client_query);
-	$client_count = mysqli_num_rows($client_result);
-	if($client_count == 0){
-		header('Location:client_list.php');
+$key = $_REQUEST['key'] ?? '';
+if ($key === '' && empty($_GET['create'])) {
+	header('Location:expected_delivery_list.php');
+	exit;
+}
+if ($key != '') {
+	$delivery_check = mysqli_query($conn, "select id from expectded_delivery where md5(id)='" . mysqli_real_escape_string($conn, $key) . "'");
+	if (!$delivery_check || mysqli_num_rows($delivery_check) == 0) {
+		header('Location:expected_delivery_list.php');
+		exit;
 	}
 }
 ?>
@@ -34,12 +37,20 @@ if($key !=''){
 <div class="container-fluid main-content new_dpt_bottom">
   
 		<div class="row">
-		  <div class="col-md-offset-1 col-md-10">
-			<div class="widget-container fluid-height clearfix">
-			  <div class="heading"> <i class="fa fa-plus"></i>Add Expected Delivery <span class="align-right"><i class="fa fa-plus"></i><a href="expected_delivery_list.php">View List</a></span></div>
-			  
-			  <div class="widget-content padded">
-				<form class="form-horizontal" id="add_expected_delivery_form">
+		  <div class="col-md-12">
+			<div class="ew-page-v2">
+			  <div class="ew-page-head">
+				<div class="ew-page-head-left">
+				  <a href="expected_delivery_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+				  <h1 class="ew-page-title"><?php echo ($_REQUEST['key'] != '') ? 'Edit Expected Delivery' : 'Add Expected Delivery'; ?></h1>
+				</div>
+				<div class="ew-toolbar-right">
+				  <a href="expected_delivery_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+				</div>
+			  </div>
+			  <div class="ew-card">
+				<div class="ew-form-body">
+				<form id="add_expected_delivery_form">
 				
 				<?php if($_REQUEST['key'] != ''){?>
 					<input type="hidden" id="form_name" name="form_name" value="edit_expected_delivery">
@@ -54,78 +65,56 @@ if($key !=''){
 						<div class="message" style="text-align:center"></div>
 					</div>
 					
-				<br/>
-				 <div class="row">
-						<div class="col-md-offset-1 col-md-5">
+				  <div class="ew-form-grid">
 						<?php
-							//$conn = mysqli_connect("localhost","root","","bookconsignment");
 							$query = "select * from expectded_delivery where md5(id)='".$_REQUEST['key']."'";
 							$result = mysqli_query($conn,$query);
 							$row = mysqli_fetch_array($result);
-							
-							//$unique_billing_code = sprintf("%02d",1).'-'.$billing_code;
-
 						?>
-							<div class="form-group">
-								<label class="control-label">Origin <span style="color:red;">*</span> :</label>
-								<input type="text" autocomplete="off" id="origin" name="origin" value="<?php echo $row['origin']; ?>" class="form-control" required placeholder="000001-Origin Name"/>
-								<span id="origin_dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Destination <span style="color:red;">*</span> :</label>
-								<input type="text" autocomplete="off"   name="destination" id="destination" value="<?php echo $row['destination']; ?>" class="form-control" required placeholder="000001-Destination Name"/>
-								<span id="destination_dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Surface:</label>
-								<input type="text" autocomplete="off" name="surface" id="surface" value="<?php echo $row['surface']; ?>" class="form-control" placeholder="Enter Surface Duration"/>
-								
-							</div>
-							<div class="form-group">
-								<label class="control-label">Express:</label>
-								<input type="text" autocomplete="off" name="express" id="express" class="form-control"  value="<?php echo $row['express']; ?>"placeholder="Enter Express Duration"/>
-							
-							</div>
-							
-							
+						<div class="ew-field">
+							<label class="control-label">Origin <span style="color:red;">*</span> :</label>
+							<input type="text" autocomplete="off" id="origin" name="origin" value="<?php echo $row['origin']; ?>" class="form-control" required placeholder="000001-Origin Name"/>
+							<span id="origin_dup-check"></span>
 						</div>
-						<div class="col-md-5">
-							
-						<div class="form-group">
-								<label class="control-label">Train:</label>
-								<input type="text" autocomplete="off" name="train" id="train" class="form-control" value="<?php echo $row['train']; ?>"  placeholder="Enter Train Duration"/>
-								<span class="dup-check"></span>
-							</div>
-							
-							
-							<div class="form-group">
-								<label class="control-label">Air:</label>
-								<input type="text" autocomplete="off" name="air" id="air" value="<?php echo $row['air']; ?>" class="form-control" placeholder="Enter Air Duration"/>
-								<span class="email-dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Note:</label>
-								<textarea name="note" id="note" value="" class="form-control" value="" placeholder="Enter Note"><?php echo $row['note']; ?></textarea>
-								<span class="dup-check"></span>
-							</div>
-						
-						
+						<div class="ew-field">
+							<label class="control-label">Destination <span style="color:red;">*</span> :</label>
+							<input type="text" autocomplete="off" name="destination" id="destination" value="<?php echo $row['destination']; ?>" class="form-control" required placeholder="000001-Destination Name"/>
+							<span id="destination_dup-check"></span>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Surface:</label>
+							<input type="text" autocomplete="off" name="surface" id="surface" value="<?php echo $row['surface']; ?>" class="form-control" placeholder="Enter Surface Duration"/>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Express:</label>
+							<input type="text" autocomplete="off" name="express" id="express" class="form-control" value="<?php echo $row['express']; ?>" placeholder="Enter Express Duration"/>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Train:</label>
+							<input type="text" autocomplete="off" name="train" id="train" class="form-control" value="<?php echo $row['train']; ?>" placeholder="Enter Train Duration"/>
+							<span class="dup-check"></span>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Air:</label>
+							<input type="text" autocomplete="off" name="air" id="air" value="<?php echo $row['air']; ?>" class="form-control" placeholder="Enter Air Duration"/>
+							<span class="email-dup-check"></span>
+						</div>
+						<div class="ew-field span-4">
+							<label class="control-label">Note:</label>
+							<textarea name="note" id="note" class="form-control" placeholder="Enter Note"><?php echo $row['note']; ?></textarea>
+							<span class="dup-check"></span>
 						</div>
 				 </div>
-				   <div class="row">
-					<div class="col-md-12 form-action">
-					<?php if($_REQUEST['key']== ''){?>
-						<button class="btn btn-primary" type="button" id="save">Submit</button>
-						<button  class="btn btn-default-outline  btn-reset" type="button" onclick="window.location.href='expected_delivery_list.php';">Cancel</button>
-					</div>
-					<?php 
-					}else{?>
-						<button class="btn btn-primary" type="button" id="update">Update</button>
-						<button  class="btn btn-default-outline  btn-reset" type="button" onclick="window.location.href='expected_delivery_list.php';">Cancel</button>
-					<?php }?>
-					</div>
-				  </div>
 				</form>
+				</div>
+				<div class="ew-form-footer">
+					<a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="expected_delivery_list.php">Cancel</a>
+					<?php if($_REQUEST['key']== ''){?>
+						<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save">Submit</button>
+					<?php } else { ?>
+						<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="update">Update</button>
+					<?php } ?>
+				</div>
 			  </div>
 			</div>
 		  </div>

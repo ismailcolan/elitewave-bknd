@@ -70,6 +70,105 @@ function expense_gcn_ensure_schema($conn)
 		KEY idx_gcn_expense_group_header (gcn_expense_id),
 		UNIQUE KEY uk_group_item (gcn_expense_id, trans_table, transaction_id)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+	$lineCols = mysqli_query($conn, "SHOW COLUMNS FROM gcn_expense_lines");
+	$have = array();
+	if ($lineCols) {
+		while ($col = mysqli_fetch_assoc($lineCols)) {
+			$have[$col['Field']] = true;
+		}
+	}
+	if (empty($have['gst_amount'])) {
+		mysqli_query($conn, "ALTER TABLE gcn_expense_lines ADD COLUMN gst_amount DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER expense_amount");
+	}
+	if (empty($have['tds_amount'])) {
+		mysqli_query($conn, "ALTER TABLE gcn_expense_lines ADD COLUMN tds_amount DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER gst_amount");
+	}
+}
+
+function expense_gcn_vendor_tax_info($conn, $vendor_id)
+{
+	$vendor_id = (int) $vendor_id;
+	$info = array(
+		'gst_registered' => 0,
+		'gst_exemption' => 0,
+		'tds_applicable' => 0,
+		'tds_rate' => 0,
+		'gst_applicable' => 0,
+	);
+	if ($vendor_id <= 0) {
+		return $info;
+	}
+	$q = mysqli_query($conn, "SELECT vendor_id, gst_registered, gst_exemption, tds_applicable, tds_rate, gstin
+		FROM vendor_master WHERE vendor_id='$vendor_id' LIMIT 1");
+	if (!$q || !($row = mysqli_fetch_assoc($q))) {
+		return $info;
+	}
+	$gst_registered = (int) ($row['gst_registered'] ?? 0);
+	if ($gst_registered !== 1 && trim($row['gstin'] ?? '') !== '') {
+		$gst_registered = 1;
+	}
+	$gst_exemption = (int) ($row['gst_exemption'] ?? 0);
+	$info['gst_registered'] = $gst_registered;
+	$info['gst_exemption'] = $gst_exemption;
+	$info['tds_applicable'] = (int) ($row['tds_applicable'] ?? 0);
+	$info['tds_rate'] = round((float) ($row['tds_rate'] ?? 0), 2);
+	$info['gst_applicable'] = ($gst_registered === 1 && $gst_exemption !== 1) ? 1 : 0;
+	return $info;
+}
+
+function expense_gcn_category_tax_info($conn, $category_id)
+{
+	$category_id = (int) $category_id;
+	$info = array(
+		'gst_applicable' => 0,
+		'gst_percent' => 0,
+		'tds_applicable' => 0,
+		'tds_percent' => 0,
+	);
+	if ($category_id <= 0) {
+		return $info;
+	}
+	$q = mysqli_query($conn, "SELECT gst_applicable, gst_percent, tds_applicable, tds_percent
+		FROM expense_category WHERE category_id='$category_id' LIMIT 1");
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
+		$info['gst_applicable'] = (int) ($row['gst_applicable'] ?? 0);
+		$info['gst_percent'] = round((float) ($row['gst_percent'] ?? 0), 2);
+		$info['tds_applicable'] = (int) ($row['tds_applicable'] ?? 0);
+		$info['tds_percent'] = round((float) ($row['tds_percent'] ?? 0), 2);
+	}
+	return $info;
+}
+
+function expense_gcn_suggest_tax($conn, $vendor_id, $category_id, $expense_amount)
+{
+	$vendor = expense_gcn_vendor_tax_info($conn, $vendor_id);
+	$category = expense_gcn_category_tax_info($conn, $category_id);
+	$expense_amount = round((float) $expense_amount, 2);
+
+	$gst_amount = 0;
+	if (!empty($vendor['gst_applicable']) && !empty($category['gst_applicable']) && (float) $category['gst_percent'] > 0 && $expense_amount > 0) {
+		$gst_amount = round($expense_amount * (float) $category['gst_percent'] / 100, 2);
+	}
+
+	$tds_amount = 0;
+	$tds_rate = 0;
+	if (!empty($vendor['tds_applicable']) && (float) $vendor['tds_rate'] > 0) {
+		$tds_rate = (float) $vendor['tds_rate'];
+	} elseif (!empty($category['tds_applicable']) && (float) $category['tds_percent'] > 0) {
+		$tds_rate = (float) $category['tds_percent'];
+	}
+	if ($tds_rate > 0 && $expense_amount > 0) {
+		$tds_amount = round($expense_amount * $tds_rate / 100, 2);
+	}
+
+	return array(
+		'vendor' => $vendor,
+		'category' => $category,
+		'gst_amount' => $gst_amount,
+		'tds_amount' => $tds_amount,
+		'tds_rate' => $tds_rate,
+	);
 }
 
 function expense_gcn_group_trans_table()
@@ -120,8 +219,10 @@ function expense_gcn_parse_lines_input($conn, $lines_in)
 		$category_id = (int) ($line['category_id'] ?? 0);
 		$expense_date = trim((string) ($line['expense_date'] ?? ''));
 		$expense_amount = expense_gcn_parse_money($line['expense_amount'] ?? 0);
+		$gst_amount = expense_gcn_parse_money($line['gst_amount'] ?? 0);
+		$tds_amount = expense_gcn_parse_money($line['tds_amount'] ?? 0);
 
-		if ($vendor_id <= 0 && $category_id <= 0 && $expense_amount <= 0 && $expense_date === '') {
+		if ($vendor_id <= 0 && $category_id <= 0 && $expense_amount <= 0 && $expense_date === '' && $gst_amount <= 0 && $tds_amount <= 0) {
 			continue;
 		}
 		if ($vendor_id <= 0) {
@@ -136,9 +237,17 @@ function expense_gcn_parse_lines_input($conn, $lines_in)
 		if ($expense_amount <= 0) {
 			return array('ok' => false, 'message' => 'Expense amount must be greater than zero.');
 		}
+		if ($gst_amount < 0 || $tds_amount < 0) {
+			return array('ok' => false, 'message' => 'GST and TDS cannot be negative.');
+		}
 
 		if (!expense_gcn_get_category($conn, $category_id)) {
 			return array('ok' => false, 'message' => 'Invalid expense type selected.');
+		}
+
+		$tax = expense_gcn_suggest_tax($conn, $vendor_id, $category_id, $expense_amount);
+		if (empty($tax['vendor']['gst_applicable'])) {
+			$gst_amount = 0;
 		}
 
 		$line_no++;
@@ -148,8 +257,8 @@ function expense_gcn_parse_lines_input($conn, $lines_in)
 			'category_id' => $category_id,
 			'expense_date' => $expense_date,
 			'expense_amount' => round($expense_amount, 2),
-			'gst_amount' => 0,
-			'tds_amount' => 0,
+			'gst_amount' => round($gst_amount, 2),
+			'tds_amount' => round($tds_amount, 2),
 		);
 	}
 
@@ -199,8 +308,12 @@ function expense_gcn_load_lines($conn, $gcn_expense_id)
 				'expense_date' => $row['expense_date'],
 				'expense_amount' => expense_gcn_format_money($row['expense_amount']),
 				'expense_amount_raw' => round((float) $row['expense_amount'], 2),
-				'vendor_label' => trim(($row['vendor_code'] ?? '') . ' - ' . ($row['vendor_name'] ?? ''), ' -'),
-				'category_label' => trim(($row['category_code'] ?? '') . ' - ' . ($row['category_name'] ?? ''), ' -'),
+				'gst_amount' => expense_gcn_format_money($row['gst_amount'] ?? 0),
+				'gst_amount_raw' => round((float) ($row['gst_amount'] ?? 0), 2),
+				'tds_amount' => expense_gcn_format_money($row['tds_amount'] ?? 0),
+				'tds_amount_raw' => round((float) ($row['tds_amount'] ?? 0), 2),
+				'vendor_label' => trim((string) ($row['vendor_name'] ?? '')),
+				'category_label' => trim((string) ($row['category_name'] ?? '')),
 				'expense_type_code' => $row['expense_type_code'] ?? '',
 			);
 		}
@@ -219,7 +332,7 @@ function expense_gcn_vendor_options($conn)
 				'vendor_id' => (int) $row['vendor_id'],
 				'vendor_code' => $row['vendor_code'],
 				'vendor_name' => $row['vendor_name'],
-				'label' => trim($row['vendor_code'] . ' - ' . $row['vendor_name'], ' -'),
+				'label' => trim((string) ($row['vendor_name'] ?? '')),
 			);
 		}
 	}
@@ -230,17 +343,29 @@ function expense_gcn_category_options($conn)
 {
 	expense_type_ensure_schema($conn);
 	$rows = array();
-	$q = mysqli_query($conn, "SELECT category_id, category_code, category_name, expense_type_code
-		FROM expense_category WHERE status=0 ORDER BY category_code ASC");
+	$q = mysqli_query($conn, "SELECT c.category_id, c.category_code, c.category_name, c.expense_type_code,
+			c.expense_group, c.expense_group_id, c.default_amount, g.group_name, g.group_code, g.sort_no
+		FROM expense_category c
+		LEFT JOIN expense_group g ON g.group_id = c.expense_group_id
+		WHERE c.status=0
+		ORDER BY COALESCE(g.sort_no, 9999) ASC, COALESCE(g.group_name, '') ASC, c.category_name ASC");
 	if ($q) {
 		while ($row = mysqli_fetch_assoc($q)) {
+			$group_label = trim((string) ($row['group_name'] ?? ''));
+			if ($group_label === '') {
+				$group_label = expense_type_group_label($row['expense_group'] ?? '', $conn);
+			}
 			$rows[] = array(
 				'category_id' => (int) $row['category_id'],
 				'category_code' => $row['category_code'],
 				'category_name' => $row['category_name'],
 				'expense_type_code' => $row['expense_type_code'] ?? '',
-				'label' => trim($row['category_code'] . ' - ' . $row['category_name'], ' -'),
-				'code_label' => trim($row['category_code'] . ' - ' . $row['category_name'], ' -'),
+				'expense_group' => $row['group_code'] ?? ($row['expense_group'] ?? ''),
+				'expense_group_id' => (int) ($row['expense_group_id'] ?? 0),
+				'expense_group_label' => $group_label,
+				'default_amount' => round((float) ($row['default_amount'] ?? 0), 2),
+				'label' => trim((string) ($row['category_name'] ?? '')),
+				'code_label' => trim((string) ($row['category_name'] ?? '')),
 			);
 		}
 	}
@@ -249,13 +374,12 @@ function expense_gcn_category_options($conn)
 
 function expense_gcn_type_options($conn)
 {
-	expense_type_ensure_schema($conn);
 	$rows = array();
-	foreach (expense_type_label_options($conn) as $code => $name) {
+	foreach (expense_gcn_category_options($conn) as $row) {
 		$rows[] = array(
-			'type_code' => $code,
-			'type_name' => $name,
-			'label' => trim($code . ' - ' . $name, ' -'),
+			'type_code' => $row['category_code'],
+			'type_name' => $row['category_name'],
+			'label' => $row['label'],
 		);
 	}
 	return $rows;

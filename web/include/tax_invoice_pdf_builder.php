@@ -6,19 +6,7 @@ require_once __DIR__ . '/gst_invoice_pdf_layout.php';
 
 function tax_invoice_fmt_addr($det, $conn)
 {
-    $lines = array();
-    if (!empty($det['address1'])) {
-        $lines[] = trim($det['address1']);
-    }
-    if (!empty($det['address2'])) {
-        $lines[] = trim($det['address2']);
-    }
-    $city = get_city_name($conn, $det['city']);
-    $tail = trim($city . (!empty($det['pincode']) ? '-' . $det['pincode'] : ''));
-    if ($tail !== '') {
-        $lines[] = $tail;
-    }
-    return implode('<br>', $lines);
+    return ew_format_party_address_invoice_html($det, $conn);
 }
 
 function tax_invoice_build_pdf_html($conn, $billing_invoice_id)

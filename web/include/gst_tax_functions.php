@@ -299,6 +299,12 @@ function gst_tax_calc_taxable_from_charges($charges)
         'vehicle_loading_unloading',
         'other_amount',
         'rajdhani_charges',
+        'loading_unload_chrg',
+        'crane_forklift_chrg',
+        'cod_amount',
+        'fov_amount',
+        'cartage_amount',
+        'labour_amount',
     );
 
     $total = 0;

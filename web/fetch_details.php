@@ -2,6 +2,7 @@
 require_once ('include/connect.php');
 require_once ('include/function.php');
 require_once ('include/billing_functions.php');
+require_once (__DIR__ . '/include/transaction_list_query.php');
 require_once ('include/set_connection.php');
 date_default_timezone_set('Asia/Kolkata');
 $c_date = date('d-m-Y');
@@ -9,52 +10,50 @@ $date = new DateTime();
 $c_time = $date->format('H:i:s A');
 $c_date_string = strtotime($c_date);
 
-$cmd = $_REQUEST['cmd'];
+$cmd = isset($_REQUEST['cmd']) ? $_REQUEST['cmd'] : '';
 $created_at = $updated_at = date('d-m-Y');
-$updated_by = $created_by = $_SESSION['admin_id'];
+$updated_by = $created_by = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : (isset($_SESSION['admin_id']) ? $_SESSION['admin_id'] : 0);
 date_default_timezone_set('Asia/Kolkata');
 $c_date = date('d-m-Y');
 $date = new DateTime();
 $c_time = $date->format('H:i:s A');
 $c_date_string = strtotime($c_date);
-$company_id = $_SESSION['company_id'];
+$company_id = isset($_SESSION['company_id']) ? $_SESSION['company_id'] : '';
 $month = date('m');
 $year = date('Y');
 
 if ($cmd == 'get_customer_mapping_details') {
 	$out_put = '';
-	$id = $_REQUEST['id'];
+	$id = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : 0;
 	$query = "select * from customer_mapping where client='" . $id . "'";
 	$result = mysqli_query($conn, $query);
-	$row = mysqli_fetch_array($result);
+	$row = $result ? mysqli_fetch_array($result) : false;
 
-	$mapping_query = "select * from customer_mapping_lists where mapping_id='" . $row['mapping_id'] . "'";
+	if (!$row || empty($row['mapping_id'])) {
+		echo '0';
+		exit;
+	}
+
+	$mapping_query = "select * from customer_mapping_lists where mapping_id='" . (int) $row['mapping_id'] . "'";
 	$mapping_result = mysqli_query($conn, $mapping_query);
-	$i = 1;
-	if (mysqli_num_rows($mapping_result) > 0) {
-		$client_company_name = array();
-		$map_client_id = array();
-		$map_list_id = array();
+	if ($mapping_result && mysqli_num_rows($mapping_result) > 0) {
+		$k = 0;
 		while ($mapping_row = mysqli_fetch_array($mapping_result)) {
-			$client = get_client($conn, $mapping_row['client_id']);
-			array_push($client_company_name, $client['client_company_name']);
-			array_push($map_client_id, $mapping_row['client_id']);
-			array_push($map_list_id, $mapping_row['list_id']);
-		}
-		// sort($client_company_name);
-		for ($j = 0; $j < count($client_company_name); $j++) {
-			$k = $k + 1;
-
+			$name = get_client_name($conn, (int) $mapping_row['client_id']);
+			$k++;
 			$out_put .= '<tr>
-			<td  class="text-center">' . $k . '</td>
-			<td>' . $client_company_name[$j] . '</td>
-			<td class="text-center">
-			<input type="hidden" name="mapp_client_id[]" value="' . $map_client_id[$j] . '" /><a title="Delete" href="#" class="table-actions btn-trash"  id="' . $map_list_id[$j] . '"><i class="fa fa-trash-o"></i></a></td>
+			<td class="col-center map-sl">' . $k . '</td>
+			<td>' . htmlspecialchars($name) . '</td>
+			<td class="col-actions">
+			<input type="hidden" name="mapp_client_id[]" value="' . (int) $mapping_row['client_id'] . '" />
+			<a title="Delete" href="#" class="ew-icon-btn-v2 btn-trash" id="' . (int) $mapping_row['list_id'] . '"><i class="fa fa-trash-o"></i></a>
+			</td>
 		</tr>';
 		}
 		echo $out_put;
-	} else
+	} else {
 		echo '0';
+	}
 }
 
 if ($cmd == "chck_users_email") {
@@ -95,198 +94,8 @@ if ($cmd == "chck_users_email") {
 
 // }
 if ($cmd == 'get_transaction_month_details') {
-	$out_put = '';
-	$month = $_REQUEST['month'];
-	$dt = explode('-', $month);
-
-	if ($dt[0] <= 3) {
-		$m = 4;
-		$m1 = 1;
-		$y = $dt[1];
-		$trans_name = 'transaction_' . $m1 . '_' . $dt[1];
-		$trans_image_name = 'transaction_images_' . $m1 . '_' . $dt[1];
-		$trans_invoice_name = 'transaction_invoice_' . $m1 . '_' . $dt[1];
-	} else if (($dt[0] >= 4) && ($dt[0] <= 6)) {
-		$m = 1;
-		$m1 = 2;
-		$y = $dt[1];
-		$trans_name = 'transaction_' . $m1 . '_' . $dt[1];
-		$trans_image_name = 'transaction_images_' . $m1 . '_' . $dt[1];
-		$trans_invoice_name = 'transaction_invoice_' . $m1 . '_' . $dt[1];
-	} else if (($dt[0] >= 7) && ($dt[0] <= 9)) {
-		$m = 2;
-		$m1 = 3;
-		$y = $dt[1];
-		$trans_name = 'transaction_' . $m1 . '_' . $dt[1];
-		$trans_image_name = 'transaction_images_' . $m1 . '_' . $dt[1];
-		$trans_invoice_name = 'transaction_invoice_' . $m1 . '_' . $dt[1];
-	} else {
-		$m = 3;
-		$m1 = 4;
-		$y = $dt[1];
-		$trans_name = 'transaction_' . $m1 . '_' . $dt[1];
-		$trans_image_name = 'transaction_images_' . $m1 . '_' . $dt[1];
-		$trans_invoice_name = 'transaction_invoice_' . $m1 . '_' . $dt[1];
-	}
-	// OLD
-	if ($_SESSION['role'] == 'AD') {
-		$query = 'select * from transaction_' . $m1 . '_' . $dt[1] . " where grn_date like '%$month' and invoice_no !='' order by grn_date desc,grn_no desc";
-	} else {
-		$query = 'select * from transaction_' . $m1 . '_' . $dt[1] . " where consigner='" . $_SESSION['company_id'] . "' or consignee='" . $_SESSION['company_id'] . "' and grn_date like '%$month' and invoice_no !='' order by grn_date desc,grn_no desc";
-	}
-
-	// NEW — add LEFT JOIN so tracking_code is available in $row
-	if ($_SESSION['role'] == 'AD') {
-		$query = 'SELECT t.*, l.tracking_code FROM transaction_' . $m1 . '_' . $dt[1] . " t
-              LEFT JOIN transaction_log l ON t.transaction_id = l.transaction_id
-              WHERE t.grn_date LIKE '%" . $month . "' AND t.invoice_no != ''
-              ORDER BY t.grn_date DESC, t.grn_no DESC";
-	} else {
-		$query = 'SELECT t.*, l.tracking_code FROM transaction_' . $m1 . '_' . $dt[1] . " t
-              LEFT JOIN transaction_log l ON t.transaction_id = l.transaction_id
-              WHERE (t.consigner='" . $_SESSION['company_id'] . "' OR t.consignee='" . $_SESSION['company_id'] . "')
-              AND t.grn_date LIKE '%" . $month . "' AND t.invoice_no != ''
-              ORDER BY t.grn_date DESC, t.grn_no DESC";
-	}
-	$result = mysqli_query($conn, $query);
-	$i = 1;
-	if ($result && mysqli_num_rows($result) > 0) {
-		while ($row = mysqli_fetch_array($result)) {
-			$booking = $row['booking_status'];
-			$consignment_mode = $row['mode_of_consignment'];
-			$status = $row['status'];
-			$remarks = $row['remarks'];
-			$cancelled_by = get_user($conn, $row['cancelled_by']);
-			$updated_at = $row['updated_at'];
-			$count = 0;
-			$imagesd1 = array();
-			$filtered_array = array();
-
-			$pkg_q = mysqli_query($conn, 'select sum(no_of_pkge) as pkge from transaction_invoice_' . $m1 . '_' . $dt[1] . " where transaction_id='" . $row['transaction_id'] . "'");
-			$pkg_r = mysqli_fetch_array($pkg_q);
-
-			$dest_name = get_city_name($conn, $row['destination']);
-			$dest_cell = $dest_name !== '' ? '<span class="txn-dest">' . htmlspecialchars($dest_name) . '</span>' : '<span class="txn-dest-empty">—</span>';
-
-			$out_put .= '<tr>
-			<td class="text-center">' . $i . '</td>
-			<td><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
-			<td><span class="txn-pnr">' . htmlspecialchars($row['tracking_code'] ?? '') . '</span></td>
-			<td>' . htmlspecialchars($row['grn_date']) . '</td>
-			<td class="text-center">' . (int) $pkg_r['pkge'] . '</td>
-			<td class="col-consignor">' . transaction_list_client_cell($conn, $row['consigner']) . '</td>
-			<td class="col-consignee">' . transaction_list_client_cell($conn, $row['consignee']) . '</td>
-			<td>' . $dest_cell . '</td>
-			<td>' . transaction_list_status_badge($booking, $status) . '</td>';
-			$out_put .= '<td class="txn-pod-cell">';
-			$grn_no = $row['grn_no'];
-			if ($grn_no != '') {
-				$screens = $grn_no;
-				$ext = '.jpg';
-				$search = $screens . $ext;
-				$image_data = array();
-				$images = "select screens from pod_files where screens LIKE '%$screens%' ";
-				$res = mysqli_query($conn, $images);
-				while ($pod_row = mysqli_fetch_assoc($res)) {
-					$imagesd1[] = explode('@@', $pod_row['screens']);
-				}
-				foreach ($imagesd1 as $key => $value1) {
-					foreach ($value1 as $key2 => $value2) {
-						$filtered_array[] = $value2;
-					}
-				}
-				$filter_img = preg_grep('/^' . $screens . '.*/', $filtered_array);
-				$array_unique = array_unique($filter_img);
-				$count = count($array_unique);
-				// $count = 1;
-			}
-			if ($count == 1)
-				$out_put .= '<a title="POD Uploaded"  class="table-actions btn-edit" id=' . $row['transaction_id'] . '><i class="fa fa-check-circle"></i></a>';
-			elseif ($count == 2)
-				$out_put .= '<a style="color:green;" title="POD Uploaded"  class="table-actions btn-edit" id=' . $row['transaction_id'] . '><i class="fa fa-check-circle"></i></a>';
-			else
-				$out_put .= '<a title="POD Not Uploaded"  class="table-actions btn-edit" id=' . $row['transaction_id'] . '><i class="fa fa-times-circle-o"></i></a>';
-
-			$out_put .= '</td>
-			
-			<td class="actions center-content col-actions">
-				<div class="action-buttons txn-action-group">';
-			if ($row['book_manual'] == 2) {
-				$edit_btn = '<a title="Edit" href="transactions_manual.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $dt[1] . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
-			} else {
-				$edit_btn = '<a title="Edit" href="transactions.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $dt[1] . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
-			}
-			if ((int) $status === 8) {
-				if ($row['book_manual'] == 2) {
-					$edit_btn = '<a title="Edit Payment / Billing" href="transactions_manual.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $dt[1] . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
-				} else {
-					$edit_btn = '<a title="Edit Payment / Billing" href="transactions.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $dt[1] . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
-				}
-			}
-			$trans_table_name = 'transaction_' . $m1 . '_' . $dt[1];
-			if (booking_is_gcn_billed($conn, $trans_table_name, $row['transaction_id'])) {
-				$edit_btn = '<a title="Invoiced — edit locked" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>';
-			}
-			if ($booking == '1')
-				$out_put .= "
-			\t    <a title=\"Info\" href=\"#cancel_grn_popup\" class=\"table-actions show_info_popup\"  data-toggle=\"modal\" data-remarks=\"" . $remarks . '" data-createdby="' . $cancelled_by . '" data-createdat="' . $updated_at . '" id="' . $row['transaction_id'] . '" ><i class="fa fa-exclamation-circle"></i></a>
-                    <a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>
-                    <a class="table-actions disable_action"  href="javascript:void(0)" ><i class="fa fa-print"></i></a>
-                    <a class="table-actions disable_action" href="javascript:void(0)" data-status="' . $row['status'] . '" title="Invoice" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-file"></i></a>
-                    <a class="table-actions send_invoices disable_action" href="javascript:void(0)" title="Send Invoice" id="send_invoice_d" data-month="' . $m1 . '" data-year="' . $dt[1] . '" data-id="' . $row['transaction_id'] . '" > <i class="fa fa-envelope"></i></a>
-                    <a title="Cancel" href="javascript:void(0) disable_action" class="table-actions cancel_booking disable_action" id="' . $row['transaction_id'] . '" ><i  class="fa fa-ban"></i></a>
-                    <a title="E-way Attachments" href="javascript:void(0) disable_action" class="table-actions btn-eways disable_action" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
-			else {
-				// Pay-at-booking: lock edit. Submitted / in-transit: full edit. Delivered (8): payment/billing edit.
-				if ($consignment_mode == '3') {
-					$out_put .= '<a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>';
-				} else {
-					$out_put .= $edit_btn;
-				}
-				$out_put .= '<span class="table-actions dropdown"><i class="fa fa-print"></i>
-						<ul class="dropdown-menu">
-							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=consignor" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">Consignor GR</a></li>
-							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=consignee" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">Consignee GR</a></li>
-							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=pod" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">P.O.D GR</a></li>
-							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=accounts" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">Accounts GR</a></li>
-						</ul>
-					</span>
-                    <a class="table-actions " target="BLANK" href="gst_invoice_page.php?month=' . $m1 . '&year=' . $dt[1] . '&id=' . $row['transaction_id'] . '" data-status="' . $row['status'] . '" title="Invoice" id="' . $row['transaction_id'] . '"><i class="fa fa-file"></i></a>';
-			}
-			if ($consignment_mode == '1' || $consignment_mode == '4') {
-				$restricted = check_invoice_restricted($conn, $row['consignee']);
-				$pay_at_book = 0;
-			} else {
-				$restricted = check_invoice_restricted($conn, $row['consigner']);
-				$pay_at_book = 0;
-			}
-			if ($consignment_mode == '3') {
-				$pay_at_book = 1;
-			}
-			if ($status == 8 && $restricted == 1 && $pay_at_book != 1) {
-				$out_put .= '<a class="table-actions send_invoice" href="#" title="Send Invoice" id="send_invoice" data-month="' . $m1 . '" data-year="' . $dt[1] . '" data-id="' . $row['transaction_id'] . '" > <i class="fa fa-envelope"></i></a>';
-			} else {
-				$out_put .= '<a class="table-actions disable_action" href="javascript:void(0)" ><i class="fa fa-envelope"></i></a>';
-			}
-			if ($status < 6) {
-				$out_put .= '<a title="Cancel" href="#cancel_grn_popup" class="table-actions cancel_booking" id="' . $row['transaction_id'] . '" data-toggle="modal" data-grnid="' . $row['grn_no'] . '" data-tabid="' . $trans_name . '"  ><i class="fa fa-ban "></i></a>';
-			} else {
-				$out_put .= '<a class="table-actions disable_action" href="javascript:void(0)"><i class="fa fa-ban"></i></a>';
-			}
-			$out_put .= '<a title="E-way Attachments" href="#eway_popup" class="table-actions btn-eway" data-toggle="modal" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>
-					
-				</div>
-				
-			</td>
-		</tr>';
-
-			$i++;
-		}
-		echo $out_put;
-	} else {
-		// Leave tbody empty — DataTables shows sEmptyTable message (colspan rows break column mapping).
-		echo '';
-	}
+	echo transaction_list_html($conn, $_REQUEST);
+	exit;
 }
 if ($cmd == 'get_vehicle_details') {
 	$tbl_id = $_REQUEST['tbl_id'];
@@ -529,6 +338,27 @@ if ($cmd == 'get_client_details_consignment') {
 	echo json_encode($row);
 }
 
+if ($cmd == 'get_mapped_consignees') {
+	$consignor = (int) ($_REQUEST['consignor'] ?? 0);
+	$clients_list = ew_mapped_party_ids($conn, $consignor);
+	$out = array();
+	if (!empty($clients_list)) {
+		$client_ids = implode(',', array_map('intval', $clients_list));
+		$result = mysqli_query($conn, "SELECT client_id, client_company_name FROM client WHERE client_id IN ($client_ids) AND status=0 ORDER BY client_company_name ASC");
+		while ($result && ($row = mysqli_fetch_assoc($result))) {
+			$name = trim(ew_client_decrypt_name($row['client_company_name'] ?? ''));
+			if ($name === '') {
+				continue;
+			}
+			$out[] = array('id' => (int) $row['client_id'], 'name' => $name);
+		}
+	}
+	header('Content-Type: application/json; charset=utf-8');
+	$mapped_json = json_encode($out, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS);
+	echo ($mapped_json === false) ? '[]' : $mapped_json;
+	exit;
+}
+
 if ($cmd == 'get_client') {
 	$tbl_id = $_REQUEST['id'];
 	$out_put = '<option value=""> -- Select Consignee</option>';
@@ -554,11 +384,41 @@ if ($cmd == 'get_package_details') {
 	$row = mysqli_fetch_array($result);
 	echo json_encode($row);
 }
-if ($cmd == 'get_expense_type_label_options') {
+if ($cmd == 'get_expense_type_details') {
 	require_once __DIR__ . '/include/expense_type_helpers.php';
 	expense_type_ensure_schema($conn);
-	$selected = trim($_REQUEST['selected'] ?? '');
-	echo expense_type_label_select_html($conn, $selected);
+	$tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
+	$query = "SELECT * FROM expense_category WHERE category_id='$tbl_id' LIMIT 1";
+	$result = mysqli_query($conn, $query);
+	$row = $result ? mysqli_fetch_assoc($result) : array();
+	if (!empty($row['category_id'])) {
+		$row['edit_key'] = md5($row['category_id']);
+	}
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode($row ?: new stdClass());
+	exit;
+}
+if ($cmd == 'get_expense_type_next_code') {
+	require_once __DIR__ . '/include/expense_type_helpers.php';
+	expense_type_ensure_schema($conn);
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode(expense_type_next_code($conn));
+	exit;
+}
+if ($cmd == 'get_expense_group_details') {
+	require_once __DIR__ . '/include/expense_type_helpers.php';
+	expense_group_ensure_schema($conn);
+	$tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
+	$row = expense_group_get($conn, $tbl_id) ?: array();
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode($row ?: new stdClass());
+	exit;
+}
+if ($cmd == 'get_expense_group_next_code') {
+	require_once __DIR__ . '/include/expense_type_helpers.php';
+	expense_group_ensure_schema($conn);
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode(array('group_code' => expense_group_next_code($conn)));
 	exit;
 }
 if ($cmd == 'get_vendor_master_details') {
@@ -888,113 +748,74 @@ if ($cmd == 'get_pickup_report_details') {
 }
 
 if ($cmd == 'get_payment_report_details') {
-	$report_type = $_REQUEST['report_type'];
-	$client_wise_report = $_REQUEST['client_wise_report'];
-	$month = $_REQUEST['month'];
-	$date = $_REQUEST['date'];
-	if ($report_type == 'MONTHLY') {
-		$dates = $month;
-		$timestamp = $dates;
-		$timestamp = DateTime::createFromFormat('m-Y', $timestamp);
-		$newDate = $timestamp->format('Y-m');
-		$add_qw = "and created_at like '%$newDate%'";
-	} else if ($report_type == 'DAILY') {
-		$dates = $date;
+	$report_type = $_REQUEST['report_type'] ?? '';
+	$client_wise_report = (int) ($_REQUEST['client_wise_report'] ?? 0);
+	$month = $_REQUEST['month'] ?? '';
+	$date = $_REQUEST['date'] ?? '';
+	$add_qw = '';
 
-		$timestamp = $dates;
-		$timestamp = DateTime::createFromFormat('d-m-Y', $timestamp);
-		$newDate = $timestamp->format('Y-m-d');
-		$add_qw = "and created_at like '%$newDate%'";
-	} else {
-		$add_qw = '';
+	if ($report_type === 'MONTHLY' && $month !== '') {
+		$timestamp = DateTime::createFromFormat('m-Y', $month);
+		if ($timestamp) {
+			$newDate = $timestamp->format('Y-m');
+			$add_qw = " and created_at like '%" . mysqli_real_escape_string($conn, $newDate) . "%'";
+		}
+	} elseif ($report_type === 'DAILY' && $date !== '') {
+		$timestamp = DateTime::createFromFormat('d-m-Y', $date);
+		if ($timestamp) {
+			$newDate = $timestamp->format('Y-m-d');
+			$add_qw = " and created_at like '%" . mysqli_real_escape_string($conn, $newDate) . "%'";
+		}
 	}
 
-	if ($client_wise_report != '') {
-		$add_q .= "client_id='$client_wise_report'";
+	$out_put = '';
+	if ($client_wise_report <= 0) {
+		echo '<tr><td colspan="8" class="text-center">Please select a client.</td></tr>';
+		exit;
 	}
 
-	$query = "select * from razorpay_payment where client_id ='$client_wise_report' " . $add_qw . ' order by created_at desc';
+	$query = "select * from razorpay_payment where client_id='" . $client_wise_report . "'" . $add_qw . ' order by created_at desc';
 	$result = mysqli_query($conn, $query);
 	$i = 1;
-	$out_put .= '<table id="dataTable1" class="table table-striped table-bordered display" style="width:100%">
-           <thead>
-                <tr>
-                     <th class="table-title" >S.No</th>
-                     <th class="table-title">Payment Date</th>
-                     <th class="table-title">GRN No</th>
-                     <!-- <th class="table-title">Order ID</th> -->
-                     <th class="table-title">Payment ID</th>
-                     <th class="table-title">Invoice Amount</th>
-                     <th class="table-title">Paid Amount</th>
-                     <th class="table-title">Due Amount</th>
-                     <th class="table-title">Status</th>
 
-                </tr>
-           </thead>
-           <tbody>';
-	if (mysqli_num_rows($result) > 0) {
+	if ($result && mysqli_num_rows($result) > 0) {
 		$total_invoice_amt = 0;
 		$total_paid_amt = 0;
 		$total_due_amt = 0;
 		while ($row = mysqli_fetch_array($result)) {
-			$timestamp = $row['created_at'];
-			$timestamp = DateTime::createFromFormat('Y-m-d H:i:s', $timestamp);
-			$newDate = $timestamp->format('d-m-Y H:i:s');
-			$total_invoice_amt += $row['amount'];
-			$total_paid_amt += $row['paid'];
-			$total_due_amt += $row['balance'];
-			$out_put .= '<tr>
-           <td class="text-center">' . $i . '</td>
-           <td>' . $newDate . '</td>
-           <td>' . $row['grn_no'] . '</td>
-           <td>' . $row['razorpayPaymentId'] . '</td>
-           <td>&#x20b9;' . number_format($row['amount'], 2, '.', '') . '</td>
-           <td>&#x20b9;' . number_format($row['paid'], 2, '.', '') . '</td>
-           <td>&#x20b9;' . number_format($row['balance'], 2, '.', '') . '</td>
-           <td>' . $row['paymentStatus'] . '</td>';
-
-			$output .= '
-       </tr>
-       ';
-
+			$newDate = $row['created_at'];
+			$timestamp = DateTime::createFromFormat('Y-m-d H:i:s', $row['created_at']);
+			if ($timestamp) {
+				$newDate = $timestamp->format('d-m-Y H:i:s');
+			}
+			$total_invoice_amt += (float) $row['amount'];
+			$total_paid_amt += (float) $row['paid'];
+			$total_due_amt += (float) $row['balance'];
+			$out_put .= '<tr>'
+				. '<td class="text-center">' . $i . '</td>'
+				. '<td>' . htmlspecialchars($newDate) . '</td>'
+				. '<td>' . htmlspecialchars($row['grn_no']) . '</td>'
+				. '<td>' . htmlspecialchars($row['razorpayPaymentId']) . '</td>'
+				. '<td class="num">&#x20b9;' . number_format((float) $row['amount'], 2, '.', '') . '</td>'
+				. '<td class="num">&#x20b9;' . number_format((float) $row['paid'], 2, '.', '') . '</td>'
+				. '<td class="num">&#x20b9;' . number_format((float) $row['balance'], 2, '.', '') . '</td>'
+				. '<td>' . htmlspecialchars($row['paymentStatus']) . '</td>'
+				. '</tr>';
 			$i++;
 		}
-		$out_put .= '</tbody>
-       <tfoot style="color:#0A1E3D">
-                             <tr>
-                                  <th colspan="3"></th>
-                                  <th >Total</th>
-                                  <th>&#x20b9;' . number_format($total_invoice_amt, 2, '.', '') . '</th>
-                                  <th>&#x20b9;' . number_format($total_paid_amt, 2, '.', '') . '</th>
-                                  <th>&#x20b9;' . number_format($total_due_amt, 2, '.', '') . '</th>
-                                  <th></th>
-                             </tr>
-                        </tfoot>
-
-       </table>';
+		$out_put .= '<tr class="payment-totals-row">'
+			. '<td colspan="4" class="text-right"><strong>Total</strong></td>'
+			. '<td class="num"><strong>&#x20b9;' . number_format($total_invoice_amt, 2, '.', '') . '</strong></td>'
+			. '<td class="num"><strong>&#x20b9;' . number_format($total_paid_amt, 2, '.', '') . '</strong></td>'
+			. '<td class="num"><strong>&#x20b9;' . number_format($total_due_amt, 2, '.', '') . '</strong></td>'
+			. '<td></td>'
+			. '</tr>';
 	} else {
-		$out_put1 .= '<table id="employee_data" class="table table-striped table-bordered display" style="width:100%">
-       <thead>
-                <tr>
-                     <th>S.No</th>
-                     <th>Payment Date</th>
-                     <th>GRN No</th>
-                     <!-- <th>Order ID</th> -->
-                     <th>Payment ID</th>
-                     <th>Invoice Amount</th>
-                     <th>Paid Amount</th>
-                     <th>Due Amount</th>
-                     <th>Status</th>
-
-                </tr>
-           </thead>
-           <tbody>
-       <tr><td colspan="9" style="padding:10px;text-align:center;font-size:17px;"> No Transactions in this Month</td></tr>
-       </tbody>
-       </table>';
+		$out_put = '<tr><td colspan="8" class="text-center">No transactions found for the selected filters.</td></tr>';
 	}
 
 	echo $out_put;
+	exit;
 }
 
 // if ($cmd == "get_grn_for_status") {
@@ -1507,183 +1328,8 @@ if ($cmd == 'get_company_user_mail') {
 }
 
 if ($cmd == 'get_transact_status_month_detail') {
-	$out_put = '';
-	$month = $_REQUEST['month'];
-	$dt = explode('-', $month);
-
-	if ($dt[0] <= 3) {
-		$m = 4;
-		$m1 = 1;
-		$y = $dt[1] - 1;
-		$trans_name = 'transaction_' . $m1 . '_' . $dt[1];
-		$trans_image_name = 'transaction_images_' . $m1 . '_' . $dt[1];
-		$trans_invoice_name = 'transaction_invoice_' . $m1 . '_' . $dt[1];
-	} else if (($dt[0] >= 4) && ($dt[0] <= 6)) {
-		$m = 1;
-		$m1 = 2;
-		$y = $dt[1];
-		$trans_name = 'transaction_' . $m1 . '_' . $dt[1];
-		$trans_image_name = 'transaction_images_' . $m1 . '_' . $dt[1];
-		$trans_invoice_name = 'transaction_invoice_' . $m1 . '_' . $dt[1];
-	} else if (($dt[0] >= 7) && ($dt[0] <= 9)) {
-		$m = 2;
-		$m1 = 3;
-		$y = $dt[1];
-		$trans_name = 'transaction_' . $m1 . '_' . $dt[1];
-		$trans_image_name = 'transaction_images_' . $m1 . '_' . $dt[1];
-		$trans_invoice_name = 'transaction_invoice_' . $m1 . '_' . $dt[1];
-	} else {
-		$m = 3;
-		$m1 = 4;
-		$y = $dt[1];
-		$trans_name = 'transaction_' . $m1 . '_' . $dt[1];
-		$trans_image_name = 'transaction_images_' . $m1 . '_' . $dt[1];
-		$trans_invoice_name = 'transaction_invoice_' . $m1 . '_' . $dt[1];
-	}
-	if ($_SESSION['role'] == 'AD') {
-		$query = 'select * from transaction_' . $m1 . '_' . $dt[1] . " where grn_date like '%$month' and invoice_no !='' order by grn_date desc,grn_no desc";
-	} else {
-		$query = 'select * from transaction_' . $m1 . '_' . $dt[1] . " where consigner='" . $_SESSION['company_id'] . "' or consignee='" . $_SESSION['company_id'] . "' and grn_date like '%$month' and invoice_no !='' order by grn_date desc,grn_no desc";
-	}
-	$result = mysqli_query($conn, $query);
-	$i = 1;
-	if (mysqli_num_rows($result) > 0) {
-		while ($row = mysqli_fetch_array($result)) {
-			$booking = $row['booking_status'];
-			$consignment_mode = $row['mode_of_consignment'];
-			$status = $row['status'];
-			$remarks = $row['remarks'];
-			$cancelled_by = get_user($conn, $row['cancelled_by']);
-			$updated_at = $row['updated_at'];
-
-			$pkg_q = mysqli_query($conn, 'select sum(no_of_pkge) as pkge from transaction_invoice_' . $m1 . '_' . $dt[1] . " where transaction_id='" . $row['transaction_id'] . "'");
-			$pkg_r = mysqli_fetch_array($pkg_q);
-			$total_packages = (int) $pkg_r['pkge'];
-
-			$delivery_type = '';
-			$delivered_packages = 0;
-			$delivery_q = mysqli_query($conn, "SELECT delivery_type, delivered_packages FROM transaction_status_log WHERE grn_no='" . mysqli_real_escape_string($conn, $row['grn_no']) . "' AND to_status='8' ORDER BY sheet_id DESC LIMIT 1");
-			if ($delivery_q && ($delivery_r = mysqli_fetch_assoc($delivery_q))) {
-				$delivery_type = !empty($delivery_r['delivery_type']) ? $delivery_r['delivery_type'] : '';
-				$delivered_packages = !empty($delivery_r['delivered_packages']) ? (int) $delivery_r['delivered_packages'] : 0;
-			}
-
-			$out_put .= '<tr>
-			<td class="text-center" data-label="S.No">' . $i . '</td>
-			<td data-label="GCN No"><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
-			<td data-label="GCN Date">' . htmlspecialchars($row['grn_date']) . '</td>
-			<td class="text-center" data-label="Pkgs">' . $total_packages . '</td>
-			<td data-label="Consignor">' . htmlspecialchars(get_client_name($conn, $row['consigner'])) . '</td>
-			<td data-label="Consignee">' . htmlspecialchars(get_client_name($conn, $row['consignee'])) . '</td>
-			<td data-label="Destination">' . htmlspecialchars(get_city_name($conn, $row['destination'])) . '</td>
-			<td data-label="Status">' . transaction_status_badge($booking, $status, array(
-				'delivery_type' => $delivery_type,
-				'delivered_packages' => $delivered_packages,
-				'total_packages' => $total_packages,
-			)) . '</td>';
-
-			$status_row = $row['status'];
-			$grn_no_row = $row['grn_no'];
-			$grn_id_row = $row['grn_id'];
-			$transaction_id_row = $row['transaction_id'];
-
-			if ($status_row >= 2 || $booking == '1') {
-				$disabled2 = 'class="border picked-up show_info_popup" disabled';
-			} else {
-				$disabled2 = "class=\"border picked-up\" id='status_popup'";
-			}
-			if ($status_row >= 3 || $booking == '1') {
-				$disabled3 = 'class="border transit-1 show_info_popup" disabled';
-			} else {
-				$disabled3 = "class=\"border transit-1\" id='status_popup'";
-			}
-			if ($status_row >= 4 || $booking == '1') {
-				$disabled4 = 'class="border transit-2 show_info_popup" disabled';
-			} else {
-				$disabled4 = "class=\"border transit-2\" id='status_popup'";
-			}
-			if ($status_row >= 5 || $booking == '1') {
-				$disabled5 = 'class="border transit-3 show_info_popup" disabled';
-			} else {
-				$disabled5 = "class=\"border transit-3\" id='status_popup'";
-			}
-			if ($status_row >= 6 || $booking == '1') {
-				$disabled6 = 'class="border destination show_info_popup" disabled';
-			} else {
-				$disabled6 = "class=\"border destination\" id='status_popup'";
-			}
-			if ($status_row >= 7 || $booking == '1') {
-				$disabled7 = 'class="border out-delivery show_info_popup" disabled';
-			} else {
-				$disabled7 = "class=\"border out-delivery\" id='status_popup'";
-			}
-			if ($status_row >= 8 && $delivery_type === 'full') {
-				$disabled8 = 'class="border delivered" disabled';
-			} elseif ($status_row >= 8 && $delivery_type === 'partial') {
-				$disabled8 = 'class="border delivered partial-delivery-button" id=\'status_popup\'';
-			} elseif ($status_row >= 8 || $booking == '1') {
-				$disabled8 = 'class="border delivered show_info_popup" disabled';
-			} else {
-				$partial_class = ($delivery_type === 'partial') ? ' partial-delivery-button' : '';
-				$disabled8 = 'class="border delivered' . $partial_class . '" id=\'status_popup\'';
-			}
-
-			if ($status_row >= 2) {
-				$button_text2 = '<i class="fa fa-check"></i>';
-			} else {
-				$button_text2 = 2;
-			}
-			if ($status_row >= 3) {
-				$button_text3 = '<i class="fa fa-check"></i>';
-			} else {
-				$button_text3 = 3;
-			}
-			if ($status_row >= 4) {
-				$button_text4 = '<i class="fa fa-check"></i>';
-			} else {
-				$button_text4 = 4;
-			}
-			if ($status_row >= 5) {
-				$button_text5 = '<i class="fa fa-check"></i>';
-			} else {
-				$button_text5 = 5;
-			}
-			if ($status_row >= 6) {
-				$button_text6 = '<i class="fa fa-check"></i>';
-			} else {
-				$button_text6 = 6;
-			}
-			if ($status_row >= 7) {
-				$button_text7 = '<i class="fa fa-check"></i>';
-			} else {
-				$button_text7 = 7;
-			}
-			if ($status_row >= 8) {
-				$button_text8 = '<i class="fa fa-check"></i>';
-			} else {
-				$button_text8 = 8;
-			}
-
-			$out_put .= '<td class="col-steps actions center-content" data-label="Change Status">
-				<div>
-					<button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>
-					<button ' . $disabled2 . ' data-status="2" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="Consignment Picked Up">' . $button_text2 . '</button>
-					<button ' . $disabled3 . ' data-status="3" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="In Transit-1">' . $button_text3 . '</button>
-					<button ' . $disabled4 . ' data-status="4" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="In Transit-2">' . $button_text4 . '</button>
-					<button ' . $disabled5 . ' data-status="5" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="In Transit-3">' . $button_text5 . '</button>
-					<button ' . $disabled6 . ' data-status="6" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="At Destination">' . $button_text6 . '</button>
-					<button ' . $disabled7 . ' data-status="7" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" title="Out For Delivery">' . $button_text7 . '</button>
-					<button ' . $disabled8 . ' data-status="8" data-tabid="' . $trans_name . '" data-grnid="' . $grn_id_row . '" data-grnno="' . $grn_no_row . '" data-consignment="' . $transaction_id_row . '" data-total-packages="' . $total_packages . '" data-delivered-packages="' . $delivered_packages . '" data-delivery-type="' . htmlspecialchars($delivery_type, ENT_QUOTES, 'UTF-8') . '" title="Delivered Successfully">' . $button_text8 . '</button>
-				</div>
-			</td>
-		</tr>';
-
-			$i++;
-		}
-		echo $out_put;
-	} else {
-		echo '';
-	}
+	echo transaction_status_list_html($conn, $_REQUEST);
+	exit;
 }
 
 // check manual grn duplicate

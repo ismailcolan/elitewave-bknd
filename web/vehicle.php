@@ -1,13 +1,18 @@
 <?php
 require_once("include/connect.php");
 require_once("include/function.php"); 
-$key = $_REQUEST['key'];
-if($key !=''){
-	$vehicle_query = "select * from vehicle where md5(vehicle_id)='".$key."'";
-	$vehicle_result = mysqli_query($conn,$vehicle_query);
-	$vehicle_count = mysqli_num_rows($vehicle_result);
-	if($vehicle_count == 0){
+$key = $_REQUEST['key'] ?? '';
+$is_edit = ($key != '');
+if (!$is_edit && empty($_GET['create'])) {
+	header('Location:vehicle_list.php');
+	exit;
+}
+if ($is_edit) {
+	$vehicle_query = "select * from vehicle where md5(vehicle_id)='" . mysqli_real_escape_string($conn, $key) . "'";
+	$vehicle_result = mysqli_query($conn, $vehicle_query);
+	if (!$vehicle_result || mysqli_num_rows($vehicle_result) == 0) {
 		header('Location:vehicle_list.php');
+		exit;
 	}
 }
 ?>
@@ -32,12 +37,21 @@ if($key !=''){
 <div class="container-fluid main-content new_dpt_bottom">
   
 		<div class="row">
-		  <div class="col-md-offset-1 col-md-10">
-			<div class="widget-container fluid-height clearfix">
-			  <div class="heading"> <i class="fa fa-plus"></i>Vehicle <span class="align-right"> <i class="fa fa-table"></i><a href="vehicle_list.php">View List</a></span></div>
-			  
-			  <div class="widget-content padded">
-				<form class="form-horizontal" id="vehicle_form">
+		  <div class="col-md-12">
+			<div class="ew-page-v2">
+			  <div class="ew-page-head">
+				<div class="ew-page-head-left">
+				  <a href="vehicle_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+				  <h1 class="ew-page-title">Vehicle</h1>
+				</div>
+				<div class="ew-toolbar-right">
+				  <a href="vehicle_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+				</div>
+			  </div>
+			  <div class="ew-card">
+				<h2 class="ew-card-section-title">Vehicle Details</h2>
+				<div class="ew-form-body">
+				<form id="vehicle_form">
 				<?php 
 					$vehicle_query ="select * from vehicle where md5(vehicle_id)='".$key."'";
 					$vehicle_result = mysqli_query($conn,$vehicle_query);
@@ -50,80 +64,72 @@ if($key !=''){
 						<div class="message" style="text-align:center"></div>
 					</div>
 					
-				  <div class="row">
-						<div class="col-md-offset-1 col-md-5">
-							<div class="form-group">
+				  <div class="ew-form-grid">
+							<div class="ew-field">
 								<label class="control-label">Vehicle Number <span style="color:red;">*</span> :</label>
 								<input type="text" name="vehicle_number" id="vehicle_number" class="form-control" value="<?php echo $vehicle_row['vehicle_number']?>" required>
 								<span id="vehicle_error"></span>
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Vehicle Type <span style="color:red;">*</span> :</label>
 								<input type="text" name="vehicle_type" id="vehicle_type" class="form-control" value="<?php echo $vehicle_row['vehicle_type']?>" required>
-								
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Model <span style="color:red;">*</span> :</label>
 								<input type="text" class="form-control" name="model" id="model" value="<?php echo $vehicle_row['model']?>" required>
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Fitness <span style="color:red;">*</span> :</label>
 								<?php echo ew_date_input(array('id' => 'fitness', 'name' => 'fitness', 'value' => $vehicle_row['fitness'], 'required' => true, 'class' => 'table-height final')); ?>
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Insurance <span style="color:red;">*</span> :</label>
 								<?php echo ew_date_input(array('id' => 'insurance', 'name' => 'insurance', 'value' => $vehicle_row['insurance'], 'required' => true, 'class' => 'table-height final')); ?>
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Road Tax <span style="color:red;">*</span> :</label>
 								<?php echo ew_date_input(array('id' => 'road_tax', 'name' => 'road_tax', 'value' => $vehicle_row['road_tax'], 'required' => true, 'class' => 'table-height final')); ?>
 							</div>
-							</div>
-							<div class="col-md-5">
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Permit <span style="color:red;">*</span> :</label>
 								<?php echo ew_date_input(array('id' => 'permit', 'name' => 'permit', 'value' => $vehicle_row['permit'], 'required' => true, 'class' => 'table-height final')); ?>
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Emission <span style="color:red;">*</span> :</label>
 								<?php echo ew_date_input(array('id' => 'emission', 'name' => 'emission', 'value' => $vehicle_row['emission'], 'required' => true, 'class' => 'table-height final')); ?>
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Pollution Certificate <span style="color:red;">*</span> :</label>
 								<input type="text" class="form-control" name="pollution_certificate" id="pollution_certificate"value="<?php echo $vehicle_row['pollution_certificate']?>"  required>
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Finance:</label>
 								<input type="text" class="form-control" name="finance" id="finance" value="<?php echo $vehicle_row['finance']?>" >
 							</div>
-						<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Vehilce Status:</label>
 								<input type="text" class="form-control" name="vehicle_status" id="vehicle_status" value="<?php echo $vehicle_row['vehicle_status']?>">
 							</div>
-							<div class="form-group">
+							<div class="ew-field span-4">
 								<label class="control-label">Registration:</label>
-								<input type="radio" name="registration" id="registration" value="y" <?php if($vehicle_row['registration']=='y') echo "checked"; ?> >Yes
-								<input type="radio" name="registration" id="registration" value="n" <?php if($vehicle_row['registration']=='n') echo "checked"; ?>>No
+								<input type="radio" name="registration" id="registration_y" value="y" <?php if($vehicle_row['registration']=='y') echo "checked"; ?> >Yes
+								<input type="radio" name="registration" id="registration_n" value="n" <?php if($vehicle_row['registration']=='n') echo "checked"; ?>>No
 							</div>
-						
-						</div>
-				 </div><br/>
-				   <div class="row">
-					<div class="col-md-12 form-action">
-                    <?php if($_REQUEST['key']== ''){?>
-						<button class="btn btn-primary" type="button" id="save">Submit</button>
-						<a class="btn btn-default-outline  btn-reset" type="button" href="vehicle.php">Cancel</a>
-					 <?php } else{?>
-						<button class="btn btn-primary" type="button" id="save">Update</button>
-						<a class="btn btn-default-outline  btn-reset" type="button" href="vehicle_list.php">Cancel</a>
-						<?php }?>
-					</div>
-				  </div>
+				 </div>
 				</form>
+				</div>
+				<div class="ew-form-footer">
+                    <?php if($_REQUEST['key']== ''){?>
+						<a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="vehicle_list.php">Cancel</a>
+						<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save">Submit</button>
+					 <?php } else{?>
+						<a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="vehicle_list.php">Cancel</a>
+						<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save">Update</button>
+						<?php }?>
+				</div>
 			  </div>
 			</div>
 		  </div>
-
 		</div>
 	
 

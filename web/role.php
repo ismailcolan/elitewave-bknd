@@ -123,10 +123,10 @@ require_once("include/function.php");
 		$(document).ready(function(){
 
 			$('#cities').multiselect({
-							minHeight: 250,
-							minWidth: 1900,
-							//includeSelectAllOption: true
-							});
+				buttonWidth: '100%',
+				buttonClass: 'btn btn-default',
+				maxHeight: 250
+			});
 				$('#cities').multiselect('rebuild');	
 				
 		//Duplication

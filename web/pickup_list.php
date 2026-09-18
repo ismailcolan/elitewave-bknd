@@ -71,10 +71,21 @@ th.table-title.sorting {
 <div class="container-fluid main-content new_dpt_bottom">
   
 		<div class="row">
-		  <div class="col-md-offset-1 col-md-10">
-			<div class="widget-container fluid-height clearfix">
-			 	<div class="heading"> <i class="fa fa-table" ></i>Pickup list <span class="align-right"><i class="fa fa-plus" ></i> <a href="request_for_new_pickup.php">Request New pickup</a></span> </div>
-					<div class="widget-content padded clearfix new_dept">
+		  <div class="col-md-12">
+			<div class="ew-page-v2">
+			  <div class="ew-page-head">
+				<div class="ew-page-head-left">
+				  <h1 class="ew-page-title">Pickup List</h1>
+				</div>
+			  </div>
+			  <div class="ew-card">
+				<div class="ew-card-toolbar">
+				  <h2>All Pickups</h2>
+				  <div class="ew-toolbar-right">
+					<a href="request_for_new_pickup.php" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
+				  </div>
+				</div>
+				<div class="ew-table-wrap widget-content padded clearfix new_dept">
 						<table class="table table-bordered pick-up-tblll table-striped " id="dataTable1">
 							<thead>
 								<th class="table-title" style="width:10%">S.No</th>
@@ -127,11 +138,11 @@ $city = mysqli_fetch_assoc(
 									<td><?php echo $approx_weight; ?></td>
 									<td>
                                         <?php if($status==0)
-											echo '<button class="btn btn-primary">Pending</button>';
+											echo '<span class="ew-badge ew-badge--pending">Pending</span>';
 											else if($status==1)
-												echo '<button class="btn btn-danger">Cancelled</button>';
+												echo '<span class="ew-badge ew-badge--cancelled">Cancelled</span>';
 											else if($status==3)
-												echo '<button class="btn btn-success">Picked Up</button>';
+												echo '<span class="ew-badge ew-badge--picked-up">Picked Up</span>';
 										?></td>
 									
 									<td><?php if($status==0)
@@ -158,11 +169,10 @@ $city = mysqli_fetch_assoc(
 	
 							</tbody>
 						</table>
-				
-					</div>
+				</div>
+			  </div>
 			</div>
 		  </div>
-		 
 		</div>
 	
 

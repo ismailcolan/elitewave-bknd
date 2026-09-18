@@ -31,14 +31,14 @@ $list_q = mysqli_query($conn, "SELECT m.*, c.client_company_name
 		}
 		#invoice_list_table { font-size: 13px; margin-bottom: 0; border-collapse: collapse; width: 100% !important; }
 		#invoice_list_table th {
-			background: #0A1E3D !important;
-			color: #fff !important;
+			background: var(--rail-bg, #DDE7F0) !important;
+			color: var(--ew-text, #1A2332) !important;
 			font-size: 11px;
-			font-weight: 600;
+			font-weight: 700;
 			white-space: nowrap;
 			padding: 8px 6px;
 			border: none !important;
-			border-bottom: 2px solid #061528 !important;
+			border-bottom: 2px solid var(--panel-border, #C5D3E0) !important;
 			vertical-align: middle;
 		}
 		#invoice_list_table td {
@@ -79,10 +79,10 @@ $list_q = mysqli_query($conn, "SELECT m.*, c.client_company_name
 		/* Kill DataTables sort arrows / black borders on actions header */
 		table.dataTable#invoice_list_table thead th,
 		table.dataTable#invoice_list_table thead td {
-			background: #0A1E3D !important;
-			color: #fff !important;
+			background: var(--rail-bg, #DDE7F0) !important;
+			color: var(--ew-text, #1A2332) !important;
 			border: none !important;
-			border-bottom: 2px solid #061528 !important;
+			border-bottom: 2px solid var(--panel-border, #C5D3E0) !important;
 			padding: 8px 6px !important;
 		}
 		table.dataTable#invoice_list_table tbody td { background: transparent !important; color: inherit !important; }
@@ -112,13 +112,22 @@ $list_q = mysqli_query($conn, "SELECT m.*, c.client_company_name
 	</div>
 	<div class="container-fluid main-content new_dpt_bottom">
 		<div class="row">
-			<div class="col-md-offset-1 col-md-10">
-				<div class="widget-container fluid-height clearfix">
-					<div class="invoice-header-bar">
-						<i class="fa fa-list"></i> Tax Invoice List
-						<a href="create_invoice.php" class="btn btn-primary btn-sm pull-right" style="margin-top:-4px;"><i class="fa fa-plus"></i> Create Invoice</a>
+			<div class="col-md-12">
+				<div class="ew-page-v2 ew-page-v2--wide-table">
+					<div class="ew-page-head">
+						<div class="ew-page-head-left">
+							<h1 class="ew-page-title">Tax Invoice</h1>
+						</div>
 					</div>
-					<div class="widget-content padded clearfix">
+					<div class="ew-card ew-erp-list">
+						<div class="ew-card-toolbar">
+							<h2>Tax Invoice List</h2>
+							<div class="ew-toolbar-right">
+								<div class="ew-list-toolbar__tools"></div>
+								<a href="create_invoice.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
+							</div>
+						</div>
+						<div class="ew-table-wrap widget-content padded clearfix">
 						<div class="table-scroll-wrapper">
 						<table class="table" id="invoice_list_table">
 							<thead>
@@ -161,23 +170,31 @@ $list_q = mysqli_query($conn, "SELECT m.*, c.client_company_name
 							</tbody>
 						</table>
 						</div>
+						</div>
 					</div>
 				</div>
 			</div>
 		</div>
-	<?php require_once('include/footer.php'); ?>
+		<?php require_once('include/footer.php'); ?>
+	</div>
 </div>
 <script>
 $(function() {
-	if ($.fn.DataTable) {
-		$('#invoice_list_table').DataTable({
-			pageLength: 25,
-			order: [[0, 'asc']],
+	if ($.fn.dataTable && $('#invoice_list_table').length && !$.fn.dataTable.fnIsDataTable($('#invoice_list_table')[0])) {
+		$('#invoice_list_table').dataTable({
+			sPaginationType: 'full_numbers',
+			iDisplayLength: 25,
+			aaSorting: [[0, 'asc']],
 			aoColumnDefs: [
-				{ bSortable: false, aTargets: [-1], sClass: 'col-actions' }
+				{ bSortable: false, aTargets: [0, -1], sClass: 'col-actions' }
 			]
 		});
 	}
+	window.setTimeout(function() {
+		if (window.applyEwListLayout) {
+			window.applyEwListLayout();
+		}
+	}, 250);
 });
 </script>
 </body>

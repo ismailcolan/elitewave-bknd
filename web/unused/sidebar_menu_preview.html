@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sidebar Menu Preview — Elite Wave 360</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="stylesheets/font-awesome.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar-width: 260px;
+      --sidebar-collapsed: 64px;
+      --top-bar-h: 64px;
+      --ew-navy: #06416F;
+      --ew-navy-deep: #042C4A;
+      --ew-accent: #DD111E;
+      --ew-steel: #C7D5E3;
+      --ew-steel-dim: #7E97AD;
+      --ew-border: #D8DDE5;
+      --ew-page-bg: #F1F3F7;
+      --ew-text: #1A2332;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: var(--ew-page-bg);
+      color: var(--ew-text);
+    }
+
+    .preview-banner {
+      background: #fff;
+      border-bottom: 1px solid var(--ew-border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 2000;
+    }
+    .preview-banner h1 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .preview-banner p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: #6B7A8D;
+    }
+    .preview-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .preview-tab {
+      border: 1px solid var(--ew-border);
+      background: #fff;
+      color: var(--ew-text);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .preview-tab.active {
+      background: var(--ew-navy);
+      color: #fff;
+      border-color: var(--ew-navy);
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: calc(100vh - 72px);
+    }
+    @media (max-width: 1100px) {
+      .demo-grid { grid-template-columns: 1fr; }
+      .demo-panel.hidden-mobile { display: none; }
+    }
+
+    .demo-panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--ew-border);
+    }
+    .demo-panel-label {
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #6B7A8D;
+      background: #fff;
+      border-bottom: 1px solid var(--ew-border);
+    }
+
+    .app-shell {
+      display: flex;
+      flex: 1;
+      min-height: 640px;
+      background: var(--ew-page-bg);
+    }
+
+    .top-bar-mock {
+      height: var(--top-bar-h);
+      background: #fff;
+      border-bottom: 1px solid var(--ew-border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .top-bar-mock .logo {
+      height: 36px;
+      opacity: 0.85;
+    }
+    .top-bar-mock .spacer { flex: 1; }
+    .hb {
+      width: 36px; height: 36px;
+      border: none; background: #EEF3F7;
+      border-radius: 8px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+    }
+    .hb span {
+      display: block; width: 16px; height: 2px;
+      background: var(--ew-navy); border-radius: 1px;
+    }
+
+    .shell-body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      flex-shrink: 0;
+      background: linear-gradient(185deg, var(--ew-navy) 0%, var(--ew-navy-deep) 100%);
+      overflow-y: auto;
+      padding: 14px 0 20px;
+    }
+
+    .sidebar-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--ew-steel-dim);
+      padding: 16px 22px 6px;
+    }
+    .sidebar-divider {
+      height: 1px;
+      background: rgba(255,255,255,.08);
+      margin: 8px 22px;
+    }
+
+    .nav-item { position: relative; }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 16px 9px 14px;
+      margin: 2px 10px;
+      color: var(--ew-steel);
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+      user-select: none;
+    }
+    .nav-link:hover {
+      background: rgba(255,255,255,.06);
+      color: #fff;
+    }
+    .nav-link.parent.open {
+      color: #fff;
+    }
+    .nav-link.active {
+      background: var(--ew-accent);
+      color: #fff !important;
+      font-weight: 600;
+    }
+    .nav-icon {
+      width: 18px;
+      text-align: center;
+      opacity: 0.7;
+      font-size: 14px;
+    }
+    .nav-text { flex: 1; }
+    .nav-arrow {
+      font-size: 10px;
+      opacity: 0.6;
+      transition: transform 0.2s;
+    }
+    .nav-item.open > .nav-link.parent .nav-arrow {
+      transform: rotate(90deg);
+      opacity: 1;
+    }
+
+    .submenu {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease;
+    }
+    .nav-item.open > .submenu { max-height: 800px; }
+
+    .submenu .nav-link {
+      padding: 8px 16px 8px 38px;
+      font-size: 12px;
+      font-weight: 400;
+      position: relative;
+    }
+    .submenu .nav-link::before {
+      content: "";
+      position: absolute;
+      left: 22px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.45);
+    }
+    .submenu .nav-link.active::before { background: #fff; }
+
+    .main-mock {
+      flex: 1;
+      padding: 16px;
+      min-width: 0;
+    }
+    .widget {
+      background: #fff;
+      border: 1px solid var(--ew-border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .widget-head {
+      background: #0A1E3D;
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 12px 12px 0 0;
+    }
+    .widget-head i { margin-right: 8px; opacity: 0.9; }
+    .widget-body {
+      padding: 14px;
+      font-size: 12px;
+      color: #64748b;
+    }
+    .form-row-mock {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .field-mock label {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+    .field-mock .box {
+      height: 32px;
+      border: 1px solid var(--ew-border);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .count-pill {
+      font-size: 10px;
+      background: rgba(255,255,255,.12);
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-left: auto;
+    }
+
+    .single-view .demo-grid { grid-template-columns: 1fr; }
+    .single-view .demo-panel { display: none; }
+    .single-view .demo-panel.active-view { display: flex; }
+  </style>
+</head>
+<body>
+  <div class="preview-banner">
+    <div>
+      <h1>Sidebar Menu — UI Preview (not live yet)</h1>
+      <p>Same navy sidebar, red active item, section labels, and accordion style as your app today.</p>
+    </div>
+    <div class="preview-tabs">
+      <button type="button" class="preview-tab" data-view="compare">Compare both</button>
+      <button type="button" class="preview-tab active" data-view="proposed">Proposed only</button>
+      <button type="button" class="preview-tab" data-view="current">Current only</button>
+    </div>
+  </div>
+
+  <div class="demo-grid" id="demoGrid">
+    <!-- CURRENT -->
+    <div class="demo-panel" id="panelCurrent">
+      <div class="demo-panel-label">Current menu (today)</div>
+      <div class="app-shell">
+        <div class="top-bar-mock">
+          <img src="images/elitewave-light.png" alt="" class="logo" onerror="this.style.display='none'">
+          <div class="spacer"></div>
+          <button type="button" class="hb" aria-hidden="true"><span></span><span></span><span></span></button>
+        </div>
+        <div class="shell-body">
+          <aside class="sidebar" id="sidebarCurrent"></aside>
+          <main class="main-mock">
+            <div class="widget">
+              <div class="widget-head"><i class="fa fa-plus"></i>Hub Master</div>
+              <div class="widget-body">
+                <div class="form-row-mock">
+                  <div class="field-mock"><label>Hub Name</label><div class="box"></div></div>
+                  <div class="field-mock"><label>Hub Code</label><div class="box"></div></div>
+                </div>
+                <p style="margin:0">Sample master page — sidebar has one long Master list.</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPOSED -->
+    <div class="demo-panel" id="panelProposed">
+      <div class="demo-panel-label">Proposed menu (module-wise)</div>
+      <div class="app-shell">
+        <div class="top-bar-mock">
+          <img src="images/elitewave-light.png" alt="" class="logo" onerror="this.style.display='none'">
+          <div class="spacer"></div>
+          <button type="button" class="hb" aria-hidden="true"><span></span><span></span><span></span></button>
+        </div>
+        <div class="shell-body">
+          <aside class="sidebar" id="sidebarProposed"></aside>
+          <main class="main-mock">
+            <div class="widget">
+              <div class="widget-head"><i class="fa fa-plus"></i>Book a Consignment</div>
+              <div class="widget-body">
+                <div class="form-row-mock">
+                  <div class="field-mock"><label>GCN No</label><div class="box"></div></div>
+                  <div class="field-mock"><label>Origin</label><div class="box"></div></div>
+                </div>
+                <p style="margin:0">Operations → Consignment → Book a Consignment (active example).</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const currentMenu = {
+      sections: [
+        {
+          label: 'Main',
+          items: [{ text: 'Dashboard', icon: 'fa-th-large', link: false }]
+        },
+        {
+          label: 'Administration',
+          modules: [
+            {
+              text: 'Master',
+              icon: 'fa-files-o',
+              count: 24,
+              open: true,
+              children: [
+                'Company', 'Company Bank', 'Branch', 'State', 'City', 'Hub',
+                'Mode of Transport', 'GST Tax Master', 'Client', 'Vendor',
+                'Expense Type Master', 'Expense against GCN', 'General Expense',
+                'Client Branch', 'Rate Calculator', 'Expected Delivery',
+                'Client Charges', 'Print QR Code', 'Bulk Email', 'Users',
+                'Consignment Mode', 'Package Type', 'Vehicle', 'Train', 'Flight'
+              ]
+            },
+            {
+              text: 'User',
+              icon: 'fa-user',
+              count: 7,
+              children: [
+                'Draft Consignment List', 'User Inquiry List', 'User Approval',
+                'Request For Pickup List', 'Pending FTL Quotation',
+                'Proof of Delivery', 'Registration Request'
+              ]
+            }
+          ]
+        },
+        {
+          label: 'Operations',
+          divider: true,
+          modules: [
+            {
+              text: 'Transactions',
+              icon: 'fa-truck',
+              count: 10,
+              open: true,
+              children: [
+                'Book a Consignment', 'List of Consignments', 'Request For Pickup',
+                'Track Consignment', 'Consignment Status Sheet', 'Trip Summary Sheet',
+                'Transaction Status', 'Create Invoice', 'Invoice List', 'Book Manual Consignment'
+              ],
+              activeChild: 'Book a Consignment'
+            },
+            {
+              text: 'MIS Report',
+              icon: 'fa-bar-chart',
+              count: 4,
+              children: ['Booking Status Report', 'Cargo Booking Report', 'GST Tax Report', 'Payment History']
+            },
+            {
+              text: 'Customer Mapping',
+              icon: 'fa-link',
+              count: 1,
+              children: ['Customer Mapping']
+            }
+          ]
+        }
+      ]
+    };
+
+    const proposedMenu = {
+      sections: [
+        {
+          label: 'Main',
+          items: [{ text: 'Dashboard', icon: 'fa-th-large' }]
+        },
+        {
+          label: 'Administration',
+          modules: [
+            { text: 'Setup Masters', icon: 'fa-building', count: 6, children: ['Company', 'Company Bank', 'Branch', 'State', 'City', 'Hub'] },
+            { text: 'Transport Masters', icon: 'fa-truck', count: 6, children: ['Mode of Transport', 'Consignment Mode', 'Package Type', 'Vehicle', 'Train', 'Flight'] },
+            { text: 'Party Masters', icon: 'fa-users', count: 3, children: ['Client', 'Client Branch', 'Vendor'] },
+            { text: 'Billing & Tax', icon: 'fa-inr', count: 4, children: ['GST Tax Master', 'Client Charges', 'Rate Calculator', 'Expected Delivery'] },
+            { text: 'Expense', icon: 'fa-money', count: 3, open: true, children: ['Expense Type Master', 'Expense against GCN', 'General Expense'], activeChild: 'General Expense' },
+            { text: 'Tools & Users', icon: 'fa-wrench', count: 3, children: ['Print QR Code', 'Bulk Email', 'Users'] },
+            { text: 'User Portal', icon: 'fa-user-check', count: 7, children: ['Draft Consignment List', 'User Inquiry List', 'User Approval', 'Request For Pickup List', 'Pending FTL Quotation', 'Proof of Delivery', 'Registration Request'] }
+          ]
+        },
+        {
+          label: 'Operations',
+          divider: true,
+          modules: [
+            {
+              text: 'Consignment',
+              icon: 'fa-cube',
+              count: 8,
+              open: true,
+              children: [
+                'Book a Consignment', 'List of Consignments', 'Request For Pickup',
+                'Track Consignment', 'Consignment Status Sheet', 'Trip Summary Sheet',
+                'Transaction Status', 'Book Manual Consignment'
+              ],
+              activeChild: 'Book a Consignment'
+            },
+            { text: 'Invoice', icon: 'fa-file-text-o', count: 2, children: ['Create Invoice', 'Invoice List'] },
+            { text: 'MIS Report', icon: 'fa-bar-chart', count: 4, children: ['Booking Status Report', 'Cargo Booking Report', 'GST Tax Report', 'Payment History'] },
+            { text: 'Customer Mapping', icon: 'fa-link', count: 1, children: ['Customer Mapping'] }
+          ]
+        }
+      ]
+    };
+
+    function renderMenu(container, data) {
+      container.innerHTML = '';
+      data.sections.forEach(function (section) {
+        if (section.divider) {
+          const d = document.createElement('div');
+          d.className = 'sidebar-divider';
+          container.appendChild(d);
+        }
+        const lbl = document.createElement('div');
+        lbl.className = 'sidebar-label';
+        lbl.textContent = section.label;
+        container.appendChild(lbl);
+
+        if (section.items) {
+          section.items.forEach(function (item) {
+            const a = document.createElement('div');
+            a.className = 'nav-link';
+            a.innerHTML = '<span class="nav-icon"><i class="fa ' + item.icon + '"></i></span><span class="nav-text">' + item.text + '</span>';
+            container.appendChild(wrapItem(a));
+          });
+        }
+
+        if (section.modules) {
+          section.modules.forEach(function (mod, idx) {
+            const item = document.createElement('div');
+            item.className = 'nav-item' + (mod.open ? ' open' : '');
+            item.dataset.idx = section.label + '-' + idx;
+
+            const parent = document.createElement('div');
+            parent.className = 'nav-link parent';
+            parent.innerHTML =
+              '<span class="nav-icon"><i class="fa ' + mod.icon + '"></i></span>' +
+              '<span class="nav-text">' + mod.text + '</span>' +
+              (mod.count ? '<span class="count-pill">' + mod.count + '</span>' : '') +
+              '<i class="fa fa-chevron-right nav-arrow"></i>';
+            parent.addEventListener('click', function () {
+              item.classList.toggle('open');
+            });
+
+            const sub = document.createElement('div');
+            sub.className = 'submenu';
+            mod.children.forEach(function (child) {
+              const link = document.createElement('div');
+              link.className = 'nav-link' + (mod.activeChild === child ? ' active' : '');
+              link.textContent = child;
+              sub.appendChild(link);
+            });
+
+            item.appendChild(parent);
+            item.appendChild(sub);
+            container.appendChild(item);
+          });
+        }
+      });
+    }
+
+    function wrapItem(el) {
+      const w = document.createElement('div');
+      w.className = 'nav-item';
+      w.appendChild(el);
+      return w;
+    }
+
+    renderMenu(document.getElementById('sidebarCurrent'), currentMenu);
+    renderMenu(document.getElementById('sidebarProposed'), proposedMenu);
+
+    const grid = document.getElementById('demoGrid');
+    const tabs = document.querySelectorAll('.preview-tab');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        const view = tab.dataset.view;
+        grid.classList.remove('single-view');
+        document.getElementById('panelCurrent').classList.remove('active-view', 'hidden-mobile');
+        document.getElementById('panelProposed').classList.remove('active-view', 'hidden-mobile');
+
+        if (view === 'compare') {
+          /* default side by side */
+        } else if (view === 'current') {
+          grid.classList.add('single-view');
+          document.getElementById('panelCurrent').classList.add('active-view');
+        } else {
+          grid.classList.add('single-view');
+          document.getElementById('panelProposed').classList.add('active-view');
+        }
+      });
+    });
+
+    /* Default: proposed only full width */
+    grid.classList.add('single-view');
+    document.getElementById('panelProposed').classList.add('active-view');
+  </script>
+</body>
+</html>

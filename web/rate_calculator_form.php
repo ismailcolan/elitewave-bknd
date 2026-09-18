@@ -2,13 +2,16 @@
 require_once("include/connect.php");
 require_once("include/function.php"); 
 
-$key = $_REQUEST['key'];
-if($key !=''){
-	$client_query = "select * from client where md5(client_id)='".$key."'";
-	$client_result = mysqli_query($conn,$client_query);
-	$client_count = mysqli_num_rows($client_result);
-	if($client_count == 0){
-		header('Location:client_list.php');
+$key = $_REQUEST['key'] ?? '';
+if ($key === '' && empty($_GET['create'])) {
+	header('Location:rate_calc_list.php');
+	exit;
+}
+if ($key != '') {
+	$rate_check = mysqli_query($conn, "select id from rate where md5(id)='" . mysqli_real_escape_string($conn, $key) . "'");
+	if (!$rate_check || mysqli_num_rows($rate_check) == 0) {
+		header('Location:rate_calc_list.php');
+		exit;
 	}
 }
 ?>
@@ -34,12 +37,21 @@ if($key !=''){
 <div class="container-fluid main-content new_dpt_bottom">
   
 		<div class="row">
-		  <div class="col-md-offset-1 col-md-10">
-			<div class="widget-container fluid-height clearfix">
-			  <div class="heading"> <i class="fa fa-plus"></i>Add Rates <span class="align-right"><i class="fa fa-plus"></i><a href="rate_calc_list.php">View List</a></span></div>
-			  
-			  <div class="widget-content padded">
-				<form class="form-horizontal" id="add_rate_form">
+		  <div class="col-md-12">
+			<div class="ew-page-v2">
+			  <div class="ew-page-head">
+				<div class="ew-page-head-left">
+				  <a href="rate_calc_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+				  <h1 class="ew-page-title"><?php echo ($_REQUEST['key'] != '') ? 'Edit Rates' : 'Add Rates'; ?></h1>
+				</div>
+				<div class="ew-toolbar-right">
+				  <a href="rate_calc_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+				</div>
+			  </div>
+			  <div class="ew-card">
+				<h2 class="ew-card-section-title">Rate Details</h2>
+				<div class="ew-form-body">
+				<form id="add_rate_form">
 				
 				<?php if($_REQUEST['key'] != ''){?>
 					<input type="hidden" id="form_name" name="form_name" value="edit_rate_calculator">
@@ -54,79 +66,57 @@ if($key !=''){
 						<div class="message" style="text-align:center"></div>
 					</div>
 					
-				<br/>
-				 <div class="row">
-						<div class="col-md-offset-1 col-md-5">
+				  <div class="ew-form-grid">
 						<?php
-							//$conn = mysqli_connect("localhost","root","","bookconsignment");
 							$query = "select * from rate where md5(id)='".$_REQUEST['key']."'";
 							$result = mysqli_query($conn,$query);
 							$row = mysqli_fetch_array($result);
-							$consignor_name = $row['consignor_name'];
-							$billing_code = substr($consignor_name , 0,4);
-							//$unique_billing_code = sprintf("%02d",1).'-'.$billing_code;
-
 						?>
-							<div class="form-group">
-								<label class="control-label">Origin <span style="color:red;">*</span> :</label>
-								<input type="text" id="origin" name="origin" value="<?php echo $row['origin']; ?>" class="form-control" autocomplete="off" required placeholder="000001-Origin Name"/>
-								<span id="origin_dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Destination <span style="color:red;">*</span> :</label>
-								<input type="text"   name="destination" id="destination" value="<?php echo $row['destination']; ?>" class="form-control"  autocomplete="off" required placeholder="000001-Destination Name"/>
-								<span id="destination_dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Surface <span style="color:red;">*</span> :</label>
-								<input type="text" name="surface" id="surface" value="<?php echo $row['surface']; ?>" class="form-control"  autocomplete="off" required placeholder="Enter Surface Rate"/>
-								
-							</div>
-							<div class="form-group">
-								<label class="control-label">Express <span style="color:red;">*</span> :</label>
-								<input type="text" name="express" id="express" class="form-control"  value="<?php echo $row['express']; ?>"  autocomplete="off" required placeholder="Enter Express Rate"/>
-							
-							</div>
-							
-							
+						<div class="ew-section-label">Route &amp; Pricing</div>
+						<div class="ew-field">
+							<label class="control-label">Origin <span style="color:red;">*</span> :</label>
+							<input type="text" id="origin" name="origin" value="<?php echo $row['origin']; ?>" class="form-control" autocomplete="off" required placeholder="000001-Origin Name"/>
+							<span id="origin_dup-check"></span>
 						</div>
-						<div class="col-md-5">
-							
-						<div class="form-group">
-								<label class="control-label">Train <span style="color:red;">*</span> :</label>
-								<input type="text" name="train" id="train" class="form-control" value="<?php echo $row['train']; ?>" autocomplete="off" required placeholder="Enter Train Rate"/>
-								<span class="dup-check"></span>
-							</div>
-							
-							
-							<div class="form-group">
-								<label class="control-label">Air <span style="color:red;">*</span> :</label>
-								<input type="text" name="air" id="air" value="<?php echo $row['air']; ?>" class="form-control" autocomplete="off"  required placeholder="Enter Air Rate"/>
-								<span class="email-dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Note:</label>
-								<textarea name="note" id="note" value="" class="form-control" value="" placeholder="Enter Note"><?php echo $row['note']; ?></textarea>
-								<span class="dup-check"></span>
-							</div>
-						
-						
+						<div class="ew-field">
+							<label class="control-label">Destination <span style="color:red;">*</span> :</label>
+							<input type="text" name="destination" id="destination" value="<?php echo $row['destination']; ?>" class="form-control" autocomplete="off" required placeholder="000001-Destination Name"/>
+							<span id="destination_dup-check"></span>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Surface <span style="color:red;">*</span> :</label>
+							<input type="text" name="surface" id="surface" value="<?php echo $row['surface']; ?>" class="form-control" autocomplete="off" required placeholder="Enter Surface Rate"/>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Express <span style="color:red;">*</span> :</label>
+							<input type="text" name="express" id="express" class="form-control" value="<?php echo $row['express']; ?>" autocomplete="off" required placeholder="Enter Express Rate"/>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Train <span style="color:red;">*</span> :</label>
+							<input type="text" name="train" id="train" class="form-control" value="<?php echo $row['train']; ?>" autocomplete="off" required placeholder="Enter Train Rate"/>
+							<span class="dup-check"></span>
+						</div>
+						<div class="ew-field">
+							<label class="control-label">Air <span style="color:red;">*</span> :</label>
+							<input type="text" name="air" id="air" value="<?php echo $row['air']; ?>" class="form-control" autocomplete="off" required placeholder="Enter Air Rate"/>
+							<span class="email-dup-check"></span>
+						</div>
+						<div class="ew-field span-2">
+							<label class="control-label">Note:</label>
+							<textarea name="note" id="note" class="form-control" placeholder="Enter Note"><?php echo $row['note']; ?></textarea>
+							<span class="dup-check"></span>
 						</div>
 				 </div>
-				   <div class="row">
-					<div class="col-md-12 form-action">
-					<?php if($_REQUEST['key']== ''){?>
-						<button class="btn btn-primary" type="button" id="save">Submit</button>
-						<button  class="btn btn-default-outline  btn-reset" type="button" onclick="window.location.href='rate_calc_list.php';">Cancel</button>
-					</div>
-					<?php 
-					}else{?>
-						<button class="btn btn-primary" type="button" id="update">Update</button>
-						<button  class="btn btn-default-outline  btn-reset" type="button" onclick="window.location.href='rate_calc_list.php';">Cancel</button>
-					<?php }?>
-					</div>
-				  </div>
 				</form>
+				</div>
+				<div class="ew-form-footer">
+					<a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="rate_calc_list.php">Cancel</a>
+					<?php if($_REQUEST['key']== ''){?>
+						<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save">Submit</button>
+					<?php } else { ?>
+						<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="update">Update</button>
+					<?php } ?>
+				</div>
 			  </div>
 			</div>
 		  </div>

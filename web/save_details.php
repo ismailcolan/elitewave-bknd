@@ -1,21 +1,25 @@
 <?php
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 require_once('include/connect.php');
 // require_once("save_admin.php");
 include('include/function.php');
 require_once('appMail.php');
-require_once '../Twillio/vendor/autoload.php';
-require_once('../Twillio/constant.php');
-$form_name = $_POST['form_name'];
+if (file_exists(__DIR__ . '/../Twillio/vendor/autoload.php')) {
+    require_once __DIR__ . '/../Twillio/vendor/autoload.php';
+}
+if (file_exists(__DIR__ . '/../Twillio/constant.php')) {
+    require_once __DIR__ . '/../Twillio/constant.php';
+}
+$form_name = isset($_POST['form_name']) ? $_POST['form_name'] : '';
 $created_at = $updated_at = date('d-m-Y');
-$updated_by = $created_by = $_SESSION['user_id'];
+$updated_by = $created_by = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0;
 date_default_timezone_set('Asia/Kolkata');
 $c_date = date('d-m-Y');
 $date = new DateTime();
 $c_time = $date->format('H:i:s A');
 $c_date_string = strtotime($c_date);
-$company_id = $_SESSION['company_id'];
+$company_id = isset($_SESSION['company_id']) ? $_SESSION['company_id'] : '';
 
 use Twilio\Rest\Client;
 
@@ -98,7 +102,7 @@ if ($form_name == 'login') {
         $remember = 1;
     else
         $remember = 0;
-    $id = $_POST['login'];
+    $id = isset($_POST['login']) ? $_POST['login'] : '';
     $select_query = "select * from users where md5(user_id) = '" . $id . "'";
     $select_result = mysqli_query($conn, $select_query);
     $select_row = mysqli_fetch_array($select_result);
@@ -119,7 +123,9 @@ if ($form_name == 'login') {
     if (mysqli_num_rows($result) == 1) {
         $row = mysqli_fetch_array($result);
 
-        if (password_verify($password, $row['password'])) {
+        if (password_verify($password, $row['password'])
+            || (function_exists('enc_name') && $row['password'] === enc_name($password))
+            || $row['password'] === $password) {
             $_SESSION['LAST_ACTIVITY'] = time();
             $_SESSION['role'] = $row['role'];
             $_SESSION['user_id'] = $row['user_id'];
@@ -894,6 +900,10 @@ $email1 = $_POST['email1'];
 $contact_no1 = $_POST['contact_no1'];
     $gst_no = $_POST['gst_no'];
     $pan_no = $_POST['pan_no'];
+    $city_name_clean = get_city_name($conn, $city);
+    $state_name_clean = get_statename($conn, $state);
+    $address1 = ew_clean_party_address($address1, $pincode, $city_name_clean, $state_name_clean);
+    $address2 = ew_clean_party_address($address2, $pincode, $city_name_clean, $state_name_clean);
     // $multiple_branches = $_POST['multiple_branches'];
     $multiple_branches = isset($_POST['multiple_branches']) ? 1 : 0;
     // $automation = $_POST['transit_automation'];
@@ -1293,25 +1303,50 @@ if ($form_name == 'add_expense_type') {
 }
 if ($form_name == 'edit_expense_type') {
     require_once __DIR__ . '/include/expense_type_helpers.php';
-    $edit_key = trim($_POST['edit_id'] ?? '');
+    $edit_key = trim((string) ($_POST['edit_id'] ?? $_POST['category_id'] ?? ''));
     $result = expense_type_save_row($conn, $_POST, $edit_key, $created_by, $updated_by);
     echo !empty($result['ok']) ? 1 : ($result['message'] ?? 0);
     exit;
 }
-if ($form_name == 'add_expense_type_label') {
-    require_once __DIR__ . '/include/expense_type_helpers.php';
-    header('Content-Type: application/json; charset=utf-8');
-    $result = expense_type_add_label($conn, $_POST['type_name'] ?? '', $created_by);
-    echo json_encode($result);
-    exit;
-}
-
 if ($form_name == 'inacv_expense_category') {
     $id = (int) ($_POST['tbl_id'] ?? 0);
     $status = (int) ($_POST['status'] ?? 0);
     $query = "UPDATE expense_category SET status='$status', updated_at='$updated_at', updated_by='$updated_by' WHERE category_id='$id'";
     $result = mysqli_query($conn, $query);
     echo $result ? 1 : 0;
+    exit;
+}
+
+if ($form_name == 'delete_expense_type') {
+    require_once __DIR__ . '/include/expense_type_helpers.php';
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $result = expense_type_delete_row($conn, $id);
+    echo !empty($result['ok']) ? 1 : ($result['message'] ?? 'Delete failed.');
+    exit;
+}
+
+if ($form_name == 'add_expense_group' || $form_name == 'edit_expense_group') {
+    require_once __DIR__ . '/include/expense_type_helpers.php';
+    $edit_id = (int) ($_POST['edit_id'] ?? 0);
+    $result = expense_group_save($conn, $_POST, $edit_id, $created_by);
+    echo !empty($result['ok']) ? 1 : ($result['message'] ?? 0);
+    exit;
+}
+if ($form_name == 'inacv_expense_group') {
+    require_once __DIR__ . '/include/expense_type_helpers.php';
+    expense_group_ensure_schema($conn);
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $status = (int) ($_POST['status'] ?? 0);
+    $query = "UPDATE expense_group SET status='$status', updated_at='$updated_at', updated_by='$updated_by' WHERE group_id='$id'";
+    $result = mysqli_query($conn, $query);
+    echo $result ? 1 : 0;
+    exit;
+}
+if ($form_name == 'delete_expense_group') {
+    require_once __DIR__ . '/include/expense_type_helpers.php';
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $result = expense_group_delete($conn, $id);
+    echo !empty($result['ok']) ? 1 : ($result['message'] ?? 'Delete failed.');
     exit;
 }
 
@@ -1648,6 +1683,10 @@ if ($form_name == 'add_client_branch') {
     $city = $_POST['city'];
     $pincode = $_POST['pincode'];
     $email = $_POST['email'];
+    $city_name_clean = get_city_name($conn, $city);
+    $state_name_clean = get_statename($conn, $state);
+    $address1 = ew_clean_party_address($address1, $pincode, $city_name_clean, $state_name_clean);
+    $address2 = ew_clean_party_address($address2, $pincode, $city_name_clean, $state_name_clean);
     if ($edit_id != '') {
         $query = "update client_branch set company_id='" . $company_id . "',branch_name='" . $branch_name . "',branch_contact_person='" . $contact_person . "',contact_no='" . $contact_no . "',address1='" . $address1 . "',address2='" . $address2 . "',city='" . $city . "',state='" . $state . "',pincode='" . $pincode . "',email='" . $email . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where md5(client_branch_id) = '" . $edit_id . "'";
         $result = mysqli_query($conn, $query);
@@ -1915,6 +1954,10 @@ if ($form_name == 'approve_client') {
     $multiple_branches = $_POST['multiple_branches'];
     $automation = $_POST['transit_automation'];
     $grn_mode = $_POST['grn_mode'];  // New field
+    $city_name_clean = get_city_name($conn, $city);
+    $state_name_clean = get_statename($conn, $state);
+    $address1 = ew_clean_party_address($address1, $pincode, $city_name_clean, $state_name_clean);
+    $address2 = ew_clean_party_address($address2, $pincode, $city_name_clean, $state_name_clean);
 
     $query = "update client set client_company_name='" . $company_name . "',contact_person='" . $contact_person . "',address1='" . $address1 . "',address2='" . $address2 . "',state='" . $state . "',city='" . $city . "',pincode='" . $pincode . "',email='" . $email . "',contact_no='" . $contact_no . "',gst_no='" . $gst_no . "',pan_no='" . $pan_no . "',multiple_branches='" . $multiple_branches . "',automation='" . $automation . "',grn_mode='" . $grn_mode . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "',approve_status='0'  where  md5(client_id)='" . $_POST['edit_id'] . "'";
     $result = mysqli_query($conn, $query);
@@ -2347,6 +2390,10 @@ $invoice_id = 0;
                 // $productData = "098{$get_qty}10{$name}55{$rate}";
                 $tempDir = 'qrcode/';
                 $productData = strtoupper($name);
+                $qrParent = dirname($tempDir . $productData . 'x.png');
+                if (!is_dir($qrParent)) {
+                    mkdir($qrParent, 0755, true);
+                }
                 $j = 1;
                 for ($i = 0; $i < $get_qty; $i++) {
                     $change_index[$j] = $i + 1;
@@ -2819,22 +2866,62 @@ if ($form_name == 'add_new_consignment_manual') {
         $eway_expiryDate = $_POST['eway_expiryDate'] ? $_POST['eway_expiryDate'] : null;
         $table0 = $tables[0];
 
-        $query = "insert into $table0 (grn_no,grn_date,mode_of_transportation,train_type,ftl_type,origin,destination,mode_of_consignment,consigner,address1,address2,city,pincode,state,phone,gst_no,consignee,con_address1,con_address2,shipping_address,shipping_address_name, shipping_gst_no, shipping_phone,con_city,con_state,con_pincode,con_phone,con_gst_no,goods_dedared_value,octroi,dimension1,dimension2,dimension3,dimension4,consignment_weight,frieght_rate,frieght_amount,loading_unloading_rate,
-            loading_unloading_amount, crane_fork_lift_rate, crane_fork_lift_amount,cod_rate,cod_amount,fov_rate,fov_amount,doc_charges,doc_amount,cartage_rate,cartage_amount,labour_handling_rate,labour_handling_amount,octroi_rate,octroi_amount,other_charge_rate,other_charge_amount,rajdhani_charges,gst_rate,gst_amount,total,paid_amount, balance, paid_status,total_words,note1,note2,truck,consigner_signature,client_id,created_at,created_by,status,eway_number,eway_expirydate,vehicle_type,
+        $vehicle_type = isset($_POST['vehicle_type']) ? $_POST['vehicle_type'] : null;
+        $freight_paid_by = isset($_POST['freight_paid_by']) ? $_POST['freight_paid_by'] : null;
+        $insurance_number = isset($_POST['insurance_number']) ? $_POST['insurance_number'] : null;
+        $lc_number = isset($_POST['lc_number']) ? $_POST['lc_number'] : null;
+        $cfs = isset($_POST['cfs']) ? $_POST['cfs'] : null;
+        $mamul_charge = (isset($_POST['mamul_charge']) && is_numeric($_POST['mamul_charge'])) ? $_POST['mamul_charge'] : '0';
+        $vehicle_halting_charge = (isset($_POST['vehicle_halting_charge']) && is_numeric($_POST['vehicle_halting_charge'])) ? $_POST['vehicle_halting_charge'] : '0';
+        $vehicle_loading_unloading = (isset($_POST['vehicle_loading_unloading']) && is_numeric($_POST['vehicle_loading_unloading'])) ? $_POST['vehicle_loading_unloading'] : '0';
+        $consignor_branch_id = isset($_POST['consignor_branch']) ? (int) $_POST['consignor_branch'] : 0;
+        $consignee_branch_id = isset($_POST['consignee_branch']) ? (int) $_POST['consignee_branch'] : 0;
+        $supplier_invoice_value = isset($_POST['supplier_invoice_value']) ? $_POST['supplier_invoice_value'] : '';
+        $description_of_goods = isset($_POST['description_of_goods']) ? $_POST['description_of_goods'] : '';
+        $quotation_approval = isset($_POST['quotation_approval']) ? $_POST['quotation_approval'] : '';
+        $highload_challan = isset($_POST['highload_challan']) ? $_POST['highload_challan'] : '';
+        $vehicle_purchase_contact_person = isset($_POST['vehicle_purchase_contact_person']) ? $_POST['vehicle_purchase_contact_person'] : '';
+        $volumetric_weight = isset($_POST['volumetric_weight']) ? $_POST['volumetric_weight'] : '';
+
+        require_once('include/gst_tax_functions.php');
+        ensure_transaction_gst_columns($conn, $table0);
+        $company_state_q = mysqli_query($conn, 'SELECT state FROM company WHERE status=0 LIMIT 1');
+        $company_state_row = mysqli_fetch_assoc($company_state_q);
+        $company_state_id = (int) ($company_state_row['state'] ?? 0);
+        $gst_snapshot = gst_tax_build_booking_snapshot($conn, $_POST, $company_state_id);
+        $gst_type = mysqli_real_escape_string($conn, $gst_snapshot['gst_type'] ?? '');
+        $gst_tax_id = (int) ($gst_snapshot['gst_tax_id'] ?? 0);
+        $gst_tax_code = mysqli_real_escape_string($conn, $gst_snapshot['gst_tax_code'] ?? '');
+        $cgst_rate = (float) ($gst_snapshot['cgst_rate'] ?? 0);
+        $sgst_rate = (float) ($gst_snapshot['sgst_rate'] ?? 0);
+        $igst_rate = (float) ($gst_snapshot['igst_rate'] ?? 0);
+        $cess_rate = (float) ($gst_snapshot['cess_rate'] ?? 0);
+        $cgst_amount = (float) ($gst_snapshot['cgst_amount'] ?? 0);
+        $sgst_amount = (float) ($gst_snapshot['sgst_amount'] ?? 0);
+        $igst_amount = (float) ($gst_snapshot['igst_amount'] ?? 0);
+        $cess_amount = (float) ($gst_snapshot['cess_amount'] ?? 0);
+        $taxable_value = (float) ($gst_snapshot['taxable_value'] ?? 0);
+        $bill_to_state_id = (int) ($gst_snapshot['bill_to_state_id'] ?? 0);
+        $gst_rate = (float) ($gst_snapshot['gst_rate'] ?? 0);
+        $gst_amount = (float) ($gst_snapshot['gst_amount'] ?? 0);
+        $total = (float) ($gst_snapshot['grand_total'] ?? $total);
+
+        $query = "insert into $table0 (grn_no,grn_date,mode_of_transportation,train_type,ftl_type,origin,destination,mode_of_consignment,consigner,address1,address2,city,pincode,state,phone,gst_no,consignee,con_address1,con_address2,shipping_address,shipping_address_name, shipping_gst_no, shipping_phone,con_city,con_state,con_pincode,con_phone,con_gst_no,goods_dedared_value,supplier_invoice_value,description_of_goods,octroi,dimension1,dimension2,dimension3,dimension4,volumetric_weight,consignment_weight,frieght_rate,frieght_amount,loading_unloading_rate,
+            loading_unloading_amount, crane_fork_lift_rate, crane_fork_lift_amount,cod_rate,cod_amount,fov_rate,fov_amount,doc_charges,doc_amount,cartage_rate,cartage_amount,labour_handling_rate,labour_handling_amount,octroi_rate,octroi_amount,other_charge_rate,other_charge_amount,rajdhani_charges,gst_rate,gst_amount,gst_type,gst_tax_id,gst_tax_code,cgst_rate,sgst_rate,igst_rate,cess_rate,cgst_amount,sgst_amount,igst_amount,cess_amount,taxable_value,bill_to_state_id,total,paid_amount, balance, paid_status,total_words,note1,note2,truck,vehicle_purchase_contact_person,quotation_approval,highload_challan,consigner_signature,client_id,created_at,created_by,status,eway_number,eway_expirydate,vehicle_type,
 freight_paid_by,
 insurance_number,
 lc_number,
 cfs,
 mamul_charge,
 vehicle_halting_charge,
-vehicle_loading_unloading,other_train_name,book_manual) values('" . $grn_num1 . "','" . $grn_date . "','" . $mode_of_trasport . "','$train_name','$ftl_type','" . $origin . "','" . $destination . "','" . $mode_of_consignment . "','" . $consignor . "','" . $address1 . "','" . $address2 . "','" . $city . "','" . $pincode . "','" . $state . "','" . $phone . "','" . $gst_no . "','" . $consignee . "','" . $con_address1 . "','" . $con_address2 . "','$ship_address','$shipping_address_name', '$shipping_gst_no', '$shipping_phone','" . $con_city . "','" . $con_state . "','" . $con_pincode . "','" . $con_phone . "','" . $con_gst . "','" . $goods_dedared_value . "','" . $octroi . "','$len','$wid','$hei','$quanti','$vlm_wei','" . $frieght_rate . "','" . $frieght_amount . "','" . $loading_unload_rate . "','" . $loading_unload_chrg . "','" . $crane_forklift_rate . "','" . $crane_forklift_chrg . "','" . $cod_rate . "','" . $cod_amount . "','" . $fov_rate . "','" . $fov_amount . "','" . $doc_rate . "','" . $doc_amount . "','" . $cartage_rate . "','" . $cartage_amount . "','" . $labour_rate . "','" . $labour_amount . "','" . $octroi_rate . "','" . $octroi_amount . "','" . $other_rate . "','" . $other_amount . "','$rajdhani_charges','" . $gst_rate . "','" . $gst_amount . "','" . $total . "','" . $total . "','0','1','" . $amount_in_words . "','" . $note1 . "','" . $note2 . "','" . $vehicle_no . "','" . $signature . "','" . $consignor . "','" . $created_at . "','" . $created_by . "','1','" . $eway_number . "','$eway_expiryDate','$vehicle_type',
+vehicle_loading_unloading,other_train_name,consignor_branch_id,consignee_branch_id,book_manual) values('" . $grn_num1 . "','" . $grn_date . "','" . $mode_of_trasport . "','$train_name','$ftl_type','" . $origin . "','" . $destination . "','" . $mode_of_consignment . "','" . $consignor . "','" . $address1 . "','" . $address2 . "','" . $city . "','" . $pincode . "','" . $state . "','" . $phone . "','" . $gst_no . "','" . $consignee . "','" . $con_address1 . "','" . $con_address2 . "','$ship_address','$shipping_address_name', '$shipping_gst_no', '$shipping_phone','" . $con_city . "','" . $con_state . "','" . $con_pincode . "','" . $con_phone . "','" . $con_gst . "','" . $goods_dedared_value . "','" . $supplier_invoice_value . "','" . $description_of_goods . "','" . $octroi . "','$len','$wid','$hei','$quanti','$volumetric_weight','$vlm_wei','" . $frieght_rate . "','" . $frieght_amount . "','" . $loading_unload_rate . "','" . $loading_unload_chrg . "','" . $crane_forklift_rate . "','" . $crane_forklift_chrg . "','" . $cod_rate . "','" . $cod_amount . "','" . $fov_rate . "','" . $fov_amount . "','" . $doc_rate . "','" . $doc_amount . "','" . $cartage_rate . "','" . $cartage_amount . "','" . $labour_rate . "','" . $labour_amount . "','" . $octroi_rate . "','" . $octroi_amount . "','" . $other_rate . "','" . $other_amount . "','$rajdhani_charges','" . $gst_rate . "','" . $gst_amount . "','$gst_type','$gst_tax_id','$gst_tax_code','$cgst_rate','$sgst_rate','$igst_rate','$cess_rate','$cgst_amount','$sgst_amount','$igst_amount','$cess_amount','$taxable_value','$bill_to_state_id','" . $total . "','" . $total . "','0','1','" . $amount_in_words . "','" . $note1 . "','" . $note2 . "','" . $vehicle_no . "','" . $vehicle_purchase_contact_person . "','" . $quotation_approval . "','" . $highload_challan . "','" . $signature . "','" . $consignor . "','" . $created_at . "','" . $created_by . "','1','" . $eway_number . "','$eway_expiryDate','$vehicle_type',
 '$freight_paid_by',
 '$insurance_number',
 '$lc_number',
 '$cfs',
 '$mamul_charge',
 '$vehicle_halting_charge',
-'$vehicle_loading_unloading','$other_train_names',2)";
+'$vehicle_loading_unloading','$other_train_names','$consignor_branch_id','$consignee_branch_id',2)";
 
         $result = mysqli_query($conn, $query);
         $transaction_id = mysqli_insert_id($conn);
@@ -2970,6 +3057,10 @@ $invoice_id    = NULL;
 
                 $tempDir = 'qrcode/';
                 $productData = strtoupper($name);
+                $qrParent = dirname($tempDir . $productData . 'x.png');
+                if (!is_dir($qrParent)) {
+                    mkdir($qrParent, 0755, true);
+                }
                 $j = 1;
                 for ($i = 0; $i < $get_qty; $i++) {
                     $change_index[$j] = $i + 1;
@@ -3345,6 +3436,10 @@ $invoice_id    = NULL;
                 // $productData = "098{$get_qty}10{$name}55{$rate}";
                 $tempDir = 'qrcode/';
                 $productData = strtoupper($name);
+                $qrParent = dirname($tempDir . $productData . 'x.png');
+                if (!is_dir($qrParent)) {
+                    mkdir($qrParent, 0755, true);
+                }
                 $j = 1;
                 for ($i = 0; $i < $get_qty; $i++) {
                     $change_index[$j] = $i + 1;
@@ -4140,6 +4235,9 @@ if ($form_name == 'edit_consignment_details_manual') {
 
     // Shipping Address
     $ship_address = $_POST['shipping_address'] ? $_POST['shipping_address'] : null;
+    $shipping_address_name = isset($_POST['shipping_address_name']) ? $_POST['shipping_address_name'] : '';
+    $shipping_gst_no = isset($_POST['shipping_gst_no']) ? $_POST['shipping_gst_no'] : '';
+    $shipping_phone = isset($_POST['shipping_phone']) ? $_POST['shipping_phone'] : '';
 
     $eway_expiryDate = $_POST['eway_expiryDate'] ? $_POST['eway_expiryDate'] : null;
     $eway_number = $_POST['eway_number'] ? $_POST['eway_number'] : null;
@@ -4153,16 +4251,48 @@ if ($form_name == 'edit_consignment_details_manual') {
     $mamul_charge = isset($_POST['mamul_charge']) ? $_POST['mamul_charge'] : null;
     $vehicle_halting_charge = isset($_POST['vehicle_halting_charge']) ? $_POST['vehicle_halting_charge'] : null;
     $vehicle_loading_unloading = isset($_POST['vehicle_loading_unloading']) ? $_POST['vehicle_loading_unloading'] : null;
+    $consignor_branch_id = isset($_POST['consignor_branch']) ? (int) $_POST['consignor_branch'] : 0;
+    $consignee_branch_id = isset($_POST['consignee_branch']) ? (int) $_POST['consignee_branch'] : 0;
+    $supplier_invoice_value = isset($_POST['supplier_invoice_value']) ? $_POST['supplier_invoice_value'] : '';
+    $description_of_goods = isset($_POST['description_of_goods']) ? $_POST['description_of_goods'] : '';
+    $quotation_approval = isset($_POST['quotation_approval']) ? $_POST['quotation_approval'] : '';
+    $highload_challan = isset($_POST['highload_challan']) ? $_POST['highload_challan'] : '';
+    $vehicle_purchase_contact_person = isset($_POST['vehicle_purchase_contact_person']) ? $_POST['vehicle_purchase_contact_person'] : '';
+    $volumetric_weight = isset($_POST['volumetric_weight']) ? $_POST['volumetric_weight'] : '';
+    $other_train_name = isset($_POST['other_train_name']) ? $_POST['other_train_name'] : null;
 
-    $query = "UPDATE $tables[0] SET mode_of_transportation='" . $mode_of_trasport . "',train_type = '$train_name',ftl_type = '$ftl_type',origin='" . $origin . "',destination='" . $destination . "',mode_of_consignment='" . $mode_of_consignment . "',consigner='" . $consignor . "',address1='$address1',address2='$address2',city='$city',pincode='$pincode',state='$state',phone='$phone',gst_no='$gst_no',consignee='$consignee',con_address1='$con_address1',con_address2='$con_address2',shipping_address='$ship_address',con_city='$con_city',con_state='$con_state',con_pincode='$con_pincode',con_phone='$con_phone',con_gst_no='" . $con_gst . "',goods_dedared_value='$goods_dedared_value',octroi='$octroi',dimension1='$len',dimension2='$wid',dimension3='$hei',dimension4='$quanti',consignment_weight='$vlm_wei',frieght_rate='$frieght_rate',frieght_amount='$frieght_amount',`loading_unloading_rate`='" . $loading_unload_rate . "',`loading_unloading_amount`='" . $loading_unload_chrg . "',`crane_fork_lift_rate`='" . $crane_forklift_rate . "',`crane_fork_lift_amount`='" . $crane_forklift_chrg . "',cod_rate='$cod_rate',cod_amount='$cod_amount',fov_rate='$fov_rate',fov_amount='$fov_amount',doc_charges='" . $doc_rate . "',doc_amount='" . $doc_amount . "',cartage_rate='$cartage_rate',cartage_amount='$cartage_amount',labour_handling_rate='" . $labour_rate . "',labour_handling_amount='" . $labour_amount . "',octroi_rate='$octroi_rate',octroi_amount='$octroi_amount',other_charge_rate='" . $other_rate . "',other_charge_amount='" . $other_amount . "',rajdhani_charges='$rajdhani_charges',gst_rate='$gst_rate',gst_amount='$gst_amount',total='$total',
-    paid_amount = '$total', balance = '0',paid_status = '1' ,total_words='" . $amount_in_words . "',note1='$note1',note2='$note2',truck='" . $vehicle_no . "',vehicle_type='$vehicle_type',
+    require_once('include/gst_tax_functions.php');
+    ensure_transaction_gst_columns($conn, $tables[0]);
+    $company_state_q = mysqli_query($conn, 'SELECT state FROM company WHERE status=0 LIMIT 1');
+    $company_state_row = mysqli_fetch_assoc($company_state_q);
+    $company_state_id = (int) ($company_state_row['state'] ?? 0);
+    $gst_snapshot = gst_tax_build_booking_snapshot($conn, $_POST, $company_state_id);
+    $gst_type = mysqli_real_escape_string($conn, $gst_snapshot['gst_type'] ?? '');
+    $gst_tax_id = (int) ($gst_snapshot['gst_tax_id'] ?? 0);
+    $gst_tax_code = mysqli_real_escape_string($conn, $gst_snapshot['gst_tax_code'] ?? '');
+    $cgst_rate = (float) ($gst_snapshot['cgst_rate'] ?? 0);
+    $sgst_rate = (float) ($gst_snapshot['sgst_rate'] ?? 0);
+    $igst_rate = (float) ($gst_snapshot['igst_rate'] ?? 0);
+    $cess_rate = (float) ($gst_snapshot['cess_rate'] ?? 0);
+    $cgst_amount = (float) ($gst_snapshot['cgst_amount'] ?? 0);
+    $sgst_amount = (float) ($gst_snapshot['sgst_amount'] ?? 0);
+    $igst_amount = (float) ($gst_snapshot['igst_amount'] ?? 0);
+    $cess_amount = (float) ($gst_snapshot['cess_amount'] ?? 0);
+    $taxable_value = (float) ($gst_snapshot['taxable_value'] ?? 0);
+    $bill_to_state_id = (int) ($gst_snapshot['bill_to_state_id'] ?? 0);
+    $gst_rate = (float) ($gst_snapshot['gst_rate'] ?? 0);
+    $gst_amount = (float) ($gst_snapshot['gst_amount'] ?? 0);
+    $total = (float) ($gst_snapshot['grand_total'] ?? $total);
+
+    $query = "UPDATE $tables[0] SET mode_of_transportation='" . $mode_of_trasport . "',train_type = '$train_name',ftl_type = '$ftl_type',origin='" . $origin . "',destination='" . $destination . "',mode_of_consignment='" . $mode_of_consignment . "',consigner='" . $consignor . "',address1='$address1',address2='$address2',city='$city',pincode='$pincode',state='$state',phone='$phone',gst_no='$gst_no',consignee='$consignee',con_address1='$con_address1',con_address2='$con_address2',shipping_address='$ship_address',shipping_address_name='$shipping_address_name',shipping_gst_no='$shipping_gst_no',shipping_phone='$shipping_phone',con_city='$con_city',con_state='$con_state',con_pincode='$con_pincode',con_phone='$con_phone',con_gst_no='" . $con_gst . "',goods_dedared_value='$goods_dedared_value',supplier_invoice_value='$supplier_invoice_value',description_of_goods='$description_of_goods',octroi='$octroi',dimension1='$len',dimension2='$wid',dimension3='$hei',dimension4='$quanti',volumetric_weight='$volumetric_weight',consignment_weight='$vlm_wei',frieght_rate='$frieght_rate',frieght_amount='$frieght_amount',`loading_unloading_rate`='" . $loading_unload_rate . "',`loading_unloading_amount`='" . $loading_unload_chrg . "',`crane_fork_lift_rate`='" . $crane_forklift_rate . "',`crane_fork_lift_amount`='" . $crane_forklift_chrg . "',cod_rate='$cod_rate',cod_amount='$cod_amount',fov_rate='$fov_rate',fov_amount='$fov_amount',doc_charges='" . $doc_rate . "',doc_amount='" . $doc_amount . "',cartage_rate='$cartage_rate',cartage_amount='$cartage_amount',labour_handling_rate='" . $labour_rate . "',labour_handling_amount='" . $labour_amount . "',octroi_rate='$octroi_rate',octroi_amount='$octroi_amount',other_charge_rate='" . $other_rate . "',other_charge_amount='" . $other_amount . "',rajdhani_charges='$rajdhani_charges',gst_rate='$gst_rate',gst_amount='$gst_amount',gst_type='$gst_type',gst_tax_id='$gst_tax_id',gst_tax_code='$gst_tax_code',cgst_rate='$cgst_rate',sgst_rate='$sgst_rate',igst_rate='$igst_rate',cess_rate='$cess_rate',cgst_amount='$cgst_amount',sgst_amount='$sgst_amount',igst_amount='$igst_amount',cess_amount='$cess_amount',taxable_value='$taxable_value',bill_to_state_id='$bill_to_state_id',total='$total',
+    paid_amount = '$total', balance = '0',paid_status = '1' ,total_words='" . $amount_in_words . "',note1='$note1',note2='$note2',truck='" . $vehicle_no . "',vehicle_type='$vehicle_type',vehicle_purchase_contact_person='$vehicle_purchase_contact_person',quotation_approval='$quotation_approval',highload_challan='$highload_challan',
 freight_paid_by='$freight_paid_by',
 insurance_number='$insurance_number',
 lc_number='$lc_number',
 cfs='$cfs',
 mamul_charge='$mamul_charge',
 vehicle_halting_charge='$vehicle_halting_charge',
-vehicle_loading_unloading='$vehicle_loading_unloading',  consigner_signature='" . $signature . "',updated_at = '" . $updated_at . "',updated_by ='" . $updated_by . "', eway_number = '$eway_number', eway_expirydate = '$eway_expiryDate' WHERE transaction_id='$edit_id'";
+vehicle_loading_unloading='$vehicle_loading_unloading',other_train_name='$other_train_name',consignor_branch_id='$consignor_branch_id',consignee_branch_id='$consignee_branch_id',consigner_signature='" . $signature . "',updated_at = '" . $updated_at . "',updated_by ='" . $updated_by . "', eway_number = '$eway_number', eway_expirydate = '$eway_expiryDate' WHERE transaction_id='$edit_id'";
     $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
 
     // status select while booking start

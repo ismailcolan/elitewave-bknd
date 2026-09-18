@@ -72,98 +72,23 @@ div#dataTable1_length {
 <div class="container-fluid main-content new_dpt_bottom">
   
 		<div class="row">
-		  <div class="col-md-3 master_left">
-			<div class="widget-container fluid-height clearfix">
-			  <div class="heading"> <i class="fa fa-plus"></i>Hub Master</div>
-			  
-			  <div class="widget-content padded">
-				<form class="form-horizontal" id="hub_form">
-				
-					<input type="hidden" id="form_name" name="form_name" value="add_hub">
-					<input type="hidden" id="edit_id" name="edit_id" value="">
-					
-					<div id="response" class="alert alert-danger" style="display:none;">
-						<div class="message" style="text-align:center"></div>
-					</div>
-					
-				  <div class="row">
-						<div class="col-md-12">
-							<div class="form-group">
-								<label class="control-label">Hub Code <span style="color:red;">*</span> :</label>
-								<input type="text" id="hub_code" name="hub_code" placeholder="E.g(201)" class="form-control" disabled/>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Hub Name <span style="color:red;">*</span> :</label>
-								<input type="text" name="hub_name" id="hub_name" class="form-control" required/>
-								<span class="dup-check"></span>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Hub Contact Person:</label>
-								<input type="text" name="contact_name" id="contact_name" class="form-control" />
-								
-							</div>
-							
-							<div class="form-group">
-								<label class="control-label">Hub Contact Number:</label>
-                                <input type="text" name="contact_no" id="contact_no" class="form-control"  pattern="\d{10}" minlength=10 maxlength=10 inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;" autocomplete="off"/>
-								
-							</div>
-							<div class="form-group">
-							<label class="control-label">Hub Route:</label>
-							<input type="radio"  name="route" class="route" id="route_main" value="Main" checked /> Main Hub
-							<input type="radio"  name="route" class="route" id="route_via" value="Via"  /> Via
-							</div>
-							
-							<div class="form-group">
-								<label class="control-label">If Via Main Hub <span style="color:red;">*</span> :</label>
-								<select name="main_hub" class="form-control" id="main_hub" required disabled >
-									<option value="">Select Main Hub</option>
-									<?php 
-										$state_query ="select * from hub where status=0 order by name";
-										$state_result = mysqli_query($conn,$state_query);
-										while($state_row= mysqli_fetch_array($state_result)){
-									?>
-									<option value="<?php echo $state_row['hub_id'] ?>"><?php echo $state_row['name']; ?></option>
-									<?php
-									}
-									?>
-								</select>
-							</div>
-							
-							<div class="form-group">
-								<label class="control-label">Cities Covered By Hub:</label>
-								<select name="cities[]" class="form-control" id="cities" multiple required />
-									<?php 
-										$state_query ="select * from city where status=0 order by city_name";
-										$state_result = mysqli_query($conn,$state_query);
-										while($state_row= mysqli_fetch_array($state_result)){
-									?>
-									<option value="<?php echo $state_row['city_id'] ?>"><?php echo $state_row['city_name']; ?></option>
-									<?php
-									}
-									?>
-								</select>
-							</div>
-							
-						</div>
-				 </div><br/>
-				   <div class="row">
-					<div class="col-md-12 form-action">
-						<button class="btn btn-primary" type="button" id="save">Submit</button>
-                        <a class="btn btn-default-outline  btn-reset" type="button" href="dashboard.php">Cancel</a>
-
-					</div>
-				  </div>
-				</form>
+		  <div class="col-md-12">
+			<div class="ew-page-v2 ew-page-v2--wide-table">
+			  <div class="ew-page-head">
+				<div class="ew-page-head-left">
+				  <h1 class="ew-page-title">Hub Master</h1>
+				</div>
 			  </div>
-			</div>
-		  </div>
-		  <div class=" col-md-9 master_right">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"> <i class="fa fa-table" ></i> List of Hub </div>
-						<div class="table-responsive">
-					<div class="widget-content padded clearfix new_dept">
-					
+			  <div class="ew-card">
+				<div class="ew-card-toolbar">
+				  <h2>Hub List</h2>
+				  <div class="ew-toolbar-right">
+					<button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreateHub">
+					  Create <i class="fa fa-plus"></i>
+					</button>
+				  </div>
+				</div>
+				<div class="ew-table-wrap widget-content padded clearfix new_dept">
                     <table class="table table-bordered table-striped hub_table" id="dataTable1">
 							<thead>
 								<th class="table-title hub_th" style="width:10%">S.No</th>
@@ -229,9 +154,9 @@ div#dataTable1_length {
 							</tbody>
 						</table>
 				</div>
-					</div>
-					</div>
-				</div>
+			  </div>
+			</div>
+		  </div>
 		</div>
 	
 
@@ -243,49 +168,58 @@ div#dataTable1_length {
 		$(document).ready(function(){
 
 			$('#cities').multiselect({
-							minHeight: 250,
-							minWidth: 1900,
-							//includeSelectAllOption: true
-							});
-				$('#cities').multiselect('rebuild');	
-				
-		//Duplication
-		var dup_chk = true;
-		function duplicate_check(){
-			var department_name = $("#department_name").val();
-			var edit_id = $("#edit_id").val();
-			$.ajax({
-				cache: false,
-				url: 'check_existing.php', // url where to submit the request
-				type : "GET", //type of action POST || GET
-				dataType : 'json',// data type
-				async: false,
-				data : {cmd: "chk_department",department_name:department_name, edit_id: edit_id}, // post data || get data
-				success : function(result) {
-				      $(".form-data-saving").hide();
-					dup_chk = true;
-					console.log(result);
-					if(result[0] == 1){
-						$(".dup-check").html(result[1]).css("color","#f00");
-						dup_chk = false;
-					}
-					else{
-						$(".dup-check").html(result[1]).css("color","green");
-					}
-				},
-				error: function(jqxhr) {
-					console.log(jqxhr.responseText);
-				}
+				buttonWidth: '100%',
+				buttonClass: 'btn btn-default',
+				maxHeight: 250
 			});
-		}
-		
-		$(document).on('change','.route',function(){
-				if($(this).val()=="Via")
-					$("#main_hub").prop('disabled',false);
-				else
-					$("#main_hub").prop('disabled',true);
-				
-		});
+			$('#cities').multiselect('rebuild');
+
+			function syncMainHubRoute() {
+				var isVia = $('#route_via').is(':checked');
+				var $mainHub = $('#main_hub');
+				if (isVia) {
+					$mainHub.prop('required', true);
+					$('#main_hub_required').show();
+					$('#main_hub_group').show();
+				} else {
+					$mainHub.prop('required', false).val('');
+					$('#main_hub_required').hide();
+					$('#main_hub_group').show();
+				}
+			}
+
+			$(document).on('change', '.route', syncMainHubRoute);
+			syncMainHubRoute();
+
+			var dup_chk = true;
+			function duplicate_check(){
+				var hub_name = $("#hub_name").val();
+				var edit_id = $("#edit_id").val();
+				$.ajax({
+					cache: false,
+					url: 'check_existing.php',
+					type : "GET",
+					dataType : 'json',
+					async: false,
+					data : {cmd: "chk_hub", hub_name: hub_name, edit_id: edit_id},
+					success : function(result) {
+						$(".form-data-saving").hide();
+						dup_chk = true;
+						if(result[0] == 1){
+							$(".dup-check").html(result[1]).css("color","#f00");
+							dup_chk = false;
+						}
+						else{
+							$(".dup-check").html(result[1]).css("color","green");
+						}
+					},
+					error: function(jqxhr) {
+						console.log(jqxhr.responseText);
+					}
+				});
+			}
+
+			$(document).on('change blur', '#hub_name', duplicate_check);
 	
 	$(document).on('keypress', '#contact_no', function(evt){
 				var value = $(this).val();
@@ -306,8 +240,9 @@ div#dataTable1_length {
 		//button Save
 			$(document).on('click','#save',function(){
 				var data = $('#hub_form').serialize();
-				
-				if($('#hub_form').valid() == true)
+				duplicate_check();
+
+				if($('#hub_form').valid() == true && dup_chk)
 				{
 					//$(this).attr("disabled",true);
 					$.ajax({
@@ -439,6 +374,22 @@ div#dataTable1_length {
 			});
 			
 			
+			$('#openCreateHub').on('click', function(){
+				$('#form_name').val('add_hub');
+				$('#edit_id').val('');
+				$('#hub_code').val('');
+				$('#hub_name').val('');
+				$('#contact_name').val('');
+				$('#contact_no').val('');
+				$('#route_main').prop('checked', true);
+				$('#main_hub').val('');
+				$('#cities').val([]);
+				$('#cities').multiselect('refresh');
+				syncMainHubRoute();
+				$('#hubModalTitle').text('Create Hub');
+				ewV2OpenModal('hubModal');
+			});
+
 			//	Button Edit
 			$(document).on('click', '.btn-edit', function(ev){
 				$(".form-data-saving").show();
@@ -461,15 +412,20 @@ div#dataTable1_length {
 						
 						if(result['route']=="Via"){
 							$("#route_via").prop("checked",true);
-							$("#main_hub").val(result['main_hubs']).prop("disabled",false);
-							
-						}
-						else{
+							$("#main_hub").val(result['main_hubs']);
+						} else {
 							$("#route_main").prop("checked",true);
-							$("#main_hub").prop("disabled",true).val("");
-							
+							$("#main_hub").val("");
 						}
-						
+						syncMainHubRoute();
+
+						if(result['covered_cities']){
+							var cityIds = result['covered_cities'].split(',');
+							$('#cities').val(cityIds);
+							$('#cities').multiselect('refresh');
+						}
+						$('#hubModalTitle').text('Edit Hub');
+						ewV2OpenModal('hubModal');
 					},
 					error: function(jqxhr) {
 						console.log(jqxhr.responseText);
@@ -482,10 +438,16 @@ div#dataTable1_length {
 			$(document).on('click', '.btn-reset', function(ev){
 				$('#form_name').val('add_hub');
 				$('#edit_id').val('');
-				$('#city_name').val('');
-				$('#city_code').val('');
-				$('#state_name').val('');
-				
+				$('#hub_code').val('');
+				$('#hub_name').val('');
+				$('#contact_name').val('');
+				$('#contact_no').val('');
+				$('#route_main').prop('checked', true);
+				$('#main_hub').val('');
+				$('#cities').val([]);
+				$('#cities').multiselect('refresh');
+				syncMainHubRoute();
+				ewV2CloseModal('hubModal');
 			});
 
 				
@@ -534,6 +496,79 @@ div#dataTable1_length {
 			    </div>
 			    <!--<span class="popup_close" id="popup_close">X</span>-->
 			</div>
+		</div>
+
+		<div class="ew-v2-modal-backdrop" id="hubModal">
+		  <div class="ew-v2-modal ew-v2-modal--lg">
+			<div class="ew-v2-modal-head">
+			  <h3 id="hubModalTitle">Create Hub</h3>
+			  <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+			</div>
+			<div class="ew-v2-modal-body">
+			  <form class="form-horizontal" id="hub_form">
+				<input type="hidden" id="form_name" name="form_name" value="add_hub">
+				<input type="hidden" id="edit_id" name="edit_id" value="">
+				<div id="response" class="alert alert-danger" style="display:none;">
+				  <div class="message" style="text-align:center"></div>
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Hub Code <span style="color:red;">*</span> :</label>
+				  <input type="text" id="hub_code" name="hub_code" placeholder="E.g(201)" class="form-control" disabled/>
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Hub Name <span style="color:red;">*</span> :</label>
+				  <input type="text" name="hub_name" id="hub_name" class="form-control" required/>
+				  <span class="dup-check"></span>
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Hub Contact Person:</label>
+				  <input type="text" name="contact_name" id="contact_name" class="form-control" />
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Hub Contact Number:</label>
+				  <input type="text" name="contact_no" id="contact_no" class="form-control" pattern="\d{10}" minlength=10 maxlength=10 inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;" autocomplete="off"/>
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Hub Route:</label>
+				  <input type="radio" name="route" class="route" id="route_main" value="Main" checked /> Main Hub
+				  <input type="radio" name="route" class="route" id="route_via" value="Via" /> Via
+				</div>
+				<div class="form-group" id="main_hub_group">
+				  <label class="control-label">If Via Main Hub <span id="main_hub_required" style="color:red;display:none;">*</span> :</label>
+				  <select name="main_hub" class="form-control" id="main_hub">
+					<option value="">Select Main Hub</option>
+					<?php 
+						$state_query ="select * from hub where status=0 order by name";
+						$state_result = mysqli_query($conn,$state_query);
+						while($state_row= mysqli_fetch_array($state_result)){
+					?>
+					<option value="<?php echo $state_row['hub_id'] ?>"><?php echo $state_row['name']; ?></option>
+					<?php
+					}
+					?>
+				  </select>
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Cities Covered By Hub:</label>
+				  <select name="cities[]" class="form-control" id="cities" multiple required />
+					<?php 
+						$state_query ="select * from city where status=0 order by city_name";
+						$state_result = mysqli_query($conn,$state_query);
+						while($state_row= mysqli_fetch_array($state_result)){
+					?>
+					<option value="<?php echo $state_row['city_id'] ?>"><?php echo $state_row['city_name']; ?></option>
+					<?php
+					}
+					?>
+				  </select>
+				</div>
+			  </form>
+			</div>
+			<div class="ew-v2-modal-foot">
+			  <button type="button" class="btn btn-default-outline btn-reset" data-ew-v2-close>Cancel</button>
+			  <button class="btn btn-primary" type="button" id="save">Submit</button>
+			</div>
+		  </div>
 		</div>
 		
   </body>

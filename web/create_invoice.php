@@ -9,6 +9,11 @@ $c_date = date('d-m-Y');
 $preview_no = billing_preview_invoice_number($conn, $c_date);
 $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM client WHERE status=0 ORDER BY client_company_name ASC');
 $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$is_edit = ($edit_id > 0);
+if (!$is_edit && empty($_GET['create'])) {
+	header('Location: invoice_list.php');
+	exit;
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -17,178 +22,19 @@ $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 	<?php include('include/css_js.php'); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<style>
-		.invoice-header-bar {
-			background: linear-gradient(185deg, var(--ew-navy) 0%, var(--ew-navy-deep) 100%);
-			color: #fff;
-			padding: 16px 24px;
-			border-radius: 8px 8px 0 0;
-			font-size: 18px;
-			font-weight: 700;
-		}
-		.invoice-header-bar i { margin-right: 8px; }
-		.filter-section { padding: 24px 24px 28px; border: 1px solid #e9ecef; border-top: none; background: #fff; }
-		.filter-form-wrap { max-width: 980px; margin: 0 auto; }
-		.filter-row { margin-bottom: 16px; }
-		.filter-row .form-group { margin-bottom: 0; width: 100%; }
-		.filter-label {
-			display: block;
-			font-weight: 600;
-			font-size: 13px;
-			margin-bottom: 7px;
-			color: #1e293b;
-		}
-		.filter-label .required-star { color: #dc2626; }
-		.field-hint {
-			display: block;
-			margin-top: 6px;
-			font-size: 12px;
-			color: #64748b;
-			line-height: 1.4;
-		}
-		.invoice-top-meta {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: flex-end;
-			gap: 20px 28px;
-			padding-bottom: 20px;
-			margin-bottom: 20px;
-			border-bottom: 1px solid #e9ecef;
-		}
-		.invoice-top-meta .meta-block { flex: 1 1 180px; min-width: 0; }
-		.invoice-top-meta .meta-block-date { flex: 0 1 200px; }
-		.invoice-top-meta .meta-block-actions { flex: 0 0 auto; margin-left: auto; }
-		#invoice_no_preview {
-			display: inline-block;
-			min-width: 220px;
-			padding: 9px 16px;
-			font-size: 15px;
-			font-weight: 700;
-			color: #0A1E3D;
-			background: linear-gradient(135deg, #f0f4ff 0%, #e8eef8 100%);
-			border: 2px solid #0A1E3D;
-			border-radius: 8px;
-			letter-spacing: 0.04em;
-			box-shadow: 0 1px 3px rgba(10, 30, 61, 0.08);
-		}
-		.invoice-select-panel {
-			background: #f8fafc;
-			border: 1px solid #e5e7eb;
-			border-radius: 10px;
-			padding: 18px 20px 14px;
-		}
-		.invoice-select-panel-title {
-			font-size: 12px;
-			font-weight: 700;
-			color: #64748b;
-			text-transform: uppercase;
-			letter-spacing: 0.06em;
-			margin: 0 0 14px;
-		}
-		.invoice-select-panel-title i { margin-right: 6px; color: #0A1E3D; }
 		.billing-type-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 		.billing-type-section { margin-bottom: 10px; }
 		.billing-type-section-title {
-			font-size: 11px;
-			font-weight: 700;
-			color: #64748b;
-			text-transform: uppercase;
-			letter-spacing: 0.04em;
-			margin-bottom: 6px;
+			font-size: 11px; font-weight: 700; color: #64748b;
+			text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;
 		}
 		.billing-type-group label {
-			margin: 0;
-			padding: 6px 14px;
-			border: 1px solid #D8DDE5;
-			border-radius: 20px;
-			font-size: 12px;
-			font-weight: 600;
-			cursor: pointer;
-			background: #fff;
-			color: #334155;
+			margin: 0; padding: 6px 14px; border: 1px solid #D8DDE5; border-radius: 20px;
+			font-size: 12px; font-weight: 600; cursor: pointer; background: #fff; color: #334155;
 		}
 		.billing-type-group input { display: none; }
 		.billing-type-group input:checked + span,
-		.billing-type-group label.active {
-			background: #0A1E3D;
-			border-color: #0A1E3D;
-			color: #fff;
-		}
-		#lines_table { font-size: 12px; margin-bottom: 0; border-collapse: collapse; width: 100%; }
-		#lines_table th {
-			background: #0A1E3D !important;
-			color: #fff !important;
-			white-space: nowrap;
-			font-size: 11px;
-			font-weight: 600;
-			padding: 8px 6px;
-			border: none !important;
-			border-bottom: 2px solid #061528 !important;
-		}
-		#lines_table td {
-			vertical-align: middle;
-			white-space: nowrap;
-			padding: 6px 6px;
-			border: none !important;
-			border-bottom: 1px solid #e9ecef !important;
-			background: #fff;
-		}
-		#lines_table tbody tr:nth-child(even) td { background: #f9fafb; }
-		#lines_table tfoot td {
-			background: #f8fafc;
-			font-weight: 700;
-			border: none !important;
-			border-top: 2px solid #dee2e6 !important;
-		}
-		#lines_table tfoot .totals-row td.text-right { text-align: right !important; }
-		#lines_table .num { text-align: right; }
-		#lines_table th.col-actions,
-		#lines_table td.col-actions {
-			width: 44px;
-			min-width: 44px;
-			max-width: 44px;
-			text-align: center;
-			padding: 4px 2px !important;
-		}
-		#lines_table .col-actions .act-remove {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			width: 26px;
-			height: 26px;
-			border: none !important;
-			border-radius: 4px;
-			background: #fee2e2;
-			color: #dc2626;
-			text-decoration: none !important;
-			cursor: pointer;
-		}
-		#lines_table .col-actions .act-remove:hover { background: #fecaca; color: #b91c1c; }
-		.btn-row { margin-top: 20px; }
-		.btn1 { font-weight: 600; padding: 8px 20px !important; border-radius: 4px !important; margin-right: 8px; }
-		.table-section { display: none; margin-top: 20px; }
-		.table-scroll-wrapper {
-			overflow-x: auto;
-			border: 1px solid #e5e7eb;
-			border-radius: 6px;
-		}
-		.filter-row .form-group { margin-bottom: 0; width: 100%; }
-		.filter-section select.form-control,
-		.filter-section select.filter-select {
-			display: block;
-			width: 100% !important;
-			height: 38px !important;
-			min-height: 38px;
-			border: 1px solid #D8DDE5 !important;
-			border-radius: 8px !important;
-			background: #fff !important;
-			padding: 4px 8px;
-			font-size: 13px;
-			color: #334155;
-			box-shadow: none;
-		}
-		.search-gcn-row { margin-top: 4px; }
-		#btn_search_gcn { min-width: 120px; font-weight: 600; }
-		#btn_pdf_download { display: none; font-weight: 600; }
+		.billing-type-group label.active { background: #0A1E3D; border-color: #0A1E3D; color: #fff; }
 	</style>
 </head>
 <body class="page-header-fixed bg-1">
@@ -198,58 +44,60 @@ $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 	</div>
 	<div class="container-fluid main-content new_dpt_bottom">
 		<div class="row">
-			<div class="col-md-offset-1 col-md-10">
-				<div class="widget-container fluid-height clearfix">
-					<div class="invoice-header-bar"><i class="fa fa-file-text-o"></i> Create Tax Invoice</div>
-					<div class="filter-section">
-						<div class="filter-form-wrap">
+			<div class="col-md-12">
+				<div class="ew-page-v2 ew-page-v2--invoice">
+					<div class="ew-page-head">
+						<div class="ew-page-head-left">
+							<a href="invoice_list.php" class="ew-back-btn" title="Back to list"><i class="fa fa-arrow-left"></i></a>
+							<h1 class="ew-page-title"><?php echo $is_edit ? 'Edit Tax Invoice' : 'Create Tax Invoice'; ?></h1>
+						</div>
+						<div class="ew-toolbar-right">
+							<a href="invoice_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+						</div>
+					</div>
+					<div class="ew-card ew-invoice-details-card">
+						<h2 class="ew-card-section-title">Invoice Details</h2>
+						<div class="ew-form-body">
 							<input type="hidden" id="billing_invoice_id" value="<?php echo $edit_id; ?>">
 
-							<div class="invoice-top-meta">
-								<div class="meta-block">
-									<label class="filter-label">Invoice No</label>
-									<div id="invoice_no_preview"><?php echo htmlspecialchars($preview_no); ?></div>
+							<div class="ew-form-grid ew-form-grid--invoice">
+								<div class="ew-field span-2">
+									<label>Invoice No</label>
+									<div class="ew-invoice-no-display" id="invoice_no_preview"><?php echo htmlspecialchars($preview_no); ?></div>
 								</div>
-								<div class="meta-block meta-block-date">
-									<label class="filter-label">Date <span class="required-star">*</span></label>
+								<div class="ew-field">
+									<label>Date <span class="req">*</span></label>
 									<?php echo ew_date_input(array('id' => 'invoice_date', 'value' => $c_date, 'required' => true, 'readonly' => true)); ?>
 								</div>
-								<div class="meta-block meta-block-actions">
-									<a href="#" class="btn btn-success btn1" id="btn_pdf_download" target="_blank"><i class="fa fa-download"></i> Download PDF</a>
+								<div class="ew-field ew-field--invoice-actions">
+									<label class="ew-invoice-actions-label">&nbsp;</label>
+									<a href="#" class="ew-btn-v2 ew-btn-v2-outline ew-btn-pdf" id="btn_pdf_download" target="_blank"><i class="fa fa-download"></i> Download PDF</a>
 								</div>
-							</div>
 
-							<div class="invoice-select-panel">
-								<div class="invoice-select-panel-title"><i class="fa fa-filter"></i> Select Consignments</div>
-								<div class="row filter-row">
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="filter-label">Select Customer <span class="required-star">*</span></label>
-											<select id="customers" class="form-control filter-select">
-												<option value=""></option>
-												<?php while ($cust = mysqli_fetch_assoc($customers_q)) { ?>
-													<option value="<?php echo (int) $cust['client_id']; ?>"><?php echo htmlspecialchars($cust['client_company_name']); ?></option>
-												<?php } ?>
-											</select>
-										</div>
-									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="filter-label">GCN No <span class="required-star">*</span></label>
-											<select id="gcn_keys" class="form-control filter-select" multiple="multiple"></select>
-											<small class="field-hint" id="gcn_result_hint">Select a customer to load delivered GCNs. GCNs already used on an invoice are not shown.</small>
-										</div>
-									</div>
+								<div class="ew-section-label"><i class="fa fa-filter"></i> Select Consignments</div>
+
+								<div class="ew-field span-2">
+									<label>Select Customer <span class="req">*</span></label>
+									<select id="customers" class="form-control filter-select">
+										<option value=""></option>
+										<?php while ($cust = mysqli_fetch_assoc($customers_q)) { ?>
+											<option value="<?php echo (int) $cust['client_id']; ?>"><?php echo htmlspecialchars($cust['client_company_name']); ?></option>
+										<?php } ?>
+									</select>
+								</div>
+								<div class="ew-field span-2">
+									<label>GCN No <span class="req">*</span></label>
+									<select id="gcn_keys" class="form-control filter-select" multiple="multiple"></select>
+									<p class="ew-field-hint" id="gcn_result_hint">Select a customer to load delivered GCNs. GCNs already used on an invoice are not shown.</p>
 								</div>
 							</div>
 						</div>
 					</div>
-				</div>
 
-				<div class="widget-container fluid-height clearfix table-section" id="table_section">
-					<div class="heading"><i class="fa fa-table"></i> Invoice Consignment Details</div>
-					<div class="widget-content padded clearfix">
-						<div class="table-scroll-wrapper">
+				<div class="ew-card ew-invoice-lines-card table-section" id="table_section">
+					<h2 class="ew-card-section-title">Invoice Consignment Details</h2>
+					<div class="ew-table-wrap ew-invoice-table-wrap">
+						<div class="ew-invoice-table-scroll">
 							<table class="table" id="lines_table">
 								<thead>
 									<tr>
@@ -262,16 +110,18 @@ $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 								<tfoot id="lines_foot"></tfoot>
 							</table>
 						</div>
-						<div class="btn-row">
-							<button type="button" class="btn btn-default btn1" id="btn_cancel">Cancel</button>
-							<button type="button" class="btn btn-warning btn1" id="btn_draft">Save as Draft</button>
-							<button type="button" class="btn btn-primary btn1" id="btn_generate"><i class="fa fa-check"></i> Generate Invoice</button>
-						</div>
 					</div>
+					<div class="ew-form-footer ew-invoice-form-footer">
+						<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_cancel">Cancel</button>
+						<button type="button" class="ew-btn-v2 ew-btn-v2-draft" id="btn_draft">Save as Draft</button>
+						<button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="btn_generate"><i class="fa fa-check"></i> Generate Invoice</button>
+					</div>
+				</div>
 				</div>
 			</div>
 		</div>
-	<?php require_once('include/footer.php'); ?>
+		<?php require_once('include/footer.php'); ?>
+	</div>
 </div>
 
 <script type="text/javascript">

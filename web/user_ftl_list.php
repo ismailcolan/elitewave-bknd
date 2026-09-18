@@ -76,12 +76,21 @@ th.table-title.sorting {
         </div>
     <div class="container-fluid main-content new_dpt_bottom">
         <div class="row">
-            <div class="col-md-offset-1 col-md-10">
-                <div class="widget-container fluid-height clearfix">
-                    <div class="heading"> <i class="fa fa-table"></i> List FTL Quotation </div>
-                    <div class="widget-content padded clearfix new_dept">
+            <div class="col-md-12">
+                <div class="ew-page-v2 ew-page-v2--wide-table">
+                    <div class="ew-page-head">
+                        <div class="ew-page-head-left">
+                            <h1 class="ew-page-title">Pending FTL Quotation</h1>
+                        </div>
+                    </div>
+                    <div class="ew-card">
+                        <div class="ew-card-toolbar">
+                            <h2>List of FTL Quotation</h2>
+                        </div>
+                        <div class="ew-table-wrap widget-content padded clearfix new_dept">
                         <table class="table table-bordered ftl_tbl table-striped" id="dataTable1">
                             <thead>
+                                <tr>
                                 <th class="table-title" style="width:1%">S.No</th>
                                 <th class="table-title" style="width:5%">GRN No</th>
                                 <th class="table-title" style="width:5%">GRN Date</th>
@@ -94,6 +103,7 @@ th.table-title.sorting {
                                 <!-- <th class="table-title" style="width:1%">Consignor</th>
 								<th class="table-title" style="width:1%">Consignee</th> -->
                                 <th class="table-title" style="width:1%">Action</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 <?php
@@ -171,8 +181,8 @@ th.table-title.sorting {
                             </tbody>
                         </table>
 
+                        </div>
                     </div>
-
                 </div>
             </div>
         </div>

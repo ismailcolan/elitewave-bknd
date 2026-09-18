@@ -14,7 +14,7 @@ include_once('include/function.php');
 			pointer-events:none;
 			cursor:default;
 		}
-        .widget-container .widget-content {
+        .ew-table-wrap {
     width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
@@ -47,13 +47,24 @@ th.table-title.sorting {
           <?php include_once('include/header.php');?>
           <?php include_once('include/menu.php');?>
           </div>
-      </div>
       <div class="container-fluid main-content new_dpt_bottom">
           <div class="row">
-              <div class="col-md-offset-1 col-md-10">
-                  <div class="widget-container fluid-height clearfix">
-			 	       <div class="heading"> <i class="fa fa-table" ></i> List of Consigner Charges <span class="align-right"><i class="fa fa-plus" ></i> <a href="consigner_payment_form.php">Add Charges</a></span> </div>
-                        <div class="widget-content padded clearfix new_dept">
+              <div class="col-md-12">
+                  <div class="ew-page-v2 ew-page-v2--wide-table">
+                      <div class="ew-page-head">
+                          <div class="ew-page-head-left">
+                              <h1 class="ew-page-title">Consigner Charges</h1>
+                          </div>
+                      </div>
+                      <div class="ew-card ew-erp-list">
+                          <div class="ew-card-toolbar">
+                              <h2>All Charges</h2>
+                              <div class="ew-toolbar-right">
+                                  <div class="ew-list-toolbar__tools"></div>
+                                  <a href="consigner_payment_form.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
+                              </div>
+                          </div>
+                          <div class="ew-table-wrap widget-content padded clearfix new_dept">
 						<table class="table table-bordered table-striped consigner_payl" id="dataTable1">
 							<thead>
 								<th class="table-title" style="width:1%">S.No</th>
@@ -97,7 +108,7 @@ th.table-title.sorting {
                                     <td>
                                     
 										<!-- <a title="Invoice" href="user_invoice_generate.php?key=<?php //echo md5($row['user_id']);?>" class="table-actions btn-invoice " data-toggle="modal" id="<?php //echo $row['user_id'] ?>"><i class="fa fa-file"></i></a> -->
-									<a title="Edit" href="consigner_payment_form.php?key=<?php echo md5($row['id']);?>" class="table-actions btn-invoice " data-toggle="modal" id="<?php echo $row['id'] ?>"><i class="fa fa-file"></i></a>
+									<a title="Edit" href="consigner_payment_form.php?key=<?php echo md5($row['id']);?>" class="table-actions btn-edit" id="<?php echo $row['id'] ?>"><i class="fa fa-pencil"></i></a>
 
 									<a title="Delete" href="#myModal" class="table-actions btn-trash" data-toggle="modal" id="<?php echo $row['id'] ?>"><i class="fa fa-trash-o"></i></a>
                                     </td>
@@ -109,14 +120,14 @@ th.table-title.sorting {
 	
 							</tbody>
 						</table>
-				
-					</div>
-                      
+                          </div>
+                      </div>
                   </div>
               </div>
           </div>
 		<?php require_once("include/footer.php"); ?>
           
+      </div>
       </div>
     <script type="text/javascript">
     $(document).ready(function(){

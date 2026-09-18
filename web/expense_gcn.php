@@ -6,6 +6,12 @@ require_once('include/expense_gcn_helpers.php');
 expense_gcn_ensure_schema($conn);
 expense_require_admin();
 
+$has_edit = !empty($_GET['gcn_key']) || !empty($_GET['group_id']);
+if (!$has_edit && empty($_GET['create'])) {
+	header('Location:expense_gcn_list.php');
+	exit;
+}
+
 $c_date = date('d-m-Y');
 $gcn_rows = expense_gcn_fetch_gcns($conn);
 $vendor_rows = expense_gcn_vendor_options($conn);
@@ -29,17 +35,21 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 		.egcn-page { max-width: none; width: 100%; margin: 0; }
 
+		.egcn-page .ew-card .ew-form-body {
+			padding: 16px 20px 20px;
+		}
+
 		.egcn-shell {
 			background: #fff;
 			border: 1px solid #e2e8f0;
 			border-radius: 12px;
 			box-shadow: 0 4px 24px rgba(15, 23, 42, .06);
 			overflow: hidden;
-			margin-top: 4px;
+			margin: 0;
 		}
 
 		.egcn-toolbar {
-			padding: 20px 24px;
+			padding: 24px 28px;
 			background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
 			border-bottom: 1px solid #e2e8f0;
 		}
@@ -179,7 +189,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 		}
 
 		.egcn-summary-zone {
-			padding: 16px;
+			padding: 20px;
 			background: #f8fafc;
 			flex: 1 1 auto;
 		}
@@ -465,7 +475,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 		.egcn-panel-title i { margin-right: 8px; color: #64748b; }
 
-		.egcn-panel-body { padding: 16px 20px 20px; }
+		.egcn-panel-body { padding: 20px 24px 24px; }
 
 		.egcn-table-wrap {
 			overflow-x: auto;
@@ -487,18 +497,18 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 		#expense_lines_table th {
 			font-size: 11px;
 			white-space: nowrap;
-			background: #0A1E3D !important;
-			color: #fff !important;
-			padding: 12px 10px;
+			background: var(--rail-bg, #DDE7F0) !important;
+			color: var(--ew-text, #1A2332) !important;
+			padding: 14px 12px;
 			vertical-align: middle;
 			border: none !important;
-			font-weight: 600;
+			font-weight: 700;
 			letter-spacing: .03em;
 		}
 
 		#expense_lines_table td {
 			vertical-align: middle;
-			padding: 10px 8px;
+			padding: 14px 12px;
 			background: #fff;
 			border-bottom: 1px solid #eef2f7 !important;
 		}
@@ -532,8 +542,8 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 		#expense_lines_table thead th.col-action {
 			z-index: 3;
-			background: #0A1E3D !important;
-			border-left: 1px solid rgba(255,255,255,.12) !important;
+			background: var(--rail-bg, #DDE7F0) !important;
+			border-left: 1px solid var(--panel-border, #C5D3E0) !important;
 			box-shadow: none;
 		}
 
@@ -640,7 +650,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 		.egcn-panel-footer {
 			border-top: 1px solid #e2e8f0;
 			background: #f8fafc;
-			padding: 18px 20px;
+			padding: 20px 24px;
 			display: flex;
 			justify-content: flex-end;
 			align-items: center;
@@ -726,11 +736,18 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 		<div class="container-fluid main-content new_dpt_bottom">
 			<div class="row">
 				<div class="col-md-12 egcn-page">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"><i class="fa fa-file-text-o"></i> Expense against GCN
-							<span class="align-right"><a href="expense_gcn_list.php"><i class="fa fa-list"></i> View List</a></span>
+					<div class="ew-page-v2">
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<a href="expense_gcn_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+								<h1 class="ew-page-title">Expense against GCN</h1>
+							</div>
+							<div class="ew-toolbar-right">
+								<a href="expense_gcn_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+							</div>
 						</div>
-						<div class="widget-content padded clearfix">
+						<div class="ew-card">
+							<div class="ew-form-body">
 							<div class="egcn-shell">
 
 						<div class="egcn-toolbar">
@@ -854,6 +871,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 							</div>
 						</div>
 							</div>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -882,6 +900,28 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 		function formatMoney(v) {
 			var n = parseMoney(v);
 			return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+		}
+
+		function getCategoryDefaultAmount(categoryId) {
+			var amt = 0;
+			$.each(categoryOptions || [], function(i, c) {
+				if (String(c.category_id) === String(categoryId)) {
+					amt = parseMoney(c.default_amount);
+					return false;
+				}
+			});
+			return amt;
+		}
+
+		function applyLineTypeDefault($row) {
+			if (!$row || !$row.length || $row.data('skip-type-default')) {
+				return;
+			}
+			var amt = getCategoryDefaultAmount(getSelectVal($row.find('.line-expense-type')));
+			if (amt > 0) {
+				$row.find('.line-amount').val(formatMoney(amt));
+				updateSummary();
+			}
 		}
 
 		function vendorSelectHtml(selected) {
@@ -1023,6 +1063,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 				$('#expense_lines_body').append($row);
 			}
 			initLineSelects($row);
+			$row.data('skip-type-default', true);
 			if (data.vendor_id) {
 				setSelectVal($row.find('.line-vendor'), data.vendor_id);
 				syncSelectTitle($row.find('.line-vendor'));
@@ -1030,6 +1071,12 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			if (data.category_id) {
 				setSelectVal($row.find('.line-expense-type'), data.category_id);
 				syncSelectTitle($row.find('.line-expense-type'));
+			}
+			$row.data('skip-type-default', false);
+			if (data.expense_amount) {
+				$row.find('.line-amount').val(data.expense_amount);
+			} else if (data.category_id) {
+				applyLineTypeDefault($row);
 			}
 			if (typeof initEwDatepickers === 'function') {
 				initEwDatepickers('#' + rowId);
@@ -1350,6 +1397,9 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 			$(document).on('change', '.line-vendor, .line-expense-type', function() {
 				syncSelectTitle($(this));
+				if ($(this).hasClass('line-expense-type')) {
+					applyLineTypeDefault($(this).closest('tr'));
+				}
 			});
 
 			$(document).on('change keyup', '.line-amount', function() {

@@ -25,6 +25,10 @@
     });
   }
 
+  function isListSearchFocused() {
+    return $(document.activeElement).closest('.dataTables_filter, .ew-search-wrap, .ew-erp-search').length > 0;
+  }
+
   $(document).ready(function () {
     moveSearchToToolbar();
     window.setTimeout(moveSearchToToolbar, 300);
@@ -33,8 +37,18 @@
   $(window).on('load', moveSearchToToolbar);
 
   if ($.fn.dataTable) {
-    $(document).on('init.dt draw.dt', function () {
+    $(document).on('init.dt', function () {
       window.setTimeout(moveSearchToToolbar, 50);
+    });
+    $(document).on('draw.dt', function () {
+      if (isListSearchFocused()) {
+        return;
+      }
+      window.setTimeout(function () {
+        if (!isListSearchFocused()) {
+          moveSearchToToolbar();
+        }
+      }, 50);
     });
   }
 })(jQuery);

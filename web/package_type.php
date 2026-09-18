@@ -78,50 +78,23 @@ th.table-title.sorting_disabled {
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <div class="col-md-3 master_left">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-plus"></i>Package Type</div>
-
-                        <div class="widget-content padded">
-                            <form class="form-horizontal" id="package_form">
-
-                                <input type="hidden" id="form_name" name="form_name" value="add_package">
-                                <input type="hidden" id="edit_id" name="edit_id" value="">
-
-                                <div id="response" class="alert alert-danger" style="display:none;">
-                                    <div class="message" style="text-align:center"></div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label class="control-label">Package Code <span style="color:red;">*</span> :</label>
-                                            <input type="text" id="package_code" name="package_code" class="form-control" required  autocomplete="off"/>
-
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Description:</label>
-                                            <input type="text" name="description" id="description" class="form-control" required autocomplete="off"/>
-
-
-                                        </div>
-
-                                    </div>
-                                </div><br />
-                                <div class="row">
-                                    <div class="col-md-12 form-action">
-                                        <button class="btn btn-primary" type="button" id="save">Submit</button>
-                                        <a class="btn btn-default-outline  btn-reset" type="button" href="package_type.php">Cancel</a>
-                                    </div>
-                                </div>
-                            </form>
+                <div class="col-md-12">
+                    <div class="ew-page-v2">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">Package Type</h1>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class=" col-md-9 master_right">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-table"></i> List of Package Type </div>
-                        <div class="widget-content padded clearfix new_dept">
+                        <div class="ew-card">
+                            <div class="ew-card-toolbar">
+                                <h2>Package Type List</h2>
+                                <div class="ew-toolbar-right">
+                                    <button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreatePackage">
+                                        Create <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="ew-table-wrap widget-content padded clearfix new_dept">
                             <table class="table table-bordered table-striped package_ty_tabl" id="dataTable1">
                                 <thead>
                                     <th class="table-title" style="width:10%">S.No</th>
@@ -168,7 +141,7 @@ th.table-title.sorting_disabled {
 
                                 </tbody>
                             </table>
-
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -348,6 +321,15 @@ th.table-title.sorting_disabled {
                 });
 
 
+                $('#openCreatePackage').on('click', function() {
+                    $('#form_name').val('add_package');
+                    $('#edit_id').val('');
+                    $('#package_code').val('');
+                    $('#description').val('');
+                    $('#packageModalTitle').text('Create Package Type');
+                    ewV2OpenModal('packageModal');
+                });
+
                 //	Button Edit
                 $(document).on('click', '.btn-edit', function(ev) {
                     $(".form-data-saving").show();
@@ -368,7 +350,8 @@ th.table-title.sorting_disabled {
                             $("#edit_id").val(result['package_id']);
                             $("#package_code").val(result['package_code']);
                             $('#description').val(result['description']);
-
+                            $('#packageModalTitle').text('Edit Package Type');
+                            ewV2OpenModal('packageModal');
                         },
                         error: function(jqxhr) {
                             ewToast(jqxhr.responseText, 'error');
@@ -379,10 +362,11 @@ th.table-title.sorting_disabled {
 
                 //Button Reset
                 $(document).on('click', '.btn-reset', function(ev) {
-                    $('#form_name').val('add_branch');
+                    $('#form_name').val('add_package');
                     $('#edit_id').val('');
-                    $('#department_name').val('');
-                    $('#department_code').val('');
+                    $('#package_code').val('');
+                    $('#description').val('');
+                    ewV2CloseModal('packageModal');
                 });
 
 
@@ -430,6 +414,36 @@ th.table-title.sorting_disabled {
                     <button class="btn btn-sm btn-danger delete-error-popup-close" id="">Close</button> <br /> &nbsp; <br />
                 </div>
                 <!--<span class="popup_close" id="popup_close">X</span>-->
+            </div>
+        </div>
+
+        <div class="ew-v2-modal-backdrop" id="packageModal">
+            <div class="ew-v2-modal">
+                <div class="ew-v2-modal-head">
+                    <h3 id="packageModalTitle">Create Package Type</h3>
+                    <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+                </div>
+                <div class="ew-v2-modal-body">
+                    <form class="form-horizontal" id="package_form">
+                        <input type="hidden" id="form_name" name="form_name" value="add_package">
+                        <input type="hidden" id="edit_id" name="edit_id" value="">
+                        <div id="response" class="alert alert-danger" style="display:none;">
+                            <div class="message" style="text-align:center"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Package Code <span style="color:red;">*</span> :</label>
+                            <input type="text" id="package_code" name="package_code" class="form-control" required autocomplete="off"/>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Description:</label>
+                            <input type="text" name="description" id="description" class="form-control" required autocomplete="off"/>
+                        </div>
+                    </form>
+                </div>
+                <div class="ew-v2-modal-foot">
+                    <button type="button" class="btn btn-default-outline btn-reset" data-ew-v2-close>Cancel</button>
+                    <button class="btn btn-primary" type="button" id="save">Submit</button>
+                </div>
             </div>
         </div>
 

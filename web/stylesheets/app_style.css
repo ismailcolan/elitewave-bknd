@@ -938,8 +938,8 @@ inspector-stylesheet:1 .scrolltop {
 }
 
 .table-title {
-    background: #04243D;
-    color: #FFF !important;
+    background: var(--rail-bg, #DDE7F0);
+    color: var(--ew-text, #1A2332) !important;
     font-size: 12px !important;
     font-weight: 700 !important;
     text-align: center;

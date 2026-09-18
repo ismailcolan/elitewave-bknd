@@ -118,32 +118,37 @@ th.table-title.sorting_disabled {
 <div class="container-fluid main-content new_dpt_bottom">
   
 		<div class="row">
-		  <div class="col-md-offset-1 col-md-10 master_left">
-				<div class="widget-container fluid-height clearfix">
-						<div class="heading"> <i class="fa fa-table" ></i> List of Vehicle <span class="align-right"><i class="fa fa-plus" ></i><a href="vehicle.php">Add Vehicle</a> </span></div>
-					<div class="widget-content padded clearfix new_dept">
+		  <div class="col-md-12">
+			<div class="ew-page-v2 ew-page-v2--wide-table">
+			  <div class="ew-page-head">
+				<div class="ew-page-head-left">
+				  <h1 class="ew-page-title">Vehicle List</h1>
+				</div>
+			  </div>
+			  <div class="ew-card ew-erp-list">
+				<div class="ew-card-toolbar">
+				  <h2>All Vehicles</h2>
+				  <div class="ew-toolbar-right">
+					<div class="ew-list-toolbar__tools"></div>
+					<a href="vehicle.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
+				  </div>
+				</div>
+				<div class="ew-table-wrap widget-content padded clearfix new_dept">
 						<table class="table table-bordered table-striped vehicle_tab" id="dataTable1">
 							<thead>
 							<tr>
-								<th class="table-title" rowspan=2>S.No</th>
-								<th class="table-title" width="10%" rowspan=2>Vehicle Number</th>
-								<th class="table-title" rowspan=2>Vehicle Type</th>
-								<th class="table-title" width="10%" rowspan=2>Registration Certificate(RC)</th>
-								<th class="table-title">Fitness Certificate(FC)</th>
-								<th class="table-title">Insurance</th>
-								<th class="table-title">Road Tax</th>
-								<th class="table-title">Interstate Permit</th>
-								<th class="table-title">Emission</th>
-								<th class="table-title" rowspan=2>Finance</th>
-								<th class="table-title" rowspan=2>Vehicle Status</th>
-								<th class="table-title" rowspan=2>Action</th>
-							</tr>
-							<tr>
-								<th class="table-title"> Upto</th>
-								<th class="table-title"> Upto</th>
-								<th class="table-title"> Upto</th>
-								<th class="table-title"> Upto</th>
-								<th class="table-title"> Upto</th>
+								<th class="table-title">S.No</th>
+								<th class="table-title">Vehicle Number</th>
+								<th class="table-title">Vehicle Type</th>
+								<th class="table-title">Registration (RC)</th>
+								<th class="table-title">Fitness (FC)<br><span class="ew-th-sub">Upto</span></th>
+								<th class="table-title">Insurance<br><span class="ew-th-sub">Upto</span></th>
+								<th class="table-title">Road Tax<br><span class="ew-th-sub">Upto</span></th>
+								<th class="table-title">Interstate Permit<br><span class="ew-th-sub">Upto</span></th>
+								<th class="table-title">Emission<br><span class="ew-th-sub">Upto</span></th>
+								<th class="table-title">Finance</th>
+								<th class="table-title">Vehicle Status</th>
+								<th class="table-title sorting_disabled">Action</th>
 							</tr>
 							</thead>
 							<tbody>
@@ -197,9 +202,10 @@ th.table-title.sorting_disabled {
 	
 							</tbody>
 						</table>
-				
-					</div>
-					</div>
+				</div>
+			  </div>
+			</div>
+		  </div>
 		</div>
 	
 

@@ -31,12 +31,21 @@ $old_status=$row['status'];
       
 	</div>
 <div class="container-fluid main-content new_dpt_bottom">
-  
 		<div class="row">
-		<div class="col-md-offset-1 col-md-10">
-		<div class="widget-container fluid-height clearfix">
-		<div class="heading"> <i class="fa fa-table" ></i><?php echo $row['sheet_no']; ?> Status Sheet Edit<span class="align-right"><i class="fa fa-plus"></i><a href="status_sheet_list.php">View List</a></span> </div>
-					  <div class="widget-content padded">
+		<div class="col-md-12">
+		<div class="ew-page-v2 ew-page-v2--wide-table ew-page-v2--status-sheet">
+		<div class="ew-page-head">
+			<div class="ew-page-head-left">
+				<a href="status_sheet_list.php" class="ew-back-btn" title="Back to list"><i class="fa fa-arrow-left"></i></a>
+				<h1 class="ew-page-title"><?php echo htmlspecialchars($row['sheet_no']); ?> — Edit</h1>
+			</div>
+			<div class="ew-toolbar-right">
+				<a href="status_sheet_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+			</div>
+		</div>
+		<div class="ew-card">
+			<h2 class="ew-card-section-title">Status Sheet Details</h2>
+			<div class="ew-form-body" style="padding:0 24px 24px;">
 				<form class="form-horizontal" id="transaction_form">
 				
 					<input type="hidden" id="form_name" name="form_name" value="edit_change_grn_status">
@@ -203,12 +212,10 @@ $old_status=$row['status'];
 				  </div>	
 				 
 				</form>
-			  </div>
-			  </div>
-			  </div>
 			</div>
-		  
-		 
+		</div>
+		</div>
+		</div>
 		</div>
 	
 

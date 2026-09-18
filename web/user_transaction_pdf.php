@@ -141,17 +141,20 @@ $get_consinee_query =mysqli_query($conn,"select * from client where client_id='"
 $get_consignee_det = mysqli_fetch_assoc($get_consinee_query);
 
 
+$consignor_addr_gcn = htmlspecialchars(ew_format_party_address_gcn($get_consigner_det, $conn));
+$consignee_addr_gcn = htmlspecialchars(ew_format_party_address_gcn($get_consignee_det, $conn));
+
 $out_put .='<table border="1"  class="border"   cellpadding="3">
 				<tr>
 				<td style="height:80px"><table>
 				<tr><td style="width:25%">Consignor:</td><td style="width:75%;"> '.get_client_name($conn,$consigner).' </td></tr>
-				<tr><td style="height:40px;">Address</td><td style="font-size:11px;">'.$get_consigner_det['address1']." ".$get_consigner_det['address2'].",".get_city_name($conn,$get_consigner_det['city']).",<br>".$get_consigner_det['pincode'].",".get_statename($conn,$get_consigner_det['state']).'</td></tr>
+				<tr><td style="height:40px;">Address</td><td style="font-size:11px;">'.$consignor_addr_gcn.'</td></tr>
 				<tr><td>GST NO</td><td>'.$get_consigner_det['gst_no'].'</td></tr>
 				<tr><td>Phone No:</td><td>'.$get_consigner_det['phone'].'</td></tr>				
 				</table> </td>
 				<td> <table>
 				<tr><td style="width:25%">Consignee:</td><td style="width:75%;">'.get_client_name($conn,$consignee).'</td></tr>
-				<tr><td style="height:40px;">Address</td><td style="font-size:11px;">'.$get_consignee_det['address1']." ".$get_consignee_det['address2'].",".get_city_name($conn,$get_consignee_det['city']).",<br>".$get_consignee_det['pincode'].",".get_statename($conn,$get_consignee_det['state']).'</td></tr>
+				<tr><td style="height:40px;">Address</td><td style="font-size:11px;">'.$consignee_addr_gcn.'</td></tr>
 				<tr><td>GST NO</td><td>'.$get_consignee_det['gst_no'].'</td></tr>
 				<tr><td>Phone No:</td><td>'.$get_consignee_det['phone'].'</td></tr>				
 				</table></td>

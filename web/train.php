@@ -73,74 +73,23 @@ th.table-title.sorting_disabled {
 <div class="container-fluid main-content new_dpt_bottom">
   
 		<div class="row">
-		  <div class="col-md-3 master_left">
-			<div class="widget-container fluid-height clearfix">
-			  <div class="heading"> <i class="fa fa-plus"></i>Train Master</div>
-			  
-			  <div class="widget-content padded">
-				<form class="form-horizontal" id="train_form">
-				
-					<input type="hidden" id="form_name" name="form_name" value="add_train">
-					<input type="hidden" id="edit_id" name="edit_id" value="">
-					
-					<div id="response" class="alert alert-danger" style="display:none;">
-						<div class="message" style="text-align:center"></div>
-					</div>
-					
-				  <div class="row">
-						<div class="col-md-12">
-							<div class="form-group">
-								<label class="control-label">Train Name <span style="color:red;">*</span> :</label>
-								<input type="text" id="train_name" name="train_name" placeholder="Train Name" class="form-control" required/>
-							</div>
-							<div class="form-group">
-								<label class="control-label">Train Number:</label>
-								<input type="text" name="train_number" id="train_number" class="form-control" />
-								
-							</div>
-							<div class="form-group">
-								<label class="control-label">Loading Point 1 <span style="color:red;">*</span> :</label>
-								<input type="text" name="loading_point1_id" id="loading_point1_id" class="form-control" required/>
-								<input type="hidden" name="loading_point1" id="loading_point1" class="form-control" />
-							</div>
-							
-							<div class="form-group">
-								<label class="control-label">Loading Point 2 <span style="color:red;">*</span> :</label>
-								<input type="text" name="loading_point2_id" id="loading_point2_id" class="form-control" required/>
-								<input type="hidden" name="loading_point2" id="loading_point2" class="form-control" />
-							</div>
-							<div class="form-group">
-								<label class="control-label">Loading Point 3:</label>
-								<input type="text" name="loading_point3_id" id="loading_point3_id" class="form-control" />
-								<input type="hidden" name="loading_point3" id="loading_point3" class="form-control" />
-							</div>
-							
-							<div class="form-group">
-								<label class="control-label">Loading Point 4:</label>
-								<input type="text" name="loading_point4_id" id="loading_point4_id" class="form-control" />
-								<input type="hidden" name="loading_point4" id="loading_point4" class="form-control" />
-							</div>
-							<div class="form-group">
-								<label class="control-label">Journey Hours :</label>
-								<input type="text" name="journey_hours" id="journey_hours" class="form-control" />
-								
-							</div>
-						</div>
-				 </div><br/>
-				   <div class="row">
-					<div class="col-md-12 form-action">
-						<button class="btn btn-primary" type="button" id="save">Submit</button>
-						<a class="btn btn-default-outline  btn-reset" type="button" href="train.php">Cancel</a>
-					</div>
-				  </div>
-				</form>
+		  <div class="col-md-12">
+			<div class="ew-page-v2 ew-page-v2--wide-table">
+			  <div class="ew-page-head">
+				<div class="ew-page-head-left">
+				  <h1 class="ew-page-title">Train Master</h1>
+				</div>
 			  </div>
-			</div>
-		  </div>
-		  <div class=" col-md-9 master_right">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"> <i class="fa fa-table" ></i> List of Trains </div>
-					<div class="widget-content padded clearfix new_dept">
+			  <div class="ew-card">
+				<div class="ew-card-toolbar">
+				  <h2>Train List</h2>
+				  <div class="ew-toolbar-right">
+					<button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreateTrain">
+					  Create <i class="fa fa-plus"></i>
+					</button>
+				  </div>
+				</div>
+				<div class="ew-table-wrap widget-content padded clearfix new_dept">
 						<table class="table table-bordered table-striped train_tabl" id="dataTable1">
 							<thead>
 								<th class="table-title" style="width:10%">S.No</th>
@@ -196,12 +145,11 @@ th.table-title.sorting_disabled {
 	
 							</tbody>
 						</table>
-				
-					</div>
-					</div>
 				</div>
+			  </div>
+			</div>
+		  </div>
 		</div>
-	
 
 		<?php require_once("include/footer.php"); ?>
 	</div>	
@@ -211,10 +159,10 @@ th.table-title.sorting_disabled {
 		$(document).ready(function(){
 
 			$('#cities').multiselect({
-							minHeight: 250,
-							minWidth: 1900,
-							//includeSelectAllOption: true
-							});
+				buttonWidth: '100%',
+				buttonClass: 'btn btn-default',
+				maxHeight: 250
+			});
 				$('#cities').multiselect('rebuild');	
 				
 		//Duplication
@@ -466,6 +414,18 @@ th.table-title.sorting_disabled {
 						}
 					}
 				});
+			$('#openCreateTrain').on('click', function(){
+				$('#form_name').val('add_train');
+				$('#edit_id').val('');
+				$('#train_name').val('');
+				$('#train_number').val('');
+				$('#loading_point1, #loading_point2, #loading_point3, #loading_point4').val('');
+				$('#loading_point1_id, #loading_point2_id, #loading_point3_id, #loading_point4_id').val('');
+				$('#journey_hours').val('');
+				$('#trainModalTitle').text('Create Train');
+				ewV2OpenModal('trainModal');
+			});
+
 			//	Button Edit
 			$(document).on('click', '.btn-edit', function(ev){
 				$(".form-data-saving").show();
@@ -492,6 +452,8 @@ th.table-title.sorting_disabled {
 						$("#loading_point3_id").val(result['city_name3']);
 						$("#loading_point4_id").val(result['city_name4']);
 						$("#journey_hours").val(result['journey_hours']);
+						$('#trainModalTitle').text('Edit Train');
+						ewV2OpenModal('trainModal');
 					},
 					error: function(jqxhr) {
 						console.log(jqxhr.responseText);
@@ -502,12 +464,14 @@ th.table-title.sorting_disabled {
 			
 			//Button Reset
 			$(document).on('click', '.btn-reset', function(ev){
-				$('#form_name').val('add_hub');
+				$('#form_name').val('add_train');
 				$('#edit_id').val('');
-				$('#city_name').val('');
-				$('#city_code').val('');
-				$('#state_name').val('');
-				
+				$('#train_name').val('');
+				$('#train_number').val('');
+				$('#loading_point1, #loading_point2, #loading_point3, #loading_point4').val('');
+				$('#loading_point1_id, #loading_point2_id, #loading_point3_id, #loading_point4_id').val('');
+				$('#journey_hours').val('');
+				ewV2CloseModal('trainModal');
 			});
 
 				
@@ -556,6 +520,60 @@ th.table-title.sorting_disabled {
 			    </div>
 			    <!--<span class="popup_close" id="popup_close">X</span>-->
 			</div>
+		</div>
+
+		<div class="ew-v2-modal-backdrop" id="trainModal">
+		  <div class="ew-v2-modal ew-v2-modal--lg">
+			<div class="ew-v2-modal-head">
+			  <h3 id="trainModalTitle">Create Train</h3>
+			  <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+			</div>
+			<div class="ew-v2-modal-body">
+			  <form class="form-horizontal" id="train_form">
+				<input type="hidden" id="form_name" name="form_name" value="add_train">
+				<input type="hidden" id="edit_id" name="edit_id" value="">
+				<div id="response" class="alert alert-danger" style="display:none;">
+				  <div class="message" style="text-align:center"></div>
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Train Name <span style="color:red;">*</span> :</label>
+				  <input type="text" id="train_name" name="train_name" placeholder="Train Name" class="form-control" required/>
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Train Number:</label>
+				  <input type="text" name="train_number" id="train_number" class="form-control" />
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Loading Point 1 <span style="color:red;">*</span> :</label>
+				  <input type="text" name="loading_point1_id" id="loading_point1_id" class="form-control" required/>
+				  <input type="hidden" name="loading_point1" id="loading_point1" class="form-control" />
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Loading Point 2 <span style="color:red;">*</span> :</label>
+				  <input type="text" name="loading_point2_id" id="loading_point2_id" class="form-control" required/>
+				  <input type="hidden" name="loading_point2" id="loading_point2" class="form-control" />
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Loading Point 3:</label>
+				  <input type="text" name="loading_point3_id" id="loading_point3_id" class="form-control" />
+				  <input type="hidden" name="loading_point3" id="loading_point3" class="form-control" />
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Loading Point 4:</label>
+				  <input type="text" name="loading_point4_id" id="loading_point4_id" class="form-control" />
+				  <input type="hidden" name="loading_point4" id="loading_point4" class="form-control" />
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Journey Hours :</label>
+				  <input type="text" name="journey_hours" id="journey_hours" class="form-control" />
+				</div>
+			  </form>
+			</div>
+			<div class="ew-v2-modal-foot">
+			  <button type="button" class="btn btn-default-outline btn-reset" data-ew-v2-close>Cancel</button>
+			  <button class="btn btn-primary" type="button" id="save">Submit</button>
+			</div>
+		  </div>
 		</div>
 		
   </body>

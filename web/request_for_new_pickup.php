@@ -45,12 +45,21 @@ if (isset($_GET['key']) && $_GET['key'] != "") {
 <div class="container-fluid main-content new_dpt_bottom">
   
 		<div class="row">
-		  <div class="col-md-offset-1 col-md-10">
-			<div class="widget-container fluid-height clearfix">
-			  <div class="heading"> <i class="fa fa-plus"></i> Request For PickUp  <span class="align-right"><i class="fa fa-plus"></i><a href="pickup_list.php">View List</a></span></div>
-			  
-			  <div class="widget-content padded">
-				<form class="form-horizontal" id="pickup_form">
+		  <div class="col-md-12">
+			<div class="ew-page-v2">
+			  <div class="ew-page-head">
+				<div class="ew-page-head-left">
+				  <a href="pickup_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+				  <h1 class="ew-page-title">Request For PickUp</h1>
+				</div>
+				<div class="ew-toolbar-right">
+				  <a href="pickup_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+				</div>
+			  </div>
+			  <div class="ew-card">
+				<h2 class="ew-card-section-title">Pickup Details</h2>
+				<div class="ew-form-body">
+				<form id="pickup_form">
 				
 					<input type="hidden"
        id="form_name"
@@ -65,14 +74,12 @@ if (isset($_GET['key']) && $_GET['key'] != "") {
 						<div class="message" style="text-align:center"></div>
 					</div>
 					
-				  <div class="row">
-						<div class="col-md-offset-1 col-md-5">
-						
-							<div class="form-group">
+				  <div class="ew-form-grid">
+							<div class="ew-field">
 								<label class="control-label">Pickup Request Id:</label>
 								<input type="text" id="pickup_ref_id" name="pickup_ref_id" value="<?php echo $row['pickup_ref_id']; ?>" class="form-control" placeholder="E.g (RFP/00001)" disabled/>
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Origin <span style="color:red;">*</span> :</label>
 								<select type="text" name="origin" id="origin"  class="form-control" required/>								
 								<option value="">Select City</option>
@@ -97,7 +104,7 @@ if(isset($row['origin']))
 								
 								</select>
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Consignee <span style="color:red;">*</span> :</label>
 								<select type="text" name="consignee" id="consignee" class="form-control" required/>
 								
@@ -122,7 +129,7 @@ if(isset($row['consignee']))
 										?>
 										</select>
 							</div>
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Mode Of Transport:</label>
 								<select name="mode" id="mode" class="form-control" required>
 								<option value="">Select Mode</option>
@@ -140,15 +147,12 @@ if(isset($row['consignee']))
 								</select>
 							</div>
 							
-							<div class="form-group">
+							<div class="ew-field span-4">
 								<label class="control-label">Description:</label>
 								<textarea name="description" id="description" class="form-control"><?php echo $row['description']; ?></textarea>
-								</div>
-						
-						</div>
-						<div class="col-md-5">
+							</div>
 							
-							<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Consignor <span style="color:red;">*</span> :</label>
 								
 								<select  name="consignor" id="consignor" class="form-control" required>
@@ -156,20 +160,20 @@ if(isset($row['consignee']))
 									
 									</select>
 							</div>
-								<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Destination <span style="color:red;">*</span> :</label>
 								<select  name="city" id="city" class="form-control" required>
 										<option value="">Select City</option>
 										
 									</select>
 							</div>
-						<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">No.of Pakages :</label>
 								<input type="text" name="no_of_package" id="no_of_package" value="<?php echo $row['no_of_package']; ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
 								<span class="dup-check"></span>
 							</div>
 						
-						<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Package Type:</label>
 								
 								<select  name="package" id="package" class="form-control" required>
@@ -184,29 +188,22 @@ if(isset($row['consignee']))
 											}
 										?>
 									</select>
-									
 							</div>
 						
-						<div class="form-group">
+							<div class="ew-field">
 								<label class="control-label">Approx.Weight (kg):</label>
 								<input type="text" name="approx_weight" id="approx_weight" class="form-control" value="<?php echo $row['approx_weight']; ?>" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
 							</div>
-						
-						
-						
-						</div>
-				 </div><br/>
-				   <div class="row">
-					<div class="col-md-12 form-action">
-						<button class="btn btn-primary" type="button" id="save">Submit</button>
-                        <a class="btn btn-default-outline  btn-reset" type="button" href="request_for_new_pickup.php">Cancel</a>
-					</div>
-				  </div>
+				 </div>
 				</form>
+				</div>
+				<div class="ew-form-footer">
+				  <a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="request_for_new_pickup.php">Cancel</a>
+				  <button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save">Submit</button>
+				</div>
 			  </div>
 			</div>
 		  </div>
-
 		</div>
 	</div>
 

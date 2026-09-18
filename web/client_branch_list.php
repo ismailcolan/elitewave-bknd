@@ -67,10 +67,22 @@ th.table-title.sorting_disabled {
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <div class="col-md-offset-1 col-md-10">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-table"></i> List of Client Branch <span class="align-right"><i class="fa fa-plus"></i><a href="client_branch.php">Add Client Branch</a> </span></div>
-                        <div class="widget-content padded clearfix new_dept">
+                <div class="col-md-12">
+                    <div class="ew-page-v2">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">Client Branch</h1>
+                            </div>
+                        </div>
+                        <div class="ew-card ew-erp-list">
+                            <div class="ew-card-toolbar">
+                                <h2>Client Branch List</h2>
+                                <div class="ew-toolbar-right">
+                                    <div class="ew-list-toolbar__tools"></div>
+                                    <a href="client_branch.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
+                                </div>
+                            </div>
+                            <div class="ew-table-wrap widget-content padded clearfix new_dept">
                             <table class="table table-bordered table-striped client_branch_litb" id="dataTable1">
                                 <thead>
                                     <th class="table-title" style="width:10%">S.No</th>
@@ -120,6 +132,7 @@ th.table-title.sorting_disabled {
                                 </tbody>
                             </table>
 
+                            </div>
                         </div>
                     </div>
                 </div>

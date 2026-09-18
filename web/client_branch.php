@@ -1,14 +1,32 @@
 <?php
 require_once("include/connect.php");
 require_once("include/function.php");
-$key = $_REQUEST['key'];
-if ($key != '') {
-    $client_query = "select * from client_branch where md5(client_branch_id)='" . $key . "'";
+$key = $_REQUEST['key'] ?? '';
+$is_edit = ($key != '');
+if (!$is_edit && empty($_GET['create'])) {
+    header('Location:client_branch_list.php');
+    exit;
+}
+$client_branch_row = array(
+    'company_id' => '',
+    'branch_name' => '',
+    'branch_contact_person' => '',
+    'contact_no' => '',
+    'address1' => '',
+    'address2' => '',
+    'state' => '',
+    'city' => '',
+    'pincode' => '',
+    'email' => '',
+);
+if ($is_edit) {
+    $client_query = "select * from client_branch where md5(client_branch_id)='" . mysqli_real_escape_string($conn, $key) . "'";
     $client_result = mysqli_query($conn, $client_query);
-    $client_count = mysqli_num_rows($client_result);
-    if ($client_count == 0) {
+    if (!$client_result || mysqli_num_rows($client_result) == 0) {
         header('Location:client_branch_list.php');
+        exit;
     }
+    $client_branch_row = mysqli_fetch_array($client_result);
 }
 ?>
 <!DOCTYPE html>
@@ -39,122 +57,109 @@ if ($key != '') {
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <div class="col-md-offset-1 col-md-10">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-plus"></i>Client Branch <span class="align-right"> <i class="fa fa-table"></i><a href="client_branch_list.php">View List</a></span></div>
-
-                        <div class="widget-content padded">
-                            <form class="form-horizontal" id="client_branch_form">
-                                <?php
-                                $client_branch_query = "select * from client_branch where md5(client_branch_id)='" . $key . "'";
-                                $client_branch_result = mysqli_query($conn, $client_branch_query);
-                                $client_branch_row = mysqli_fetch_array($client_branch_result);
-                                ?>
+                <div class="col-md-12">
+                    <div class="ew-page-v2">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <a href="client_branch_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+                                <h1 class="ew-page-title"><?php echo $is_edit ? 'Edit Client Branch' : 'Add Client Branch'; ?></h1>
+                            </div>
+                            <div class="ew-toolbar-right">
+                                <a href="client_branch_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+                            </div>
+                        </div>
+                        <div class="ew-card">
+                            <div class="ew-form-body">
+                            <form id="client_branch_form">
                                 <input type="hidden" id="form_name" name="form_name" value="add_client_branch">
-                                <input type="hidden" id="edit_id" name="edit_id" value="<?php echo $key; ?>">
+                                <input type="hidden" id="edit_id" name="edit_id" value="<?php echo htmlspecialchars($key); ?>">
 
                                 <div id="response" class="alert alert-danger" style="display:none;">
                                     <div class="message" style="text-align:center"></div>
                                 </div>
 
-                                <div class="row">
-                                    <div class="col-md-offset-1 col-md-5">
-                                        <div class="form-group">
-                                            <label class="control-label">Select Client Company <span style="color:red;">*</span> :</label>
-                                            <select type="text" id="company_id" name="company_id" class="form-control" required>
-                                                <option value="">-- Select Company --</option>
-                                                <?php
-                                                $clientcom_query = "select * from client where status='0' order by client_company_name";
-                                                $clientc_result = mysqli_query($conn, $clientcom_query);
-                                                while ($client_com_r = mysqli_fetch_array($clientc_result)) {
-                                                    echo '<option value="' . $client_com_r['client_id'] . '" >' . $client_com_r['client_company_name'] . '</option>';
-                                                }
-
-
-                                                ?>
-
-                                            </select>
-                                         
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Branch Name <span style="color:red;">*</span> :</label>
-                                            <input type="text" name="branch_name" id="branch_name" value="<?php echo $client_branch_row['branch_name'];  ?>" class="form-control" required autocomplete="off" />
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Branch Contact Person <span style="color:red;">*</span> :</label>
-                                            <input type="text" class="form-control" value="<?php echo $client_branch_row['branch_contact_person'];  ?>" name="contact_person" id="contact_person" required autocomplete="off">
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Contact No <span style="color:red;">*</span> :</label>
-                                            <input type="text" name="contact_no" pattern="\d{10}" minlength=10 maxlength=10 value="<?php echo $client_branch_row['contact_no'];  ?>" id="contact_no" class="form-control" required onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
-
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Address 1 <span style="color:red;">*</span> :</label>
-                                            <input type="text" id="address1" value="<?php echo $client_branch_row['address1'];  ?>" name="address1" class="form-control" required autocomplete="off" />
-                                        </div>
+                                <div class="ew-form-grid">
+                                    <div class="ew-section-label">Branch Details</div>
+                                    <div class="ew-field span-2">
+                                        <label class="control-label">Select Client Company <span style="color:red;">*</span> :</label>
+                                        <select id="company_id" name="company_id" class="form-control" required>
+                                            <option value="">-- Select Company --</option>
+                                            <?php
+                                            $clientcom_query = "select * from client where status='0' order by client_company_name";
+                                            $clientc_result = mysqli_query($conn, $clientcom_query);
+                                            while ($client_com_r = mysqli_fetch_array($clientc_result)) {
+                                                $selected = ($client_branch_row['company_id'] == $client_com_r['client_id']) ? ' selected' : '';
+                                                echo '<option value="' . $client_com_r['client_id'] . '"' . $selected . '>' . htmlspecialchars($client_com_r['client_company_name']) . '</option>';
+                                            }
+                                            ?>
+                                        </select>
                                     </div>
-                                    <div class="col-md-5">
-                                        <div class="form-group">
-                                            <label class="control-label">Address 2:</label>
-                                            <input type="text" name="address2" id="address2" value="<?php echo $client_branch_row['address2'];  ?>" class="form-control" autocomplete="off" />
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">State <span style="color:red;">*</span> :</label>
-                                            <select class="form-control" name="state" id="state" required>
-                                                <option value="">Select State</option>
-                                                <?php
-                                                $state_query = "select * from state where status=0 order by state_name";
-                                                $state_result = mysqli_query($conn, $state_query);
-                                                while ($state_row = mysqli_fetch_array($state_result)) {
-                                                ?>
-                                                    <option value="<?php echo $state_row['state_id'] ?>" <?php if ($client_branch_row['state'] == $state_row['state_id']) echo "selected"; ?>><?php echo $state_row['state_name']; ?></option>
-                                                <?php
-                                                }
-                                                ?>
-                                            </select>
-
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">City <span style="color:red;">*</span> :</label>
-                                            <select class="form-control" name="city" id="city" required> 
-                                                <option value="">Select City</option>
-                                                <?php
-                                                $city_query = "select * from city where status=0 order by city_name";
-                                                $city_result = mysqli_query($conn, $city_query);
-                                                while ($city_row = mysqli_fetch_array($city_result)) {
-                                                ?>
-                                                    <option value="<?php echo $city_row['city_id'] ?>" <?php if ($client_branch_row['city'] == $city_row['city_id']) echo "selected"; ?>><?php echo $city_row['city_name']; ?></option>
-                                                <?php
-                                                }
-                                                ?>
-                                            </select>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label class="control-label">Pincode:</label>
-                                            <input type="text" name="pincode" id="pincode" minlength=6  maxlength=6 value="<?php echo $client_branch_row['pincode']; ?>" class="form-control" autocomplete="off" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" />
-
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Email <span style="color:red;">*</span> :</label>
-                                            <input type="email" name="email" id="email" value="<?php echo $client_branch_row['email']; ?>" class="form-control" required autocomplete="off" />
-                                            <span class="dup-check"></span>
-                                        </div>
-
+                                    <div class="ew-field">
+                                        <label class="control-label">Branch Name <span style="color:red;">*</span> :</label>
+                                        <input type="text" name="branch_name" id="branch_name" value="<?php echo htmlspecialchars($client_branch_row['branch_name']); ?>" class="form-control" required autocomplete="off" />
+                                        <span class="dup-check"></span>
                                     </div>
-                                </div><br />
-                                <div class="row">
-                                    <div class="col-md-12 form-action">
-                                        <button class="btn btn-primary" type="button" id="save">Submit</button>
-                                        <a class="btn btn-default-outline  btn-reset" type="button" href="client_branch.php">Cancel</a>
+                                    <div class="ew-field">
+                                        <label class="control-label">Branch Contact Person <span style="color:red;">*</span> :</label>
+                                        <input type="text" class="form-control" value="<?php echo htmlspecialchars($client_branch_row['branch_contact_person']); ?>" name="contact_person" id="contact_person" required autocomplete="off">
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Contact No <span style="color:red;">*</span> :</label>
+                                        <input type="text" name="contact_no" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($client_branch_row['contact_no']); ?>" id="contact_no" class="form-control" required onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
+                                        <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field span-2">
+                                        <label class="control-label">Address 1 <span style="color:red;">*</span> :</label>
+                                        <input type="text" id="address1" value="<?php echo htmlspecialchars($client_branch_row['address1']); ?>" name="address1" class="form-control" required autocomplete="off" />
+                                    </div>
+                                    <div class="ew-field span-2">
+                                        <label class="control-label">Address 2:</label>
+                                        <input type="text" name="address2" id="address2" value="<?php echo htmlspecialchars($client_branch_row['address2']); ?>" class="form-control" autocomplete="off" />
+                                        <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">State <span style="color:red;">*</span> :</label>
+                                        <select class="form-control" name="state" id="state" required>
+                                            <option value="">Select State</option>
+                                            <?php
+                                            $state_query = "select * from state where status=0 order by state_name";
+                                            $state_result = mysqli_query($conn, $state_query);
+                                            while ($state_row = mysqli_fetch_array($state_result)) {
+                                            ?>
+                                                <option value="<?php echo $state_row['state_id']; ?>" <?php if ($client_branch_row['state'] == $state_row['state_id']) echo 'selected'; ?>><?php echo htmlspecialchars($state_row['state_name']); ?></option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">City <span style="color:red;">*</span> :</label>
+                                        <select class="form-control" name="city" id="city" required>
+                                            <option value="">Select City</option>
+                                            <?php
+                                            $city_query = "select * from city where status=0 order by city_name";
+                                            $city_result = mysqli_query($conn, $city_query);
+                                            while ($city_row = mysqli_fetch_array($city_result)) {
+                                            ?>
+                                                <option value="<?php echo $city_row['city_id']; ?>" <?php if ($client_branch_row['city'] == $city_row['city_id']) echo 'selected'; ?>><?php echo htmlspecialchars($city_row['city_name']); ?></option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Pincode:</label>
+                                        <input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" value="<?php echo htmlspecialchars($client_branch_row['pincode']); ?>" class="form-control" autocomplete="off" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" />
+                                        <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Email <span style="color:red;">*</span> :</label>
+                                        <input type="email" name="email" id="email" value="<?php echo htmlspecialchars($client_branch_row['email']); ?>" class="form-control" required autocomplete="off" />
+                                        <span class="dup-check"></span>
                                     </div>
                                 </div>
                             </form>
+                            </div>
+                            <div class="ew-form-footer">
+                                <a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="client_branch_list.php">Cancel</a>
+                                <button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save"><i class="fa fa-save"></i> Submit</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -170,10 +175,6 @@ if ($key != '') {
             $(document).ready(function() {
 
                 var edit_id = $("#edit_id").val();
-                var company_id = '<?php echo $client_branch_row['company_id'] ?>';
-
-                if (edit_id != "")
-                    $("#company_id").val(company_id);
 
                 //Duplication
                 var dup_chk = true;
@@ -244,7 +245,7 @@ if ($key != '') {
                                     $("#alert-container").addClass("alert-success").slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
                                         $("#alert-container").hide();
                                         $("#alert-container").removeClass("alert-success");
-                                        location.reload();
+                                        window.location.href = "client_branch_list.php";
                                     });
                                 } else {
                                     $(".form-data-saving").hide();
@@ -269,7 +270,7 @@ if ($key != '') {
                     $("#alert-container").addClass("alert-success").slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
                         $("#alert-container").hide();
                         $("#alert-container").removeClass("alert-success");
-                        location.reload();
+                        window.location.href = "client_branch_list.php";
                     });
                 });
                 //Button Delete

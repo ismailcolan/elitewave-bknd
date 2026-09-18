@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operations Preview — Elite Wave 360</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="stylesheets/font-awesome.min.css" rel="stylesheet">
+  <link href="stylesheets/ew-preview-shell.css?v=20260911" rel="stylesheet">
+</head>
+<body>
+
+  <div class="preview-banner">
+    <div>
+      <h1>Consignment Operations</h1>
+      <p>List + Create + Wide Table · <a class="preview-nav-link" href="pages_ui_preview_index.html">&larr; All previews</a></p>
+    </div>
+    <div class="preview-tabs">
+      <button type="button" class="preview-tab active" data-view="transactions">Transactions</button>
+      <button type="button" class="preview-tab" data-view="pickup">Pickup List</button>
+      <button type="button" class="preview-tab" data-view="status">Change Status</button>
+      <button type="button" class="preview-tab" data-view="draft">Draft Table</button>
+    </div>
+    <div class="preview-utils">
+      <button type="button" class="preview-util-btn" id="toggleSidebar">Toggle Submenu</button>
+      <span class="width-indicator">Width: <strong id="contentWidth">—</strong></span>
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="top-bar">
+      <div class="brand">EliteWave360<small>LOGISTICS</small></div>
+      <div class="spacer"></div>
+      <div class="top-user"><div class="avatar">EW</div><span>Administrator</span></div>
+    </header>
+    <div class="shell-body">
+      <aside class="dual-sidebar">
+        <nav class="icon-rail">
+          <button type="button" class="rail-item active"><i class="fa fa-truck"></i>Consign</button>
+        </nav>
+        <div class="sub-panel">
+          <div class="panel-head"><span class="panel-pill">Consignment</span></div>
+          <div class="panel-links">
+            <a href="#" class="panel-link">Book Consignment</a>
+            <a href="#" class="panel-link active">List of Consignments</a>
+            <a href="#" class="panel-link">Request Pickup</a>
+            <a href="#" class="panel-link">Transaction Status</a>
+          </div>
+        </div>
+      </aside>
+      <main class="main-content" id="mainContent">
+
+        <section id="view-transactions" class="preview-page active">
+          <div class="ew-page-head">
+            <div class="ew-page-head-left"><h1 class="ew-page-title">Transactions</h1></div>
+            <div class="ew-page-head-actions"><button class="ew-btn ew-btn-primary">Add Transaction <i class="fa fa-plus"></i></button></div>
+          </div>
+          <div class="ew-card">
+            <div class="ew-card-toolbar">
+              <h2>August 2026</h2>
+              <div class="ew-toolbar-right">
+                <div class="ew-search-wrap"><i class="fa fa-search"></i><input class="ew-search-input" placeholder="Search"></div>
+                <button class="ew-btn ew-btn-ghost"><i class="fa fa-upload"></i> Import</button>
+              </div>
+            </div>
+            <div class="ew-table-wrap">
+              <table class="ew-table">
+                <thead><tr><th class="col-center">S.No</th><th>GCN No</th><th>Date</th><th>Consignor</th><th>Consignee</th><th>Destination</th><th>Status</th><th class="col-actions">Actions</th></tr></thead>
+                <tbody>
+                  <tr><td class="col-center">1</td><td><strong>MUZ00023</strong></td><td>15-08-2026</td><td>Imaz</td><td>P A Footwear</td><td>Delhi</td><td><span class="ew-badge ew-badge-success">Delivered</span></td><td class="col-actions"><span class="ew-row-actions"><button class="ew-icon-btn"><i class="fa fa-pencil"></i></button><button class="ew-icon-btn"><i class="fa fa-print"></i></button></span></td></tr>
+                  <tr><td class="col-center">2</td><td><strong>MUZ00024</strong></td><td>16-08-2026</td><td>ABC Co</td><td>XYZ Ltd</td><td>Mumbai</td><td><span class="ew-badge ew-badge-warning">In Transit</span></td><td class="col-actions"><span class="ew-row-actions"><button class="ew-icon-btn"><i class="fa fa-pencil"></i></button></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="ew-table-footer">
+              <div class="ew-table-footer-left"><span>Showing 1 to 25 of 142 entries</span><select class="ew-page-size"><option>25</option></select></div>
+              <div class="ew-pagination"><button class="ew-page-btn active">1</button><button class="ew-page-btn">2</button><button class="ew-page-btn">Next &rarr;</button></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-pickup" class="preview-page">
+          <div class="ew-page-head"><h1 class="ew-page-title">Pickup List</h1></div>
+          <div class="ew-card">
+            <div class="ew-card-toolbar">
+              <h2>All Pickups</h2>
+              <div class="ew-toolbar-right"><button class="ew-btn ew-btn-primary">Request New Pickup <i class="fa fa-plus"></i></button></div>
+            </div>
+            <div class="ew-table-wrap">
+              <table class="ew-table">
+                <thead><tr><th class="col-center">S.No</th><th>RFP ID</th><th>Date</th><th>Consignor</th><th>Status</th><th class="col-actions">Action</th></tr></thead>
+                <tbody>
+                  <tr><td class="col-center">1</td><td>RFP/00001</td><td>02-01-2019</td><td>ABC Logistics</td><td><span class="ew-badge ew-badge-success">Picked Up</span></td><td class="col-actions"><span class="ew-row-actions"><button class="ew-icon-btn"><i class="fa fa-pencil"></i></button></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-status" class="preview-page">
+          <div class="ew-page-head"><h1 class="ew-page-title">Change Status</h1></div>
+          <div class="ew-card">
+            <div class="ew-card-toolbar"><h2>September 2026</h2><div class="ew-toolbar-right"><div class="ew-search-wrap"><i class="fa fa-search"></i><input class="ew-search-input" placeholder="Search"></div></div></div>
+            <div class="ew-table-wrap">
+              <table class="ew-table">
+                <thead><tr><th class="col-center">S.No</th><th>GCN No</th><th>Date</th><th>Consignor</th><th>Status</th><th>Change Status</th></tr></thead>
+                <tbody>
+                  <tr><td class="col-center">1</td><td>MUZ00030</td><td>01-09-2026</td><td>Client A</td><td><span class="ew-badge ew-badge-warning">Picked Up</span></td><td><!-- step buttons --><span class="ew-badge ew-badge-muted">Stage controls</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-draft" class="preview-page">
+          <div class="ew-page-head"><h1 class="ew-page-title">Draft Consignment</h1></div>
+          <div class="ew-card">
+            <div class="ew-card-toolbar"><h2>Draft Consignment List</h2><div class="ew-toolbar-right"><div class="ew-search-wrap"><i class="fa fa-search"></i><input class="ew-search-input" placeholder="Search"></div></div></div>
+            <div class="ew-table-wrap">
+              <table class="ew-table ew-table-wide">
+                <thead><tr><th class="col-center">S.No</th><th>Date</th><th>Consignor Name</th><th>Consignor Address</th><th>Consignor Contact</th><th>Consignor City</th><th>Consignee Name</th><th>Consignee Address</th><th>Status</th><th class="col-actions">Action</th></tr></thead>
+                <tbody>
+                  <tr><td class="col-center">1</td><td>11-09-2026</td><td>Imaz</td><td>34, Dummy Address, Mumbai...</td><td>9876543210</td><td>Mumbai</td><td>Receiver Co</td><td>Plot 12, Industrial Area...</td><td><span class="ew-badge ew-badge-warning">Draft</span></td><td class="col-actions"><button class="ew-icon-btn danger"><i class="fa fa-trash-o"></i></button></td></tr>
+                  <tr><td class="col-center">2</td><td>10-09-2026</td><td>kholi</td><td>Shop 5, Market Road...</td><td>9123456789</td><td>Pune</td><td>Buyer Ltd</td><td>Warehouse 3...</td><td><span class="ew-badge ew-badge-warning">Draft</span></td><td class="col-actions"><button class="ew-icon-btn danger"><i class="fa fa-trash-o"></i></button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="ew-table-footer">
+              <div class="ew-table-footer-left"><span>Showing 1 to 10 of 43 entries</span></div>
+              <div class="ew-pagination"><button class="ew-page-btn active">1</button><button class="ew-page-btn">2</button></div>
+            </div>
+          </div>
+          <div class="ew-compare"><h3>Template D — Wide Table</h3><ul><li>Horizontal scroll for 10+ columns</li><li>Drag-scroll compatible with existing JS</li></ul></div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+  <script src="javascripts/ew-preview-shell.js?v=20260911"></script>
+</body>
+</html>

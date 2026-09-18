@@ -11,7 +11,7 @@ include_once('include/user-function.php');
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <style>
-        .widget-container .widget-content {
+        .ew-table-wrap.widget-content {
     width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
@@ -68,14 +68,21 @@ div#dataTable1_length {
           </div>
       <div class="container-fluid main-content new_dpt_bottom">
           <div class="row">
-              <div class="col-md-offset-1 col-md-10">
-                  <div class="widget-container fluid-height clearfix">
-			 	       <div class="heading"> <i class="fa fa-table" ></i> List of Request For Pickup 
-                       <!-- <span class="align-right"><i class="fa fa-plus" ></i> <a href="client.php">Add Client</a></span> -->
-                     </div>
-                        <div class="widget-content padded clearfix new_dept">
+              <div class="col-md-12">
+                  <div class="ew-page-v2 ew-page-v2--wide-table">
+                      <div class="ew-page-head">
+                          <div class="ew-page-head-left">
+                              <h1 class="ew-page-title">Request For Pickup</h1>
+                          </div>
+                      </div>
+                      <div class="ew-card">
+                          <div class="ew-card-toolbar">
+                              <h2>List of Request For Pickup</h2>
+                          </div>
+                          <div class="ew-table-wrap widget-content padded clearfix new_dept">
 						<table class="table table-bordered table-striped user_requestpic" id="dataTable1">
 							<thead>
+								<tr>
 								<th class="table-title" >S.No</th>
 								<th class="table-title" style="width:5%">RFP No</th>
 								<th class="table-title" style="width:5%">Date</th>
@@ -91,7 +98,8 @@ div#dataTable1_length {
 								<th class="table-title" style="width:5%">Weight</th>
 								<th class="table-title" style="width:5%">Request By</th>
 								<th class="table-title" style="width:5%">Status</th>
-								<th class="table-title" style="width:8%">Action</th>                
+								<th class="table-title" style="width:8%">Action</th>
+								</tr>
 							</thead>
 							<tbody>
 							<?php 
@@ -176,8 +184,8 @@ div#dataTable1_length {
 							</tbody>
 						</table>
 				
-					</div>
-                      
+                        </div>
+                      </div>
                   </div>
               </div>
           </div>

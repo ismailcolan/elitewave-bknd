@@ -7,6 +7,10 @@ ensure_gst_tax_master_table($conn);
 
 $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $is_edit = $edit_id > 0;
+if (!$is_edit && empty($_GET['create'])) {
+    header('Location:gst_tax_master.php');
+    exit;
+}
 $row = array(
     'tax_code' => '',
     'tax_name' => '',
@@ -42,6 +46,22 @@ if ($is_edit) {
             color: #777;
             margin-top: 4px;
         }
+
+        .ew-page-v2 .ew-form-grid--gst-tax {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        @media (max-width: 991px) {
+            .ew-page-v2 .ew-form-grid--gst-tax {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .ew-page-v2 .ew-form-grid--gst-tax {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
@@ -56,14 +76,20 @@ if ($is_edit) {
 
         <div class="container-fluid main-content new_dpt_bottom">
             <div class="row">
-                <div class="col-md-offset-1 col-md-10">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading">
-                            <i class="fa fa-plus"></i> <?php echo $is_edit ? 'Edit GST Tax' : 'Add GST Tax'; ?>
-                            <span class="align-right"><i class="fa fa-table"></i> <a href="gst_tax_master.php">View List</a></span>
+                <div class="col-md-12">
+                    <div class="ew-page-v2">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <a href="gst_tax_master.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+                                <h1 class="ew-page-title"><?php echo $is_edit ? 'Edit GST Tax' : 'Add GST Tax'; ?></h1>
+                            </div>
+                            <div class="ew-toolbar-right">
+                                <a href="gst_tax_master.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+                            </div>
                         </div>
-                        <div class="widget-content padded">
-                            <form class="form-horizontal ew-validated-form" id="gst_tax_form" data-ew-validate="1">
+                        <div class="ew-card">
+                            <div class="ew-form-body">
+                            <form class="ew-validated-form" id="gst_tax_form" data-ew-validate="1">
                                 <input type="hidden" id="form_name" name="form_name" value="<?php echo $is_edit ? 'edit_gst_tax_master' : 'add_gst_tax_master'; ?>">
                                 <input type="hidden" id="edit_id" name="edit_id" value="<?php echo $is_edit ? $edit_id : ''; ?>">
 
@@ -71,94 +97,66 @@ if ($is_edit) {
                                     <div class="message" style="text-align:center"></div>
                                 </div>
 
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="control-label">Tax Code <span class="req-star">*</span> :</label>
-                                            <input type="text" name="tax_code" id="tax_code" class="form-control" required maxlength="30"
-                                                value="<?php echo htmlspecialchars($row['tax_code']); ?>"
-                                                autocomplete="off" style="text-transform:uppercase;" placeholder="e.g. GST18" />
-                                        </div>
+                                <div class="ew-form-grid ew-form-grid--gst-tax">
+                                    <div class="ew-section-label">Tax Details</div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Tax Code <span style="color:red;">*</span> :</label>
+                                        <input type="text" name="tax_code" id="tax_code" class="form-control" required maxlength="30"
+                                            value="<?php echo htmlspecialchars($row['tax_code']); ?>"
+                                            autocomplete="off" style="text-transform:uppercase;" placeholder="e.g. GST18" />
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="control-label">Tax Name <span class="req-star">*</span> :</label>
-                                            <input type="text" name="tax_name" id="tax_name" class="form-control" required maxlength="120"
-                                                value="<?php echo htmlspecialchars($row['tax_name']); ?>"
-                                                autocomplete="off" placeholder="e.g. GST 18%" />
-                                        </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Tax Name <span style="color:red;">*</span> :</label>
+                                        <input type="text" name="tax_name" id="tax_name" class="form-control" required maxlength="120"
+                                            value="<?php echo htmlspecialchars($row['tax_name']); ?>"
+                                            autocomplete="off" placeholder="e.g. GST 18%" />
                                     </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="control-label">GST Rate (%) <span class="req-star">*</span> :</label>
-                                            <input type="number" name="gst_rate" id="gst_rate" class="form-control" required min="0" step="0.01"
-                                                value="<?php echo htmlspecialchars($row['gst_rate']); ?>" />
-                                            <div class="gst-auto-hint">CGST, SGST/UTGST and IGST auto-calculate from GST rate.</div>
-                                        </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Status :</label>
+                                        <select name="status" id="status" class="form-control">
+                                            <option value="1" <?php echo (int) $row['status'] === 1 ? 'selected' : ''; ?>>Active</option>
+                                            <option value="0" <?php echo (int) $row['status'] === 0 ? 'selected' : ''; ?>>Inactive</option>
+                                        </select>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="control-label">CGST Rate (%) :</label>
-                                            <input type="number" name="cgst_rate" id="cgst_rate" class="form-control gst-component" min="0" step="0.01"
-                                                value="<?php echo htmlspecialchars($row['cgst_rate']); ?>" />
-                                        </div>
+                                    <div class="ew-section-label">Rate Breakdown</div>
+                                    <div class="ew-field">
+                                        <label class="control-label">GST Rate (%) <span style="color:red;">*</span> :</label>
+                                        <input type="number" name="gst_rate" id="gst_rate" class="form-control" required min="0" step="0.01"
+                                            value="<?php echo htmlspecialchars($row['gst_rate']); ?>" />
+                                        <div class="gst-auto-hint">CGST, SGST/UTGST and IGST auto-calculate from GST rate.</div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="control-label">SGST / UTGST Rate (%) :</label>
-                                            <input type="number" name="sgst_rate" id="sgst_rate" class="form-control gst-component" min="0" step="0.01"
-                                                value="<?php echo htmlspecialchars($row['sgst_rate']); ?>" />
-                                        </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">CGST Rate (%) :</label>
+                                        <input type="number" name="cgst_rate" id="cgst_rate" class="form-control gst-component" min="0" step="0.01"
+                                            value="<?php echo htmlspecialchars($row['cgst_rate']); ?>" />
                                     </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="control-label">IGST Rate (%) :</label>
-                                            <input type="number" name="igst_rate" id="igst_rate" class="form-control gst-component" min="0" step="0.01"
-                                                value="<?php echo htmlspecialchars($row['igst_rate']); ?>" />
-                                        </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">SGST / UTGST Rate (%) :</label>
+                                        <input type="number" name="sgst_rate" id="sgst_rate" class="form-control gst-component" min="0" step="0.01"
+                                            value="<?php echo htmlspecialchars($row['sgst_rate']); ?>" />
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="control-label">Cess Rate (%) :</label>
-                                            <input type="number" name="cess_rate" id="cess_rate" class="form-control" min="0" step="0.01"
-                                                value="<?php echo htmlspecialchars($row['cess_rate']); ?>" />
-                                        </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">IGST Rate (%) :</label>
+                                        <input type="number" name="igst_rate" id="igst_rate" class="form-control gst-component" min="0" step="0.01"
+                                            value="<?php echo htmlspecialchars($row['igst_rate']); ?>" />
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="control-label">TDS Rate (%) :</label>
-                                            <input type="number" name="tds_rate" id="tds_rate" class="form-control" min="0" step="0.01"
-                                                value="<?php echo htmlspecialchars($row['tds_rate'] ?? '0'); ?>" />
-                                        </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Cess Rate (%) :</label>
+                                        <input type="number" name="cess_rate" id="cess_rate" class="form-control" min="0" step="0.01"
+                                            value="<?php echo htmlspecialchars($row['cess_rate']); ?>" />
                                     </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="control-label">Status :</label>
-                                            <select name="status" id="status" class="form-control">
-                                                <option value="1" <?php echo (int) $row['status'] === 1 ? 'selected' : ''; ?>>Active</option>
-                                                <option value="0" <?php echo (int) $row['status'] === 0 ? 'selected' : ''; ?>>Inactive</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <br />
-                                <div class="row">
-                                    <div class="col-md-12 form-action">
-                                        <button class="btn btn-primary" type="button" id="save">Submit</button>
-                                        <a class="btn btn-default-outline" href="gst_tax_master.php" type="button">Cancel</a>
+                                    <div class="ew-field">
+                                        <label class="control-label">TDS Rate (%) :</label>
+                                        <input type="number" name="tds_rate" id="tds_rate" class="form-control" min="0" step="0.01"
+                                            value="<?php echo htmlspecialchars($row['tds_rate'] ?? '0'); ?>" />
                                     </div>
                                 </div>
                             </form>
+                            </div>
+                            <div class="ew-form-footer">
+                                <a class="ew-btn-v2 ew-btn-v2-outline" href="gst_tax_master.php">Cancel</a>
+                                <button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save"><i class="fa fa-save"></i> <?php echo $is_edit ? 'Update' : 'Submit'; ?></button>
+                            </div>
                         </div>
                     </div>
                 </div>

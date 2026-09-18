@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operations Desk — logistics heartbeat</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --navy: #0A1E3D;
+      --ink: #101828;
+      --muted: #667085;
+      --line: #E4E7EC;
+      --paper: #F7F6F2;
+      --white: #fff;
+      --red: #DD111E;
+      --teal: #0E7490;
+      --green: #15803D;
+      --amber: #C2410C;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+    }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 22px 56px; }
+
+    .mast {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: end;
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+      border-bottom: 3px solid var(--navy);
+    }
+    .kicker {
+      font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--red); margin: 0 0 6px;
+    }
+    h1 { margin: 0; font-size: 28px; letter-spacing: -.04em; color: var(--navy); }
+    .mast p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .seg { display: flex; border: 1.5px solid var(--navy); }
+    .seg button {
+      border: 0; background: transparent; color: var(--navy); font: inherit;
+      font-size: 12px; font-weight: 700; padding: 9px 16px; cursor: pointer;
+    }
+    .seg button.on { background: var(--navy); color: #fff; }
+
+    .story { margin: 0 0 10px; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--navy); }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0;
+      background: var(--white);
+      border: 1px solid var(--line);
+      margin-bottom: 16px;
+    }
+    .step {
+      padding: 16px 14px 14px;
+      position: relative;
+    }
+    .step + .step { border-left: 1px solid var(--line); }
+    .step b {
+      display: block; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .step strong { display: block; font-size: 24px; letter-spacing: -.04em; color: var(--navy); margin-top: 8px; }
+    .step em { display: block; font-style: normal; font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .step.money strong { font-size: 20px; }
+
+    .split { display: grid; grid-template-columns: 1.45fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .split3 { display: grid; grid-template-columns: 1.2fr .9fr .9fr; gap: 14px; margin-bottom: 14px; }
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--line);
+      padding: 18px 18px 12px;
+    }
+    .panel h2 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--navy);
+    }
+    .panel .hint { margin: 4px 0 12px; font-size: 12px; color: var(--muted); }
+    .chart { position: relative; height: 270px; }
+    .chart.sm { height: 220px; }
+
+    .dock { display: grid; grid-template-columns: .85fr 1.15fr; gap: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    th {
+      text-align: left; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); padding: 8px 6px; border-bottom: 1px solid var(--navy);
+    }
+    td { padding: 10px 6px; border-bottom: 1px solid var(--line); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .st { font-weight: 700; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+    .st.ok { color: var(--green); }
+    .st.go { color: var(--teal); }
+    .st.wait { color: var(--amber); }
+    .st.bad { color: var(--red); }
+
+    .attn { display: grid; gap: 0; }
+    .chip {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 11px 0; border-bottom: 1px solid var(--line); gap: 10px;
+    }
+    .chip:last-child { border-bottom: 0; }
+    .chip span { font-size: 13px; color: var(--ink); }
+    .chip small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .chip b { font-size: 18px; color: var(--navy); }
+
+    .mapnote {
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    @media (max-width: 1020px) {
+      .flow, .split, .split3, .dock, .mast { grid-template-columns: 1fr; }
+      .step + .step { border-left: 0; border-top: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="mast">
+      <div>
+        <p class="kicker">Elite Wave · Chennai hub</p>
+        <h1>Operations ledger</h1>
+        <p>May 2026 go-live through 15 Sep. Booking → delivery → invoice → collection.</p>
+      </div>
+      <div class="seg" id="period">
+        <button type="button" data-p="weekly">Week</button>
+        <button type="button" class="on" data-p="monthly">Month</button>
+      </div>
+    </div>
+
+    <p class="story">What happened</p>
+    <div class="flow">
+      <div class="step">
+        <b>Bookings</b>
+        <strong id="vBook">1,248</strong>
+        <em>GCNs created</em>
+      </div>
+      <div class="step">
+        <b>Delivered</b>
+        <strong id="vDeliv">920</strong>
+        <em>Status = delivered</em>
+      </div>
+      <div class="step">
+        <b>Pending</b>
+        <strong id="vPend">328</strong>
+        <em>Pickup + in transit</em>
+      </div>
+      <div class="step">
+        <b>Invoices</b>
+        <strong id="vInvN">277</strong>
+        <em>GST invoices final</em>
+      </div>
+      <div class="step money">
+        <b>Revenue</b>
+        <strong id="vRev">₹48.2 L</strong>
+        <em>Invoice grand total</em>
+      </div>
+      <div class="step money">
+        <b>Collected</b>
+        <strong id="vCol">₹36.6 L</strong>
+        <em>Payments received</em>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="panel">
+        <h2>Bookings vs delivered vs invoices</h2>
+        <p class="hint" id="opsHint">How freight and billing moved since May</p>
+        <div class="chart"><canvas id="opsBar"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>Delivery now</h2>
+        <p class="hint">From GCN status on the booking</p>
+        <div class="chart"><canvas id="mixPie"></canvas></div>
+      </div>
+    </div>
+
+    <div class="split3">
+      <div class="panel">
+        <h2>Revenue · collection · expense</h2>
+        <p class="hint" id="monHint">What came in, what was paid, what it cost</p>
+        <div class="chart sm"><canvas id="monBar"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>Invoice money</h2>
+        <p class="hint">Billed vs still open</p>
+        <div class="chart sm"><canvas id="colPie"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>Expense mix</h2>
+        <p class="hint">GCN lines + general expense</p>
+        <div class="chart sm"><canvas id="expPie"></canvas></div>
+      </div>
+    </div>
+
+    <div class="dock">
+      <div class="panel">
+        <h2>Still open</h2>
+        <p class="hint">Work that blocks cash or POD</p>
+        <div class="attn">
+          <div class="chip">
+            <span>Delayed &gt; 3 days<small>Not delivered, booking older than 3 days</small></span>
+            <b id="aDel">18</b>
+          </div>
+          <div class="chip">
+            <span>Pending pickup<small>Status still at origin / not loaded</small></span>
+            <b id="aPick">86</b>
+          </div>
+          <div class="chip">
+            <span>POD pending<small>Delivered, proof not closed</small></span>
+            <b id="aPod">27</b>
+          </div>
+          <div class="chip">
+            <span>Delivered, not invoiced<small>Ready GCNs waiting GST invoice</small></span>
+            <b id="aUnb">39</b>
+          </div>
+          <div class="chip">
+            <span>Uncollected invoices<small>Final invoice, payment short</small></span>
+            <b id="aUnc">41</b>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Latest GCNs</h2>
+        <p class="hint">From quarterly transaction tables</p>
+        <table>
+          <thead>
+            <tr><th>GCN</th><th>Client</th><th>Lane</th><th>Status</th><th class="num">Freight</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>EW360/0204</td><td>Siyaram Silk</td><td>Mumbai → D.Ballapur</td>
+              <td class="st go">In transit</td><td class="num">₹18,880</td>
+            </tr>
+            <tr>
+              <td>EW360/0203</td><td>Habib Corp</td><td>Chennai → Hyderabad</td>
+              <td class="st ok">Delivered</td><td class="num">₹9,440</td>
+            </tr>
+            <tr>
+              <td>EW360/0201</td><td>BlueWave</td><td>Nhava Sheva → Nagpur</td>
+              <td class="st bad">Delayed</td><td class="num">₹22,100</td>
+            </tr>
+            <tr>
+              <td>EW360/0198</td><td>Deccan Tex</td><td>Surat → Indore</td>
+              <td class="st wait">Pickup</td><td class="num">₹6,720</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="mapnote">
+      This preview is wired to how the ERP already stores work:
+      bookings and delivery from <code>transaction_q_year</code> (status 8 = delivered);
+      invoices and revenue from <code>billing_invoice_master</code> (final, grand total);
+      collections from paid amount / consigner payments;
+      expenses from GCN expense lines + general expense.
+      Live dashboard.php is not changed.
+    </p>
+  </div>
+
+  <script>
+    Chart.defaults.font.family = 'Inter, Segoe UI, sans-serif';
+    Chart.defaults.color = '#667085';
+    Chart.defaults.plugins.legend.labels.boxWidth = 10;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+    var period = 'monthly', charts = {};
+    var COLORS = { del: '#15803D', go: '#0E7490', wait: '#C2410C', bad: '#DD111E', navy: '#0A1E3D' };
+
+    var MONTH = {
+      labels: ['May', 'Jun', 'Jul', 'Aug', 'Sep'],
+      book: [210, 248, 262, 241, 287],
+      deliv: [168, 201, 218, 199, 134],
+      inv: [48, 56, 61, 54, 58],
+      rev: [8.4, 9.6, 10.1, 9.2, 10.9],
+      col: [6.1, 7.2, 7.8, 7.0, 8.5],
+      exp: [5.8, 6.4, 6.9, 6.5, 7.5]
+    };
+    var WEEK = {
+      labels: ['1–7 Sep', '8–14 Sep', 'This week'],
+      book: [92, 108, 87],
+      deliv: [48, 51, 35],
+      inv: [18, 22, 18],
+      rev: [2.4, 3.1, 2.8],
+      col: [1.9, 2.4, 2.1],
+      exp: [1.7, 2.1, 1.9]
+    };
+
+    function pack() {
+      if (period === 'weekly') {
+        return {
+          book: 287, deliv: 134, pend: 153, mix: [134, 96, 42, 15],
+          invN: 58, rev: 8.3, col: 6.4, out: 1.9,
+          del: 15, pick: 42, pod: 14, unb: 11, unc: 12,
+          expense: [2.4, 1.6, 1.1, 0.6]
+        };
+      }
+      return {
+        book: 1248, deliv: 920, pend: 328, mix: [920, 210, 86, 32],
+        invN: 277, rev: 48.2, col: 36.6, out: 11.6,
+        del: 18, pick: 86, pod: 27, unb: 39, unc: 41,
+        expense: [14.8, 9.2, 6.1, 3.0]
+      };
+    }
+
+    function upsert(id, cfg) {
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(document.getElementById(id), cfg);
+    }
+
+    function pieOpts() {
+      return { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' } } };
+    }
+
+    function draw() {
+      var d = pack();
+      var s = period === 'weekly' ? WEEK : MONTH;
+
+      document.getElementById('vBook').textContent = d.book.toLocaleString('en-IN');
+      document.getElementById('vDeliv').textContent = d.deliv.toLocaleString('en-IN');
+      document.getElementById('vPend').textContent = d.pend.toLocaleString('en-IN');
+      document.getElementById('vInvN').textContent = d.invN.toLocaleString('en-IN');
+      document.getElementById('vRev').textContent = '₹' + d.rev.toFixed(1) + ' L';
+      document.getElementById('vCol').textContent = '₹' + d.col.toFixed(1) + ' L';
+      document.getElementById('aDel').textContent = d.del;
+      document.getElementById('aPick').textContent = d.pick;
+      document.getElementById('aPod').textContent = d.pod;
+      document.getElementById('aUnb').textContent = d.unb;
+      document.getElementById('aUnc').textContent = d.unc;
+      document.getElementById('opsHint').textContent = period === 'weekly'
+        ? 'September weeks — consignments, deliveries, GST invoices'
+        : 'May–Sep — consignments, deliveries, GST invoices';
+      document.getElementById('monHint').textContent = period === 'weekly'
+        ? 'Same weeks in rupees (lakh)'
+        : 'May–Sep in rupees (lakh)';
+
+      upsert('opsBar', {
+        type: 'bar',
+        data: {
+          labels: s.labels,
+          datasets: [
+            { label: 'Bookings', data: s.book, backgroundColor: '#0A1E3D' },
+            { label: 'Delivered', data: s.deliv, backgroundColor: '#15803D' },
+            { label: 'Invoices', data: s.inv, backgroundColor: '#0E7490' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: {
+            x: { grid: { display: false } },
+            y: { grid: { color: '#F0F0EC' }, ticks: { precision: 0 } }
+          }
+        }
+      });
+
+      upsert('mixPie', {
+        type: 'doughnut',
+        data: {
+          labels: ['Delivered', 'In transit', 'Pending pickup', 'Delayed'],
+          datasets: [{ data: d.mix, backgroundColor: [COLORS.del, COLORS.go, COLORS.wait, COLORS.bad], borderWidth: 0 }]
+        },
+        options: pieOpts()
+      });
+
+      upsert('monBar', {
+        type: 'bar',
+        data: {
+          labels: s.labels,
+          datasets: [
+            { label: 'Revenue', data: s.rev, backgroundColor: '#0A1E3D' },
+            { label: 'Collected', data: s.col, backgroundColor: '#15803D' },
+            { label: 'Expense', data: s.exp, backgroundColor: '#0E7490' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: {
+            x: { grid: { display: false } },
+            y: { grid: { color: '#F0F0EC' }, ticks: { callback: function (v) { return v + 'L'; } } }
+          }
+        }
+      });
+
+      upsert('colPie', {
+        type: 'doughnut',
+        data: {
+          labels: ['Collected', 'Outstanding'],
+          datasets: [{ data: [d.col, d.out], backgroundColor: ['#15803D', '#DD111E'], borderWidth: 0 }]
+        },
+        options: pieOpts()
+      });
+
+      upsert('expPie', {
+        type: 'doughnut',
+        data: {
+          labels: ['Vehicle / GCN', 'General', 'Vendor', 'Other'],
+          datasets: [{ data: d.expense, backgroundColor: ['#0A1E3D', '#0E7490', '#C2410C', '#98A2B3'], borderWidth: 0 }]
+        },
+        options: pieOpts()
+      });
+    }
+
+    document.getElementById('period').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      period = b.getAttribute('data-p');
+      this.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      draw();
+    });
+    draw();
+  </script>
+</body>
+</html>

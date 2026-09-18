@@ -76,57 +76,24 @@ th.table-title.sorting {
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <div class="col-md-3 master_left">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-plus"></i>Consignment</div>
-
-                        <div class="widget-content padded">
-                            <form class="form-horizontal" id="consignment_form">
-
-                                <input type="hidden" id="form_name" name="form_name" value="add_consignment">
-                                <input type="hidden" id="edit_id" name="edit_id" value="">
-
-                                <div id="response" class="alert alert-danger" style="display:none;">
-                                    <div class="message" style="text-align:center"></div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label class="control-label">Consignment Mode <span style="color:red;">*</span> :</label>
-                                            <input name="consignment" id="consignment" class="form-control" required />
-                                            <span class="consignment-error error"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Description:</label>
-                                            <input type="text" name="description" id="description" class="form-control">
-                                        </div>
-                                             <div class="form-group">
-                                            <label class="control-label">Mode Of Pay <span style="color:red;">*</span> :</label>
-                                            <select class="form-control" name="mode_type" id="mode_type" required>
-                                                <option value="">SelectMode Of Pay</option>
-                                                <option value="Consignor">Consignor</option>
-                                                <option value="Consignee">Consignee</option>
-
-                                            </select>
-                                        </div>
-
-                                    </div>
-                                </div><br />
-                                <div class="row">
-                                    <div class="col-md-12 form-action">
-                                        <button class="btn btn-primary" type="button" id="save">Submit</button>
-                                        <a class="btn btn-default-outline  btn-reset" type="button"  href="consignment_mode.php" >Cancel</a>
-                                    </div>
-                                </div>
-                            </form>
+                <div class="col-md-12">
+                    <div class="ew-page-v2">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">Consignment Mode</h1>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class=" col-md-9 master_right">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-table"></i> List of Cosignment </div>
-                        <div class="widget-content padded clearfix new_dept">
+                        <div class="ew-card ew-erp-list">
+                            <div class="ew-card-toolbar">
+                                <h2>Consignment Mode List</h2>
+                                <div class="ew-toolbar-right">
+                                    <div class="ew-list-toolbar__tools"></div>
+                                    <button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreateConsignment">
+                                        Create <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="ew-table-wrap widget-content padded clearfix new_dept">
                             <table class="table table-bordered table-striped consignment_mode_tbl" id="dataTable1">
                                 <thead>
                                     <th class="table-title" style="width:10%">S.No</th>
@@ -174,7 +141,7 @@ th.table-title.sorting {
 
                                 </tbody>
                             </table>
-
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -355,6 +322,16 @@ th.table-title.sorting {
                 });
 
 
+                $('#openCreateConsignment').on('click', function() {
+                    $('#form_name').val('add_consignment');
+                    $('#edit_id').val('');
+                    $('#consignment').val('');
+                    $('#description').val('');
+                    $('#mode_type').val('');
+                    $('#consignmentModalTitle').text('Create Consignment Mode');
+                    ewV2OpenModal('consignmentModal');
+                });
+
                 //	Button Edit
                 $(document).on('click', '.btn-edit', function(ev) {
                     $(".form-data-saving").show();
@@ -376,7 +353,8 @@ th.table-title.sorting {
                             $("#consignment").val(result['consignment_mode']);
                             $('#description').val(result['description']);
                         $("#mode_type").val(result['mode_of_pay']);
-
+                            $('#consignmentModalTitle').text('Edit Consignment Mode');
+                            ewV2OpenModal('consignmentModal');
                         },
                         error: function(jqxhr) {
 						ewToast(jqxhr.responseText, 'error');
@@ -392,6 +370,7 @@ $('#edit_id').val('');
 $('#consignment').val('');
 $('#description').val('');
 $('#mode_type').val('');
+                    ewV2CloseModal('consignmentModal');
                 });
 
 
@@ -439,6 +418,45 @@ $('#mode_type').val('');
                     <button class="btn btn-sm btn-danger delete-error-popup-close" id="">Close</button> <br /> &nbsp; <br />
                 </div>
                 <!--<span class="popup_close" id="popup_close">X</span>-->
+            </div>
+        </div>
+
+        <div class="ew-v2-modal-backdrop" id="consignmentModal">
+            <div class="ew-v2-modal">
+                <div class="ew-v2-modal-head">
+                    <h3 id="consignmentModalTitle">Create Consignment Mode</h3>
+                    <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+                </div>
+                <div class="ew-v2-modal-body">
+                    <form class="form-horizontal" id="consignment_form">
+                        <input type="hidden" id="form_name" name="form_name" value="add_consignment">
+                        <input type="hidden" id="edit_id" name="edit_id" value="">
+                        <div id="response" class="alert alert-danger" style="display:none;">
+                            <div class="message" style="text-align:center"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Consignment Mode <span style="color:red;">*</span> :</label>
+                            <input name="consignment" id="consignment" class="form-control" required />
+                            <span class="consignment-error error"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Description:</label>
+                            <input type="text" name="description" id="description" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Mode Of Pay <span style="color:red;">*</span> :</label>
+                            <select class="form-control" name="mode_type" id="mode_type" required>
+                                <option value="">SelectMode Of Pay</option>
+                                <option value="Consignor">Consignor</option>
+                                <option value="Consignee">Consignee</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="ew-v2-modal-foot">
+                    <button type="button" class="btn btn-default-outline btn-reset" data-ew-v2-close>Cancel</button>
+                    <button class="btn btn-primary" type="button" id="save">Submit</button>
+                </div>
             </div>
         </div>
 

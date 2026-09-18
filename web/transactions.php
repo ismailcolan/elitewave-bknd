@@ -14,6 +14,11 @@ $company_state_id = isset($company_row['state']) ? (int) $company_row['state'] :
 $company_state_name = $company_state_id > 0 ? get_statename($conn, $company_state_id) : '';
 $gst_tax_profiles = gst_tax_get_active_profiles($conn);
 $gst_profiles_json = json_encode($gst_tax_profiles);
+$booking_clients = booking_client_name_options($conn);
+$booking_clients_json = json_encode($booking_clients, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS);
+if ($booking_clients_json === false) {
+	$booking_clients_json = '[]';
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -64,6 +69,9 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 			margin-bottom: 12px;
 		}
 
+		#grn_details.billing-only-edit .ew-booking-section:not(.payment-gst-panel) input,
+		#grn_details.billing-only-edit .ew-booking-section:not(.payment-gst-panel) select,
+		#grn_details.billing-only-edit .ew-booking-section:not(.payment-gst-panel) textarea,
 		#grn_details.billing-only-edit fieldset:not(.payment-gst-panel) input,
 		#grn_details.billing-only-edit fieldset:not(.payment-gst-panel) select,
 		#grn_details.billing-only-edit fieldset:not(.payment-gst-panel) textarea,
@@ -168,46 +176,137 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 			padding-left: 10px;
 		}
 
-		.form-group.kl {
-			display: flex;
+		.booking-split-row {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+			gap: 14px;
+			align-items: start;
+		}
+
+		.booking-split-col {
+			min-width: 0;
+		}
+
+		.booking-split-row .ew-booking-section.lable,
+		.booking-split-row .my-fieldset.lable,
+		.booking-split-row .payment-gst-panel,
+		.booking-split-row .booking-goods-col {
 			width: 100%;
-			flex-wrap: wrap;
-			/* justify-content: end; */
+			margin-bottom: 0;
+		}
+
+		.booking-split-row .payment-gst-panel {
+			display: flex;
+			flex-direction: column;
+		}
+
+		.payment-gst-panel .amount-in-words-block {
+			margin-top: 8px;
+			padding-top: 8px;
+			border-top: 1px dashed #e8ebf0;
+		}
+
+		.payment-gst-panel .amount-in-words-block label {
+			display: block;
+			font-size: 12px;
+			font-weight: 600;
+			margin-bottom: 6px;
+			color: #334155;
+		}
+
+		.payment-gst-panel .amount-in-words-block textarea {
+			min-height: 72px;
+			resize: vertical;
+		}
+
+		.ew-field .v_label {
+			display: block;
+			width: 100%;
+			float: none;
+			text-align: left;
+			margin-bottom: 8px;
+			padding-left: 0;
+		}
+
+		.ew-field > .df {
+			width: 100%;
+			float: none;
+			padding: 0;
 		}
 
 		.volumetric_width {
-
 			display: flex;
-			width: 30%;
+			flex: 1 1 0;
+			min-width: 0;
 			align-items: center;
 			justify-content: center;
-			/* column-gap: 3px; */
 			text-align: center;
 		}
 
-		label.control-label.col-sm-4.v_label {
-			text-align: left;
+		.pkg-action-col {
+			width: 48px;
+			min-width: 48px;
+		}
+
+		.pkg-row-action {
+			white-space: nowrap;
+		}
+
+		.pkg-row-action .pkg-row-btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 28px;
+			height: 28px;
+			border: 1px solid #cbd5e1;
+			border-radius: 6px;
+			background: #fff;
+			color: #334155;
+			cursor: pointer;
+			padding: 0;
+			line-height: 1;
+		}
+
+		.pkg-row-action .pkg-row-btn + .pkg-row-btn {
+			margin-left: 4px;
+		}
+
+		.pkg-row-action .pkg-row-btn.is-add {
+			color: #059669;
+			border-color: #86efac;
+		}
+
+		.pkg-row-action .pkg-row-btn.is-add:hover {
+			background: #ecfdf5;
+		}
+
+		.pkg-row-action .pkg-row-btn.is-remove {
+			color: #dc2626;
+			border-color: #fca5a5;
+		}
+
+		.pkg-row-action .pkg-row-btn.is-remove:hover {
+			background: #fef2f2;
 		}
 
 		.dimensions_col {
 			display: flex;
+			flex-wrap: nowrap;
+			align-items: center;
+			gap: 2px;
 			width: 100%;
-			/* column-gap: 4px; */
-
+			margin-bottom: 6px;
 		}
 
 		.volumetric_width:nth-child(6) {
 			display: none;
-
 		}
 
-
 		.volumetric_width:nth-child(7) {
-			width: 10%;
-			/* width: 23%; */
+			flex: 0 0 24px;
+			width: 24px !important;
 			display: flex;
-			justify-content: end;
-
+			justify-content: center;
 		}
 
 		.volumetric_width span {
@@ -216,8 +315,11 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 		}
 
 		.r_p {
-			padding: 0px 0px;
+			padding: 4px 2px !important;
 			text-align: center;
+			width: 100%;
+			min-width: 0;
+			font-size: 12px;
 		}
 
 		.dimen_img {
@@ -258,8 +360,9 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 			margin-top: 4px;
 		}
 
-		.my-fieldset .form-control {
-			margin: 1px;
+		.booking-goods-col .ew-field .form-control,
+		.booking-goods-col .ew-field select.form-control {
+			margin: 0;
 		}
 
 		.main_vlm_box {
@@ -675,12 +778,14 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 				overflow-x: scroll;
 			}
 
+			.ew-page-v2--consignment .tabs,
 			.widget-container .tabs {
 
 				table-layout: fixed;
 				width: 153%;
 			}
 
+			.ew-page-v2--consignment .tabs,
 			.widget-container .tabs {
 				background: whitesmoke;
 				border-bottom: 1px solid #dddddd;
@@ -704,12 +809,14 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 				overflow-x: scroll;
 			}
 
+			.ew-page-v2--consignment .tabs,
 			.widget-container .tabs {
 
 				table-layout: fixed;
 				width: 153%;
 			}
 
+			.ew-page-v2--consignment .tabs,
 			.widget-container .tabs {
 				background: whitesmoke;
 				border-bottom: 1px solid #dddddd;
@@ -742,18 +849,8 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 		<div class="container-fluid main-content new_dpt_bottom">
 
 			<div class="row">
-				<!-- <div class="col-md-offset-1 col-md-10"> -->
-				<div class="" style="padding:0 40px;">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"> <i class="fa fa-plus"></i>Book a Consignment:
-							<!--<span class="align-right"><i class="fa fa-plus" ></i><a href="transaction_list.php">View List</a></span>-->
-						</div>
-
-						<div class="widget-content padded">
-
-							<div id="response" class="alert alert-danger" style="display:none;">
-								<div class="message" style="text-align:center"></div>
-							</div>
+				<div class="col-md-12">
+					<div class="ew-page-v2 ew-page-v2--consignment">
 							<?php
 							$m = $_REQUEST['m'];
 							$y = $_REQUEST['y'];
@@ -806,15 +903,30 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 									$default_gst_tax_id = (int) $gst_tax_profiles[0]['gst_tax_id'];
 								}
 							}
+							$consignment_page_title = ($form_name === 'edit_consignment_details') ? 'Edit Consignment' : 'Book a Consignment';
 							?>
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<a href="transaction_list.php" class="ew-back-btn" title="Back to list"><i class="fa fa-arrow-left"></i></a>
+								<h1 class="ew-page-title"><?php echo htmlspecialchars($consignment_page_title); ?></h1>
+							</div>
+							<div class="ew-toolbar-right">
+								<a href="transaction_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+							</div>
+						</div>
+						<div class="ew-card">
+							<div class="ew-form-body">
+							<div id="response" class="alert alert-danger" style="display:none;">
+								<div class="message" style="text-align:center"></div>
+							</div>
 							<form id="grn_details" class="form-horizontal ew-validated-form<?php echo $billing_only_edit ? ' billing-only-edit' : ''; ?><?php echo $form_fully_locked ? ' form-fully-locked' : ''; ?>" enctype="multipart/form-data" data-ew-validate="1">
 								<input type="hidden" name="billing_only_edit" id="billing_only_edit" value="<?php echo $billing_only_edit ? '1' : '0'; ?>">
 								<input type="hidden" name="form_fully_locked" id="form_fully_locked" value="<?php echo $form_fully_locked ? '1' : '0'; ?>">
 								<input type="hidden" name="booking_status" id="booking_status" value="<?php echo (int) $booking_status; ?>">
 								<?php if ($form_fully_locked) { ?>
-								<div class="form-locked-banner col-md-offset-1 col-md-10"><i class="fa fa-lock"></i> This GCN is already invoiced. The booking form is locked and cannot be edited.</div>
+								<div class="form-locked-banner"><i class="fa fa-lock"></i> This GCN is already invoiced. The booking form is locked and cannot be edited.</div>
 								<?php } elseif ($billing_only_edit) { ?>
-								<div class="form-locked-banner col-md-offset-1 col-md-10" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;"><i class="fa fa-info-circle"></i> Delivered consignment — only payment / billing fields can be edited. GST settings are locked.</div>
+								<div class="form-locked-banner" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;"><i class="fa fa-info-circle"></i> Delivered consignment — only payment / billing fields can be edited. GST settings are locked.</div>
 								<?php } ?>
 								<input type="hidden" name="truck_type" id="truck_type" value="<?php echo $ftl_type; ?>" />
 								<input type="hidden" name="form_name" value="<?php echo $form_name; ?>" id="form_name">
@@ -835,15 +947,11 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 								<input type="hidden" name="sgst_amount" id="sgst_amount" value="<?php echo htmlspecialchars($row['sgst_amount'] ?? '0'); ?>">
 								<input type="hidden" name="igst_amount" id="igst_amount" value="<?php echo htmlspecialchars($row['igst_amount'] ?? '0'); ?>">
 								<input type="hidden" name="cess_amount" id="cess_amount" value="<?php echo htmlspecialchars($row['cess_amount'] ?? '0'); ?>">
-								<fieldset class="my-fieldset">
-									<legend>GCN Information</legend>
-									<div class="row">
-
-										<div class="col-md-offset-1 col-md-5">
-											<div class="form-group">
-												<label class="control-label col-sm-4">GCN.No <span class="req-star">*</span></label>
-												<div class="col-lg-8">
-
+								<div class="ew-booking-section">
+									<h2 class="ew-card-section-title">GCN Information</h2>
+									<div class="ew-form-grid">
+										<div class="ew-field">
+											<label class="control-label">GCN No <span class="req-star">*</span></label>
 													<?php
 													$query_code = mysqli_query($conn, "select * from client where client_id='" . $_SESSION['company_id'] . "'");
 													$r_code = mysqli_fetch_array($query_code);
@@ -900,18 +1008,13 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 													}
 													?>
 													<span id="grn_error"></span>
-												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">GCN.Date <span class="req-star">*</span></label>
-												<div class="col-lg-8">
-													<?php echo ew_date_input($grn_date_opts); ?>
-												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">Transportation Mode <span class="req-star">*</span></label>
-												<div class="col-lg-8">
-
+										</div>
+										<div class="ew-field">
+											<label class="control-label">GCN Date <span class="req-star">*</span></label>
+											<?php echo ew_date_input($grn_date_opts); ?>
+										</div>
+										<div class="ew-field">
+											<label class="control-label">Mode of Transport <span class="req-star">*</span></label>
 													<select name="mode_of_trasport" id="mode_of_trasport" class="form-control" required onchange="handleSelectChange(event);">
 														<option value="">Mode of Transport</option>
 														<?php
@@ -924,42 +1027,26 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 														}
 														?>
 													</select>
-												</div>
-											</div>
-											<div class="form-group" id="ftl_menu" style="display:none;">
-												<label class="control-label col-sm-4">FTL Type <span class="req-star">*</span></label>
-												<div class="col-lg-8">
-
-													<select class="dropp form-control" role="menu" aria-labelledby="menu1" id="dropp">
-														<option value="" selected="true" disabled="disabled">Select Truck Type...</option>
-														<option value="Single Axle Vehicle: 07MT" <?php if ('Single Axle Vehicle: 07MT' == $row['ftl_type']) echo 'selected'; ?>>Single Axle Vehicle: 07MT</option>
-														<option value="Multi Axle Vehicle : 10MT/14MT/17MT" <?php if ('Multi Axle Vehicle : 10MT/14MT/17MT' == $row['ftl_type']) echo 'selected'; ?>>Multi Axle Vehicle : 10MT/14MT/17MT</option>
-														<option value="22ft Vehicle : 07MT" <?php if ('22ft Vehicle : 07MT' == $row['ftl_type']) echo 'selected'; ?>> 22ft Vehicle : 07MT</option>
-														<option value="18ft Vehicle : 06MT" <?php if ('18ft Vehicle : 06MT' == $row['ftl_type']) echo 'selected'; ?>>18ft Vehicle : 06MT</option>
-														<option value="Eicher 19 Vehicle : 7MT/8MT/9MT" <?php if ('Eicher 19 Vehicle : 7MT/8MT/9MT' == $row['ftl_type']) echo 'selected'; ?>>Eicher 19 Vehicle : 7MT/8MT/9MT</option>
-														<option value="Eicher 17 Vehicle : 5MT" <?php if ('Eicher 17 Vehicle : 5MT' == $row['ftl_type']) echo 'selected'; ?>>Eicher 17 Vehicle : 5MT</option>
-														<option value="Eicher 19 Vechicle:4MT" <?php if ('Eicher 19 Vechicle:4MT' == $row['ftl_type']) echo 'selected'; ?>>Eicher 19 Vechicle:4MT</option>
-
-													</select>
-												</div>
-											</div>
-											<div class="form-group" id="train_type" style="display:none;">
-												<label class="control-label col-sm-4">Train Type <span class="req-star">*</span></label>
-												<div class="col-lg-8">
-
-													<select name="train_name" class="train_type form-control" role="menu" aria-labelledby="menu1" id="train_type_sel">
-														<option value="" selected="true" disabled="disabled">Select Train Type...</option>
-														<option value="1" <?php if ('1' == $row['train_type']) echo 'selected'; ?>>Rajdhani Express</option>
-														<option value="2" <?php if ('2' == $row['train_type']) echo 'selected'; ?>>Others</option>
-													</select>
-												</div>
-											</div>
 										</div>
-
-										<div class="col-md-5">
-											<div class="form-group">
-												<label class="control-label col-sm-4">Origin <span class="req-star">*</span></label>
-												<div class="col-lg-8">
+										<div class="ew-field">
+											<label class="control-label">Consignment Mode <span class="req-star">*</span></label>
+													<select name="mode_of_consignment" id="mode_of_consignment" class="form-control" required>
+														<option value="">Select Consignment</option>
+														<?php
+														$consignment_query = 'select * from consignment_mode where status=0';
+														$consignment_result = mysqli_query($conn, $consignment_query);
+														while ($consignment_row = mysqli_fetch_array($consignment_result)) {
+															if ($consignment_row['consignment_id'] != '3') {
+														?>
+																<option value="<?php echo $consignment_row['consignment_id']; ?>" <?php if ($consignment_row['consignment_id'] == $row['mode_of_consignment']) echo 'selected'; ?>><?php echo $consignment_row['consignment_mode']; ?></option>
+														<?php
+															}
+														}
+														?>
+													</select>
+										</div>
+										<div class="ew-field">
+											<label class="control-label">Origin <span class="req-star">*</span></label>
 													<select name="origin" id="origin" class="form-control" required>
 														<option value="">Select Origin</option>
 														<?php
@@ -972,16 +1059,12 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 														}
 														?>
 													</select>
-												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">Destination <span class="req-star">*</span></label>
-												<div class="col-lg-8">
+										</div>
+										<div class="ew-field">
+											<label class="control-label">Destination <span class="req-star">*</span></label>
 													<select name="destination" id="destination" class="form-control" required>
 														<option value="">Select Destination</option>
-
 														<?php
-														//	if($row['destination']>0){
 														$city_query1 = "select * from city where status=0 and city_id!='" . $row['origin'] . "' order by city_name asc";
 														$city_result1 = mysqli_query($conn, $city_query1);
 														while ($city_row1 = mysqli_fetch_array($city_result1)) {
@@ -989,272 +1072,181 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 															<option value="<?php echo $city_row1['city_id']; ?>" data-state="<?php echo (int) $city_row1['state']; ?>" <?php if ($city_row1['city_id'] == ($row['destination'] ?? '')) echo 'selected'; ?>><?php echo $city_row1['city_name']; ?></option>
 														<?php
 														}
-														//	}
-														?>
-
-
-													</select>
-												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">Consignment Mode <span class="req-star">*</span></label>
-												<div class="col-lg-8">
-													<select name="mode_of_consignment" id="mode_of_consignment" class="form-control" required>
-														<option value="">Select Consignment</option>
-														<?php
-														$consignment_query = 'select * from consignment_mode where status=0';
-														$consignment_result = mysqli_query($conn, $consignment_query);
-														while ($consignment_row = mysqli_fetch_array($consignment_result)) {
-															if ($consignment_row['consignment_id'] != '3') {
-														?>
-																?>
-																<option value="<?php echo $consignment_row['consignment_id']; ?>" <?php if ($consignment_row['consignment_id'] == $row['mode_of_consignment']) echo 'selected'; ?>><?php echo $consignment_row['consignment_mode']; ?></option>
-														<?php
-															}
-														}
 														?>
 													</select>
-												</div>
-											</div>
+										</div>
+										<div class="ew-field" id="ftl_menu" style="display:none;">
+											<label class="control-label">FTL Type <span class="req-star">*</span></label>
+													<select class="dropp form-control" role="menu" aria-labelledby="menu1" id="dropp">
+														<option value="" selected="true" disabled="disabled">Select Truck Type...</option>
+														<option value="Single Axle Vehicle: 07MT" <?php if ('Single Axle Vehicle: 07MT' == $row['ftl_type']) echo 'selected'; ?>>Single Axle Vehicle: 07MT</option>
+														<option value="Multi Axle Vehicle : 10MT/14MT/17MT" <?php if ('Multi Axle Vehicle : 10MT/14MT/17MT' == $row['ftl_type']) echo 'selected'; ?>>Multi Axle Vehicle : 10MT/14MT/17MT</option>
+														<option value="22ft Vehicle : 07MT" <?php if ('22ft Vehicle : 07MT' == $row['ftl_type']) echo 'selected'; ?>> 22ft Vehicle : 07MT</option>
+														<option value="18ft Vehicle : 06MT" <?php if ('18ft Vehicle : 06MT' == $row['ftl_type']) echo 'selected'; ?>>18ft Vehicle : 06MT</option>
+														<option value="Eicher 19 Vehicle : 7MT/8MT/9MT" <?php if ('Eicher 19 Vehicle : 7MT/8MT/9MT' == $row['ftl_type']) echo 'selected'; ?>>Eicher 19 Vehicle : 7MT/8MT/9MT</option>
+														<option value="Eicher 17 Vehicle : 5MT" <?php if ('Eicher 17 Vehicle : 5MT' == $row['ftl_type']) echo 'selected'; ?>>Eicher 17 Vehicle : 5MT</option>
+														<option value="Eicher 19 Vechicle:4MT" <?php if ('Eicher 19 Vechicle:4MT' == $row['ftl_type']) echo 'selected'; ?>>Eicher 19 Vechicle:4MT</option>
 
-											<div class="form-group" id="other_train_field">
+													</select>
+										</div>
+										<div class="ew-field" id="train_type" style="display:none;">
+											<label class="control-label">Train Type <span class="req-star">*</span></label>
+													<select name="train_name" class="train_type form-control" role="menu" aria-labelledby="menu1" id="train_type_sel">
+														<option value="" selected="true" disabled="disabled">Select Train Type...</option>
+														<option value="1" <?php if ('1' == $row['train_type']) echo 'selected'; ?>>Rajdhani Express</option>
+														<option value="2" <?php if ('2' == $row['train_type']) echo 'selected'; ?>>Others</option>
+													</select>
+										</div>
+										<div class="ew-field" id="other_train_field">
 												<?php if ($row['other_train_name'] != '') { ?>
-													<label class="control-label col-sm-4">Enter train name:</label>
-													<div class="col-lg-8">
-														<input type="text" name="other_train_name" id="other_train_name" class="form-control" placeholder="Enter Train Name" value="<?php echo $row['other_train_name']; ?>">
-													</div>
+													<label class="control-label">Other Train Name</label>
+													<input type="text" name="other_train_name" id="other_train_name" class="form-control" placeholder="Enter Train Name" value="<?php echo $row['other_train_name']; ?>">
 												<?php } ?>
-											</div>
 										</div>
-
 									</div>
-								</fieldset>
+								</div>
 
-								<fieldset class="my-fieldset">
-									<legend>Consignor & Consignee Information</legend>
-									<div class="row">
-										<div class="col-md-offset-1 col-md-5">
-											<div class="form-group" style="margin-bottom: 0px;">
-												<label class="control-label col-sm-4">Consignor <span class="req-star">*</span></label>
-												<div class="col-lg-8">
-													<input type="text" name="consignor_name" class="form-control" id="consignor_name" value="<?php echo get_client_name($conn, $row['consigner']) ?>" autocomplete="off" />
-													<label for="" class="consignor_name_val"></label>
-													<input name="consignor" id="consignor" required value="<?php echo $row['consigner']; ?>" type="hidden" class="get_consigner_valll" />
-
-												</div>
-
+								<div class="ew-booking-section">
+									<h2 class="ew-card-section-title">Consignor &amp; Consignee Information</h2>
+									<div class="party-split">
+										<div class="party-card party-card--consignor">
+											<div class="ew-field">
+												<label class="control-label">Consignor <span class="req-star">*</span></label>
+												<select name="consignor_name" class="form-control party-select" id="consignor_name" data-placeholder="Select consignor">
+													<option value="">Select consignor</option>
+													<?php
+													$sel_consignor = (int) ($row['consigner'] ?? 0);
+													foreach ($booking_clients as $copt) {
+														$sel = ((int) $copt['id'] === $sel_consignor) ? ' selected' : '';
+														echo '<option value="' . (int) $copt['id'] . '"' . $sel . '>' . htmlspecialchars($copt['name']) . '</option>';
+													}
+													?>
+												</select>
+												<label for="" class="consignor_name_val"></label>
+												<input name="consignor" id="consignor" required value="<?php echo $row['consigner']; ?>" type="hidden" class="get_consigner_valll" />
 											</div>
-											<div class="form-group" id="consignor_branch_div" style="display:none;">
-												<label class="control-label col-sm-4">
-													Consignor Branch
-												</label>
-
-												<div class="col-lg-8">
-
-													<select
-														id="consignor_branch"
-														name="consignor_branch"
-														class="form-control">
-
-														<option value="">Select Branch</option>
-
-													</select>
-
-												</div>
-
+											<div class="ew-field" id="consignor_branch_div" style="display:none;">
+												<label class="control-label">Consignor Branch</label>
+												<select id="consignor_branch" name="consignor_branch" class="form-control party-select" data-placeholder="Select Branch">
+													<option value="">Select Branch</option>
+												</select>
 											</div>
-											<div id="con_details" style="display:none">
-												<div class="form-group" style="margin-bottom: 0px;">
-													<label class="control-label col-sm-4 col-xs-4">Address <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-														<label class="control-label" id="address1"> </label>
-
+											<div id="con_details" class="party-card-meta" style="display:none;">
+												<div class="ew-field">
+													<label class="control-label">Consignor Address</label>
+													<div class="meta-value" id="address1"></div>
+												</div>
+												<div class="party-card-meta-row">
+													<div class="ew-field">
+														<label class="control-label">Phone</label>
+														<div class="meta-value" id="phone"></div>
+													</div>
+													<div class="ew-field">
+														<label class="control-label">GST No</label>
+														<div class="meta-value" id="gst_no"></div>
 													</div>
 												</div>
-												<!-- <div class="form-group">
-													<label class="control-label col-sm-4 col-xs-4">Address 2 <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-														<label class="control-label" id="address2"> </label>
-													</div>
-												</div> -->
-												<!-- <div class="form-group">
-													<label class="control-label col-sm-4 col-xs-4">State <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-														<label class="control-label" id="state"> </label>
-													</div>
-												</div>
-												<div class="form-group">
-													<label class="control-label col-sm-4 col-xs-4">City <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-														<label class="control-label" id="city"> </label>
-													</div>
-												</div>
-												<div class="form-group">
-													<label class="control-label col-sm-4 col-xs-4">Pincode <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-														<label class="control-label" id="pincode"> </label>
-													</div>
-												</div> -->
-												<div class="form-group" style="margin-bottom: 0px;">
-													<label class="control-label col-sm-4 col-xs-4">Phone <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-														<label class="control-label" id="phone"> </label>
-													</div>
-												</div>
-												<div class="form-group">
-													<label class="control-label col-sm-4 col-xs-4">GST No <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-														<label class="control-label" id="gst_no"> </label>
-													</div>
-												</div>
+												<span id="address2" style="display:none;"></span>
+												<span id="city" style="display:none;"></span>
+												<span id="state" style="display:none;"></span>
+												<span id="pincode" style="display:none;"></span>
 											</div>
 										</div>
-										<div class="col-md-5">
-											<div class="form-group" style="margin-bottom: 0px;">
-												<label class="control-label col-sm-4">Consignee <span class="req-star">*</span></label>
-												<div class="col-lg-8">
-
-
-													<input type="text" name="consignee_name" class="form-control" id="consignee_name" value="<?php echo get_client_name($conn, $row['consignee']) ?>" autocomplete="off" disabled />
-													<label for="" class="consignee_name_val"></label>
-
-													<input name="consignee" id="consignee" required value="<?php echo $row['consignee']; ?>" type="hidden" class="get_consignee_valll" />
-												</div>
+										<div class="party-card party-card--consignee">
+											<div class="ew-field">
+												<label class="control-label">Consignee <span class="req-star">*</span></label>
+												<select name="consignee_name" class="form-control party-select" id="consignee_name" data-placeholder="Select consignee" disabled>
+													<option value="">Select consignee</option>
+													<?php
+													$sel_consignee = (int) ($row['consignee'] ?? 0);
+													if ($sel_consignee > 0) {
+														echo '<option value="' . $sel_consignee . '" selected>' . htmlspecialchars(get_client_name($conn, $sel_consignee)) . '</option>';
+													}
+													?>
+												</select>
+												<label for="" class="consignee_name_val"></label>
+												<input name="consignee" id="consignee" required value="<?php echo $row['consignee']; ?>" type="hidden" class="get_consignee_valll" />
 											</div>
-										
-											<div class="form-group" id="consignee_branch_div" style="display:none;">
-
-												<label class="control-label col-sm-4">
-
-													Consignee Branch
-
-												</label>
-
-												<div class="col-lg-8">
-
-													<select
-														id="consignee_branch"
-														name="consignee_branch"
-														class="form-control">
-
-														<option value="">
-															Select Branch
-														</option>
-
-													</select>
-
-												</div>
-
+											<div class="ew-field" id="consignee_branch_div" style="display:none;">
+												<label class="control-label">Consignee Branch</label>
+												<select id="consignee_branch" name="consignee_branch" class="form-control party-select" data-placeholder="Select Branch">
+													<option value="">Select Branch</option>
+												</select>
 											</div>
-											<div id="con_details1" style="display:none;">
-												<div class="form-group" style="margin-bottom: 0px;">
-													<label class="control-label col-sm-4 col-xs-4">Address <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-
-														<label class="control-label" id="con_address1"> </label>
+											<div id="con_details1" class="party-card-meta" style="display:none;">
+												<div class="ew-field">
+													<label class="control-label">Consignee Address</label>
+													<div class="meta-value" id="con_address1"></div>
+												</div>
+												<div class="party-card-meta-row">
+													<div class="ew-field">
+														<label class="control-label">Phone</label>
+														<div class="meta-value" id="con_phone"></div>
+													</div>
+													<div class="ew-field">
+														<label class="control-label">GST No</label>
+														<div class="meta-value" id="con_gst"></div>
 													</div>
 												</div>
-												<!-- <div class="form-group">
-													<label class="control-label col-sm-4 col-xs-4">Address 2 <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-
-														<label class="control-label" id="con_address2"> </label>
-													</div>
-												</div> -->
-												<!-- <div class="form-group">
-													<label class="control-label col-sm-4 col-xs-4">State <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-
-														<label class="control-label" id="con_state"> </label>
-													</div>
-												</div>
-												<div class="form-group">
-													<label class="control-label col-sm-4 col-xs-4">City <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-
-														<label class="control-label" id="con_city"> </label>
-													</div>
-												</div>
-												<div class="form-group">
-													<label class="control-label col-sm-4 col-xs-4">Pincode <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-
-														<label class="control-label" id="con_pincode"> </label>
-													</div>
-												</div> -->
-												<!-- <div class="form-group">
-													<label class="control-label col-sm-4 col-xs-4">State <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-
-														<label class="control-label" id="con_state"> </label>
-													</div>
-												</div> -->
-												<div class="form-group" style="margin-bottom: 0px;">
-													<label class="control-label col-sm-4 col-xs-4">Phone <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-
-														<label class="control-label" id="con_phone"> </label>
-													</div>
-												</div>
-												<div class="form-group" style="margin-bottom: 0px;">
-													<label class="control-label col-sm-4 col-xs-4">GST No <span class="req-star">*</span></label>
-													<div class="col-lg-8 col-xs-8">
-
-														<label class="control-label" id="con_gst"> </label>
-													</div>
-												</div>
+												<span id="con_address2" style="display:none;"></span>
+												<span id="con_state" style="display:none;"></span>
+												<span id="con_city" style="display:none;"></span>
+												<span id="con_pincode" style="display:none;"></span>
 												<?php
-												// Determine if checkbox should be pre-checked (edit mode with existing data)
 												$ship_checked = (!empty($row['shipping_address']) || !empty($row['shipping_address_name'])) ? 'checked="checked"' : '';
 												?>
-												<div class="form-group" style="margin-left:100px">
-													<div class="ship_address col-md-4">
+												<div class="ew-field shipping-block">
+													<div class="ship-toggle">
 														<input type="checkbox" id="ship_adddress" name="ship_adddress" <?php echo $ship_checked; ?>>
-														<label for="ship_adddress">Shipping Address</label>
+														<label for="ship_adddress">Shipping Address (optional)</label>
 													</div>
-													<div class="col-lg-8" id="shipadd" style="display: none;">
-														<input type="text"
-															name="shipping_address_name"
-															id="shipping_address_name"
-															class="form-control"
-															style="margin-bottom:6px;"
-															placeholder="Recipient Name"
-															value="<?php echo htmlspecialchars($row['shipping_address_name'] ?? ''); ?>">
-														<textarea class="form-control"
-															rows="3"
-															name="shipping_address"
-															id="shipping_address"
-															style="margin-bottom:6px;"
-															placeholder="Shipping Address"><?php echo htmlspecialchars($row['shipping_address'] ?? ''); ?></textarea>
-														<input type="text"
-															name="shipping_gst_no"
-															id="shipping_gst_no"
-															class="form-control"
-															style="margin-bottom:6px;"
-															placeholder="GST No"
-															value="<?php echo htmlspecialchars($row['shipping_gst_no'] ?? ''); ?>">
-														<input type="text"
-															name="shipping_phone"
-															id="shipping_phone"
-															class="form-control"
-															placeholder="Phone No"
-															value="<?php echo htmlspecialchars($row['shipping_phone'] ?? ''); ?>">
+													<div id="shipadd" style="display: none;">
+														<input type="text" name="shipping_address_name" id="shipping_address_name" class="form-control" style="margin-bottom:6px;" placeholder="Recipient Name" value="<?php echo htmlspecialchars($row['shipping_address_name'] ?? ''); ?>">
+														<textarea class="form-control" rows="3" name="shipping_address" id="shipping_address" style="margin-bottom:6px;" placeholder="Shipping Address"><?php echo htmlspecialchars($row['shipping_address'] ?? ''); ?></textarea>
+														<div class="ew-form-grid" style="margin-top:6px;">
+															<div class="ew-field">
+																<input type="text" name="shipping_gst_no" id="shipping_gst_no" class="form-control" placeholder="GST No" value="<?php echo htmlspecialchars($row['shipping_gst_no'] ?? ''); ?>">
+															</div>
+															<div class="ew-field">
+																<input type="text" name="shipping_phone" id="shipping_phone" class="form-control" placeholder="Phone No" value="<?php echo htmlspecialchars($row['shipping_phone'] ?? ''); ?>">
+															</div>
+														</div>
 													</div>
 												</div>
-
-
 											</div>
 										</div>
-
-
 									</div>
+								</div>
 
-								</fieldset>
-
-								<fieldset class="my-fieldset">
-									<legend>Package Information</legend>
+								<div class="booking-compact-stack">
+								<div class="ew-booking-section booking-package-section">
+									<h2 class="ew-card-section-title">Package Information</h2>
+									<?php
+									$pkg_list = array();
+									$pkg_type_q = mysqli_query($conn, "select * from package where status='0'");
+									while ($pkg_r = mysqli_fetch_array($pkg_type_q)) {
+										$pkg_list[] = $pkg_r;
+									}
+									$pkg_option = '<option value="">Select Package Type</option>';
+									foreach ($pkg_list as $pkg_r) {
+										$pkg_option .= '<option value="' . (int) $pkg_r['package_id'] . '">' . htmlspecialchars($pkg_r['package_code']) . '</option>';
+									}
+									$package_rows = array();
+									if ($_REQUEST['key'] == '') {
+										$package_rows[] = array();
+									} else {
+										$invoice_query = 'select * from transaction_invoice_' . $m . '_' . $y . " where md5(transaction_id)='" . $_REQUEST['key'] . "'";
+										$invoice_result = mysqli_query($conn, $invoice_query);
+										while ($invoice_row = mysqli_fetch_array($invoice_result)) {
+											$package_rows[] = $invoice_row;
+										}
+										if (empty($package_rows)) {
+											$package_rows[] = array();
+										}
+									}
+									?>
 									<div class="row pak_info_tblee">
-										<div class="col-md-offset-1 col-md-10">
+										<div class="col-md-12">
 											<table class="table table-bordered tabs" width="100%">
 												<thead>
 													<tr>
@@ -1267,132 +1259,65 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 														<th class="text-center" width="10%">Qty</th>
 														<th class="text-center" width="13%">Gross Wt.(Kgs)</th>
 														<th class="text-center" width="13%">Charged wt.(Kgs)</th>
+														<th class="text-center pkg-action-col"></th>
 													</tr>
 												</thead>
-												<?php
-
-												if ($_REQUEST['key'] == '') {
-													$pkg_option = '<option value=""> Select Package Type</option>';
-													$pkg_type_q = mysqli_query($conn, "select * from package where status='0'");
-													while ($pkg_r = mysqli_fetch_array($pkg_type_q)) {
-														$pkg_option .= '<option value="' . $pkg_r['package_id'] . '">' . $pkg_r['package_code'] . '</option>';
-													}
-												?>
-													<tbody>
-														<?php
-														for ($i = 1; $i <= 5; $i++) {
-														?>
-															<tr>
-																<td class="text-center"><?php echo $i; ?></td>
-																<td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg<?php echo $i; ?>" class="form-control num_only text-right pkg-row-input" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-																<td id="typ_req"><select type="text" name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control pkg-row-select"<?php echo ($i === 1) ? ' required' : ''; ?>> <?php echo $pkg_option; ?> </select></td>
-																<td id="inv_req"><input type="text" name="party_invoice[]" id="party_invoice<?php echo $i; ?>" class="form-control" onchange="party_invoice_details();" onkeyup="party_invoice_details();" autocomplete="off"></td>
-																<td><?php echo ew_date_input(array(
-																	'id' => 'party_invoice_date' . $i,
-																	'name' => 'party_invoice_date[]',
-																	'class' => 'party-invoice-date',
-																	'end_date' => 'today',
-																)); ?></td>
-																<td><input type="text" name="content[]" id="content<?php echo $i; ?>" class="form-control" autocomplete="off"></td>
-																<td><input type="text" name="qty[]" id="qty<?php echo $i; ?>" class="form-control num_only text-right" autocomplete="off" inputmode="numeric" onpaste="return false;"></td>
-																<td><input type="text" name="gross[]" id="gross<?php echo $i; ?>" class="form-control  text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-																<td id="chrg_req"><input type="text" name="charged[]" id="charged<?php echo $i; ?>" class="form-control  text-right num_only charged_w" onkeyup="calculate_charge_weight();" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-																<td><input type="hidden" name="cumulative_charged" id="cumulative_charged" class="form-control  text-right num_only" value=""></td>
-
-															</tr>
-														<?php
-														}
-
-														?>
-														<!-- <td><input type="hidden" name="cumulative_charged" id="cumulative_charged" class="form-control  text-right num_only"></td> -->
-													</tbody>
-												<?php
-												} else {
-													$invoice_query = 'select * from transaction_invoice_' . $m . '_' . $y . " where md5(transaction_id)='" . $_REQUEST['key'] . "'";
-													$invoice_result = mysqli_query($conn, $invoice_query);
-													$j = 1;
-												?>
-													<tbody id="package-tbody">
-														<?php
-
-														while ($invoice_row = mysqli_fetch_array($invoice_result)) {
-														?>
-															<tr>
-																<td class="text-center"><?php echo $j; ?></td>
-																<td><input type="text" name="no_of_pkg[]" value="<?php echo $invoice_row['no_of_pkge']; ?>" id="no_of_pkg<?php echo $j; ?>" class="form-control  text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-																<td>
-																	<select type="text" name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control" required>
-																		<option value="">Select Package Type</option>
-																		<?php
-																		$pkg_type_q = mysqli_query($conn, "select * from package where status='0'");
-																		while ($pkg_r = mysqli_fetch_array($pkg_type_q)) {
-																		?>
-																			<option value="<?php echo $pkg_r['package_id']; ?>" <?php if ($invoice_row['type_of_pkge'] == $pkg_r['package_id']) echo 'selected'; ?>><?php echo $pkg_r['package_code']; ?></option>
-																		<?php
-																		}
-																		?>
-																	</select>
-																</td>
-																<td id="inv_req"><input type="text" name="party_invoice[]" value="<?php echo $invoice_row['party_invoice_no']; ?>" id="party_invoice<?php echo $j; ?>" class="form-control" onchange="party_invoice_details();" onkeydown="party_invoice_details();" onkeyup="party_invoice_details();" autocomplete="off"></td>
-																<td><?php
-																	$invoice_date_val = (
-																		!empty($invoice_row['party_invoice_date']) &&
-																		$invoice_row['party_invoice_date'] != '0000-00-00'
-																	) ? date('d-m-Y', strtotime($invoice_row['party_invoice_date'])) : '';
-																	echo ew_date_input(array(
-																		'id' => 'party_invoice_date' . $j,
-																		'name' => 'party_invoice_date[]',
-																		'value' => $invoice_date_val,
-																		'class' => 'party-invoice-date',
-																		'end_date' => 'today',
-																	));
-																?></td>
-																<td><input type="text" name="content[]" value="<?php echo $invoice_row['said_contents']; ?>" id="content<?php echo $j; ?>" class="form-control"></td>
-																<td><input type="text" name="qty[]" value="<?php echo $invoice_row['qty']; ?>" id="qty<?php echo $j; ?>" class="form-control num_only text-right" autocomplete="off" onpaste="return false;"></td>
-																<td><input type="text" name="gross[]" value="<?php echo $invoice_row['gross_weight']; ?>" id="gross<?php echo $j; ?>" class="form-control text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-																<td class="chrg_req"><input type="text" name="charged[]" value="<?php echo $invoice_row['charged_weight']; ?>" id="charged<?php echo $j; ?>" class="form-control text-right num_only charged_w" onkeyup="calculate_charge_weight();" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-																<td><input type="text" name="cumulative_charged" id="cumulative_charged" class="form-control  text-right num_only" value="<?php echo $invoice_row['charged_weight']; ?>"></td>
-
-															</tr>
-														<?php
-															$j++;
-														}
-
-														?>
-														<!-- <td><input type="hidden" name="cumulative_charged" id="cumulative_charged" class="form-control  text-right num_only"></td> -->
-													</tbody>
-												<?php
-												}
-												?>
+												<tbody id="package-tbody">
+													<?php
+													foreach ($package_rows as $row_index => $invoice_row) {
+														$i = $row_index + 1;
+														$invoice_date_val = (
+															!empty($invoice_row['party_invoice_date']) &&
+															$invoice_row['party_invoice_date'] != '0000-00-00'
+														) ? date('d-m-Y', strtotime($invoice_row['party_invoice_date'])) : '';
+													?>
+														<tr class="pkg-data-row" data-row-index="<?php echo $i; ?>">
+															<td class="text-center pkg-sno"><?php echo $i; ?></td>
+															<td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['no_of_pkge'] ?? ''); ?>" class="form-control num_only text-right pkg-row-input" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+															<td id="typ_req">
+																<select name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control pkg-row-select"<?php echo ($i === 1) ? ' required' : ''; ?>>
+																	<option value="">Select Package Type</option>
+																	<?php foreach ($pkg_list as $pkg_r) { ?>
+																		<option value="<?php echo (int) $pkg_r['package_id']; ?>" <?php if (($invoice_row['type_of_pkge'] ?? '') == $pkg_r['package_id']) echo 'selected'; ?>><?php echo htmlspecialchars($pkg_r['package_code']); ?></option>
+																	<?php } ?>
+																</select>
+															</td>
+															<td id="inv_req"><input type="text" name="party_invoice[]" id="party_invoice<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['party_invoice_no'] ?? ''); ?>" class="form-control" onchange="party_invoice_details();" onkeyup="party_invoice_details();" autocomplete="off"></td>
+															<td><?php echo ew_date_input(array(
+																'id' => 'party_invoice_date' . $i,
+																'name' => 'party_invoice_date[]',
+																'value' => $invoice_date_val,
+																'class' => 'party-invoice-date',
+																'end_date' => 'today',
+															)); ?></td>
+															<td><input type="text" name="content[]" id="content<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['said_contents'] ?? ''); ?>" class="form-control" autocomplete="off"></td>
+															<td><input type="text" name="qty[]" id="qty<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['qty'] ?? ''); ?>" class="form-control num_only text-right" autocomplete="off" inputmode="numeric" onpaste="return false;"></td>
+															<td><input type="text" name="gross[]" id="gross<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['gross_weight'] ?? ''); ?>" class="form-control text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+															<td id="chrg_req"><input type="text" name="charged[]" id="charged<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['charged_weight'] ?? ''); ?>" class="form-control text-right num_only charged_w" onkeyup="calculate_charge_weight();" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+															<td class="text-center pkg-row-action"></td>
+														</tr>
+													<?php } ?>
+												</tbody>
 											</table>
-
+											<input type="hidden" name="cumulative_charged" id="cumulative_charged" value="">
 										</div>
-								</fieldset>
+									</div>
+								</div>
 
-								<div class="row">
-									<div class="col-md-offset-1 col-md-5 mega_lable">
-
-										<fieldset class="my-fieldset lable">
-											<legend>Volumetric Consignment(If Any)</legend>
-											<div class="form-group">
-												<label class="control-label col-sm-4">Supplier Invoice Value:</label>
-												<div class="col-lg-8">
-													<input type="text"
-														name="supplier_invoice_value"
-														id="supplier_invoice_value"
-														value="<?php echo $row['supplier_invoice_value']; ?>"
-														class="form-control">
+								<div class="booking-split-row">
+									<div class="booking-split-col ew-booking-section booking-goods-col my-fieldset lable">
+											<h2 class="ew-card-section-title">Volumetric Consignment (If Any)</h2>
+											<div class="ew-form-grid ew-form-grid--compact">
+												<div class="ew-field">
+													<label class="control-label">Supplier Invoice Value</label>
+													<input type="text" name="supplier_invoice_value" id="supplier_invoice_value" value="<?php echo $row['supplier_invoice_value']; ?>" class="form-control">
 												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4 ">E-Way Number:</label>
-												<div class="col-lg-8">
+												<div class="ew-field">
+													<label class="control-label">E-Way Number</label>
 													<input type="text" id="eway_number" value="<?php echo $row['eway_number'] ?>" name="eway_number" class="form-control text-right" autocomplete="off" />
 												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">E-Way Expiry Date:</label>
-												<div class="col-lg-8">
+												<div class="ew-field">
+													<label class="control-label">E-Way Expiry Date</label>
 													<?php echo ew_date_input(array(
 														'id' => 'eway_expiryDate',
 														'name' => 'eway_expiryDate',
@@ -1400,96 +1325,47 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 														'attrs' => $date_keypress_attr,
 													)); ?>
 												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">LC Number:</label>
-												<div class="col-lg-8">
-													<input type="text" name="lc_number" id="lc_number"
-														value="<?php echo $row['lc_number']; ?>"
-														class="form-control">
+												<div class="ew-field">
+													<label class="control-label">LC Number</label>
+													<input type="text" name="lc_number" id="lc_number" value="<?php echo $row['lc_number']; ?>" class="form-control">
 												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">Description Of Goods:</label>
-												<div class="col-lg-8">
-													<textarea name="description_of_goods"
-														id="description_of_goods"
-														class="form-control"
-														rows="3"><?php echo $row['description_of_goods']; ?></textarea>
+												<div class="ew-field span-2">
+													<label class="control-label">Description Of Goods</label>
+													<textarea name="description_of_goods" id="description_of_goods" class="form-control" rows="2"><?php echo $row['description_of_goods']; ?></textarea>
 												</div>
-											</div>
-
-											<div class="form-group">
-												<label class="control-label col-sm-4">CFS / Port / Factory / Warehouse:</label>
-												<div class="col-lg-8">
-													<input type="text" name="cfs" id="cfs"
-														value="<?php echo $row['cfs']; ?>"
-														class="form-control">
+												<div class="ew-field">
+													<label class="control-label">CFS / Port / Factory / Warehouse</label>
+													<input type="text" name="cfs" id="cfs" value="<?php echo $row['cfs']; ?>" class="form-control">
 												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">Part Number / Article Name / Article Number:</label>
-												<div class="col-lg-8">
-													<input type="text"
-														name="vehicle_purchase_contact_person"
-														value="<?php echo $row['vehicle_purchase_contact_person']; ?>"
-														class="form-control">
+												<div class="ew-field">
+													<label class="control-label">Part Number / Article Name</label>
+													<input type="text" name="vehicle_purchase_contact_person" value="<?php echo $row['vehicle_purchase_contact_person']; ?>" class="form-control">
 												</div>
-											</div>
-
-											<div class="form-group">
-												<label class="control-label col-sm-4">Quotation Approval:</label>
-												<div class="col-lg-8">
-													<input type="text"
-														name="quotation_approval"
-														value="<?php echo $row['quotation_approval']; ?>"
-														class="form-control">
+												<div class="ew-field">
+													<label class="control-label">Quotation Approval</label>
+													<input type="text" name="quotation_approval" value="<?php echo $row['quotation_approval']; ?>" class="form-control">
 												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">Truck/ Vehicle No:</label>
-												<div class="col-lg-8">
+												<div class="ew-field">
+													<label class="control-label">Truck / Vehicle No</label>
 													<input type="text" name="vehicle_no" id="vehicle_no" value="<?php echo $row['truck']; ?>" class="form-control" autocomplete="off">
-
+												</div>
+												<div class="ew-field">
+													<label class="control-label">Insurance No</label>
+													<input type="text" name="insurance_number" id="insurance_number" value="<?php echo $row['insurance_number']; ?>" class="form-control">
+												</div>
+												<div class="ew-field">
+													<label class="control-label">Vehicle Type</label>
+													<input type="text" name="vehicle_type" id="vehicle_type" value="<?php echo $row['vehicle_type']; ?>" class="form-control">
+												</div>
+												<div class="ew-field">
+													<label class="control-label">Highload Challan</label>
+													<input type="text" name="highload_challan" value="<?php echo $row['highload_challan']; ?>" class="form-control">
 												</div>
 											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">Insurance No:</label>
-												<div class="col-lg-8">
-													<input type="text" name="insurance_number" id="insurance_number"
-														value="<?php echo $row['insurance_number']; ?>"
-														class="form-control">
-												</div>
-											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">Vehicle Type:</label>
-												<div class="col-lg-8">
-													<input type="text" name="vehicle_type" id="vehicle_type"
-														value="<?php echo $row['vehicle_type']; ?>"
-														class="form-control">
-												</div>
-											</div>
-
-
-
-
-											<div class="form-group">
-												<label class="control-label col-sm-4">Highload Challan:</label>
-												<div class="col-lg-8">
-													<input type="text"
-														name="highload_challan"
-														value="<?php echo $row['highload_challan']; ?>"
-														class="form-control">
-												</div>
-											</div>
-
-											<input type="hidden"
-												name="volumetric_weight"
-												id="volumetric_weight"
-												value="<?php echo $row['volumetric_weight']; ?>">
-											<div class="form-group kl">
-												<label class="control-label col-sm-4  col-md-12   col-lg-4  v_label">Dimensions(L X W X H in cms):</label>
-												<div class="df col-lg-8">
+											<input type="hidden" name="volumetric_weight" id="volumetric_weight" value="<?php echo $row['volumetric_weight']; ?>">
+											<div class="ew-field span-2 booking-dims-field">
+												<label class="control-label v_label">Dimensions (L × W × H in cms)</label>
+												<div class="df">
 													<?php
 													$dimension1 = $row['dimension1'];
 													$length_dimension1 = explode(',', $dimension1);
@@ -1550,22 +1426,10 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 														<input type="text" placeholder="" class="form-control r_p v_weight" id="v_weight" name="v_weight[]" onchange="vlm_calculation();" readonly />
 													</div>
 												</div>
-
 											</div>
-											<div class="form-group">
-												<label class="control-label col-sm-4">Amount In Words:</label>
-												<div class="col-lg-8">
-													<textarea name="amount_in_words" id="amount_in_words" rows="3" readonly class="form-control"><?php echo $row['total_words']; ?></textarea>
-												</div>
-											</div>
-
-										</fieldset>
-
 									</div>
-									<div class="col-md-5">
-
-										<fieldset class="my-fieldset payment-gst-panel">
-											<legend>Payment Information<?php if (!empty($billing_only_edit)) { ?> <small class="billing-only-note">(Editable after delivery — GST locked)</small><?php } ?></legend>
+									<div class="booking-split-col ew-booking-section payment-gst-panel">
+											<h2 class="ew-card-section-title">Payment Information<?php if (!empty($billing_only_edit)) { ?> <small class="billing-only-note">(Editable after delivery — GST locked)</small><?php } ?></h2>
 											<table class="table table-bordered payment-charges-table">
 												<thead>
 													<tr>
@@ -1719,14 +1583,17 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 												<input type="hidden" name="total" id="total" value="<?php echo $row['total'] ?? ''; ?>" />
 												<small class="gst-breakup-note">GST type is auto-selected from origin and destination state. Same state → CGST + SGST; different state → IGST.</small>
 											</div>
-										</fieldset>
 
+											<div class="amount-in-words-block">
+												<label for="amount_in_words">Amount In Words</label>
+												<textarea name="amount_in_words" id="amount_in_words" rows="2" readonly class="form-control"><?php echo $row['total_words']; ?></textarea>
+											</div>
 									</div>
-
+								</div>
 								</div>
 
 								<div class="row booking-footer-section">
-									<div class="col-md-offset-1 col-md-5">
+									<div class="col-md-6">
 										<div class="booking-panel upload-panel">
 											<h3 class="booking-panel-title">Attachments</h3>
 											<p class="booking-panel-hint">Drag & drop or click to upload</p>
@@ -1774,7 +1641,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 											<button id="add_more" type="button" class="btn btn-default btn-sm upload-add-btn"><i class="fa fa-plus"></i> Add file</button>
 										</div>
 									</div>
-									<div class="col-md-5">
+									<div class="col-md-6">
 										<div class="booking-panel signature-panel">
 											<h3 class="booking-panel-title">Consignor Signature</h3>
 											<p class="booking-panel-hint">Sign below using mouse or touch</p>
@@ -1792,7 +1659,6 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 								</div>
 
 
-						</div>
 
 
 
@@ -1801,17 +1667,15 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 
 
 
-
-						<br />
-						<div class="row">
-							<div class="col-md-12 form-action">
+						</form>
+							</div>
+							<div class="ew-form-footer">
+								<button class="ew-btn-v2 ew-btn-v2-outline btn-reset btn-cancel" type="button">Cancel</button>
 								<?php if (!$form_fully_locked) { ?>
-								<button class="save-button btn btn-primary" type="button" id="save">Submit</button>
+								<button class="ew-btn-v2 ew-btn-v2-primary save-button" type="button" id="save"><i class="fa fa-save"></i> Submit Booking</button>
 								<?php } ?>
-								<button class="cancel-button btn btn-default-outline  btn-reset btn-cancel" type="button">Cancel</button>
 							</div>
 						</div>
-						</form>
 					</div>
 				</div>
 			</div>
@@ -1824,6 +1688,93 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 
 	<script src="include/calculation.js"></script>
 	<script type="text/javascript">
+		window.PKG_OPTIONS_HTML = <?php echo json_encode($pkg_option ?? '<option value="">Select Package Type</option>'); ?>;
+		var PKG_MAX_ROWS = 5;
+
+		function buildPackageRowHtml(idx) {
+			return '<tr class="pkg-data-row" data-row-index="' + idx + '">' +
+				'<td class="text-center pkg-sno">' + idx + '</td>' +
+				'<td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg' + idx + '" class="form-control num_only text-right pkg-row-input" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>' +
+				'<td id="typ_req"><select name="type_of_pkg[]" id="type_of_pkg' + idx + '" class="form-control pkg-row-select">' + window.PKG_OPTIONS_HTML + '</select></td>' +
+				'<td id="inv_req"><input type="text" name="party_invoice[]" id="party_invoice' + idx + '" class="form-control" onchange="party_invoice_details();" onkeyup="party_invoice_details();" autocomplete="off"></td>' +
+				'<td><div class="date-input-inside"><input type="text" id="party_invoice_date' + idx + '" name="party_invoice_date[]" class="form-control ew-date-field party-invoice-date" autocomplete="off" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" data-end-date="today"><i class="fa fa-calendar date-field-icon" aria-hidden="true"></i></div></td>' +
+				'<td><input type="text" name="content[]" id="content' + idx + '" class="form-control" autocomplete="off"></td>' +
+				'<td><input type="text" name="qty[]" id="qty' + idx + '" class="form-control num_only text-right" autocomplete="off" inputmode="numeric" onpaste="return false;"></td>' +
+				'<td><input type="text" name="gross[]" id="gross' + idx + '" class="form-control text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>' +
+				'<td id="chrg_req"><input type="text" name="charged[]" id="charged' + idx + '" class="form-control text-right num_only charged_w" onkeyup="calculate_charge_weight();" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>' +
+				'<td class="text-center pkg-row-action"></td>' +
+				'</tr>';
+		}
+
+		function refreshPackageRowActions() {
+			var $rows = $('#package-tbody .pkg-data-row');
+			var count = $rows.length;
+			$rows.each(function(idx) {
+				var isLast = (idx === count - 1);
+				var buttons = '';
+				if (!isLast) {
+					buttons = '<button type="button" class="pkg-row-btn is-remove" title="Remove row"><i class="fa fa-minus"></i></button>';
+				} else if (count > 1) {
+					if (count < PKG_MAX_ROWS) {
+						buttons = '<button type="button" class="pkg-row-btn is-add" title="Add row"><i class="fa fa-plus"></i></button>';
+					} else {
+						buttons = '<button type="button" class="pkg-row-btn is-remove" title="Remove row"><i class="fa fa-minus"></i></button>';
+					}
+				} else if (count < PKG_MAX_ROWS) {
+					buttons = '<button type="button" class="pkg-row-btn is-add" title="Add row"><i class="fa fa-plus"></i></button>';
+				}
+				$(this).find('.pkg-row-action').html(buttons);
+			});
+		}
+
+		function renumberPackageRows() {
+			$('#package-tbody .pkg-data-row').each(function(i) {
+				var idx = i + 1;
+				var $row = $(this);
+				$row.attr('data-row-index', idx);
+				$row.find('.pkg-sno').text(idx);
+				$row.find('[name="no_of_pkg[]"]').attr('id', 'no_of_pkg' + idx);
+				$row.find('[name="type_of_pkg[]"]').attr('id', 'type_of_pkg' + idx);
+				$row.find('[name="party_invoice[]"]').attr('id', 'party_invoice' + idx);
+				$row.find('[name="party_invoice_date[]"]').attr('id', 'party_invoice_date' + idx);
+				$row.find('[name="content[]"]').attr('id', 'content' + idx);
+				$row.find('[name="qty[]"]').attr('id', 'qty' + idx);
+				$row.find('[name="gross[]"]').attr('id', 'gross' + idx);
+				$row.find('[name="charged[]"]').attr('id', 'charged' + idx);
+			});
+		}
+
+		function addPackageRow() {
+			var count = $('#package-tbody .pkg-data-row').length;
+			if (count >= PKG_MAX_ROWS) {
+				return;
+			}
+			var idx = count + 1;
+			var $row = $(buildPackageRowHtml(idx));
+			$('#package-tbody').append($row);
+			if (typeof initEwDatepickers === 'function') {
+				initEwDatepickers($row);
+			}
+			refreshPackageRowActions();
+			syncPackageRowRequired();
+		}
+
+		function removePackageRow($row) {
+			if ($('#package-tbody .pkg-data-row').length <= 1) {
+				return;
+			}
+			var $date = $row.find('.party-invoice-date');
+			if ($date.length && $date.data('datepicker')) {
+				$date.datepicker('destroy');
+			}
+			$row.remove();
+			renumberPackageRows();
+			refreshPackageRowActions();
+			calculate_charge_weight();
+			syncPackageRowRequired();
+			party_invoice_details();
+		}
+
 		function applyFormFullyLocked() {
 			if ($('#form_fully_locked').val() !== '1' && !$('#grn_details').hasClass('form-fully-locked')) {
 				return;
@@ -1841,7 +1792,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 					$el.prop('readonly', true);
 				}
 			});
-			$('.upload-dropzone, #add_more, .remove-image, #signature, .jSignature').css('pointer-events', 'none');
+			$('.upload-dropzone, #add_more, .remove-image, #signature, .jSignature, .pkg-row-btn').css('pointer-events', 'none');
 		}
 
 		function applyBillingOnlyEditMode() {
@@ -1890,7 +1841,8 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 
 			$('#gst_tax_id, #gst_type').prop('disabled', true);
 			$('.gst-config-block').addClass('gst-locked');
-			$('.upload-dropzone, #add_more, .remove-image, #signature, .jSignature').css('pointer-events', 'none');
+			$('.upload-dropzone, #add_more, .remove-image, #signature, .jSignature, .pkg-row-btn').css('pointer-events', 'none');
+			$('.pkg-row-btn').prop('disabled', true);
 		}
 
 		var company_grn_mode = '<?php echo $comp_grn_mode; ?>';
@@ -2133,11 +2085,110 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 
 		var cachedConsignorBranches = [];
 		var cachedConsigneeBranches = [];
+		var bookingClients = <?php echo $booking_clients_json ?: '[]'; ?>;
+
+		function escPartyName(v) {
+			if (v === null || v === undefined) return '';
+			return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		}
+
+		function initPartyNameSelect($el, placeholder, disabled) {
+			if (!$el || !$el.length) return;
+			if (typeof $.fn.select2 !== 'function') return;
+			try {
+				if ($el.data('select2')) {
+					$el.select2('destroy');
+				}
+			} catch (e) {}
+			$el.prop('disabled', !!disabled);
+			try {
+				$el.select2({
+					width: '100%',
+					placeholder: placeholder || 'Select',
+					allowClear: true
+				});
+				if ($el.data('select2')) {
+					$el.select2('enable', !disabled);
+				}
+			} catch (e) {}
+		}
+
+		function partySelectVal($el) {
+			if ($el.data('select2')) {
+				return $el.select2('val');
+			}
+			return $el.val();
+		}
+
+		function fillConsignorNameSelect(selected) {
+			var $el = $('#consignor_name');
+			if (!$el.length) return;
+			if (bookingClients && bookingClients.length) {
+				var html = '<option value="">Select consignor</option>';
+				$.each(bookingClients, function(i, c) {
+					html += '<option value="' + escPartyName(c.id) + '"' + (String(selected) === String(c.id) ? ' selected' : '') + '>' + escPartyName(c.name) + '</option>';
+				});
+				try {
+					if ($el.data('select2')) $el.select2('destroy');
+				} catch (e) {}
+				$el.html(html);
+			}
+			initPartyNameSelect($el, 'Select consignor', false);
+			if (selected) {
+				$el.val(String(selected));
+				if ($el.data('select2')) {
+					$el.select2('val', String(selected));
+				}
+				$('#consignor').val(String(selected));
+			}
+		}
+
+		function fillConsigneeNameSelect(rows, selected, disabled) {
+			var html = '<option value="">Select consignee</option>';
+			$.each(rows || [], function(i, c) {
+				html += '<option value="' + escPartyName(c.id) + '"' + (String(selected) === String(c.id) ? ' selected' : '') + '>' + escPartyName(c.name) + '</option>';
+			});
+			var $el = $('#consignee_name');
+			try {
+				if ($el.data('select2')) $el.select2('destroy');
+			} catch (e) {}
+			$el.html(html);
+			initPartyNameSelect($el, 'Select consignee', disabled);
+			if (selected && !disabled) {
+				$el.val(String(selected));
+				if ($el.data('select2')) {
+					$el.select2('val', String(selected));
+				}
+				$('#consignee').val(String(selected));
+			}
+		}
+
+		function loadMappedConsignees(consignorId, selected) {
+			if (!consignorId) {
+				fillConsigneeNameSelect([], '', true);
+				$('#consignee').val('');
+				return;
+			}
+			$.getJSON('fetch_details.php', {
+				cmd: 'get_mapped_consignees',
+				consignor: consignorId
+			}, function(rows) {
+				rows = rows || [];
+				var hasMapped = rows.length > 0;
+				fillConsigneeNameSelect(rows, hasMapped ? (selected || '') : '', !hasMapped);
+				if (!hasMapped) {
+					$('#consignee').val('');
+				}
+			});
+		}
 
 		function populateBranchDropdown(selectId, branches, excludeBranchId) {
 			var $sel = $(selectId);
 			var divId = (selectId === '#consignor_branch') ? '#consignor_branch_div' : '#consignee_branch_div';
-			var currentVal = $sel.val();
+			var currentVal = partySelectVal($sel);
+			try {
+				if ($sel.data('select2')) $sel.select2('destroy');
+			} catch (e) {}
 
 			$sel.html('<option value="">Select Branch</option>');
 
@@ -2159,15 +2210,11 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 			});
 
 			$(divId).show();
-
+			initPartyNameSelect($sel, 'Select Branch', false);
 			if (currentVal && $sel.find('option[value="' + currentVal + '"]:not(:disabled)').length) {
-				$sel.val(currentVal);
-			} else if (currentVal && String(currentVal) === String(excludeBranchId)) {
-				$sel.val('');
-			}
-
-			if (branches.length === 1 && !excludeBranchId) {
-				$sel.val(branches[0].client_branch_id).trigger('change');
+				$sel.select2('val', String(currentVal));
+			} else if ($sel.data('select2')) {
+				$sel.select2('val', '');
 			}
 		}
 
@@ -2253,7 +2300,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 					branch_id: branchId
 				},
 				success: function(r) {
-					var addr = [r.address1, r.address2, r.city_name, r.state_name, r.pincode].filter(Boolean).join(', ');
+					var addr = window.ewJoinPartyAddress ? window.ewJoinPartyAddress(r) : [r.address1, r.address2, r.city_name, r.pincode].filter(Boolean).join(', ');
 					$('#address1').html(addr);
 					$('#address2').html('');
 					$('#phone').html(r.contact_no || '');
@@ -2399,10 +2446,7 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 			} else {
 
 				$("#rajdhani_ex").hide();
-				$('#other_train_field').html(`<label class="control-label col-sm-4">Enter train name:</label>
-												<div class="col-lg-8">
-													<input type="text" name="other_train_name" id="other_train_name" class="form-control" placeholder="Enter Train Name">
-												</div>`);
+				$('#other_train_field').html('<label class="control-label">Other Train Name</label><input type="text" name="other_train_name" id="other_train_name" class="form-control" placeholder="Enter Train Name">');
 			}
 		});
 
@@ -2881,21 +2925,19 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 		}
 
 		function syncPackageRowRequired() {
-			for (var i = 1; i <= 5; i++) {
-				var $pkg = $('#no_of_pkg' + i);
-				var $type = $('#type_of_pkg' + i);
-				var $inv = $('#party_invoice' + i);
-				var $charged = $('#charged' + i);
-				if (!$pkg.length) {
-					continue;
-				}
+			$('#package-tbody .pkg-data-row').each(function(i) {
+				var idx = i + 1;
+				var $pkg = $('#no_of_pkg' + idx);
+				var $type = $('#type_of_pkg' + idx);
+				var $inv = $('#party_invoice' + idx);
+				var $charged = $('#charged' + idx);
 				var hasRow = $.trim($pkg.val()) !== '' ||
 					$.trim($inv.val()) !== '' ||
-					$.trim($('#content' + i).val() || '') !== '' ||
-					$.trim($('#gross' + i).val() || '') !== '' ||
+					$.trim($('#content' + idx).val() || '') !== '' ||
+					$.trim($('#gross' + idx).val() || '') !== '' ||
 					$.trim($charged.val() || '') !== '';
-				if (i === 1 || hasRow) {
-					if (i === 1) {
+				if (idx === 1 || hasRow) {
+					if (idx === 1) {
 						$pkg.attr('required', 'required');
 						$type.attr('required', 'required');
 						$inv.attr('required', 'required');
@@ -2904,9 +2946,9 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 					}
 				} else {
 					$type.removeAttr('required').removeClass('error');
-					$('label.error[for="type_of_pkg' + i + '"]').remove();
+					$('label.error[for="type_of_pkg' + idx + '"]').remove();
 				}
-			}
+			});
 		}
 
 		//End
@@ -2914,6 +2956,12 @@ $gst_profiles_json = json_encode($gst_tax_profiles);
 		$(document).ready(function() {
 		$("#consignor_branch_div").hide();
 $("#consignee_branch_div").hide();
+			fillConsignorNameSelect($('#consignor').val() || '');
+			if ($('#consignor').val()) {
+				loadMappedConsignees($('#consignor').val(), $('#consignee').val() || '');
+			} else {
+				fillConsigneeNameSelect([], '', true);
+			}
 
 			$("#grn_details").validate({
 				ignore: ':disabled, :hidden:not(#consignor):not(#consignee)',
@@ -2969,6 +3017,15 @@ $("#consignee_branch_div").hide();
 			applyFormFullyLocked();
 			applyBillingOnlyEditMode();
 			syncTransportRequiredFields();
+			refreshPackageRowActions();
+			calculate_charge_weight();
+
+			$(document).on('click', '.pkg-row-btn.is-add', function() {
+				addPackageRow();
+			});
+			$(document).on('click', '.pkg-row-btn.is-remove', function() {
+				removePackageRow($(this).closest('.pkg-data-row'));
+			});
 
 			var form_name = $("#form_name").val();
 			load_party_inv = new Array();
@@ -3051,7 +3108,8 @@ $("#consignee_branch_div").hide();
 
 							$("#con_details").show();
 							$("#consignor").val(result['client_id']);
-							$("#consignor_name").val(result['client_company_name']).prop("readonly");
+							fillConsignorNameSelect(result['client_id']);
+							loadMappedConsignees(result['client_id'], '');
 							// $('#address1').html(result['address1']);
 							// $('#address2').html(result['address2']);
 							var address = [result['address1'], result['address2']]
@@ -3124,6 +3182,9 @@ $("#consignee_branch_div").hide();
 			});
 
 			$(document).on('keyup', '#consignor_name', function(e) { //change
+				if ($(this).is('select')) {
+					return;
+				}
 				if (e.keyCode == 8 || e.keyCode == 46) { //change
 					if (company_grn_mode !== 'company') {
 						$("#id").val('');
@@ -3249,6 +3310,9 @@ $("#consignee_branch_div").hide();
 			// });
 
 			$(document).on('keyup', '#consignee_name', function(e) { //change
+				if ($(this).is('select')) {
+					return;
+				}
 				if (e.keyCode == 8 || e.keyCode == 46) { //change
 					$('#destination').val('');
 					reset_consignee(); //change
@@ -3433,7 +3497,11 @@ $("#consignee_branch_div").hide();
 			function reset_consignor() {
 
 				$('#consignor').val('');
-				$('#consignor_name').html('');
+				if ($('#consignor_name').is('select')) {
+					fillConsignorNameSelect('');
+				} else {
+					$('#consignor_name').val('');
+				}
 				$('#address1').html('');
 				$('#address2').html('');
 				$('#city').html('');
@@ -3448,8 +3516,12 @@ $("#consignee_branch_div").hide();
 			}
 
 			function reset_consignee() {
-				$('#consignee').html('');
-				$('#consignee_name').html('');
+				$('#consignee').val('');
+				if ($('#consignee_name').is('select')) {
+					fillConsigneeNameSelect([], '', true);
+				} else {
+					$('#consignee_name').val('').prop('disabled', true);
+				}
 				$('#con_address1').html('');
 				$('#con_address2').html('');
 				$('#con_state').html('');
@@ -3462,6 +3534,94 @@ $("#consignee_branch_div").hide();
 				$("#consignee_branch_div").hide();
 				$("#consignee_branch").html('<option value="">Select Branch</option>');
 			}
+
+			$(document).on('change', '#consignor_name', function() {
+				if (!$(this).is('select')) {
+					return;
+				}
+				var id = $(this).val();
+				$('#consignor').val(id || '');
+				if (!id) {
+					reset_consignee();
+					$("#con_details").hide();
+					$("#con_details1").hide();
+					return;
+				}
+				loadClientBranches(id, 'consignor', null, true);
+				loadMappedConsignees(id, '');
+				$('#con_details').show();
+				$.ajax({
+					url: 'fetch_details.php',
+					type: 'GET',
+					dataType: 'JSON',
+					data: { cmd: 'get_client_details_consignment', tbl_id: id, consignor: 'consignor' },
+					success: function(result) {
+						if (typeof company_grn_mode !== 'undefined' && company_grn_mode !== 'company' && result) {
+							var grn_no = result['grn_no'];
+							$('#id').val(result['grn_id']);
+							$('#grn_no').val((grn_no || '').toUpperCase());
+							$('#grn_no1').val((grn_no || '').toUpperCase()).attr('disabled', true);
+						}
+						$('#con_details').show();
+						if ($('#origin').val() == '' && cachedConsignorBranches.length <= 1 && result && result['city']) {
+							$('#origin').val(result['city']);
+							if (typeof reloadDestinationDropdown === 'function') {
+								reloadDestinationDropdown(result['city'], function() {
+									refreshGstCalculation();
+								});
+							}
+						}
+						var address = [result['address1'], result['address2'], result['city_name'], result['state'], result['pincode']].filter(function(item) {
+							return item && String(item).trim() !== '';
+						}).join(', ');
+						$('#address1').html(address);
+						$('#address2').html('');
+						$('#phone').html(result['contact_no']);
+						$('#gst_no').html(result['gst_no']);
+						$('#consignor_state_id').val(result['state_id'] || '');
+						if (typeof sum_amount === 'function') sum_amount();
+						$('.consignor_name_val').removeClass('con_name_val1');
+					}
+				});
+				if (id && typeof party_invoice_details === 'function') {
+					party_invoice_details();
+				}
+			});
+
+			$(document).on('change', '#consignee_name', function() {
+				if (!$(this).is('select')) {
+					return;
+				}
+				var id = $(this).val();
+				$('#consignee').val(id || '');
+				if (!id) {
+					$('#con_details1').hide();
+					return;
+				}
+				loadClientBranches(id, 'consignee', null, true);
+				$('#con_details1').show();
+				$.ajax({
+					url: 'fetch_details.php',
+					type: 'GET',
+					dataType: 'JSON',
+					data: { cmd: 'get_client_details_consignment', tbl_id: id },
+					success: function(result) {
+						$('#con_details1').show();
+						if ($('#destination').val() == '' && cachedConsigneeBranches.length <= 1 && result && result['city']) {
+							$('#destination').val(result['city']);
+							refreshGstCalculation();
+						}
+						var address = [result['address1'], result['address2'], result['city_name'], result['state'], result['pincode']].filter(function(item) {
+							return item && String(item).trim() !== '';
+						}).join(', ');
+						$('#con_address1').html(address);
+						$('#con_phone').html(result['contact_no']);
+						$('#con_gst').html(result['gst_no']);
+						$('#consignee_state_id').val(result['state_id'] || '');
+						if (typeof sum_amount === 'function') sum_amount();
+					}
+				});
+			});
 
 			var chck_key = true;
 			$(document).on('keyup', '#grn_no', function(e) {
@@ -3877,20 +4037,44 @@ $("input[name='file_receipt[]']").each(function () {
 						$(".loading-page").show();
 						$(this).prop("disabled", true);
 
+						function showBookingSuccessModal(grnNo, trackingCode) {
+							window.ewBookingRedirectPending = true;
+							$('#show_grn_no').text(grnNo || '');
+							if (trackingCode) {
+								$('#show_tracking_code').text(trackingCode);
+								$('#show_tracking_code_wrap').show();
+							} else {
+								$('#show_tracking_code_wrap').hide();
+							}
+							if (typeof ewV2OpenModal === 'function') {
+								ewV2OpenModal('grn_booked_modal');
+							}
+						}
+						function finishBookingSuccessModal() {
+							if (!window.ewBookingRedirectPending) {
+								return;
+							}
+							window.ewBookingRedirectPending = false;
+							$(".form-data-saving").hide();
+							ewFormToast('Booked Successfully', 'success', 5000);
+							setTimeout(function() {
+								window.location.href = "transaction_list.php";
+							}, 1200);
+						}
+						$(document).on('click', '#grn_booked_modal [data-ew-v2-close], #grn_booked_close', function() {
+							finishBookingSuccessModal();
+						});
+						$(document).on('click', '#grn_booked_modal', function(e) {
+							if (e.target === this) {
+								finishBookingSuccessModal();
+							}
+						});
+
 						function handleBookingSaveResponse(result) {
 							if (result && result['result'] == 1) {
 								$(".loading-page").hide();
 								if (edit_id == '') {
-									$('.grn_no_popup').show();
-									$('#show_grn_no').text(result['data']);
-									if (result['tracking_code']) {
-										$('#show_tracking_code').text(result['tracking_code']);
-										$('#show_tracking_code_label').show();
-										$('#show_tracking_code').show();
-									} else {
-										$('#show_tracking_code_label').hide();
-										$('#show_tracking_code').hide();
-									}
+									showBookingSuccessModal(result['data'], result['tracking_code'] || '');
 								} else {
 									$(".form-data-saving").hide();
 									ewFormToast('Saved Successfully', 'success', 5000);
@@ -4067,15 +4251,30 @@ $("input[name='file_receipt[]']").each(function () {
 			<!--<span class="popup_close" id="popup_close">X</span>-->
 		</div>
 	</div>
-	<div class="grn_no_popup" style="display:none">
-		<div class="popup_overlay" id="popup_overlay"></div>
-		<div class="popup" id="popup">
-			<div class="popup_message">
-				<h5 class="popup-title">Consignment Booked</h5>
-				<strong>GRN Number: </strong><span id="show_grn_no"></span><br />
-				<strong id="show_tracking_code_label" style="display:none;">Tracking Code: </strong><span id="show_tracking_code" style="display:none;"></span><br /> &nbsp; <br />
-				<button class="btn btn-sm btn-primary delete-error-popup-close grn_close_popup">Close</button> <br /> &nbsp; <br />
+	<div class="ew-v2-modal-backdrop" id="grn_booked_modal">
+		<div class="ew-v2-modal">
+			<div class="ew-v2-modal-head">
+				<h3>Consignment Booked</h3>
+				<button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
 			</div>
+			<div class="ew-v2-modal-body">
+					<p class="grn-booked-lead">Booking is confirmed. Keep these details for tracking.</p>
+					<div class="grn-booked-rows">
+						<div class="grn-booked-row">
+							<span class="grn-booked-label">GCN Number</span>
+							<span class="grn-booked-value" id="show_grn_no"></span>
+						</div>
+						<div class="grn-booked-row" id="show_tracking_code_wrap" style="display:none;">
+							<span class="grn-booked-label">Transaction Code</span>
+							<span class="grn-booked-value" id="show_tracking_code"></span>
+						</div>
+					</div>
+			</div>
+			<div class="ew-v2-modal-foot">
+					<button class="btn btn-primary" type="button" id="grn_booked_close" data-ew-v2-close>Close</button>
+			</div>
+		</div>
+	</div>
 
 		</div>
 	</div>

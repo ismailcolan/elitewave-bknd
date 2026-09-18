@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Preview — Elite Wave 360</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="stylesheets/font-awesome.min.css" rel="stylesheet">
+  <link href="stylesheets/ew-preview-shell.css?v=20260911" rel="stylesheet">
+  <style>
+    .dash-note {
+      background: #fff;
+      border: 1px solid var(--ew-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--ew-text-secondary);
+    }
+    .dash-note strong { color: var(--ew-navy); }
+    .dash-note .pick { display: inline-block; margin-left: 8px; background: var(--ew-navy); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+
+    /* Current live mock */
+    .live-hero {
+      background: #0A1E3D;
+      border-radius: 16px;
+      padding: 22px 28px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+    }
+    .live-hero h2 { margin: 0 0 4px; font-size: 20px; color: #fff; }
+    .live-hero p { margin: 0; opacity: .75; font-size: 13px; }
+    .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+    .kpi-card {
+      background: #fff;
+      border: 1px solid var(--ew-border);
+      border-radius: 12px;
+      padding: 18px 16px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card .stripe { position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+    .kpi-card .stripe.navy { background: #0A1E3D; }
+    .kpi-card .stripe.teal { background: #0891B2; }
+    .kpi-card .stripe.green { background: #16A34A; }
+    .kpi-card .stripe.red { background: #DD111E; }
+    .kpi-ico {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px; font-size: 16px;
+    }
+    .kpi-ico.navy { background: #E8EDF4; color: #0A1E3D; }
+    .kpi-ico.teal { background: #ECFEFF; color: #0891B2; }
+    .kpi-ico.green { background: #F0FDF4; color: #16A34A; }
+    .kpi-ico.red { background: #FEF2F2; color: #DD111E; }
+    .kpi-label { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ew-text-muted); }
+    .kpi-val { font-size: 28px; font-weight: 800; letter-spacing: -.03em; margin: 2px 0 4px; }
+    .kpi-sub { font-size: 12px; color: var(--ew-text-muted); }
+    .qa-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+    .qa-btn {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; border: 1px solid var(--ew-border); border-radius: 12px;
+      padding: 14px 16px; font-weight: 700; font-size: 13px; color: var(--ew-text); text-decoration: none;
+    }
+    .qa-ico { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; }
+    .qa-ico.navy { background: #0A1E3D; }
+    .qa-ico.red { background: #DD111E; }
+    .qa-ico.teal { background: #0891B2; }
+    .qa-ico.orange { background: #EA580C; }
+    .split-2 { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+    .chart-bars { display: flex; align-items: flex-end; gap: 10px; height: 180px; padding: 8px 4px 0; }
+    .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+    .bar-stack { display: flex; flex-direction: column; justify-content: flex-end; width: 18px; height: 100%; gap: 2px; }
+    .bar { width: 100%; border-radius: 3px 3px 0 0; }
+    .bar.del { background: #0A1E3D; }
+    .bar.pen { background: #0891B2; }
+    .chart-col span { font-size: 10px; color: var(--ew-text-muted); }
+
+    /* Recommended workbench */
+    .metric-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; }
+    .metric-cell {
+      padding: 16px 18px;
+      border-right: 1px solid var(--ew-border-light);
+    }
+    .metric-cell:last-child { border-right: none; }
+    .metric-cell .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ew-text-muted); margin-bottom: 6px; }
+    .metric-cell .val { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+    .metric-cell .hint { font-size: 11px; color: var(--ew-text-muted); margin-top: 4px; }
+    .metric-cell.warn .val { color: #B45309; }
+    .metric-cell.danger .val { color: #B91C1C; }
+    .metric-cell.ok .val { color: #15803D; }
+
+    .queue-grid { display: grid; grid-template-columns: 1.4fr .8fr; gap: 16px; }
+    .attn-list { list-style: none; margin: 0; padding: 0; }
+    .attn-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; border-bottom: 1px solid var(--ew-border-light);
+      font-size: 13px;
+    }
+    .attn-item:last-child { border-bottom: none; }
+    .attn-left { display: flex; align-items: center; gap: 10px; }
+    .attn-dot { width: 8px; height: 8px; border-radius: 50%; background: #DD111E; }
+    .attn-dot.amber { background: #B45309; }
+    .attn-dot.navy { background: #0A1E3D; }
+    .attn-count { font-weight: 700; color: var(--ew-navy); }
+
+    .cmd-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+    .cmd-kpi {
+      background: #fff; border: 1px solid var(--ew-border); border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .cmd-kpi .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--ew-text-muted); }
+    .cmd-kpi .val { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    .cmd-3 { display: grid; grid-template-columns: 220px 1fr 280px; gap: 16px; }
+    .side-nav-list a {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; border-bottom: 1px solid var(--ew-border-light);
+      text-decoration: none; color: var(--ew-text); font-size: 13px; font-weight: 600;
+    }
+    .side-nav-list a:hover { background: #F8FAFC; }
+    .task-row { padding: 12px 16px; border-bottom: 1px solid var(--ew-border-light); font-size: 13px; }
+    .task-row small { display: block; color: var(--ew-text-muted); font-size: 11px; margin-top: 2px; }
+
+    .pipe-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+    .pipe-col { background: #fff; border: 1px solid var(--ew-border); border-radius: 10px; min-height: 280px; display: flex; flex-direction: column; }
+    .pipe-head { padding: 12px 14px; border-bottom: 1px solid var(--ew-border-light); display: flex; justify-content: space-between; align-items: center; }
+    .pipe-head h3 { margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .pipe-n { font-size: 12px; font-weight: 700; background: #E8EDF4; color: var(--ew-navy); padding: 2px 8px; border-radius: 999px; }
+    .pipe-n.hot { background: #FEE2E2; color: #B91C1C; }
+    .pipe-n.ok { background: #DCFCE7; color: #15803D; }
+    .pipe-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .pipe-card { border: 1px solid var(--ew-border-light); border-radius: 8px; padding: 10px; background: #FAFBFC; }
+    .pipe-card strong { display: block; font-size: 13px; margin-bottom: 4px; }
+    .pipe-card span { font-size: 11px; color: var(--ew-text-muted); }
+
+    .mis-filter { display: grid; grid-template-columns: 1fr 1fr 1.4fr auto; gap: 12px; align-items: end; padding: 8px 0 4px; }
+    .mis-filter label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+    .mis-filter input, .mis-filter select { width: 100%; height: 40px; border: 1px solid var(--ew-border); border-radius: 8px; padding: 0 10px; font: inherit; }
+    .bill-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    @media (max-width: 1200px) {
+      .kpi-row, .qa-row, .metric-grid, .cmd-kpis, .pipe-row { grid-template-columns: repeat(2, 1fr); }
+      .metric-cell { border-bottom: 1px solid var(--ew-border-light); }
+      .split-2, .queue-grid, .cmd-3, .bill-split, .mis-filter { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-banner">
+    <div>
+      <h1>Dashboard — ERP design options</h1>
+      <p><a class="preview-nav-link" href="pages_ui_preview_index.html">&larr; All previews</a> · Pick a layout before we apply it to <code>dashboard.php</code></p>
+    </div>
+    <div class="preview-tabs">
+      <button type="button" class="preview-tab" data-view="current">Current (live)</button>
+      <button type="button" class="preview-tab active" data-view="workbench">ERP Workbench</button>
+      <button type="button" class="preview-tab" data-view="command">Command Center</button>
+      <button type="button" class="preview-tab" data-view="pipeline">Status Pipeline</button>
+      <button type="button" class="preview-tab" data-view="mishome">MIS Home</button>
+    </div>
+    <div class="preview-utils">
+      <button type="button" class="preview-util-btn" id="toggleSidebar">Toggle Submenu</button>
+      <span class="width-indicator">Width: <strong id="contentWidth">—</strong></span>
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="top-bar">
+      <div class="brand">EliteWave360<small>LOGISTICS</small></div>
+      <div class="spacer"></div>
+      <div class="top-user"><div class="avatar">EW</div><span>Administrator</span></div>
+    </header>
+    <div class="shell-body">
+      <aside class="dual-sidebar">
+        <nav class="icon-rail">
+          <button type="button" class="rail-item active"><i class="fa fa-home"></i>Dash</button>
+          <button type="button" class="rail-item"><i class="fa fa-cog"></i>Setup</button>
+          <button type="button" class="rail-item"><i class="fa fa-truck"></i>Trans</button>
+          <button type="button" class="rail-item"><i class="fa fa-users"></i>Party</button>
+          <button type="button" class="rail-item"><i class="fa fa-file-text-o"></i>Bill</button>
+          <button type="button" class="rail-item"><i class="fa fa-bar-chart"></i>MIS</button>
+        </nav>
+        <div class="sub-panel">
+          <div class="panel-head"><span class="panel-pill">Dashboard</span></div>
+          <div class="panel-links">
+            <a href="#" class="panel-link active">Dashboard</a>
+            <a href="#" class="panel-link">Book Consignment</a>
+            <a href="#" class="panel-link">Track Shipment</a>
+            <a href="#" class="panel-link">Status Sheet</a>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content" id="mainContent">
+
+        <!-- ═══ CURRENT ═══ -->
+        <section id="view-current" class="preview-page">
+          <div class="dash-note">This is a static mock of the <strong>live dashboard</strong>: welcome banner, 4 large KPI cards, colourful quick actions, pending table + yearly chart. It feels more like a marketing home than the v2 list/report pages.</div>
+
+          <div class="live-hero">
+            <div>
+              <h2>Welcome back, ELiteWave360</h2>
+              <p>Here's what's happening with your logistics today</p>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:20px;font-weight:800">11 Sep 2026</div>
+              <div style="font-size:12px;opacity:.7">Friday</div>
+            </div>
+          </div>
+
+          <div class="kpi-row">
+            <div class="kpi-card"><div class="stripe navy"></div><div class="kpi-ico navy"><i class="fa fa-cubes"></i></div><div class="kpi-label">Total Booked</div><div class="kpi-val">59</div><div class="kpi-sub">All consignments</div></div>
+            <div class="kpi-card"><div class="stripe teal"></div><div class="kpi-ico teal"><i class="fa fa-truck"></i></div><div class="kpi-label">In Transit</div><div class="kpi-val">12</div><div class="kpi-sub">Currently moving</div></div>
+            <div class="kpi-card"><div class="stripe green"></div><div class="kpi-ico green"><i class="fa fa-check-circle"></i></div><div class="kpi-label">Delivered</div><div class="kpi-val">16</div><div class="kpi-sub">Successfully completed</div></div>
+            <div class="kpi-card"><div class="stripe red"></div><div class="kpi-ico red"><i class="fa fa-calendar"></i></div><div class="kpi-label">Today's Bookings</div><div class="kpi-val">1</div><div class="kpi-sub">11 Sep 2026</div></div>
+          </div>
+
+          <div class="qa-row">
+            <a class="qa-btn" href="#"><span class="qa-ico navy"><i class="fa fa-plus"></i></span>Book Consignment</a>
+            <a class="qa-btn" href="#"><span class="qa-ico red"><i class="fa fa-map-marker"></i></span>Track Shipment</a>
+            <a class="qa-btn" href="#"><span class="qa-ico teal"><i class="fa fa-list-alt"></i></span>Status Sheet</a>
+            <a class="qa-btn" href="#"><span class="qa-ico orange"><i class="fa fa-bar-chart"></i></span>MIS Report</a>
+          </div>
+
+          <div class="split-2">
+            <div class="ew-card">
+              <div class="ew-card-toolbar"><h2>Delivery Pending Consignments</h2></div>
+              <div class="ew-table-wrap">
+                <table class="ew-table">
+                  <thead><tr><th>#</th><th>GRN No.</th><th>Date</th><th>Consignor → Consignee</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td>1</td><td><strong>IRF00009</strong></td><td>11-09-2026</td><td>Ismail Rafatullah → Imaz</td><td><span class="ew-badge ew-badge-warning">Booked</span></td></tr>
+                    <tr><td>2</td><td><strong>IMAX00002</strong></td><td>27-08-2026</td><td>Imaz → Ismail Rafatullah</td><td><span class="ew-badge ew-badge-warning">Picked Up</span></td></tr>
+                    <tr><td>3</td><td><strong>CHND00007</strong></td><td>07-08-2026</td><td>P A Footwear Pvt Ltd</td><td><span class="ew-badge ew-badge-warning">Booked</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="ew-card">
+              <div class="ew-card-toolbar"><h2>2026 Year Summary</h2></div>
+              <div class="ew-form-body">
+                <div class="chart-bars">
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:8%"></div></div><span>Jan</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:6%"></div></div><span>Feb</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:10%"></div></div><span>Mar</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:12%"></div></div><span>Apr</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:9%"></div></div><span>May</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:14%"></div></div><span>Jun</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:18%"></div></div><span>Jul</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:55%"></div><div class="bar pen" style="height:28%"></div></div><span>Aug</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:22%"></div></div><span>Sep</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:8%"></div></div><span>Oct</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:6%"></div></div><span>Nov</span></div>
+                  <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:5%"></div></div><span>Dec</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ WORKBENCH (recommended) ═══ -->
+        <section id="view-workbench" class="preview-page active">
+          <div class="dash-note">
+            <strong>Recommended.</strong> Same shell as list/report pages: page title, date range, navy buttons, card toolbars, rail-header tables, and exception counts. No welcome banner. Operators land on work, not greetings.
+            <span class="pick">Suggested</span>
+          </div>
+
+          <div class="ew-page-head">
+            <div class="ew-page-head-left">
+              <h1 class="ew-page-title">Dashboard</h1>
+            </div>
+            <div class="ew-page-head-actions">
+              <input type="text" class="ew-search-input" style="width:132px;padding-left:12px" value="01-09-2026" readonly>
+              <input type="text" class="ew-search-input" style="width:132px;padding-left:12px" value="11-09-2026" readonly>
+              <button type="button" class="ew-btn ew-btn-outline">Refresh</button>
+              <button type="button" class="ew-btn ew-btn-primary"><i class="fa fa-plus"></i> Book Consignment</button>
+            </div>
+          </div>
+
+          <div class="ew-card" style="margin-bottom:16px">
+            <div class="ew-card-toolbar">
+              <h2>Operations snapshot</h2>
+              <div class="ew-toolbar-right">
+                <button type="button" class="ew-btn ew-btn-ghost">Track</button>
+                <button type="button" class="ew-btn ew-btn-ghost">Status Sheet</button>
+                <button type="button" class="ew-btn ew-btn-ghost">MIS</button>
+              </div>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-cell">
+                <div class="lbl">Booked</div>
+                <div class="val">59</div>
+                <div class="hint">All consignments</div>
+              </div>
+              <div class="metric-cell">
+                <div class="lbl">In transit</div>
+                <div class="val">12</div>
+                <div class="hint">Open movements</div>
+              </div>
+              <div class="metric-cell ok">
+                <div class="lbl">Delivered</div>
+                <div class="val">16</div>
+                <div class="hint">Status 8</div>
+              </div>
+              <div class="metric-cell">
+                <div class="lbl">Today</div>
+                <div class="val">1</div>
+                <div class="hint">11 Sep 2026</div>
+              </div>
+              <div class="metric-cell warn">
+                <div class="lbl">Pending POD</div>
+                <div class="val">8</div>
+                <div class="hint">Needs upload</div>
+              </div>
+              <div class="metric-cell danger">
+                <div class="lbl">Exceptions</div>
+                <div class="val">5</div>
+                <div class="hint">Delayed / hold</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="queue-grid">
+            <div class="ew-card">
+              <div class="ew-card-toolbar">
+                <h2>Work queue — delivery pending</h2>
+                <div class="ew-toolbar-right">
+                  <div class="ew-search-wrap">
+                    <i class="fa fa-search"></i>
+                    <input type="text" class="ew-search-input" placeholder="Search GRN">
+                  </div>
+                  <button type="button" class="ew-btn ew-btn-outline">View list</button>
+                </div>
+              </div>
+              <div class="ew-table-wrap">
+                <table class="ew-table">
+                  <thead>
+                    <tr>
+                      <th class="col-center" style="width:48px">#</th>
+                      <th>GRN No.</th>
+                      <th>Date</th>
+                      <th>Consignor → Consignee</th>
+                      <th>Status</th>
+                      <th class="col-actions">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="col-center">1</td>
+                      <td><strong>IRF00009</strong></td>
+                      <td>11-09-2026</td>
+                      <td>Ismail Rafatullah → Imaz</td>
+                      <td><span class="ew-badge ew-badge-warning">Booked</span></td>
+                      <td class="col-actions"><button type="button" class="ew-icon-btn" title="Track"><i class="fa fa-map-marker"></i></button></td>
+                    </tr>
+                    <tr>
+                      <td class="col-center">2</td>
+                      <td><strong>IMAX00002</strong></td>
+                      <td>27-08-2026</td>
+                      <td>Imaz → Ismail Rafatullah</td>
+                      <td><span class="ew-badge ew-badge-warning">Picked Up</span></td>
+                      <td class="col-actions"><button type="button" class="ew-icon-btn"><i class="fa fa-map-marker"></i></button></td>
+                    </tr>
+                    <tr>
+                      <td class="col-center">3</td>
+                      <td><strong>IMAX00003</strong></td>
+                      <td>27-08-2026</td>
+                      <td>Imaz → Ismail Rafatullah</td>
+                      <td><span class="ew-badge">In Transit</span></td>
+                      <td class="col-actions"><button type="button" class="ew-icon-btn"><i class="fa fa-map-marker"></i></button></td>
+                    </tr>
+                    <tr>
+                      <td class="col-center">4</td>
+                      <td><strong>CHND00007</strong></td>
+                      <td>07-08-2026</td>
+                      <td>P A Footwear Pvt Ltd → …</td>
+                      <td><span class="ew-badge ew-badge-warning">Booked</span></td>
+                      <td class="col-actions"><button type="button" class="ew-icon-btn"><i class="fa fa-map-marker"></i></button></td>
+                    </tr>
+                    <tr>
+                      <td class="col-center">5</td>
+                      <td><strong>CHND00008</strong></td>
+                      <td>07-08-2026</td>
+                      <td>P A Footwear Pvt Ltd → …</td>
+                      <td><span class="ew-badge ew-badge-warning">Booked</span></td>
+                      <td class="col-actions"><button type="button" class="ew-icon-btn"><i class="fa fa-map-marker"></i></button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="ew-table-footer">
+                <div class="ew-table-footer-left"><span>Showing 5 of 43 pending</span></div>
+                <div class="ew-pagination"><button class="ew-page-btn">View all</button></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="ew-card" style="margin-bottom:16px">
+                <div class="ew-card-toolbar"><h2>Needs attention</h2></div>
+                <ul class="attn-list">
+                  <li class="attn-item"><span class="attn-left"><span class="attn-dot"></span> Delayed beyond EDD</span><span class="attn-count">3</span></li>
+                  <li class="attn-item"><span class="attn-left"><span class="attn-dot amber"></span> POD pending</span><span class="attn-count">8</span></li>
+                  <li class="attn-item"><span class="attn-left"><span class="attn-dot navy"></span> Unpaid invoices</span><span class="attn-count">4</span></li>
+                  <li class="attn-item"><span class="attn-left"><span class="attn-dot amber"></span> Pickup not assigned</span><span class="attn-count">2</span></li>
+                </ul>
+              </div>
+              <div class="ew-card">
+                <div class="ew-card-toolbar"><h2>Volume — 2026</h2></div>
+                <div class="ew-form-body" style="padding-top:8px">
+                  <div class="chart-bars" style="height:140px">
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:10%"></div></div><span>J</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:8%"></div></div><span>F</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:12%"></div></div><span>M</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:14%"></div></div><span>A</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:11%"></div></div><span>M</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:16%"></div></div><span>J</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:20%"></div></div><span>J</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:48%"></div><div class="bar pen" style="height:24%"></div></div><span>A</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:26%"></div></div><span>S</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:8%"></div></div><span>O</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:6%"></div></div><span>N</span></div>
+                    <div class="chart-col"><div class="bar-stack"><div class="bar del" style="height:5%"></div></div><span>D</span></div>
+                  </div>
+                  <p style="margin:8px 0 0;font-size:11px;color:var(--ew-text-muted)">Navy = delivered · Teal = pending · sample months</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ COMMAND CENTER ═══ -->
+        <section id="view-command" class="preview-page">
+          <div class="dash-note">Denser ops layout: four exception KPIs on top, shortcuts on the left, live queue in the middle, today’s tasks on the right. Best if the dashboard is used as a <strong>shift console</strong> rather than a summary page.</div>
+
+          <div class="ew-page-head">
+            <div class="ew-page-head-left"><h1 class="ew-page-title">Operations console</h1></div>
+            <div class="ew-page-head-actions">
+              <button type="button" class="ew-btn ew-btn-primary"><i class="fa fa-plus"></i> Book</button>
+            </div>
+          </div>
+
+          <div class="cmd-kpis">
+            <div class="cmd-kpi"><div class="lbl">Open consignments</div><div class="val">43</div></div>
+            <div class="cmd-kpi"><div class="lbl">In transit</div><div class="val">12</div></div>
+            <div class="cmd-kpi"><div class="lbl">POD pending</div><div class="val" style="color:#B45309">8</div></div>
+            <div class="cmd-kpi"><div class="lbl">Exceptions</div><div class="val" style="color:#B91C1C">5</div></div>
+          </div>
+
+          <div class="cmd-3">
+            <div class="ew-card">
+              <div class="ew-card-toolbar"><h2>Go to</h2></div>
+              <div class="side-nav-list">
+                <a href="#">Book consignment <i class="fa fa-angle-right"></i></a>
+                <a href="#">Pickup list <i class="fa fa-angle-right"></i></a>
+                <a href="#">Status sheet <i class="fa fa-angle-right"></i></a>
+                <a href="#">Track <i class="fa fa-angle-right"></i></a>
+                <a href="#">Invoice list <i class="fa fa-angle-right"></i></a>
+                <a href="#">GST report <i class="fa fa-angle-right"></i></a>
+                <a href="#">Payment history <i class="fa fa-angle-right"></i></a>
+              </div>
+            </div>
+            <div class="ew-card">
+              <div class="ew-card-toolbar">
+                <h2>Live queue</h2>
+                <div class="ew-toolbar-right">
+                  <input type="text" class="ew-search-input" placeholder="GRN" style="width:140px;padding-left:12px">
+                </div>
+              </div>
+              <div class="ew-table-wrap">
+                <table class="ew-table">
+                  <thead><tr><th>GRN</th><th>Age</th><th>Lane</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>IRF00009</strong></td><td>0d</td><td>Origin → Dest</td><td><span class="ew-badge ew-badge-warning">Booked</span></td></tr>
+                    <tr><td><strong>IMAX00002</strong></td><td>15d</td><td>Imaz → Ismail</td><td><span class="ew-badge ew-badge-danger">Delayed</span></td></tr>
+                    <tr><td><strong>IMAX00003</strong></td><td>15d</td><td>Imaz → Ismail</td><td><span class="ew-badge">Transit</span></td></tr>
+                    <tr><td><strong>CHND00007</strong></td><td>35d</td><td>P A Footwear</td><td><span class="ew-badge ew-badge-warning">Booked</span></td></tr>
+                    <tr><td><strong>CHND00008</strong></td><td>35d</td><td>P A Footwear</td><td><span class="ew-badge ew-badge-warning">Booked</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="ew-card">
+              <div class="ew-card-toolbar"><h2>Today</h2></div>
+              <div class="task-row">1 new booking<small>IRF00009 · 11-09-2026</small></div>
+              <div class="task-row">8 POD uploads waiting<small>Oldest 07-08-2026</small></div>
+              <div class="task-row">4 invoices unpaid<small>Open billing list</small></div>
+              <div class="task-row">2 pickups unassigned<small>Request for pickup</small></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ STATUS PIPELINE ═══ -->
+        <section id="view-pipeline" class="preview-page">
+          <div class="dash-note">
+            <strong>Status Pipeline.</strong> Treat the dashboard as a board: Booked → Picked up → In transit → POD pending → Delivered. Counts sit on each column; delayed GRNs glow red. Strong for floor ops, weaker for billing.
+          </div>
+          <div class="ew-page-head">
+            <div class="ew-page-head-left"><h1 class="ew-page-title">Consignment pipeline</h1></div>
+            <div class="ew-page-head-actions">
+              <input type="text" class="ew-search-input" style="width:132px;padding-left:12px" value="01-09-2026" readonly>
+              <input type="text" class="ew-search-input" style="width:132px;padding-left:12px" value="11-09-2026" readonly>
+              <button type="button" class="ew-btn ew-btn-primary"><i class="fa fa-plus"></i> Book</button>
+            </div>
+          </div>
+          <div class="pipe-row">
+            <div class="pipe-col">
+              <div class="pipe-head"><h3>Booked</h3><span class="pipe-n">18</span></div>
+              <div class="pipe-body">
+                <div class="pipe-card"><strong>IRF00009</strong><span>11-09-2026 · Ismail → Imaz</span></div>
+                <div class="pipe-card"><strong>CHND00007</strong><span>07-08-2026 · P A Footwear</span></div>
+                <div class="pipe-card"><strong>CHND00008</strong><span>07-08-2026 · P A Footwear</span></div>
+              </div>
+            </div>
+            <div class="pipe-col">
+              <div class="pipe-head"><h3>Picked up</h3><span class="pipe-n">7</span></div>
+              <div class="pipe-body">
+                <div class="pipe-card"><strong>IMAX00002</strong><span>27-08-2026 · Imaz → Ismail</span></div>
+              </div>
+            </div>
+            <div class="pipe-col">
+              <div class="pipe-head"><h3>In transit</h3><span class="pipe-n">12</span></div>
+              <div class="pipe-body">
+                <div class="pipe-card"><strong>IMAX00003</strong><span>Transit-1 · Origin state</span></div>
+                <div class="pipe-card"><strong>MUZ00024</strong><span>Pune → Chennai · 3 pkgs</span></div>
+              </div>
+            </div>
+            <div class="pipe-col">
+              <div class="pipe-head"><h3>POD pending</h3><span class="pipe-n hot">8</span></div>
+              <div class="pipe-body">
+                <div class="pipe-card"><strong>DEL00011</strong><span>Delivered · POD not uploaded</span></div>
+                <div class="pipe-card"><strong>DEL00008</strong><span>Oldest 12 days</span></div>
+              </div>
+            </div>
+            <div class="pipe-col">
+              <div class="pipe-head"><h3>Delivered</h3><span class="pipe-n ok">16</span></div>
+              <div class="pipe-body">
+                <div class="pipe-card"><strong>MUZ00023</strong><span>15-08-2026 · Closed</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ MIS HOME ═══ -->
+        <section id="view-mishome" class="preview-page">
+          <div class="dash-note">
+            <strong>MIS Home.</strong> Same pattern as Cargo / GST reports: filters first, then KPIs for that date range, then a table. Best if management uses the dashboard as a daily report, not a task list. Billing strip sits under ops.
+          </div>
+          <div class="ew-page-head">
+            <div class="ew-page-head-left"><h1 class="ew-page-title">Dashboard</h1></div>
+          </div>
+          <div class="ew-card" style="margin-bottom:16px">
+            <div class="ew-card-toolbar"><h2>Report filters</h2></div>
+            <div class="ew-form-body">
+              <div class="mis-filter">
+                <div><label>From date</label><input type="text" value="01-09-2026" readonly></div>
+                <div><label>To date</label><input type="text" value="11-09-2026" readonly></div>
+                <div><label>Customer</label><select><option>All customers</option></select></div>
+                <div><button type="button" class="ew-btn ew-btn-primary"><i class="fa fa-search"></i> Search</button></div>
+              </div>
+            </div>
+          </div>
+          <div class="ew-card" style="margin-bottom:16px">
+            <div class="metric-grid">
+              <div class="metric-cell"><div class="lbl">Booked</div><div class="val">22</div><div class="hint">In range</div></div>
+              <div class="metric-cell"><div class="lbl">In transit</div><div class="val">9</div><div class="hint">Open</div></div>
+              <div class="metric-cell ok"><div class="lbl">Delivered</div><div class="val">11</div><div class="hint">In range</div></div>
+              <div class="metric-cell"><div class="lbl">Packages</div><div class="val">148</div><div class="hint">Pcs</div></div>
+              <div class="metric-cell"><div class="lbl">Invoice</div><div class="val">₹ 2.4L</div><div class="hint">Raised</div></div>
+              <div class="metric-cell danger"><div class="lbl">Due</div><div class="val">₹ 48k</div><div class="hint">Unpaid</div></div>
+            </div>
+          </div>
+          <div class="bill-split">
+            <div class="ew-card">
+              <div class="ew-card-toolbar"><h2>Consignments in range</h2><button type="button" class="ew-btn ew-btn-outline">Export</button></div>
+              <div class="ew-table-wrap">
+                <table class="ew-table">
+                  <thead><tr><th>GRN</th><th>Date</th><th>Customer</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>IRF00009</strong></td><td>11-09-2026</td><td>Ismail Rafatullah</td><td><span class="ew-badge ew-badge-warning">Booked</span></td></tr>
+                    <tr><td><strong>IMAX00003</strong></td><td>27-08-2026</td><td>Imaz</td><td><span class="ew-badge">In Transit</span></td></tr>
+                    <tr><td><strong>MUZ00023</strong></td><td>15-08-2026</td><td>Imaz</td><td><span class="ew-badge ew-badge-success">Delivered</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="ew-card">
+              <div class="ew-card-toolbar"><h2>Billing in range</h2><button type="button" class="ew-btn ew-btn-outline">Invoices</button></div>
+              <div class="ew-table-wrap">
+                <table class="ew-table">
+                  <thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>INV/00012</strong></td><td>P A Footwear</td><td>₹ 18,400</td><td><span class="ew-badge ew-badge-warning">Due</span></td></tr>
+                    <tr><td><strong>INV/00011</strong></td><td>Imaz</td><td>₹ 9,200</td><td><span class="ew-badge ew-badge-success">Paid</span></td></tr>
+                    <tr><td><strong>INV/00010</strong></td><td>ABC Logistics</td><td>₹ 21,000</td><td><span class="ew-badge ew-badge-danger">Overdue</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+  <script src="javascripts/ew-preview-shell.js?v=20260911"></script>
+</body>
+</html>

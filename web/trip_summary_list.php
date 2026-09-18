@@ -14,7 +14,11 @@ $list_rows = trip_summary_fetch_list($conn);
 	<?php include('include/title.php'); ?>
 	<?php include('include/css_js.php'); ?>
 	<style>
-		#trip_list_table .gcn-count { font-weight: 800; color: #1d4ed8; text-align: center; }
+		#dataTable1 .gcn-count { font-weight: 800; color: #1d4ed8; text-align: center; }
+		.dataTable th.sorting:after,
+		.dataTable th.sorting_desc:after { top: 17px; right: 3px; }
+		.dataTable th.sorting:before,
+		.dataTable th.sorting_asc:after { top: 10px; right: 3px; }
 	</style>
 </head>
 
@@ -26,13 +30,23 @@ $list_rows = trip_summary_fetch_list($conn);
 		</div>
 		<div class="container-fluid main-content new_dpt_bottom">
 			<div class="row">
-				<div class="col-md-offset-1 col-md-10">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"><i class="fa fa-table"></i> Trip Summary List
-							<span class="align-right"><i class="fa fa-plus"></i><a href="trip_summary.php">ADD TRIP SHEET</a></span>
+				<div class="col-md-12">
+					<div class="ew-page-v2 ew-page-v2--wide-table">
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<h1 class="ew-page-title">Trip Summary</h1>
+							</div>
 						</div>
-						<div class="widget-content padded clearfix new_dept">
-								<table class="table table-bordered table-striped" id="trip_list_table">
+						<div class="ew-card ew-erp-list">
+							<div class="ew-card-toolbar">
+								<h2>Trip Summary List</h2>
+								<div class="ew-toolbar-right">
+									<div class="ew-list-toolbar__tools"></div>
+									<a href="trip_summary.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
+								</div>
+							</div>
+							<div class="ew-table-wrap widget-content padded clearfix new_dept">
+								<table class="table table-bordered table-striped" id="dataTable1">
 									<thead>
 										<tr>
 											<th>S.No</th>
@@ -49,9 +63,7 @@ $list_rows = trip_summary_fetch_list($conn);
 										</tr>
 									</thead>
 									<tbody>
-										<?php if (empty($list_rows)): ?>
-											<tr><td colspan="11" class="text-center">No trip summary sheets yet.</td></tr>
-										<?php else: ?>
+										<?php if (!empty($list_rows)): ?>
 											<?php $sn = 0; foreach ($list_rows as $row): $sn++; ?>
 												<tr>
 													<td class="text-center"><?php echo $sn; ?></td>
@@ -86,14 +98,22 @@ $list_rows = trip_summary_fetch_list($conn);
 										<?php endif; ?>
 									</tbody>
 								</table>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
+			<?php require_once('include/footer.php'); ?>
 		</div>
-		<?php require_once('include/footer.php'); ?>
 	</div>
 	<script>
+		$(document).ready(function() {
+			window.setTimeout(function() {
+				if (window.applyEwListLayout) {
+					window.applyEwListLayout();
+				}
+			}, 250);
+		});
 		$(document).on('click', '.btn-cancel-trip', function() {
 			var id = $(this).data('id');
 			if (!id || !confirm('Cancel this trip summary sheet?')) return;

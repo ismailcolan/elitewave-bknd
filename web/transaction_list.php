@@ -70,7 +70,43 @@ $logged_id = $_SESSION['user_id'];
 }
 
 /* Month filter field */
-.month-field-col {
+.txn-period-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+}
+.txn-period-filter .txn-period-select-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.txn-period-filter .txn-period-select {
+    height: 32px !important;
+    min-height: 32px !important;
+    width: 168px;
+    padding: 0 28px 0 12px !important;
+    font-size: 13px !important;
+    font-weight: 600;
+    color: #0A1E3D !important;
+    border: 1px solid #D8DDE5 !important;
+    border-radius: 6px !important;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236B7A8D' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E") no-repeat right 10px center !important;
+    background-size: 10px 6px !important;
+    box-shadow: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+.txn-period-filter .report-date-group {
+    display: flex;
+    align-items: center;
+}
+.txn-period-filter .report-year-select {
+    height: 32px;
+    min-width: 110px;
+    border-radius: 6px;
+}
     max-width: 280px;
     flex: 0 0 auto;
 }
@@ -85,18 +121,8 @@ $logged_id = $_SESSION['user_id'];
 }
 
 /* ===== Import Consignment modal ===== */
-.import-trigger-btn {
-    background: #0A1E3D;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 9px 18px;
-    font-weight: 600;
-    margin-top: 20px;
-}
-.import-trigger-btn:hover {
-    background: #08375c;
-    color: #fff;
+.import-trigger-btn.ew-btn-v2 {
+    margin-top: 0;
 }
 #import_modal .modal-header {
     display: flex;
@@ -258,63 +284,9 @@ $logged_id = $_SESSION['user_id'];
 
 /* ===== Transaction list UI ===== */
 .txn-page-wrap {
-    padding: 0 24px 32px;
     max-width: 100%;
 }
-.txn-page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 14px 24px;
-    min-height: 64px;
-}
-.txn-page-header h1 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    color: #ffffff !important;
-}
-.txn-page-header h1 i {
-    margin-right: 8px;
-    opacity: 1;
-    color: #ffffff !important;
-}
-.txn-header-meta {
-    font-size: 14px;
-    color: rgba(255,255,255,.88) !important;
-    margin-top: 4px;
-}
-.txn-btn-add {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: #fff;
-    color: #0A1E3D !important;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 18px;
-    font-weight: 600;
-    font-size: 13px;
-    text-decoration: none !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,.15);
-    transition: transform .15s ease, box-shadow .15s ease;
-}
-.txn-btn-add:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,.2);
-    color: #0A1E3D !important;
-}
-.txn-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 14px 20px;
-    background: #F8FAFC;
-    border-bottom: 1px solid #E2E8F0;
+.txn-page-wrap .ew-card-toolbar.txn-toolbar {
     overflow: visible;
     position: relative;
     z-index: 10;
@@ -327,15 +299,11 @@ $logged_id = $_SESSION['user_id'];
     letter-spacing: .04em;
     margin-bottom: 6px;
 }
-.txn-table-card {
-    background: #fff;
-    border: 1px solid #E2E8F0;
-    border-radius: 0 0 10px 10px;
+.txn-page-wrap .ew-card.txn-table-card {
     overflow: visible;
-    box-shadow: 0 4px 18px rgba(15, 23, 42, .06);
 }
 .txn-datatable-area {
-    padding: 0 16px 16px;
+    padding: 12px 16px 16px;
     width: 100%;
 }
 .txn-datatable-area .dataTables_wrapper {
@@ -544,17 +512,17 @@ $logged_id = $_SESSION['user_id'];
 .txn-action-group .dropdown.table-actions {
     z-index: 3;
 }
-.txn-action-group .dropdown.table-actions.open,
-.txn-action-group .dropdown.table-actions:hover {
-    z-index: 30;
-}
 .txn-action-group .dropdown.table-actions .dropdown-menu {
-    min-width: 160px;
+    min-width: 200px;
     border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.15);
+    box-shadow: 0 12px 32px rgba(10, 30, 61, .18);
     border: 1px solid #E2E8F0;
     padding: 6px 0;
-    z-index: 1000;
+    display: none;
+    background: #fff;
+}
+.txn-print-dd:hover > .dropdown-menu {
+    display: none;
 }
 .txn-action-group .dropdown.table-actions .dropdown-menu li a {
     padding: 8px 14px;
@@ -565,33 +533,12 @@ $logged_id = $_SESSION['user_id'];
     border-top: 1px solid #EEF2F7;
     background: #FAFBFC;
 }
-.txn-dt-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding-top: 4px;
-}
-.txn-dt-bottom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px;
-}
 @media (max-width: 767px) {
     .txn-page-wrap { padding: 0 12px 24px; }
     .txn-toolbar { flex-direction: column; align-items: stretch; }
     .txn-toolbar .text-right { text-align: left !important; }
 }
 
-.txn-page-wrap .txn-page-header,
-.txn-page-wrap .txn-page-header h1,
-.txn-page-wrap .txn-page-header h1 i,
-.txn-page-wrap .txn-header-meta {
-    color: #ffffff !important;
-}
 .txn-page-wrap .txn-action-group .table-actions {
     color: #0A1E3D !important;
 }
@@ -623,36 +570,65 @@ $logged_id = $_SESSION['user_id'];
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                    <div class="txn-page-wrap">
-                    <div class="widget-container fluid-height clearfix" style="padding:0;border:none;background:transparent;box-shadow:none;">
-                        <div class="txn-page-header">
-                            <div>
-                                <h1><i class="fa fa-truck"></i> Transactions</h1>
-                                <div class="txn-header-meta">Manage consignments, documents, and delivery status</div>
+                <div class="col-md-12">
+                    <div class="ew-page-v2 ew-page-v2--wide-table txn-page-wrap">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">Transactions</h1>
                             </div>
-                            <a href="transactions.php" class="txn-btn-add"><i class="fa fa-plus"></i> Add Transaction</a>
+                            <div class="ew-toolbar-right">
+                                <a href="transactions.php" class="ew-btn-v2 ew-btn-v2-primary">Add Transaction <i class="fa fa-plus"></i></a>
+                            </div>
                         </div>
-                        <div class="txn-table-card">
-                        <div class="txn-toolbar">
-                            <form class="form-horizontal" id="transaction_form" style="margin:0;">
+                        <div class="ew-card ew-erp-list txn-table-card">
+                        <div class="ew-card-toolbar txn-toolbar">
+                            <div class="ew-list-toolbar__left">
+                                <form class="form-horizontal" id="transaction_form" style="margin:0;">
                                     <input type="hidden" id="form_name" name="form_name" value="transaction_form">
                                     <input type="hidden" id="edit_id" name="edit_id" value="">
                                     <input type="hidden" id="cmd" name="cmd" value="get_transaction_month_details">
                                     <div id="response" class="alert alert-danger" style="display:none;">
                                         <div class="message" style="text-align:center"></div>
                                     </div>
-                                    <div class="month-field-col">
-                                        <label class="control-label">Month</label>
-                                        <?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'required' => true)); ?>
+                                    <div class="ew-month-filter txn-period-filter">
+                                        <div class="txn-period-select-wrap">
+                                            <select id="report_type" name="report_type" class="form-control report_type txn-period-select">
+                                                <option value="ALL" selected>All records</option>
+                                                <option value="DAILY">Daily</option>
+                                                <option value="MONTHLY">Monthly</option>
+                                                <option value="YEARLY">Yearly</option>
+                                            </select>
+                                        </div>
+                                        <div class="report-date-group">
+                                            <div id="picker_daily" style="display:none;">
+                                                <?php echo ew_date_input(array('id' => 'date', 'name' => 'date', 'value' => date('d-m-Y'), 'readonly' => true, 'class' => 'ew-toolbar-month')); ?>
+                                            </div>
+                                            <div id="picker_month" style="display:none;">
+                                                <?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'required' => false, 'placeholder' => 'Select Month', 'class' => 'ew-toolbar-month')); ?>
+                                            </div>
+                                            <div id="picker_year" style="display:none;">
+                                                <select id="year" name="year" class="form-control report-year-select">
+                                                    <?php
+                                                    $current_year = (int) date('Y');
+                                                    for ($yr = $current_year + 1; $yr >= $current_year - 15; $yr--) {
+                                                        $selected = ($yr === $current_year) ? ' selected' : '';
+                                                        echo '<option value="' . $yr . '"' . $selected . '>' . $yr . '</option>';
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
-                            </form>
-                            <div class="text-right">
-                                <button type="button" class="btn import-trigger-btn" data-toggle="modal" data-target="#import_modal" style="margin-top:0;">
-                                    <i class="fa fa-upload"></i>&nbsp; Import Consignment
+                                </form>
+                            </div>
+                            <div class="ew-toolbar-right">
+                                <div class="ew-list-toolbar__tools"></div>
+                                <button type="button" class="ew-btn-v2 ew-btn-v2-outline import-trigger-btn" data-toggle="modal" data-target="#import_modal">
+                                    <i class="fa fa-upload"></i> Import
                                 </button>
                             </div>
                         </div>
-                        <div class="txn-datatable-area">
+                        <div class="ew-table-wrap txn-datatable-area">
                             <table class="table table-bordered table-striped trans_list_table" id="txn_list_table">
                                 <colgroup>
                                     <col class="col-sno">
@@ -941,7 +917,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
 
                                 </tbody>
                             </table>
-</div>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -985,11 +961,13 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             }
             window.txnListTable = $table.dataTable({
                 sDom: '<"txn-dt-top"lf>rt<"txn-dt-bottom"ip>',
-                iDisplayLength: 25,
+                sPaginationType: 'full_numbers',
+                iDisplayLength: 10,
                 aLengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'All']],
                 aaSorting: [[3, 'desc']],
                 bAutoWidth: false,
                 bDestroy: true,
+                oSearch: { sSearch: '', bSmart: false, bRegex: false, bCaseInsensitive: true },
                 aoColumnDefs: [
                     { bSortable: false, aTargets: [9, 10] },
                     { sClass: 'text-center', aTargets: [0, 4, 9] },
@@ -998,30 +976,46 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                     { sClass: 'col-actions', aTargets: [10] }
                 ],
                 oLanguage: {
-                    sEmptyTable: 'No bookings found for this month.',
+                    sEmptyTable: 'No bookings found.',
                     sZeroRecords: 'No matching consignments found.'
+                },
+                fnDrawCallback: function () {
+                    if (window.applyEwListLayout) {
+                        window.applyEwListLayout();
+                    }
+                }
+            });
+            if (window.applyEwListLayout) {
+                window.applyEwListLayout();
+            }
+        }
+
+        function fetchMonthTransactions() {
+            destroyTxnListDataTable();
+            $.ajax({
+                url: 'fetch_details.php',
+                type: "GET",
+                data: $('#transaction_form').serialize(),
+                success: function(result) {
+                    $('#get_month_details').html(result);
+                    initTxnListDataTable();
+                },
+                error: function() {
+                    $('#get_month_details').html('');
+                    initTxnListDataTable();
+                    ewToast('Could not load bookings.', 'error');
                 }
             });
         }
 
-        function fetchMonthTransactions() {
-            var data = $('#transaction_form').serialize();
-            if ($('#transaction_form').valid() == true) {
-                destroyTxnListDataTable();
-                $.ajax({
-                    url: 'fetch_details.php',
-                    type: "GET",
-                    data: data,
-                    success: function(result) {
-                        $('#get_month_details').html(result);
-                        initTxnListDataTable();
-                    },
-                    error: function() {
-                        $('#get_month_details').html('');
-                        initTxnListDataTable();
-                        ewToast('Could not load bookings for this month.', 'error');
-                    }
-                });
+        function setTxnPeriodType(type) {
+            $('#picker_daily, #picker_month, #picker_year').hide();
+            if (type === 'DAILY') {
+                $('#picker_daily').show();
+            } else if (type === 'MONTHLY') {
+                $('#picker_month').show();
+            } else if (type === 'YEARLY') {
+                $('#picker_year').show();
             }
         }
 
@@ -1036,12 +1030,26 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             var monthFetchTimer = null;
             var monthPickerReady = false;
             setTimeout(function() { monthPickerReady = true; }, 500);
-            $('#month').on('changeDate', function() {
+            setTxnPeriodType($('#report_type').val() || 'ALL');
+            fetchMonthTransactions();
+            $(document).on('change', '#report_type', function() {
+                setTxnPeriodType($(this).val());
+                if (monthPickerReady) {
+                    fetchMonthTransactions();
+                }
+            });
+            $('#month, #date').on('changeDate', function() {
                 if (!monthPickerReady) {
                     return;
                 }
                 clearTimeout(monthFetchTimer);
                 monthFetchTimer = setTimeout(fetchMonthTransactions, 150);
+            });
+            $('#year').on('change', function() {
+                if (!monthPickerReady) {
+                    return;
+                }
+                fetchMonthTransactions();
             });
 
             $(document).on('click', '.send_invoice', function(e) {
@@ -1467,6 +1475,79 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             $(".loading-page").hide();
         }, 3000);
         
+        function placeTxnPrintMenu($dd) {
+            var $menu = $dd.children('.dropdown-menu');
+            if (!$menu.length) {
+                return;
+            }
+            $menu.css({
+                display: 'block',
+                visibility: 'hidden',
+                position: 'fixed',
+                top: '0px',
+                left: '0px',
+                bottom: 'auto',
+                right: 'auto'
+            });
+            var btn = $dd[0].getBoundingClientRect();
+            var mh = $menu.outerHeight() || 150;
+            var mw = $menu.outerWidth() || 168;
+            var spaceBelow = window.innerHeight - btn.bottom;
+            var openUp = spaceBelow < mh + 10;
+            var top = openUp ? (btn.top - mh - 6) : (btn.bottom + 6);
+            if (top < 8) {
+                top = 8;
+            }
+            var left = btn.right - mw;
+            if (left < 8) {
+                left = 8;
+            }
+            if (left + mw > window.innerWidth - 8) {
+                left = window.innerWidth - mw - 8;
+            }
+            $menu.css({
+                display: 'block',
+                visibility: 'visible',
+                position: 'fixed',
+                zIndex: 10050,
+                top: top + 'px',
+                left: left + 'px',
+                bottom: 'auto',
+                right: 'auto'
+            });
+        }
+
+        function hideTxnPrintMenus() {
+            $('.txn-print-dd').removeClass('open');
+            $('.txn-print-dd .dropdown-menu').hide().css({
+                position: '',
+                top: '',
+                left: '',
+                bottom: '',
+                right: '',
+                visibility: ''
+            });
+        }
+
+        $(document).on('click', '.txn-print-dd', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var $dd = $(this);
+            var wasOpen = $dd.hasClass('open');
+            hideTxnPrintMenus();
+            if (!wasOpen) {
+                $dd.addClass('open');
+                placeTxnPrintMenu($dd);
+            }
+        });
+        $(document).on('click', '.txn-print-dd .dropdown-menu', function(e) {
+            e.stopPropagation();
+        });
+        $(document).on('click', function() {
+            hideTxnPrintMenus();
+        });
+        $(window).on('scroll resize', hideTxnPrintMenus);
+
         // On click print icon show gr copy download options
         $(document).on('click','#print_grn',function(){
             const element = $(this).children(".dropdown-menu");

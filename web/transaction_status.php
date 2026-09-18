@@ -12,47 +12,8 @@ $logged_id = $_SESSION['user_id'];
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 
     <style>
-        .txn-page-wrap { padding: 0 16px 28px; }
-        .txn-page-header,
-        .txn-page-header h1,
-        .txn-page-header h1 i,
-        .txn-header-meta { color: #ffffff !important; }
-        .txn-page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-            padding: 14px 24px;
-            min-height: 64px;
-        }
-        .txn-page-header h1 {
-            margin: 0;
-            font-size: 22px;
-            font-weight: 700;
-        }
-        .txn-page-header h1 i { margin-right: 8px; }
-        .txn-header-meta {
-            font-size: 14px;
-            color: rgba(255,255,255,.88) !important;
-            margin-top: 4px;
-        }
-        .txn-table-card {
-            background: #fff;
-            border: 1px solid #E2E8F0;
-            border-radius: 0 0 12px 12px;
-            overflow: visible;
-            box-shadow: 0 4px 18px rgba(15, 23, 42, .06);
-        }
-        .txn-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 16px;
-            padding: 14px 20px;
-            background: #F8FAFC;
-            border-bottom: 1px solid #E2E8F0;
+        .txn-page-wrap { max-width: 100%; }
+        .txn-page-wrap .ew-card-toolbar.txn-toolbar {
             overflow: visible;
             position: relative;
             z-index: 10;
@@ -60,6 +21,33 @@ $logged_id = $_SESSION['user_id'];
         .month-field-col {
             max-width: 280px;
             flex: 0 0 auto;
+        }
+        .txn-period-filter {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 10px;
+        }
+        .txn-period-filter .txn-period-select-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .txn-period-filter .txn-period-select {
+            height: 32px !important;
+            min-height: 32px !important;
+            width: 168px;
+            padding: 0 28px 0 12px !important;
+            font-size: 13px !important;
+            font-weight: 600;
+            color: #0A1E3D !important;
+            border: 1px solid #D8DDE5 !important;
+            border-radius: 6px !important;
+            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236B7A8D' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E") no-repeat right 10px center !important;
+            background-size: 10px 6px !important;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
         }
         .txn-toolbar .control-label,
         .month-field-col .control-label {
@@ -72,7 +60,7 @@ $logged_id = $_SESSION['user_id'];
             margin-bottom: 6px;
         }
         .txn-datatable-area {
-            padding: 0 16px 16px;
+            padding: 12px 16px 16px;
             width: 100%;
             overflow-x: auto;
         }
@@ -185,12 +173,18 @@ $logged_id = $_SESSION['user_id'];
         }
         .month-field-col .date-input-inside { width: 168px; max-width: 168px; }
         .month-field-col { margin-bottom: 0; }
-        #status_popup_modal .modal-dialog {
-            max-width: 540px;
-            width: 92%;
-            margin: 28px auto;
+        #status_popup_modal.ew-v2-modal-backdrop,
+        #show_remarks_modal.ew-v2-modal-backdrop {
+            z-index: 10050;
         }
-        #status_popup_modal .modal-body { padding: 20px 24px 8px; }
+        #status_popup_modal .ew-v2-modal,
+        #show_remarks_modal .ew-v2-modal {
+            max-width: 560px;
+            width: 92%;
+        }
+        #status_popup_modal .ew-v2-modal-body {
+            padding: 20px 24px 8px;
+        }
         .ts-modal-remarks-panel {
             background: #F8FAFC;
             border: 1px solid #E2E8F0;
@@ -229,19 +223,36 @@ $logged_id = $_SESSION['user_id'];
             margin-bottom: 16px;
         }
         #delivery_options > .form-group:last-child { margin-bottom: 0; }
-        #status_popup_modal .modal-footer {
-            text-align: center;
-            padding: 14px 24px 18px !important;
-            border-top: 1px solid #E2E8F0;
+        .ts-delivery-types {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            margin-top: 4px;
         }
-        #status_popup_modal .modal-footer .btn {
-            min-width: 108px;
-            margin: 0 8px;
-            border-radius: 8px;
+        .ts-delivery-opt {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
             font-weight: 600;
+            color: #334155;
+            text-transform: none;
+            letter-spacing: 0;
+            margin: 0;
+            cursor: pointer;
         }
-        .ts-modal-datetime-row { margin-left: -8px; margin-right: -8px; }
-        .ts-modal-datetime-row > [class*="col-"] { padding-left: 8px; padding-right: 8px; }
+        .ts-modal-datetime-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 575.98px) {
+            .ts-modal-datetime-row { grid-template-columns: 1fr; }
+        }
+        .datepicker,
+        .ui-timepicker-wrapper {
+            z-index: 10140 !important;
+        }
         @media (max-width: 767px) {
             .txn-page-wrap { padding: 0 12px 24px; }
         }
@@ -313,30 +324,59 @@ $logged_id = $_SESSION['user_id'];
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                    <div class="txn-page-wrap">
-                    <div class="widget-container fluid-height clearfix" style="padding:0;border:none;background:transparent;box-shadow:none;">
-                        <div class="txn-page-header">
-                            <div>
-                                <h1><i class="fa fa-exchange"></i> Change Status</h1>
-                                <div class="txn-header-meta">Update consignment tracking stages month by month</div>
+                <div class="col-md-12">
+                    <div class="ew-page-v2 ew-page-v2--wide-table txn-page-wrap">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">Change Status</h1>
                             </div>
                         </div>
-                        <div class="txn-table-card">
-                        <div class="txn-toolbar">
-                            <form class="form-horizontal" id="transaction_form" style="margin:0;">
-                                <input type="hidden" id="form_name" name="form_name" value="transaction_form">
-                                <input type="hidden" id="edit_id" name="edit_id" value="">
-                                <input type="hidden" id="cmd" name="cmd" value="get_transact_status_month_detail">
-                                <div id="response" class="alert alert-danger" style="display:none;">
-                                    <div class="message" style="text-align:center"></div>
-                                </div>
-                                <div class="month-field-col">
-                                    <label class="control-label">Month</label>
-                                    <?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'required' => true)); ?>
-                                </div>
-                            </form>
+                        <div class="ew-card ew-erp-list txn-table-card">
+                        <div class="ew-card-toolbar txn-toolbar">
+                            <div class="ew-list-toolbar__left">
+                                <form class="form-horizontal" id="transaction_form" style="margin:0;">
+                                    <input type="hidden" id="form_name" name="form_name" value="transaction_form">
+                                    <input type="hidden" id="edit_id" name="edit_id" value="">
+                                    <input type="hidden" id="cmd" name="cmd" value="get_transact_status_month_detail">
+                                    <div id="response" class="alert alert-danger" style="display:none;">
+                                        <div class="message" style="text-align:center"></div>
+                                    </div>
+                                    <div class="ew-month-filter txn-period-filter">
+                                        <div class="txn-period-select-wrap">
+                                            <select id="report_type" name="report_type" class="form-control report_type txn-period-select">
+                                                <option value="ALL" selected>All records</option>
+                                                <option value="DAILY">Daily</option>
+                                                <option value="MONTHLY">Monthly</option>
+                                                <option value="YEARLY">Yearly</option>
+                                            </select>
+                                        </div>
+                                        <div class="report-date-group">
+                                            <div id="picker_daily" style="display:none;">
+                                                <?php echo ew_date_input(array('id' => 'date', 'name' => 'date', 'value' => date('d-m-Y'), 'readonly' => true, 'class' => 'ew-toolbar-month')); ?>
+                                            </div>
+                                            <div id="picker_month" style="display:none;">
+                                                <?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'required' => false, 'placeholder' => 'Select Month', 'class' => 'ew-toolbar-month')); ?>
+                                            </div>
+                                            <div id="picker_year" style="display:none;">
+                                                <select id="year" name="year" class="form-control report-year-select">
+                                                    <?php
+                                                    $current_year = (int) date('Y');
+                                                    for ($yr = $current_year + 1; $yr >= $current_year - 15; $yr--) {
+                                                        $selected = ($yr === $current_year) ? ' selected' : '';
+                                                        echo '<option value="' . $yr . '"' . $selected . '>' . $yr . '</option>';
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="ew-toolbar-right">
+                                <div class="ew-list-toolbar__tools"></div>
+                            </div>
                         </div>
-                        <div class="txn-datatable-area">
+                        <div class="ew-table-wrap txn-datatable-area">
                             <table class="table table-bordered table-striped trans_list_table" id="ts_status_table">
                                 <colgroup>
                                     <col class="col-sno">
@@ -552,21 +592,31 @@ if ($delivery_type == 'partial') {
             }
             window.tsStatusTable = $table.dataTable({
                 sDom: '<"txn-dt-top"lf>rt<"txn-dt-bottom"ip>',
+                sPaginationType: 'full_numbers',
                 iDisplayLength: 10,
                 aLengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'All']],
                 aaSorting: [[2, 'desc']],
                 bAutoWidth: false,
                 bDestroy: true,
+                oSearch: { sSearch: '', bSmart: false, bRegex: false, bCaseInsensitive: true },
                 aoColumnDefs: [
                     { bSortable: false, aTargets: [8] },
                     { sClass: 'text-center', aTargets: [0, 3] },
                     { sClass: 'col-steps', aTargets: [8] }
                 ],
                 oLanguage: {
-                    sEmptyTable: 'No bookings found for this month.',
+                    sEmptyTable: 'No bookings found.',
                     sZeroRecords: 'No matching consignments found.'
+                },
+                fnDrawCallback: function () {
+                    if (window.applyEwListLayout) {
+                        window.applyEwListLayout();
+                    }
                 }
             });
+            if (window.applyEwListLayout) {
+                window.applyEwListLayout();
+            }
         }
 
         function refreshStatusTableAfterSave(message) {
@@ -580,9 +630,6 @@ if ($delivery_type == 'partial') {
 
         function fetchStatusMonthDetails(silent) {
             var data = $('#transaction_form').serialize();
-            if ($('#transaction_form').valid() !== true) {
-                return;
-            }
             if (!silent) {
                 hidePageLoaders();
             }
@@ -599,11 +646,22 @@ if ($delivery_type == 'partial') {
                     $('#get_month_details').html('');
                     initTsStatusTable();
                     if (typeof ewToast === 'function') {
-                        ewToast('Could not load consignments for this month.', 'error');
+                        ewToast('Could not load consignments.', 'error');
                     }
                 },
                 complete: hidePageLoaders
             });
+        }
+
+        function setTxnPeriodType(type) {
+            $('#picker_daily, #picker_month, #picker_year').hide();
+            if (type === 'DAILY') {
+                $('#picker_daily').show();
+            } else if (type === 'MONTHLY') {
+                $('#picker_month').show();
+            } else if (type === 'YEARLY') {
+                $('#picker_year').show();
+            }
         }
 
         function unlockStatusDatePicker() {
@@ -673,6 +731,26 @@ if ($delivery_type == 'partial') {
             }
         }
 
+        function openStatusChangeModal() {
+            if (typeof ewV2OpenModal === 'function') {
+                ewV2OpenModal('status_popup_modal');
+            } else {
+                $('#status_popup_modal').addClass('open');
+            }
+            setTimeout(function() {
+                unlockStatusDatePicker();
+                initStatusTimePicker();
+            }, 40);
+        }
+
+        function closeStatusChangeModal() {
+            if (typeof ewV2CloseModal === 'function') {
+                ewV2CloseModal('status_popup_modal');
+            } else {
+                $('#status_popup_modal').removeClass('open');
+            }
+        }
+
         $(document).ready(function() {
             hidePageLoaders();
             initTsStatusTable();
@@ -680,28 +758,30 @@ if ($delivery_type == 'partial') {
 
             var monthPickerReady = false;
             setTimeout(function() { monthPickerReady = true; }, 500);
-            $('#month').on('changeDate', function() {
+            setTxnPeriodType($('#report_type').val() || 'ALL');
+            fetchStatusMonthDetails();
+            $(document).on('change', '#report_type', function() {
+                setTxnPeriodType($(this).val());
+                if (monthPickerReady) {
+                    fetchStatusMonthDetails();
+                }
+            });
+            $('#month, #date').on('changeDate', function() {
+                if (!monthPickerReady) {
+                    return;
+                }
+                fetchStatusMonthDetails();
+            });
+            $('#year').on('change', function() {
                 if (!monthPickerReady) {
                     return;
                 }
                 fetchStatusMonthDetails();
             });
 
-            $('#status_popup_modal').on('shown.bs.modal', function() {
-                unlockStatusDatePicker();
-                initStatusTimePicker();
-            });
-
             $(document).on('show', '#status_date', function() {
                 unlockStatusDatePicker();
             });
-
-            //close pop
-            $(document).on('click', '#status_modal_cancel', function() {
-                $("#status_popup_modal").modal('hide');
-            });
-
-            //end close pop
 
 
             $(document).on('click', '.close-popup', function() {
@@ -710,12 +790,15 @@ if ($delivery_type == 'partial') {
             });
 
             $(document).on('click', '#save_status_change', function(e) {
-                if ($('#status_change_consignment').valid() == true) {
-                    if(confirm("Are you sure! Do you want to submit?")){
-                        $(this).attr('disabled', true);
+                e.preventDefault();
+                if ($('#status_change_consignment').valid() != true) {
+                    return;
+                }
+                var $saveBtn = $(this);
+                function proceedStatusSave() {
+                        $saveBtn.attr('disabled', true);
                         $(".loading-page").show();
-                        $("#status_popup_modal").modal('hide');
-                        e.preventDefault();
+                        closeStatusChangeModal();
                         if ($(window).width() <= 575) {
     $("#status").val($("#mobile_status_select").val());
 }
@@ -726,10 +809,11 @@ if (parseInt($("#status").val()) === 8) {
     const deliveryType =
         $("input[name='delivery_type']:checked").val();
 
-    if (!deliveryType) {
+        if (!deliveryType) {
         alert("Please select Partially Delivered or Fully Delivered.");
-        $(this).attr('disabled', false);
+        $saveBtn.attr('disabled', false);
         hidePageLoaders();
+        openStatusChangeModal();
         return false;
     }
 
@@ -750,8 +834,9 @@ if (parseInt($("#status").val()) === 8) {
                 "Please select the number of packages delivered."
             );
 
-            $(this).attr('disabled', false);
+            $saveBtn.attr('disabled', false);
             hidePageLoaders();
+            openStatusChangeModal();
 
             return false;
         }
@@ -795,7 +880,16 @@ if (parseInt($("#status").val()) === 8) {
                                 $('#save_status_change').attr('disabled', false);
                             }
                         });
-                    }
+                }
+                if (typeof ewConfirm === 'function') {
+                    ewConfirm({
+                        title: 'Please confirm',
+                        message: 'Are you sure you want to submit?',
+                        confirmText: 'OK',
+                        onConfirm: proceedStatusSave
+                    });
+                } else if (confirm('Are you sure! Do you want to submit?')) {
+                    proceedStatusSave();
                 }
 			});
             // show popup on status button click
@@ -809,7 +903,7 @@ if (parseInt($("#status").val()) === 8) {
 
     unlockStatusDatePicker();
 
-    $("#status_popup_modal").modal('show');
+    openStatusChangeModal();
 
     setStatusModalDateTime();
 
@@ -986,7 +1080,11 @@ else {
             }
             e.preventDefault();
             e.stopPropagation();
-            $('#show_remarks_modal').modal('show');
+            if (typeof ewV2OpenModal === 'function') {
+                ewV2OpenModal('show_remarks_modal');
+            } else {
+                $('#show_remarks_modal').addClass('open');
+            }
             $("#view_remarks").html(remarks);
         });
         const statusList = {
@@ -1002,7 +1100,7 @@ $(document).on('click','.mobile-update-status',function(){
 
     setStatusModalDateTime();
 
-    $("#status_popup_modal").modal('show');
+    openStatusChangeModal();
 
     let currentStatus=parseInt($(this).data('status'));
 
@@ -1087,15 +1185,14 @@ $(document).on("change","#mobile_status_select",function(){
         <span id="alert-message"></span>
     </div>
 
-    <div class="modal fade" id="status_popup_modal" style="display:none">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button aria-hidden="true" class="close" data-dismiss="modal" type="button">&times;</button>
-                    <h4 class="modal-title">Change consignment status</h4>
-                </div>
-                <div class="modal-body" id="cancel_grn">
-                    <form id="status_change_consignment" enctype="multipart/form-data">
+    <div class="ew-v2-modal-backdrop" id="status_popup_modal">
+        <div class="ew-v2-modal" role="dialog" aria-labelledby="statusPopupTitle" aria-modal="true">
+            <div class="ew-v2-modal-head">
+                <h3 id="statusPopupTitle">Change consignment status</h3>
+                <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+            </div>
+            <form id="status_change_consignment" enctype="multipart/form-data">
+                <div class="ew-v2-modal-body" id="cancel_grn">
                         <input type="hidden" name="form_name" value="status_change_consignment">
                         <input type="hidden" name="logged_id" id="logged_id" value="<?php echo $logged_id; ?>">
                         <input type="hidden" name="transaction_id" id="transaction_id" value="">
@@ -1115,13 +1212,13 @@ $(document).on("change","#mobile_status_select",function(){
 
                         <div id="delivery_options" style="display:none;">
                             <div class="form-group">
-                                <label>Delivery Type <span style="color:red">*</span></label>
-                                <div>
-                                    <label style="margin-right:20px;">
+                                <label>Delivery Type <span class="req-star">*</span></label>
+                                <div class="ts-delivery-types">
+                                    <label class="ts-delivery-opt">
                                         <input type="radio" name="delivery_type" value="partial" id="delivery_partial">
                                         Partially Delivered
                                     </label>
-                                    <label>
+                                    <label class="ts-delivery-opt">
                                         <input type="radio" name="delivery_type" value="full" id="delivery_full">
                                         Fully Delivered
                                     </label>
@@ -1132,70 +1229,54 @@ $(document).on("change","#mobile_status_select",function(){
                                 <input type="text" class="form-control" id="total_packages_display" readonly>
                             </div>
                             <div class="form-group" id="partial_package_group" style="display:none;">
-                                <label>Packages Delivered <span style="color:red">*</span></label>
+                                <label>Packages Delivered <span class="req-star">*</span></label>
                                 <select class="form-control" name="delivered_packages" id="delivered_packages">
                                     <option value="">Select packages</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div class="row ts-modal-datetime-row">
-                            <div class="col-sm-6">
-                                <div class="ts-modal-field">
-                                    <label>Status Date <span style="color:red">*</span></label>
-                                    <?php echo ew_date_input(array(
-                                        'id' => 'status_date',
-                                        'name' => 'status_date',
-                                        'value' => date('d-m-Y'),
-                                        'required' => true,
-                                        'attrs' => 'data-allow-future="1"',
-                                    )); ?>
-                                </div>
+                        <div class="ts-modal-datetime-row">
+                            <div class="ts-modal-field">
+                                <label>Status Date <span class="req-star">*</span></label>
+                                <?php echo ew_date_input(array(
+                                    'id' => 'status_date',
+                                    'name' => 'status_date',
+                                    'value' => date('d-m-Y'),
+                                    'required' => true,
+                                    'attrs' => 'data-allow-future="1"',
+                                )); ?>
                             </div>
-                            <div class="col-sm-6">
-                                <div class="ts-modal-field">
-                                    <label>Status Time <span style="color:red">*</span></label>
-                                    <input type="text" class="form-control" id="status_time" name="status_time" value="<?php echo date('H:i'); ?>" autocomplete="off">
-                                </div>
+                            <div class="ts-modal-field">
+                                <label>Status Time <span class="req-star">*</span></label>
+                                <input type="text" class="form-control" id="status_time" name="status_time" value="<?php echo date('H:i'); ?>" autocomplete="off">
                             </div>
                         </div>
 
                         <input type="hidden" id="remarks_text" name="remarks">
-
-                        <div class="modal-footer">
-                            <button class="btn btn-danger btn-cancel" type="button" id="status_modal_cancel">Cancel</button>
-                            <button class="btn btn-primary btn-submit" type="button" id="save_status_change">Submit</button>
-                        </div>
-                    </form>
                 </div>
-            </div>
+                <div class="ew-v2-modal-foot">
+                    <button class="btn btn-default-outline" type="button" id="status_modal_cancel" data-ew-v2-close>Cancel</button>
+                    <button class="btn btn-primary" type="button" id="save_status_change">Submit</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="modal fade " id="show_remarks_modal" style="display:none">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button aria-hidden="true" class="close" data-dismiss="modal" type="button">&times;</button>
-                    <h4 class="modal-title" style="color:#fff">
-                        Remark
-                    </h4>
-                </div>
-                <!--- Change consignment status / GRN Model -->
-                <div class="modal-body" id="cancel_grn">
-                <div class="form-group">
-    <label>REMARKS (AUTO GENERATED):</label>
-
-    <div id="view_remarks" class="ts-modal-remarks-panel"></div>
-
-    <input type="hidden" id="view_remarks_text" name="remarks">
-</div>
-                    <div class="text-right">
-                        <button class="btn btn-info btn-cancel" type="button" aria-hidden="true" class="close" data-dismiss="modal" style="margin-top: 10px; margin-right: 0;">OK</button>
-                    </div>
-                </div>
+    <div class="ew-v2-modal-backdrop" id="show_remarks_modal">
+        <div class="ew-v2-modal" role="dialog" aria-labelledby="remarksPopupTitle" aria-modal="true">
+            <div class="ew-v2-modal-head">
+                <h3 id="remarksPopupTitle">Remark</h3>
+                <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
             </div>
-
+            <div class="ew-v2-modal-body">
+                <label>Remarks (auto generated)</label>
+                <div id="view_remarks" class="ts-modal-remarks-panel"></div>
+                <input type="hidden" id="view_remarks_text" name="remarks">
+            </div>
+            <div class="ew-v2-modal-foot">
+                <button class="btn btn-primary" type="button" data-ew-v2-close>OK</button>
+            </div>
         </div>
     </div>
 

@@ -28,6 +28,8 @@
   --ew-text-muted:  #6B7A8D;
   --ew-border:      #D8DDE5;
   --ew-border-light:#E9ECF0;
+  --rail-bg:        #DDE7F0;
+  --panel-border:   #C5D3E0;
   --ew-radius-sm:   8px;
   --ew-radius:      12px;
   --ew-radius-lg:   16px;
@@ -110,7 +112,7 @@ body.page-header-fixed { padding-top: 70px !important; }
   border-bottom: 1px solid var(--ew-border-light) !important;
 }
 
-/* ── Tables — dark navy header system (global) ─────────────── */
+/* ── Tables — rail-bg header system (global) ───────────────── */
 .table {
   width: 100%;
   border-collapse: separate;
@@ -124,13 +126,13 @@ table.dataTable thead th,
 table.dataTable thead td,
 .dataTable thead th,
 .dataTable thead td {
-  background: #0A1E3D !important;
+  background: var(--rail-bg, #DDE7F0) !important;
   border-bottom: none !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   font-size: 11px !important;
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
-  color: #fff !important;
+  color: var(--ew-text, #1A2332) !important;
   padding: 8px 8px !important;
   white-space: nowrap;
   vertical-align: middle;
@@ -154,13 +156,79 @@ table.dataTable thead td,
 }
 .table-bordered > thead > tr > th {
   border: none !important;
-  border-right: 1px solid rgba(255, 255, 255, .1) !important;
+  border-right: 1px solid var(--panel-border, #C5D3E0) !important;
 }
 .table-bordered > thead > tr > th:last-child {
   border-right: none !important;
 }
 .table-bordered > tbody > tr > td {
-  border: 1px solid var(--ew-border-light) !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid var(--ew-border-light) !important;
+}
+.table-bordered > tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+/* Body — horizontal row lines only (no vertical grid) */
+table.dataTable tbody td,
+table.dataTable tbody th,
+.dataTable tbody td,
+.dataTable tbody th,
+.ew-data-table tbody td,
+.trans_list_table tbody td {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid var(--ew-border-light, #E9ECF0) !important;
+}
+
+table.dataTable tbody tr:last-child td,
+.dataTable tbody tr:last-child td,
+.table-bordered > tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+/* Header — vertical dividers between columns */
+.table > thead > tr > th,
+table.dataTable thead th,
+table.dataTable thead td,
+.dataTable thead th,
+.dataTable thead td,
+.widget-container table thead th,
+.widget-container .dataTable thead th {
+  border-right: 1px solid var(--panel-border, #C5D3E0) !important;
+}
+
+.table > thead > tr > th:last-child,
+table.dataTable thead th:last-child,
+table.dataTable thead td:last-child,
+.dataTable thead th:last-child,
+.dataTable thead td:last-child {
+  border-right: none !important;
+}
+
+/* Body action column — left divider only (no other vertical lines) */
+.table tbody td.col-actions,
+.table tbody td.actions,
+.table tbody td.col-action,
+table.dataTable tbody td.col-actions,
+table.dataTable tbody td.actions,
+table.dataTable tbody td.col-action,
+.dataTable tbody td.col-actions,
+.dataTable tbody td.actions,
+.ew-page-v2 .ew-table-wrap table tbody td.col-actions,
+.ew-page-v2 .ew-table-wrap table tbody td.actions {
+  border-left: 1px solid var(--panel-border, #C5D3E0) !important;
+}
+
+table:has(tbody td.actions) tbody td.actions,
+table:has(tbody td.col-actions) tbody td.col-actions,
+table:has(tbody td.col-action) tbody td.col-action,
+table.dataTable:has(tbody td.actions) tbody td.actions,
+table.dataTable:has(tbody td.col-actions) tbody td.col-actions {
+  border-left: 1px solid var(--panel-border, #C5D3E0) !important;
 }
 
 /* DataTables table headers */
@@ -168,9 +236,9 @@ table.dataTable thead th,
 table.dataTable thead td,
 .dataTable thead th,
 .dataTable thead td {
-  background: #0A1E3D !important;
-  color: #fff !important;
-  font-weight: 600 !important;
+  background: var(--rail-bg, #DDE7F0) !important;
+  color: var(--ew-navy, #0A1E3D) !important;
+  font-weight: 700 !important;
   border-bottom: none !important;
 }
 table.dataTable tbody td,
@@ -185,14 +253,93 @@ table.dataTable tbody td,
 th.table-title,
 .widget-container table thead th,
 .widget-container .dataTable thead th {
-  background: #0A1E3D !important;
-  color: #fff !important;
-  font-weight: 600 !important;
+  background: var(--rail-bg, #DDE7F0) !important;
+  color:  var(--ew-navy, #0A1E3D) !important;
+  font-weight: 700 !important;
   font-size: 11px !important;
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--panel-border, #C5D3E0) !important;
   vertical-align: middle !important;
+}
+
+/* Global table — center all column headers and cell values */
+.table > thead > tr > th,
+.table > thead > tr > td,
+.table > tbody > tr > td,
+.table > tfoot > tr > th,
+.table > tfoot > tr > td,
+table.dataTable thead th,
+table.dataTable thead td,
+table.dataTable tbody td,
+table.dataTable tbody th,
+table.dataTable tfoot th,
+table.dataTable tfoot td,
+.dataTable thead th,
+.dataTable thead td,
+.dataTable tbody td,
+.dataTable tbody th,
+.dataTable tfoot th,
+.dataTable tfoot td,
+.ew-data-table thead th,
+.ew-data-table tbody td,
+.trans_list_table thead th,
+.trans_list_table tbody td,
+#dataTable1 thead th,
+#dataTable1 tbody td,
+#egcn_list_table th,
+#egcn_list_table td,
+#egen_list_table th,
+#egen_list_table td,
+#tss_list_table th,
+#tss_list_table td,
+#trip_list_table th,
+#trip_list_table td,
+#gcn_items_table th,
+#gcn_items_table td,
+#expense_lines_table th,
+#expense_lines_table td,
+#dataTable_exp_type thead th,
+#dataTable_exp_type tbody td,
+#ts_status_table thead th,
+#ts_status_table tbody td,
+.widget-container table thead th,
+.widget-container table tbody td,
+.widget-container .dataTable thead th,
+.widget-container .dataTable tbody td,
+th.table-title,
+th.table-title-data,
+.table-title-data {
+  text-align: center !important;
+}
+
+table .text-left,
+table .text-right,
+.table .text-left,
+.table .text-right,
+table.dataTable .text-left,
+table.dataTable .text-right,
+.dataTable .text-left,
+.dataTable .text-right {
+  text-align: center !important;
+}
+
+.table tbody td .form-control,
+table.dataTable tbody td .form-control,
+.dataTable tbody td .form-control,
+.table tbody td select.form-control,
+.table tbody td .form-control.text-right,
+table.dataTable tbody td .form-control.text-right,
+.dataTable tbody td .form-control.text-right {
+  text-align: center !important;
+}
+
+.table tbody td.actions,
+.table tbody td.col-actions,
+.table thead th.col-actions,
+.summary_automatize td,
+.summary_automatize td.summary_automatize_name {
+  text-align: center !important;
 }
 
 /* ── Form Controls ────────────────────────────────────────── */
@@ -214,7 +361,9 @@ th.table-title,
   box-shadow: 0 0 0 3px rgba(10,30,61,.10) !important;
   outline: none !important;
 }
-.form-control[disabled], .form-control[readonly], fieldset[disabled] .form-control {
+.form-control[disabled],
+.form-control[readonly]:not(.ew-date-field):not([data-ew-datepicker]),
+fieldset[disabled] .form-control {
   background: #F5F6F8 !important;
   cursor: not-allowed;
   color: var(--ew-text-muted) !important;
@@ -295,7 +444,20 @@ select.select2-offscreen {
   padding-top: 7px;
 }
 
-.help-block, .error { font-size: 0.8rem; color: var(--ew-accent); margin-top: 4px; }
+.help-block,
+.error:not(label),
+span.error,
+div.error,
+p.error {
+  font-size: 0.8rem;
+  color: var(--ew-accent);
+  margin-top: 4px;
+}
+
+label.error,
+label.field-inline-error {
+  color: var(--ew-validation, #DD111E) !important;
+}
 
 /* ── Input Group / Datepicker Icon Fix ───────────────────── */
 .input-group .form-control { border-radius: 0 !important; }
@@ -863,16 +1025,16 @@ input[type="file"]::file-selector-button:hover {
   border-top-right-radius: 0 !important;
 }
 
-/* Transaction / status list tables — force dark headers (overrides page inline light styles) */
+/* Transaction / status list tables — rail headers (overrides page inline light styles) */
 .trans_list_table thead th,
 #ts_status_table thead th {
-  background: #0A1E3D !important;
-  color: #fff !important;
+  background: var(--rail-bg, #DDE7F0) !important;
+  color: var(--ew-text, #1A2332) !important;
   border: none !important;
-  border-right: 1px solid rgba(255, 255, 255, .1) !important;
+  border-right: 1px solid var(--panel-border, #C5D3E0) !important;
   border-bottom: none !important;
   font-size: 11px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: .04em !important;
 }
@@ -1109,7 +1271,7 @@ input[type="file"]::file-selector-button:hover {
   gap: 6px;
 }
 
-/* Dark data-table headers */
+/* Rail-bg data-table headers */
 .ew-data-table thead th,
 #egcn_list_table th,
 #egen_list_table th,
@@ -1117,10 +1279,10 @@ input[type="file"]::file-selector-button:hover {
 #trip_list_table th,
 #gcn_items_table th,
 #expense_lines_table th {
-  background: #0A1E3D !important;
-  color: #fff !important;
+  background: var(--rail-bg, #DDE7F0) !important;
+  color: var(--ew-text, #1A2332) !important;
   font-size: 11px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: .04em;
   padding: 8px 8px !important;

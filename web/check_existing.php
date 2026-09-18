@@ -157,7 +157,7 @@ if($cmd == "chk_hub"){
 	
 
 	$out_put = array("0", "Valid details");
-	$query = "select * from hub where hub_name='".$hub_name."' $edit_id_check";
+	$query = "select * from hub where name='".$hub_name."' $edit_id_check";
 
 	$result = mysqli_query($conn,$query) or die(mysqli_error());
 	if(mysqli_num_rows($result) > 0){

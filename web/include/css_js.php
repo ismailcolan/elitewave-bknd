@@ -32,10 +32,12 @@
 	<link href="stylesheets/jquery.timepicker.css" media="all" rel="stylesheet" type="text/css" />
 	
 	<!-- Modern UI Layer (loaded last to override legacy styles) -->
-	<link href="stylesheets/modern-ui.css?v=20260909select2b" media="all" rel="stylesheet" type="text/css" />
-	<link href="stylesheets/ew-datepicker.css?v=20260828" media="all" rel="stylesheet" type="text/css" />
-	<link href="stylesheets/ew-form-validation.css" media="all" rel="stylesheet" type="text/css" />
-	<link href="stylesheets/ew-design-system.css?v=20260909select2b" media="all" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/modern-ui.css?v=20260918datefield" media="all" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/ew-datepicker.css?v=20260918datefield" media="all" rel="stylesheet" type="text/css" />
+<link href="stylesheets/ew-design-system.css?v=20260911tableclean" media="all" rel="stylesheet" type="text/css" />
+<link href="stylesheets/ew-pages-v2.css?v=20260918maplist" media="all" rel="stylesheet" type="text/css" />
+<link href="stylesheets/ew-form-validation.css?v=20260911valfix" media="all" rel="stylesheet" type="text/css" />
+<link href="stylesheets/ew-skeleton.css?v=20260918hdr" media="all" rel="stylesheet" type="text/css" />
 	
 	
 	
@@ -95,8 +97,10 @@
 	<script src="javascripts/jquery.sparkline.min.js" type="text/javascript"></script>
 	<script src="javascripts/dropzone.js" type="text/javascript"></script>
 	<script src="javascripts/jquery.nestable.js" type="text/javascript"></script>
-	<script src="javascripts/main.js" type="text/javascript"></script>
+	<script src="javascripts/main.js?v=20260918phrasesearch" type="text/javascript"></script>
+	<script src="javascripts/ew-list-layout.js?v=20260918searchfix" type="text/javascript"></script>
 	<script src="javascripts/ew-table-drag-scroll.js?v=20260909fix" type="text/javascript"></script>
+	<script src="javascripts/ew-pages-v2.js?v=20260918restore" type="text/javascript"></script>
 	<script src="javascripts/respond.js" type="text/javascript"></script>
 	<script src="javascripts/highcharts.js" type="text/javascript"></script>
 	<script src="javascripts/jSignature.js" type="text/javascript"></script>
@@ -104,7 +108,7 @@
 	<script src="javascripts/jquery.timepicker.js" type="text/javascript"></script>
 	<script src="javascripts/duplicate_check.js" type="text/javascript"></script>
 	<script src="javascripts/ew-datepicker.js?v=20260828b" type="text/javascript"></script>
-	<script src="javascripts/ew-form-validation.js" type="text/javascript"></script>
+	<script src="javascripts/ew-form-validation.js?v=20260911reload" type="text/javascript"></script>
 	
 	<!-- Modern UI Toast Notification System -->
 	<style>

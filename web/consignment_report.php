@@ -5,6 +5,7 @@ require_once("include/function.php");
 $c_date = date('d-m-Y');
 $c_mY = date('m-Y');
 $c_Y = date('Y');
+$page_title = (isset($_SESSION['role']) && $_SESSION['role'] === 'CL') ? 'My Booking Report' : 'Booking Status Report';
 
 ?>
 <!DOCTYPE html>
@@ -185,10 +186,18 @@ table{
 		<div class="container-fluid main-content new_dpt_bottom">
 
 			<div class="row">
-				<div class="col-md-offset-1 col-md-10">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"> <i class="fa fa-table"></i> Consignment Report </div>
-						<div class="widget-content padded">
+				<div class="col-md-12">
+					<div class="ew-page-v2 ew-page-v2--wide-table ew-page-v2--mis-report">
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<h1 class="ew-page-title"><?php echo htmlspecialchars($page_title); ?></h1>
+							</div>
+						</div>
+						<div class="ew-card">
+						<div class="ew-card-toolbar">
+							<h2>Report Filters</h2>
+						</div>
+						<div class="ew-form-body">
 							<form class="form-horizontal" id="transaction_form">
 
 								<input type="hidden" id="cmd" name="cmd" value="get_pickup_report_details">
@@ -196,13 +205,14 @@ table{
 									<div class="message" style="text-align:center"></div>
 								</div>
 
-								<div class="row report-period-row">
-									<div class="col-md-12">
-										<div class="report-period-wrap">
+								<div class="ew-mis-filter-shell">
+								<div class="ew-form-grid ew-mis-filter-grid">
+									<div class="ew-field ew-mis-period-field">
+										<div class="ew-mis-period-row">
 											<div class="report-type-group">
-												<label class="control-label"><input type="radio" name="report_type" class="report_type" value="DAILY" checked /> DAILY</label>
-												<label class="control-label"><input type="radio" class="report_type" name="report_type" value="MONTHLY" /> MONTHLY</label>
-												<label class="control-label"><input type="radio" class="report_type" name="report_type" value="YEARLY" /> YEARLY</label>
+												<label class="control-label"><input type="radio" name="report_type" class="report_type" value="DAILY" checked /> Daily</label>
+												<label class="control-label"><input type="radio" class="report_type" name="report_type" value="MONTHLY" /> Monthly</label>
+												<label class="control-label"><input type="radio" class="report_type" name="report_type" value="YEARLY" /> Yearly</label>
 											</div>
 											<div class="report-date-group">
 												<div id="picker1">
@@ -225,12 +235,9 @@ table{
 											</div>
 										</div>
 									</div>
-								</div><br />
-								<div class="row">
-									<div class="col-md-offset-2 col-md-3">
-										<div class="form-group">
-											<label class="control-label">Client:</label>
-											<select name="client_wise_report" id="client_wise_report" class="form-control client_wise_report">
+									<div class="ew-field">
+										<label>Client</label>
+										<select name="client_wise_report" id="client_wise_report" class="form-control client_wise_report">
 												<option value="">-- Select Client --</option>
 												<?php
 												$query = "select * from client";
@@ -243,12 +250,10 @@ table{
 												}
 												?>
 											</select>
-										</div>
 									</div>
-									<div class="col-md-3">
-										<div class="form-group">
-											<label class="control-label">Consignee:</label>
-											<select name="consignee_wise_report" id="consignee_wise_report" class="form-control consignee_wise_report">
+									<div class="ew-field">
+										<label>Consignee</label>
+										<select name="consignee_wise_report" id="consignee_wise_report" class="form-control consignee_wise_report">
 												<option value="">-- Select Consignee --</option>
 												<?php
 												$query = "select * from client";
@@ -261,12 +266,10 @@ table{
 												}
 												?>
 											</select>
-										</div>
 									</div>
-									<div class="col-md-2">
-										<div class="form-group">
-											<label class="control-label">Mode:</label>
-											<select name="mode_of_trasport" id="mode_of_trasport" class="form-control">
+									<div class="ew-field">
+										<label>Mode</label>
+										<select name="mode_of_trasport" id="mode_of_trasport" class="form-control">
 												<option value="">-- Mode of Transport --</option>
 												<?php
 												$transport_query = "select * from mode_of_transportation where status=0";
@@ -278,14 +281,10 @@ table{
 												}
 												?>
 											</select>
-										</div>
 									</div>
-								</div>
-								<div class="row">
-									<div class="col-md-offset-2 col-md-3">
-										<div class="form-group">
-											<label class="control-label"> Origin:</label>
-											<select name="origin" id="origin" class="form-control">
+									<div class="ew-field">
+										<label>Origin</label>
+										<select name="origin" id="origin" class="form-control">
 												<option value="">-- Select Origin --</option>
 												<?php
 												$city_query = "select * from city where status=0 order by city_name";
@@ -297,12 +296,10 @@ table{
 												}
 												?>
 											</select>
-										</div>
 									</div>
-									<div class="col-md-3">
-										<div class="form-group">
-											<label class="control-label">Destination:</label>
-											<select name="destination" id="destination" class="form-control">
+									<div class="ew-field">
+										<label>Destination</label>
+										<select name="destination" id="destination" class="form-control">
 												<option value="">-- Select Destination --</option>
 												<?php
 												$city_query = "select * from city where status=0  order by city_name";
@@ -314,12 +311,10 @@ table{
 												}
 												?>
 											</select>
-										</div>
 									</div>
-									<div class="col-md-2">
-										<div class="form-group">
-											<label class="control-label">Status:</label>
-											<Select type="text" name="status" id="status" class="form-control">
+									<div class="ew-field">
+										<label>Status</label>
+										<select name="status" id="status" class="form-control">
 
 												<option value=""> -- Select Status -- </option>
 												<option value="1">Consignment Booked</option>
@@ -331,25 +326,21 @@ table{
 												<option value="7">Out for Delivery</option>
 												<option value="8">Consignment Delivered Successfully</option>
 											</select>
-										</div>
 									</div>
-									<div class="col-md-2">
-										<div class="form-group">
-											<button class="btn btn-primary" type="button" style="margin-top: 18px;" id="search">Search</button>
-
-										</div>
-									</div>
-
+								</div>
+								<div class="ew-mis-filter-footer">
+									<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="search"><i class="fa fa-search"></i> Search</button>
+								</div>
 								</div>
 
 							</form>
 						</div>
-					</div>
-				</div>
-                <div class="col-md-offset-1 col-md-10 col-sm-12" id="table_div" style="display: none; margin-bottom: 20px;">
-					<div class="widget-container fluid-height clearfix" style="margin-bottom: 50px;">
-						<div class="heading"> <i class="fa fa-table"></i> Consignment Report </div>
-							<div class="widget-content padded clearfix new_dept" id="report">
+						</div>
+                <div class="ew-card ew-erp-list" id="table_div" style="display: none; margin-bottom: 20px;">
+						<div class="ew-card-toolbar">
+							<h2>Report Data</h2>
+						</div>
+							<div class="ew-table-wrap widget-content padded clearfix new_dept" id="report">
 						<!-- <table class="table table-bordered table-striped" id="dataTable1">
 							<thead>
 							<th class="table-title">S.No</th>
@@ -372,6 +363,7 @@ table{
 						</table> -->
 
 						</div>
+				</div>
 					</div>
 				</div>
 			</div>

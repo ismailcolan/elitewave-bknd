@@ -68,105 +68,23 @@ div#dataTable1_length {
         <div class="container-fluid main-content new_dpt_bottom">
 
             <div class="row">
-                <div class="col-md-3 master_left">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-plus"></i>City</div>
-
-                        <div class="widget-content padded">
-                            <form class="form-horizontal" id="city_form">
-
-                                <input type="hidden" id="form_name" name="form_name" value="add_city">
-                                <input type="hidden" id="edit_id" name="edit_id" value="">
-
-                                <div id="response" class="alert alert-danger" style="display:none;">
-                                    <div class="message" style="text-align:center"></div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label class="control-label">City Code <span style="color:red;">*</span> :</label>
-                                            <input type="text" id="city_code" Placeholder="Ex:GEC001" name="city_code" class="form-control" disabled />
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">City Name <span style="color:red;">*</span> :</label>
-                                            <input type="text" name="city_name" id="city_name" class="form-control" required />
-                                            <span class="dup-check"></span>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">State <span style="color:red;">*</span> :</label>
-                                            <select name="state_name" class="form-control" id="state_name" required>
-                                                <option value="">Select State</option>
-                                                <?php
-                                                $state_query = "select * from state where status=0 order by state_name";
-                                                $state_result = mysqli_query($conn, $state_query);
-                                                while ($state_row = mysqli_fetch_array($state_result)) {
-                                                ?>
-                                                    <option value="<?php echo $state_row['state_id'] ?>"><?php echo $state_row['state_name']; ?></option>
-                                                <?php
-                                                }
-                                                ?>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label">Via City:</label>
-                                            <select name="city" class="form-control" id="city">
-                                                <option value="">Select City</option>
-                                                <?php
-                                                $city_query = "select * from city where status=0 order by city_name";
-                                                $city_result = mysqli_query($conn, $city_query);
-                                                while ($city_row = mysqli_fetch_array($city_result)) {
-                                                ?>
-                                                    <option value="<?php echo $city_row['city_id'] ?>"><?php echo $city_row['city_name']; ?></option>
-                                                <?php
-                                                }
-                                                ?>
-                                            </select>
-                                        </div>
-                                                <div class="form-group">
-    <label class="control-label">Railway Station :</label>
-    <input type="text" name="railway_station" id="railway_station" class="form-control">
-</div>
-
-<div class="form-group">
-    <label class="control-label">Airport :</label>
-    <input type="text" name="airport" id="airport" class="form-control">
-</div>
-
-<div class="form-group">
-    <label class="control-label">Un/Loading Point :</label>
-    <input type="text" name="unloading_point" id="unloading_point" class="form-control">
-</div>
-
-<div class="form-group">
-    <label class="control-label">Warehouse :</label>
-    <input type="text" name="warehouse" id="warehouse" class="form-control">
-</div>
-
-<div class="form-group">
-    <label class="control-label">Port :</label>
-    <input type="text" name="port" id="port" class="form-control">
-</div>
-                                        <div class="form-group">
-                                            <input type="checkbox" name="automation" id="automation" /><label>In Transit Automation, Not Required.</label>
-                                        </div>
-                                    </div>
-                                </div><br />
-                                <div class="row">
-                                    <div class="col-md-12 form-action">
-                                        <button class="btn btn-primary" type="button" id="save">Submit</button>
-                                        <!-- <button class="btn btn-default-outline  btn-reset" type="button">Cancel</button> -->
-                                        <a class="btn btn-default-outline  btn-reset" href="city.php" type="button">Cancel</a>
-                                    </div>
-                                </div>
-                            </form>
+                <div class="col-md-12">
+                    <div class="ew-page-v2 ew-page-v2--wide-table">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">City Master</h1>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class=" col-md-9 master_right">
-                    <div class="widget-container fluid-height clearfix">
-                        <div class="heading"> <i class="fa fa-table"></i> List of City </div>
-                        <div class="widget-content padded clearfix new_dept">
+                        <div class="ew-card">
+                            <div class="ew-card-toolbar">
+                                <h2>City List</h2>
+                                <div class="ew-toolbar-right">
+                                    <button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreateCity">
+                                        Create <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="ew-table-wrap widget-content padded clearfix new_dept">
                             <table class="table table-bordered table-striped city_tble" id="dataTable1">
                                 <thead>
                                     <th class="table-title" style="width:10%">S.No</th>
@@ -227,7 +145,7 @@ div#dataTable1_length {
 
                                 </tbody>
                             </table>
-
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -415,6 +333,23 @@ div#dataTable1_length {
                 });
 
 
+                $('#openCreateCity').on('click', function() {
+                    $('#form_name').val('add_city');
+                    $('#edit_id').val('');
+                    $('#city_name').val('');
+                    $('#city_code').val('');
+                    $('#state_name').val('');
+                    $('#city').val('');
+                    $('#railway_station').val('');
+                    $('#airport').val('');
+                    $('#unloading_point').val('');
+                    $('#warehouse').val('');
+                    $('#port').val('');
+                    $('#automation').prop('checked', false);
+                    $('#cityModalTitle').text('Create City');
+                    ewV2OpenModal('cityModal');
+                });
+
                 //	Button Edit
                 $(document).on('click', '.btn-edit', function(ev) {
                     $(".form-data-saving").show();
@@ -444,7 +379,11 @@ $("#warehouse").val(result['warehouse']);
 $("#port").val(result['port']);
                             if (result['automation'] == 1) {
                                 $("#automation").prop("checked", true);
+                            } else {
+                                $("#automation").prop("checked", false);
                             }
+                            $('#cityModalTitle').text('Edit City');
+                            ewV2OpenModal('cityModal');
                         },
                         error: function(jqxhr) {
                             console.log(jqxhr.responseText);
@@ -465,7 +404,9 @@ $("#airport").val('');
 $("#unloading_point").val('');
 $("#warehouse").val('');
 $("#port").val('');
-
+                    $('#city').val('');
+                    $('#automation').prop('checked', false);
+                    ewV2CloseModal('cityModal');
                 });
 
 
@@ -513,6 +454,90 @@ $("#port").val('');
                     <button class="btn btn-sm btn-danger delete-error-popup-close" id="">Close</button> <br /> &nbsp; <br />
                 </div>
                 <!--<span class="popup_close" id="popup_close">X</span>-->
+            </div>
+        </div>
+
+        <div class="ew-v2-modal-backdrop" id="cityModal">
+            <div class="ew-v2-modal ew-v2-modal--lg">
+                <div class="ew-v2-modal-head">
+                    <h3 id="cityModalTitle">Create City</h3>
+                    <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+                </div>
+                <div class="ew-v2-modal-body">
+                    <form class="form-horizontal" id="city_form">
+                        <input type="hidden" id="form_name" name="form_name" value="add_city">
+                        <input type="hidden" id="edit_id" name="edit_id" value="">
+                        <div id="response" class="alert alert-danger" style="display:none;">
+                            <div class="message" style="text-align:center"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">City Code <span style="color:red;">*</span> :</label>
+                            <input type="text" id="city_code" Placeholder="Ex:GEC001" name="city_code" class="form-control" disabled />
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">City Name <span style="color:red;">*</span> :</label>
+                            <input type="text" name="city_name" id="city_name" class="form-control" required />
+                            <span class="dup-check"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">State <span style="color:red;">*</span> :</label>
+                            <select name="state_name" class="form-control" id="state_name" required>
+                                <option value="">Select State</option>
+                                <?php
+                                $state_query = "select * from state where status=0 order by state_name";
+                                $state_result = mysqli_query($conn, $state_query);
+                                while ($state_row = mysqli_fetch_array($state_result)) {
+                                ?>
+                                    <option value="<?php echo $state_row['state_id'] ?>"><?php echo $state_row['state_name']; ?></option>
+                                <?php
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Via City:</label>
+                            <select name="city" class="form-control" id="city">
+                                <option value="">Select City</option>
+                                <?php
+                                $city_query = "select * from city where status=0 order by city_name";
+                                $city_result = mysqli_query($conn, $city_query);
+                                while ($city_row = mysqli_fetch_array($city_result)) {
+                                ?>
+                                    <option value="<?php echo $city_row['city_id'] ?>"><?php echo $city_row['city_name']; ?></option>
+                                <?php
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Railway Station :</label>
+                            <input type="text" name="railway_station" id="railway_station" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Airport :</label>
+                            <input type="text" name="airport" id="airport" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Un/Loading Point :</label>
+                            <input type="text" name="unloading_point" id="unloading_point" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Warehouse :</label>
+                            <input type="text" name="warehouse" id="warehouse" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Port :</label>
+                            <input type="text" name="port" id="port" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <input type="checkbox" name="automation" id="automation" /><label>In Transit Automation, Not Required.</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="ew-v2-modal-foot">
+                    <button type="button" class="btn btn-default-outline btn-reset" data-ew-v2-close>Cancel</button>
+                    <button class="btn btn-primary" type="button" id="save">Submit</button>
+                </div>
             </div>
         </div>
 

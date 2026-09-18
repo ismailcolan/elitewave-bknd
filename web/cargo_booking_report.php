@@ -38,8 +38,7 @@ if ($cities_q) {
 			border-top: none;
 		}
 		.filter-form-wrap {
-			max-width: 820px;
-			margin: 0 auto;
+			width: 100%;
 		}
 		.filter-row { margin-bottom: 14px; }
 		.filter-row .form-group {
@@ -65,10 +64,10 @@ if ($cities_q) {
 		#report_table th {
 			position: sticky;
 			top: 0;
-			background: #0A1E3D;
-			color: #fff;
+			background: var(--rail-bg, #DDE7F0);
+			color: var(--ew-text, #1A2332);
 			font-size: 11px;
-			font-weight: 600;
+			font-weight: 700;
 			white-space: nowrap;
 			z-index: 10;
 			padding: 8px 6px;
@@ -93,43 +92,21 @@ if ($cities_q) {
 		}
 		#report_table tbody tr:hover td:first-child { background: #f0f4f8; }
 		#report_table tbody tr:nth-child(even) td:first-child { background: #f9fafb; }
-		.btn-export-excel {
-			background: #1a7a3a;
-			color: #fff;
-			font-weight: 600;
-			padding: 8px 8px;
-			border: none;
-			border-radius: 4px;
-			cursor: pointer;
-			font-size: 13px;
+		.btn-export-excel.ew-btn-v2 {
 			margin-left: 8px;
 		}
-.btn1{
-font-weight: 600;
-			padding: 8px 20px !important;
-			border: none !important;
-			border-radius: 4px !important;
-			cursor: pointer !important;
-			font-size: 13px !important;
-           margin-top: 4px !important;
-
-}
-		.btn-export-excel:hover { background: #15632f; color: #fff; }
-		.btn-export-excel i { margin-right: 5px; }
-		.cargo-report-header {
-			    background: linear-gradient(185deg, var(--ew-navy) 0%, var(--ew-navy-deep) 100%);
-			color: #fff;
-			padding: 16px 24px;
-			border-radius: 8px 8px 0 0;
-			font-size: 18px;
-			font-weight: 700;
+		.ew-page-v2--mis-report .btn1 {
+			margin-top: 0 !important;
 		}
-		.cargo-report-header i { margin-right: 8px; }
-		.report-count {
-			float: right;
+		.btn-export-excel i { margin-right: 5px; }
+		.ew-page-v2 .report-count {
 			font-size: 13px;
-			font-weight: 400;
-			color: #ccc;
+			font-weight: 600;
+			color: #64748B;
+		}
+		.ew-page-v2 .filter-section {
+			border: none;
+			padding: 0 24px 24px;
 		}
 		.btn-row { padding-top: 24px; }
 	</style>
@@ -144,18 +121,22 @@ font-weight: 600;
 		</div>
 		<div class="container-fluid main-content new_dpt_bottom">
 			<div class="row">
-				<div class="col-md-offset-1 col-md-10">
-					<div class="widget-container fluid-height clearfix">
-						<div class="cargo-report-header">
-							<i class="fa fa-truck"></i> Cargo Booking Report
-							
+				<div class="col-md-12">
+					<div class="ew-page-v2 ew-page-v2--wide-table ew-page-v2--mis-report">
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<h1 class="ew-page-title">Cargo Booking Report</h1>
+							</div>
 						</div>
-						<div class="filter-section">
-							<div class="filter-form-wrap">
-            <div class="row filter-row">
-								<div class="col-md-6 col-sm-6">
-									<div class="form-group">
-										<label class="filter-label">From Date <span class="required-star">*</span> : </label>
+						<div class="ew-card">
+						<div class="ew-card-toolbar">
+							<h2>Report Filters</h2>
+						</div>
+						<div class="ew-form-body">
+							<div class="ew-mis-filter-shell">
+							<div class="filter-form-wrap ew-form-grid ew-mis-filter-grid">
+								<div class="ew-field">
+										<label class="filter-label">From Date <span class="required-star">*</span></label>
 										<?php echo ew_date_input(array(
 											'id' => 'from_date',
 											'name' => 'from_date',
@@ -163,11 +144,9 @@ font-weight: 600;
 											'required' => true,
 											'readonly' => true,
 										)); ?>
-									</div>
 								</div>
-								<div class="col-md-6 col-sm-6">
-									<div class="form-group">
-										<label class="filter-label">To Date <span class="required-star">*</span> :</label>
+								<div class="ew-field">
+										<label class="filter-label">To Date <span class="required-star">*</span></label>
 										<?php echo ew_date_input(array(
 											'id' => 'to_date',
 											'name' => 'to_date',
@@ -175,14 +154,9 @@ font-weight: 600;
 											'required' => true,
 											'readonly' => true,
 										)); ?>
-									</div>
 								</div>
-							</div>
-
-							<div class="row filter-row">
-								<div class="col-md-6 col-sm-6">
-									<div class="form-group">
-										<label class="filter-label" for="customers">By Customer :</label>
+								<div class="ew-field">
+										<label class="filter-label" for="customers">By Customer</label>
 										<select id="customers" class="filter-select" multiple="multiple" style="width:100%;" data-placeholder="Select Customers">
 											<?php
 											if ($customers_q) {
@@ -192,11 +166,9 @@ font-weight: 600;
 											}
 											?>
 										</select>
-									</div>
 								</div>
-								<div class="col-md-6 col-sm-6">
-									<div class="form-group">
-										<label class="filter-label" for="modes">By Mode :</label>
+								<div class="ew-field">
+										<label class="filter-label" for="modes">By Mode</label>
 										<select id="modes" class="filter-select" multiple="multiple" style="width:100%;" data-placeholder="Select Modes">
 											<?php
 											if ($modes_q) {
@@ -206,35 +178,21 @@ font-weight: 600;
 											}
 											?>
 										</select>
-									</div>
 								</div>
-							</div>
-
-							
-
-							<div class="row filter-row">
-								<div class="col-md-6 col-sm-6">
-									<div class="form-group">
-										<label class="filter-label" for="origins">By Origin :</label>
+								<div class="ew-field">
+										<label class="filter-label" for="origins">By Origin</label>
 										<select id="origins" class="filter-select" multiple="multiple" style="width:100%;" data-placeholder="Select Origins">
 											<?php echo $city_options; ?>
 										</select>
-									</div>
 								</div>
-								<div class="col-md-6 col-sm-6">
-									<div class="form-group">
-										<label class="filter-label" for="destinations">By Destination :</label>
+								<div class="ew-field">
+										<label class="filter-label" for="destinations">By Destination</label>
 										<select id="destinations" class="filter-select" multiple="multiple" style="width:100%;" data-placeholder="Select Destinations">
 											<?php echo $city_options; ?>
 										</select>
-									</div>
 								</div>
-							</div>
-
-							<div class="row filter-row">
-								<div class="col-md-6 col-sm-6">
-									<div class="form-group">
-										<label class="filter-label" for="payment_modes">By Payment Mode :</label>
+								<div class="ew-field">
+										<label class="filter-label" for="payment_modes">By Payment Mode</label>
 										<select id="payment_modes" class="filter-select" multiple="multiple" style="width:100%;" data-placeholder="Select Payment Modes">
 											<?php
 											if ($payment_q) {
@@ -244,33 +202,33 @@ font-weight: 600;
 											}
 											?>
 										</select>
-									</div>
 								</div>
-								<div class="col-md-6 col-sm-6 btn-row">
-									<button class="btn btn-primary btn1" type="button" id="search" onclick="if(window.loadCargoReport){window.loadCargoReport();}">
-										<i class="fa fa-search"></i> Search
-									</button>
-									<button class="btn-export-excel" type="button" id="exportExcel">
-										<i class="fa fa-file-excel-o"></i> Export Excel
-									</button>
-								</div>
+							</div>
+							<div class="ew-mis-filter-footer">
+								<button class="ew-btn-v2 ew-btn-v2-primary btn1" type="button" id="search" onclick="if(window.loadCargoReport){window.loadCargoReport();}">
+									<i class="fa fa-search"></i> Search
+								</button>
+								<button class="ew-btn-v2 ew-btn-v2-outline btn-export-excel" type="button" id="exportExcel">
+									<i class="fa fa-file-excel-o"></i> Export Excel
+								</button>
 							</div>
 							</div>
 						</div>
-					</div>
-				</div>
+						</div>
 
-				<div class="col-md-offset-1 col-md-10 col-sm-12" id="table_div" style="margin-bottom:20px;">
-					<div class="widget-container fluid-height clearfix" style="margin-bottom:50px;">
-						<div class="heading"><i class="fa fa-table"></i>
-                                            <span class="report-count" style="color:#fff;font-weight:bold;" id="report_count"></span>
-                                            Cargo Booking Report Data</div>
-                                            
-						<div class="widget-content padded clearfix new_dept">
-							<div class="table-scroll-wrapper" id="report">
-								<p style="text-align:center;padding:30px;font-size:16px;">Click Above To Search Records.</p>
+				<div class="ew-card ew-erp-list" id="table_div" style="margin-bottom:20px;">
+						<div class="ew-card-toolbar">
+							<h2>Cargo Booking Report Data</h2>
+							<div class="ew-toolbar-right">
+								<span class="report-count" id="report_count"></span>
 							</div>
 						</div>
+						<div class="ew-table-wrap widget-content padded clearfix new_dept">
+							<div class="table-scroll-wrapper" id="report">
+								<p class="ew-mis-empty-hint">Click Search above to load report data.</p>
+							</div>
+						</div>
+				</div>
 					</div>
 				</div>
 			</div>

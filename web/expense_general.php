@@ -8,6 +8,10 @@ expense_require_admin();
 
 $c_date = date('d-m-Y');
 $preselect_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+if ($preselect_id <= 0 && empty($_GET['create'])) {
+	header('Location:expense_general_list.php');
+	exit;
+}
 $preview_expense_no = expense_general_preview_next_no($conn);
 $payment_modes = ew_company_bank_payment_modes();
 $vendor_rows = expense_gcn_vendor_options($conn);
@@ -22,87 +26,103 @@ $bank_rows = ew_company_bank_options($conn);
 	<?php include('include/css_js.php'); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<style>
-		#general_expense_form .row.egen-form-row {
-			margin-left: 0;
-			margin-right: 0;
+		.ew-page-v2 .ew-form-grid--general {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
-		#general_expense_form .row.egen-form-row > [class*="col-"] {
-			padding-left: 15px;
-			padding-right: 15px;
+
+		.ew-page-v2 .ew-form-grid--general .span-3 {
+			grid-column: span 3;
 		}
-		#general_expense_form .form-group > .control-label {
-			display: block;
-			float: none;
-			width: 100%;
-			text-align: left;
-			padding-top: 0;
+
+		@media (max-width: 991px) {
+			.ew-page-v2 .ew-form-grid--general {
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+			}
 		}
-		#general_expense_form .egen-section-title {
-			margin: 18px 0 12px;
-			padding-bottom: 6px;
-			border-bottom: 1px solid #e4e4e4;
-			font-size: 15px;
-			font-weight: 600;
-			color: #333;
+
+		@media (max-width: 640px) {
+			.ew-page-v2 .ew-form-grid--general {
+				grid-template-columns: 1fr;
+			}
 		}
-		#general_expense_form .egen-section-title:first-child {
-			margin-top: 0;
+
+		.ew-form-grid--general .type-add-wrap .btn-add-inline,
+		.ew-form-grid--general .bank-link-wrap .btn-add-inline {
+			height: 40px;
+			padding: 0 12px;
+			white-space: nowrap;
+			flex: 0 0 auto;
 		}
-		#general_expense_form .egen-description-row {
-			margin-top: 4px;
-			clear: both;
-		}
-		#general_expense_form .egen-description-row .form-group {
-			margin-bottom: 0;
-		}
-		#general_expense_form .egen-description-row .control-label {
-			display: block;
-			float: none;
-			width: 100%;
-			text-align: left;
-			padding-top: 0;
-			margin-bottom: 6px;
-		}
-		#general_expense_form .egen-description-row textarea.form-control {
-			width: 100%;
-			min-height: 88px;
-			resize: vertical;
-		}
-		#expense_no_display, #net_payable_display, .bank-readonly {
-			background: #f8fafc;
+
+		#expense_no_display,
+		#net_payable_display,
+		.bank-readonly {
 			font-weight: 600;
 		}
+
 		#net_payable_display {
 			font-size: 16px;
 			text-align: right;
 		}
-		.tax-hint {
-			display: block;
-			margin-top: 4px;
-			font-size: 11px;
-			color: #64748b;
+
+		.ew-form-grid--bank-inline {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 20px 16px;
 		}
-		.egen-form-footer {
-			margin-top: 20px;
-			padding-top: 16px;
-			border-top: 1px solid #e4e4e4;
-			display: flex;
+
+		@media (max-width: 991px) {
+			.ew-form-grid--bank-inline {
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+			}
+		}
+
+		@media (max-width: 640px) {
+			.ew-form-grid--bank-inline {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		.ew-form-footer.egen-form-footer {
 			justify-content: space-between;
 			align-items: flex-end;
-			gap: 16px;
-			flex-wrap: wrap;
 		}
+
 		.egen-net-payable {
 			min-width: 220px;
 			max-width: 280px;
 		}
-		.field-disabled { opacity: .65; }
+
+		.egen-net-payable label {
+			display: block;
+			margin: 0 0 6px;
+			font-size: 13px;
+			font-weight: 600;
+		}
+
+		.egen-form-footer-actions {
+			display: flex;
+			gap: 12px;
+			flex-wrap: wrap;
+		}
+
+		.field-disabled {
+			opacity: .65;
+		}
+
 		@media (max-width: 768px) {
-			.egen-form-footer {
+			.ew-form-footer.egen-form-footer {
 				flex-direction: column;
 				align-items: stretch;
 			}
-			.egen-net-payable { max-width: none; }
+
+			.egen-net-payable {
+				max-width: none;
+			}
+
+			.egen-form-footer-actions {
+				justify-content: flex-end;
+			}
 		}
 	</style>
 </head>
@@ -115,153 +135,126 @@ $bank_rows = ew_company_bank_options($conn);
 		</div>
 		<div class="container-fluid main-content new_dpt_bottom">
 			<div class="row">
-				<div class="col-md-offset-1 col-md-10">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"><i class="fa fa-money"></i> General Expense
-							<span class="align-right">
-								<a href="expense_general_list.php"><i class="fa fa-list"></i> View List</a>
-								&nbsp;&nbsp;
-								<a href="company_bank.php"><i class="fa fa-university"></i> Company Banks</a>
-							</span>
+				<div class="col-md-12">
+					<div class="ew-page-v2">
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<a href="expense_general_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+								<h1 class="ew-page-title"><?php echo $preselect_id > 0 ? 'Edit General Expense' : 'Add General Expense'; ?></h1>
+							</div>
+							<div class="ew-toolbar-right">
+								<a href="expense_general_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+								<a href="company_bank.php" class="ew-btn-v2 ew-btn-v2-outline">Company Banks</a>
+							</div>
 						</div>
-						<div class="widget-content padded clearfix">
-							<form class="form-horizontal" id="general_expense_form">
-								<div class="row egen-form-row">
-									<div class="col-md-12">
-										<div class="egen-section-title">Expense Details</div>
+						<div class="ew-card">
+							<div class="ew-form-body">
+							<form id="general_expense_form">
+								<div class="ew-form-grid ew-form-grid--general">
+									<div class="ew-section-label">Expense Details</div>
+
+									<div class="ew-field">
+										<label class="control-label">Expense Code :</label>
+										<input type="text" id="expense_no_display" class="form-control" readonly value="<?php echo $preselect_id > 0 ? '' : htmlspecialchars($preview_expense_no); ?>">
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Expense Code :</label>
-											<input type="text" id="expense_no_display" class="form-control" readonly value="<?php echo $preselect_id > 0 ? '' : htmlspecialchars($preview_expense_no); ?>">
+									<div class="ew-field">
+										<label class="control-label">Expense Date <span style="color:red;">*</span> :</label>
+										<input type="text" id="expense_date" name="expense_date" class="form-control ew-date-field" value="<?php echo htmlspecialchars($c_date); ?>" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
+									</div>
+									<div class="ew-field">
+										<label class="control-label">Vendor <span style="color:red;">*</span> :</label>
+										<div class="egen-select-wrap">
+											<select id="vendor_id" name="vendor_id" class="form-control egen-select"></select>
 										</div>
+										<span class="ew-field-hint" id="vendor_tax_hint"></span>
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Expense Date <span style="color:red;">*</span> :</label>
-											<input type="text" id="expense_date" name="expense_date" class="form-control ew-date-field" value="<?php echo htmlspecialchars($c_date); ?>" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
-										</div>
-									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Vendor <span style="color:red;">*</span> :</label>
+
+									<div class="ew-field">
+										<label class="control-label">Expense Type <span style="color:red;">*</span> :</label>
+										<div class="type-add-wrap">
 											<div class="egen-select-wrap">
-												<select id="vendor_id" name="vendor_id" class="form-control egen-select"></select>
+												<select id="category_id" name="category_id" class="form-control egen-select"></select>
 											</div>
-											<span class="tax-hint" id="vendor_tax_hint"></span>
+											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-add-inline" id="btn_add_expense_type" title="Add expense type">+ Add</button>
 										</div>
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Expense Type <span style="color:red;">*</span> :</label>
-											<div class="type-add-wrap">
-												<div class="egen-select-wrap">
-													<select id="category_id" name="category_id" class="form-control egen-select"></select>
-												</div>
-												<button type="button" class="btn btn-primary btn-add-inline" id="btn_add_expense_type" title="Add expense type">+ Add</button>
-											</div>
-										</div>
+									<div class="ew-field">
+										<label class="control-label">Expense Amount <span style="color:red;">*</span> :</label>
+										<input type="text" id="expense_amount" name="expense_amount" class="form-control text-right" placeholder="0.00" autocomplete="off">
 									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Expense Amount <span style="color:red;">*</span> :</label>
-											<input type="text" id="expense_amount" name="expense_amount" class="form-control text-right" placeholder="0.00" autocomplete="off">
-										</div>
+									<div class="ew-field" id="gst_wrap">
+										<label class="control-label">GST Value :</label>
+										<input type="text" id="gst_amount" name="gst_amount" class="form-control text-right" placeholder="0.00" autocomplete="off">
+										<span class="ew-field-hint" id="gst_hint"></span>
 									</div>
-									<div class="col-md-6">
-										<div class="form-group" id="gst_wrap">
-											<label class="control-label">GST Value :</label>
-											<input type="text" id="gst_amount" name="gst_amount" class="form-control text-right" placeholder="0.00" autocomplete="off">
-											<span class="tax-hint" id="gst_hint"></span>
-										</div>
-									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">TDS Value :</label>
-											<input type="text" id="tds_amount" name="tds_amount" class="form-control text-right" placeholder="0.00" autocomplete="off">
-											<span class="tax-hint" id="tds_hint"></span>
-										</div>
-									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Other Deduction :</label>
-											<input type="text" id="other_deduction" name="other_deduction" class="form-control text-right" placeholder="0.00" autocomplete="off">
-										</div>
-									</div>
-								</div>
 
-								<div class="row egen-form-row egen-description-row">
-									<div class="col-md-12">
-										<div class="form-group">
-											<label class="control-label">Description :</label>
-											<textarea id="description" name="description" class="form-control" maxlength="500" rows="3" placeholder="Expense notes"></textarea>
+									<div class="ew-field">
+										<label class="control-label">TDS Value :</label>
+										<input type="text" id="tds_amount" name="tds_amount" class="form-control text-right" placeholder="0.00" autocomplete="off">
+										<span class="ew-field-hint" id="tds_hint"></span>
+									</div>
+									<div class="ew-field">
+										<label class="control-label">Other Deduction :</label>
+										<input type="text" id="other_deduction" name="other_deduction" class="form-control text-right" placeholder="0.00" autocomplete="off">
+									</div>
+
+									<div class="ew-field span-3">
+										<label class="control-label">Description :</label>
+										<textarea id="description" name="description" class="form-control" maxlength="500" rows="3" placeholder="Expense notes"></textarea>
+									</div>
+
+									<div class="ew-section-label">Payment Details</div>
+
+									<div class="ew-field">
+										<label class="control-label">Payment Mode <span style="color:red;">*</span> :</label>
+										<div class="egen-select-wrap">
+											<select id="payment_mode" name="payment_mode" class="form-control egen-select">
+												<option value=""></option>
+												<?php foreach ($payment_modes as $code => $label) { ?>
+													<option value="<?php echo htmlspecialchars($code); ?>"><?php echo htmlspecialchars($label); ?></option>
+												<?php } ?>
+											</select>
 										</div>
 									</div>
-								</div>
-
-								<div class="row egen-form-row">
-									<div class="col-md-12">
-										<div class="egen-section-title">Payment Details</div>
-									</div>
-									<div class="col-md-6">
-										<div class="form-group">
-											<label class="control-label">Payment Mode <span style="color:red;">*</span> :</label>
+									<div class="ew-field" id="payment_bank_account_wrap" style="display:none;">
+										<label class="control-label">Company Bank Account :</label>
+										<div class="bank-link-wrap">
 											<div class="egen-select-wrap">
-												<select id="payment_mode" name="payment_mode" class="form-control egen-select">
-													<option value=""></option>
-													<?php foreach ($payment_modes as $code => $label) { ?>
-														<option value="<?php echo htmlspecialchars($code); ?>"><?php echo htmlspecialchars($label); ?></option>
-													<?php } ?>
-												</select>
+												<select id="company_bank_id" name="company_bank_id" class="form-control egen-select"></select>
 											</div>
+											<a href="company_bank.php" class="ew-btn-v2 ew-btn-v2-outline btn-add-inline" title="Manage company bank accounts">Manage</a>
 										</div>
 									</div>
-									<div class="col-md-6" id="payment_bank_account_wrap" style="display:none;">
-										<div class="form-group">
-											<label class="control-label">Company Bank Account :</label>
-											<div class="bank-link-wrap">
-												<div class="egen-select-wrap">
-													<select id="company_bank_id" name="company_bank_id" class="form-control egen-select"></select>
-												</div>
-												<a href="company_bank.php" class="btn btn-default btn-add-inline" title="Manage company bank accounts">Manage</a>
-											</div>
-										</div>
-									</div>
-									<div class="col-md-12" id="bank_details_row" style="display:none;">
-										<div class="row egen-form-row">
-											<div class="col-md-4">
-												<div class="form-group">
-													<label class="control-label">Bank Name :</label>
-													<input type="text" id="payment_bank_name" name="payment_bank_name" class="form-control bank-readonly" readonly autocomplete="off">
-												</div>
-											</div>
-											<div class="col-md-4">
-												<div class="form-group">
-													<label class="control-label">IFSC Code :</label>
-													<input type="text" id="payment_ifsc" name="payment_ifsc" class="form-control bank-readonly" readonly autocomplete="off">
-												</div>
-											</div>
-											<div class="col-md-4">
-												<div class="form-group">
-													<label class="control-label">Branch :</label>
-													<input type="text" id="payment_bank_branch" name="payment_bank_branch" class="form-control bank-readonly" readonly autocomplete="off">
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
 
-								<div class="egen-form-footer">
-									<div class="form-group egen-net-payable">
-										<label class="control-label">Net Payable :</label>
-										<input type="text" id="net_payable_display" class="form-control" readonly value="0.00">
-									</div>
-									<div class="form-action">
-										<button type="button" class="btn btn-default" id="btn_reset">Reset</button>
-										<button type="submit" class="btn btn-primary" id="btn_save"><i class="fa fa-save"></i> Save Expense</button>
+									<div class="ew-field span-3" id="bank_details_row" style="display:none;">
+										<div class="ew-form-grid--bank-inline">
+											<div class="ew-field">
+												<label class="control-label">Bank Name :</label>
+												<input type="text" id="payment_bank_name" name="payment_bank_name" class="form-control bank-readonly" readonly autocomplete="off">
+											</div>
+											<div class="ew-field">
+												<label class="control-label">IFSC Code :</label>
+												<input type="text" id="payment_ifsc" name="payment_ifsc" class="form-control bank-readonly" readonly autocomplete="off">
+											</div>
+											<div class="ew-field">
+												<label class="control-label">Branch :</label>
+												<input type="text" id="payment_bank_branch" name="payment_bank_branch" class="form-control bank-readonly" readonly autocomplete="off">
+											</div>
+										</div>
 									</div>
 								</div>
 							</form>
+							</div>
+							<div class="ew-form-footer egen-form-footer">
+								<div class="egen-net-payable">
+									<label class="control-label">Net Payable :</label>
+									<input type="text" id="net_payable_display" class="form-control" readonly value="0.00">
+								</div>
+								<div class="egen-form-footer-actions">
+									<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_reset">Reset</button>
+									<button type="submit" class="ew-btn-v2 ew-btn-v2-primary" id="btn_save" form="general_expense_form"><i class="fa fa-save"></i> Save Expense</button>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -302,6 +295,7 @@ $bank_rows = ew_company_bank_options($conn);
 		var vendorTax = { gst_applicable: 0, tds_applicable: 0, tds_rate: 0 };
 		var gstManual = false;
 		var tdsManual = false;
+		var skipTypeDefault = false;
 
 		function escHtml(v) {
 			if (v === null || v === undefined) return '';
@@ -313,6 +307,22 @@ $bank_rows = ew_company_bank_options($conn);
 		}
 		function formatMoney(v) {
 			return parseMoney(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+		}
+		function getCategoryDefaultAmount(categoryId) {
+			var amt = 0;
+			$.each(categoryOptions || [], function(i, row) {
+				if (String(row.category_id) === String(categoryId)) {
+					amt = parseMoney(row.default_amount);
+					return false;
+				}
+			});
+			return amt;
+		}
+		function applyCategoryDefaultAmount() {
+			var amt = getCategoryDefaultAmount(getSelectVal($('#category_id')));
+			if (amt > 0) {
+				$('#expense_amount').val(formatMoney(amt));
+			}
 		}
 		function getSelectVal($el) {
 			if (!$el || !$el.length) return '';
@@ -415,9 +425,9 @@ $bank_rows = ew_company_bank_options($conn);
 			}
 
 			if (required) {
-				$('#company_bank_id').closest('.form-group').find('label').html('Company Bank Account <span style="color:red;">*</span> :');
+				$('#payment_bank_account_wrap').find('label.control-label').first().html('Company Bank Account <span style="color:red;">*</span> :');
 			} else {
-				$('#company_bank_id').closest('.form-group').find('label').html('Company Bank Account :');
+				$('#payment_bank_account_wrap').find('label.control-label').first().html('Company Bank Account :');
 			}
 		}
 		function updateVendorTaxHint() {
@@ -496,8 +506,10 @@ $bank_rows = ew_company_bank_options($conn);
 			generalExpenseId = parseInt(data.general_expense_id, 10) || 0;
 			$('#expense_no_display').val(data.expense_no || '');
 			$('#expense_date').val(data.expense_date || '');
+			skipTypeDefault = true;
 			buildVendorSelect(data.vendor_id || '');
 			buildCategorySelect(data.category_id || '');
+			skipTypeDefault = false;
 			$('#expense_amount').val(data.expense_amount || '');
 			$('#gst_amount').val(data.gst_amount || '');
 			$('#tds_amount').val(data.tds_amount || '');
@@ -555,6 +567,9 @@ $bank_rows = ew_company_bank_options($conn);
 			});
 			$('#category_id').on('change', function() {
 				syncSelectTitle($(this));
+				if (!skipTypeDefault) {
+					applyCategoryDefaultAmount();
+				}
 				if (!gstManual) recalcAmounts(true);
 			});
 			$('#expense_amount, #other_deduction').on('input blur', function() {
@@ -597,6 +612,8 @@ $bank_rows = ew_company_bank_options($conn);
 					}
 					categoryOptions = r.categories || categoryOptions;
 					buildCategorySelect(r.category_id || '');
+					applyCategoryDefaultAmount();
+					if (!gstManual) recalcAmounts(true);
 					$('#modal_add_expense_type').modal('hide');
 					recalcAmounts(true);
 				}, 'json').fail(function() {

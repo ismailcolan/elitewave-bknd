@@ -314,10 +314,49 @@ if ($key != '') {
 				font-weight: 400;
 			}
 		}
-		.main-content-search{
-	min-height: auto;
-	margin-left: var(--sidebar-width);
-}
+		.main-content-search {
+			min-height: auto;
+			margin-left: var(--sidebar-width);
+		}
+
+		.qrcode-page .ew-form-body {
+			padding-top: 16px;
+		}
+
+		.qrcode-page .qrcode-search-row {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: flex-end;
+			gap: 12px 16px;
+			max-width: 560px;
+		}
+
+		.qrcode-page .qrcode-search-row .ew-field {
+			flex: 1 1 280px;
+			margin: 0;
+		}
+
+		.qrcode-page .qrcode-results-card {
+			margin-top: 16px;
+		}
+
+		.qrcode-page .btnprint {
+			display: none;
+			justify-content: flex-end;
+			padding: 16px 24px 0;
+		}
+
+		.qrcode-page .btnprint.is-visible {
+			display: flex;
+		}
+
+		.qrcode-page .qrcode-results-body {
+			padding: 16px 24px 24px;
+		}
+
+		.qrcode-page .printme {
+			min-height: 120px;
+		}
 	</style>
 
 	<style type="text/css" media="print">
@@ -488,75 +527,52 @@ if ($key != '') {
 
 		</div>
 		<div class="container-fluid main-content-search new_dpt_bottom">
-
 			<div class="row no-printme">
-				<div class="col-md-offset-1 col-md-10">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"> <i class="fa fa-plus"></i>Qrcode Master</div>
+				<div class="col-md-12">
+					<div class="ew-page-v2 qrcode-page">
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<h1 class="ew-page-title">Print QR Code</h1>
+							</div>
+						</div>
+						<div class="ew-card">
+							<h2 class="ew-card-section-title">Search GRN</h2>
+							<div class="ew-form-body">
+								<form id="barcode_form">
+									<input type="hidden" id="form_name" name="form_name" value="barcode_retrive">
+									<input type="hidden" id="edit_id" name="edit_id" value="<?php echo htmlspecialchars($_REQUEST['key'] ?? ''); ?>">
 
-						<div class="widget-content padded">
-							<form class="form-horizontal" id="barcode_form">
+									<div id="response" class="alert alert-danger" style="display:none;">
+										<div class="message" style="text-align:center"></div>
+									</div>
 
-								<input type="hidden" id="form_name" name="form_name" value="barcode_retrive">
-								<input type="hidden" id="edit_id" name="edit_id" value="<?php echo $_REQUEST['key']; ?>">
-
-								<div id="response" class="alert alert-danger" style="display:none;">
-									<div class="message" style="text-align:center"></div>
-								</div>
-
-								<br />
-
-								<div class="row">
-									<div class="col-md-offset-4 col-md-3">
-										<!-- <div class="form-group" >
-						<label class="control-label">Month:</label>
-						<?php echo ew_month_input(array('id' => 'month', 'name' => 'month', 'required' => true)); ?>
-						</div> -->
-										<div class="form-group">
-											<label class="control-label">GRN No:</label>
-											<div class="input-group ">
-                                            <input class="form-control" type="text" id="search_grn_no" name="search_grn_no" value="" required placeholder="Enter GRN NO" autocomplete="off" ><span class="input-group-addon"><i class="fa fa-search"></i></span>
-
+									<div class="qrcode-search-row">
+										<div class="ew-field">
+											<label class="control-label">GRN No <span style="color:red;">*</span> :</label>
+											<div class="input-group">
+												<input class="form-control" type="text" id="search_grn_no" name="search_grn_no" value="" required placeholder="Enter GRN NO" autocomplete="off">
+												<span class="input-group-addon"><i class="fa fa-search"></i></span>
 											</div>
 										</div>
+										<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="search" disabled>Search</button>
 									</div>
-									<div class=" col-md-4">
-										<button class="btn btn-primary" type="button" id="search" style="margin-top:  20px;">Search</button>
-									</div>
+								</form>
+							</div>
+						</div>
 
+						<div class="ew-card qrcode-results-card">
+							<h2 class="ew-card-section-title">QR Labels</h2>
+							<div class="btnprint">
+								<button type="button" onclick="window.print()" class="ew-btn-v2 ew-btn-v2-primary no-printme">Print</button>
+							</div>
+							<div class="qrcode-results-body">
+								<div class="printme">
+									<div id="image_div"></div>
 								</div>
-								<br />
-
-							</form>
-
+							</div>
 						</div>
 					</div>
 				</div>
-
-			</div>
-		</div>
-
-		<!--Qrcode Print Section -->
-	</div>
-	<div class="container-fluid main-content new_dpt_bottom">
-		<div class="col-md-offset-1 col-md-10 ">
-			<div class="widget-container fluid-height clearfix">
-				<div class="row printme">
-					<div class="btnprint" style="display:none;">
-						<div>
-							<input type="submit" value="Print" onclick="window.print()" class="btn btn-primary no-printme">
-						</div>
-					</div>
-
-
-					<div id="image_div">
-
-
-					</div>
-
-
-				</div>
-
 			</div>
 		</div>
 	</div>
@@ -595,7 +611,7 @@ if ($key != '') {
 
 					success: function(result) {
 						console.log(result);
-						$('.btnprint').show();
+						$('.btnprint').addClass('is-visible');
 						$(".form-data-saving").hide();
 						$('#image_div').html(result);
                         
@@ -671,3 +687,5 @@ if ($key != '') {
 </body>
 
 </html>
+</html>
+

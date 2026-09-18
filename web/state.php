@@ -33,42 +33,24 @@ require_once("include/function.php");
 <div class="container-fluid main-content new_dpt_bottom">
   
 		<div class="row">
-		  <div class="col-md-3 master_left">
-			<div class="widget-container fluid-height clearfix">
-			  <div class="heading"> <i class="fa fa-plus"></i>State</div>
-			  
-			  <div class="widget-content padded">
-				<form class="form-horizontal" id="state_form">
-				
-					<input type="hidden" id="form_name" name="form_name" value="add_state">
-					<input type="hidden" id="edit_id" name="edit_id" value="">
-					
-					<div id="response" class="alert alert-danger" style="display:none;">
-						<div class="message" style="text-align:center"></div>
-					</div>
-					
-				  <div class="row">
-						<div class="col-md-12">
-							<div class="form-group">
-								<label class="control-label">State Name <span style="color:red;">*</span> :</label>
-								<input type="text" id="state_name" name="state_name" class="form-control" required/>
-							</div>
-						</div>
-				 </div><br/>
-				   <div class="row">
-					<div class="col-md-12 form-action">
-						<button class="btn btn-primary" type="button" id="save">Submit</button>
-						<a class="btn btn-default-outline  btn-reset" href="state.php" type="button">Cancel</a>
-					</div>
-				  </div>
-				</form>
+		  <div class="col-md-12">
+			<div class="ew-page-v2">
+			  <div class="ew-page-head">
+				<div class="ew-page-head-left">
+				  <h1 class="ew-page-title">State Master</h1>
+				</div>
 			  </div>
-			</div>
-		  </div>
-		  <div class=" col-md-9 master_right">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading"> <i class="fa fa-table" ></i> List of State </div>
-					<div class="widget-content padded clearfix new_dept">
+			  <div class="ew-card ew-erp-list">
+				<div class="ew-card-toolbar">
+				  <h2>State List</h2>
+				  <div class="ew-toolbar-right">
+					<div class="ew-list-toolbar__tools"></div>
+					<button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreateState">
+					  Create <i class="fa fa-plus"></i>
+					</button>
+				  </div>
+				</div>
+				<div class="ew-table-wrap widget-content padded clearfix new_dept">
 						<table class="table table-bordered table-striped" id="dataTable1">
 							<thead>
 								<th class="table-title" style="width:10%">S.No</th>
@@ -118,10 +100,10 @@ require_once("include/function.php");
 	
 							</tbody>
 						</table>
-				
-					</div>
-					</div>
 				</div>
+			  </div>
+			</div>
+		  </div>
 		</div>
 	<?php require_once("include/footer.php"); ?>
 	</div>	
@@ -296,6 +278,14 @@ require_once("include/function.php");
 			});
 			
 			
+			$('#openCreateState').on('click', function(){
+				$('#form_name').val('add_state');
+				$('#edit_id').val('');
+				$('#state_name').val('');
+				$('#stateModalTitle').text('Create State');
+				ewV2OpenModal('stateModal');
+			});
+
 			//	Button Edit
 			$(document).on('click', '.btn-edit', function(ev){
 				$(".form-data-saving").show();
@@ -312,7 +302,8 @@ require_once("include/function.php");
 						$("#form_name").val("edit_state");
 						$("#edit_id").val(result['state_id']);
 						$("#state_name").val(result['state_name']);
-						
+						$('#stateModalTitle').text('Edit State');
+						ewV2OpenModal('stateModal');
 					},
 					error: function(jqxhr) {
 						ewToast(jqxhr.responseText, 'error');
@@ -326,7 +317,7 @@ require_once("include/function.php");
 				$('#form_name').val('add_state');
 				$('#edit_id').val('');
 				$('#state_name').val('');
-				
+				ewV2CloseModal('stateModal');
 			});
 
 				
@@ -375,6 +366,32 @@ require_once("include/function.php");
 			    </div>
 			    <!--<span class="popup_close" id="popup_close">X</span>-->
 			</div>
+		</div>
+
+		<div class="ew-v2-modal-backdrop" id="stateModal">
+		  <div class="ew-v2-modal">
+			<div class="ew-v2-modal-head">
+			  <h3 id="stateModalTitle">Create State</h3>
+			  <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+			</div>
+			<div class="ew-v2-modal-body">
+			  <form class="form-horizontal" id="state_form">
+				<input type="hidden" id="form_name" name="form_name" value="add_state">
+				<input type="hidden" id="edit_id" name="edit_id" value="">
+				<div id="response" class="alert alert-danger" style="display:none;">
+				  <div class="message" style="text-align:center"></div>
+				</div>
+				<div class="form-group">
+				  <label class="control-label">State Name <span style="color:red;">*</span> :</label>
+				  <input type="text" id="state_name" name="state_name" class="form-control" required/>
+				</div>
+			  </form>
+			</div>
+			<div class="ew-v2-modal-foot">
+			  <button type="button" class="btn btn-default-outline btn-reset" data-ew-v2-close>Cancel</button>
+			  <button class="btn btn-primary" type="button" id="save">Submit</button>
+			</div>
+		  </div>
 		</div>
 		
   </body>

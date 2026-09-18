@@ -110,7 +110,7 @@ function transaction_status_badge($booking, $status, $opts = array())
 	return '<span class="txn-status-badge ' . $class . '" title="' . htmlspecialchars($full_label, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($short_label) . '</span>';
 }
 
-function transaction_list_client_cell($conn, $client_id)
+function transaction_list_client_cell($conn, $client_id, $branch_id = 0)
 {
 	$name = get_client_name($conn, $client_id);
 	$html = '<span class="txn-party-name">' . htmlspecialchars($name) . '</span>';
@@ -214,6 +214,110 @@ function get_city_name($conn, $id)
 	return $row['city_name'];
 }
 
+/**
+ * Strip pincode / trailing city / trailing state from a street address so Invoice
+ * and GCN do not print them twice (they already print city + pincode separately).
+ *
+ * CHENNAI - 600102 → CHENNAI
+ * PLOT NO A-81, SECTOR - 4, NOIDA, GAUTHAMBUDDHA NAGAR - 201301
+ *   → PLOT NO A-81, SECTOR - 4, NOIDA, GAUTHAMBUDDHA NAGAR
+ */
+function ew_clean_party_address($address, $pincode = '', $city_name = '', $state_name = '')
+{
+	$addr = trim((string) $address);
+	if ($addr === '' || strtoupper($addr) === 'NULL') {
+		return '';
+	}
+
+	$pin = preg_replace('/\D+/', '', (string) $pincode);
+	if (strlen($pin) === 6) {
+		$addr = preg_replace('/\bPIN(CODE)?\s*[:.\-]?\s*' . preg_quote($pin, '/') . '\b/iu', '', $addr);
+		$addr = preg_replace('/\s*[-–—]\s*' . preg_quote($pin, '/') . '\b/u', '', $addr);
+		$addr = preg_replace('/[,;]\s*' . preg_quote($pin, '/') . '\b/u', ',', $addr);
+		$addr = preg_replace('/\b' . preg_quote($pin, '/') . '\b/u', '', $addr);
+	}
+
+	$city = trim((string) $city_name);
+	$state = trim((string) $state_name);
+
+	if ($state !== '') {
+		$state_re = preg_quote($state, '/');
+		$addr = preg_replace('/[,\s\-]+' . $state_re . '\s*$/iu', '', $addr);
+		$addr = preg_replace('/\(\s*' . $state_re . '\s*\)/iu', '', $addr);
+	}
+
+	if ($city !== '') {
+		$city_re = preg_quote($city, '/');
+		$stripped = preg_replace('/[,\s\-]+' . $city_re . '\s*$/iu', '', $addr);
+		if (trim($stripped) !== '') {
+			$addr = $stripped;
+		}
+	}
+
+	$addr = preg_replace('/\s+/', ' ', $addr);
+	$addr = preg_replace('/\s*,\s*,+/', ',', $addr);
+	$addr = preg_replace('/[,\s\-]+$/u', '', $addr);
+	$addr = trim($addr, " \t\n\r\0\x0B,");
+
+	return $addr;
+}
+
+function ew_party_street_address($det, $conn)
+{
+	$city = isset($det['city']) ? get_city_name($conn, $det['city']) : '';
+	$state = isset($det['state']) ? get_statename($conn, $det['state']) : '';
+	$pin = $det['pincode'] ?? '';
+	$a1 = ew_clean_party_address($det['address1'] ?? '', $pin, $city, $state);
+	$a2 = ew_clean_party_address($det['address2'] ?? '', $pin, $city, $state);
+	$parts = array_filter(array($a1, $a2), function ($v) {
+		return $v !== '' && strtoupper($v) !== 'NULL';
+	});
+	return trim(implode(', ', $parts), ' ,');
+}
+
+function ew_party_token_in_address($address, $token)
+{
+	$token = trim((string) $token);
+	if ($token === '' || $address === '') {
+		return false;
+	}
+	return (bool) preg_match('/(^|[\s,])' . preg_quote($token, '/') . '($|[\s,.\-])/iu', $address);
+}
+
+function ew_format_party_address_gcn($det, $conn)
+{
+	$city = isset($det['city']) ? get_city_name($conn, $det['city']) : '';
+	$pin = trim((string) ($det['pincode'] ?? ''));
+	$street = ew_party_street_address($det, $conn);
+	$parts = array();
+	if ($street !== '') {
+		$parts[] = $street;
+	}
+	if ($city !== '' && strtoupper($city) !== 'NULL' && !ew_party_token_in_address($street, $city)) {
+		$parts[] = $city;
+	}
+	if ($pin !== '' && strtoupper($pin) !== 'NULL' && !ew_party_token_in_address($street, $pin)) {
+		$parts[] = $pin;
+	}
+	return implode(', ', $parts);
+}
+
+function ew_format_party_address_invoice_html($det, $conn)
+{
+	$city = isset($det['city']) ? get_city_name($conn, $det['city']) : '';
+	$pin = trim((string) ($det['pincode'] ?? ''));
+	$street = ew_party_street_address($det, $conn);
+	$lines = array();
+	if ($street !== '' && strcasecmp($street, $city) !== 0) {
+		$lines[] = $street;
+	}
+	$tail = trim($city . ($pin !== '' ? '-' . $pin : ''));
+	if ($tail !== '') {
+		$lines[] = $tail;
+	}
+	return implode('<br>', $lines);
+}
+
 function get_city_state_name($conn, $city_id)
 {
     $query = mysqli_query($conn,"
@@ -267,6 +371,111 @@ function get_client_name($conn, $id)
 	$result = mysqli_query($conn, $query);
 	$row = mysqli_fetch_array($result);
 	return ew_client_decrypt_name($row['client_company_name'] ?? '');
+}
+
+function booking_client_name_options($conn)
+{
+	$rows = array();
+	$q = mysqli_query($conn, 'SELECT client_id, client_company_name, city FROM client WHERE status=0 ORDER BY client_company_name ASC');
+	if (!$q) {
+		return $rows;
+	}
+	while ($row = mysqli_fetch_assoc($q)) {
+		$raw = (string) ($row['client_company_name'] ?? '');
+		$name = trim(ew_client_decrypt_name($raw));
+		if ($name === '' && $raw !== '' && strpos($raw, 'EW1:') !== 0) {
+			$name = trim($raw);
+		}
+		if ($name === '') {
+			continue;
+		}
+		if (function_exists('mb_check_encoding') && !mb_check_encoding($name, 'UTF-8')) {
+			$name = utf8_encode($name);
+		}
+		$rows[] = array(
+			'id' => (int) $row['client_id'],
+			'name' => $name,
+			'city' => (int) ($row['city'] ?? 0),
+		);
+	}
+	return $rows;
+}
+
+function ew_mapped_party_ids($conn, $client_id)
+{
+	$client_id = (int) $client_id;
+	$ids = array();
+	if ($client_id <= 0) {
+		return $ids;
+	}
+	$mapping_ids = array();
+	$q = mysqli_query($conn, "SELECT mapping_id FROM customer_mapping WHERE client='$client_id' AND status='0'");
+	while ($q && ($r = mysqli_fetch_assoc($q))) {
+		$mid = (int) ($r['mapping_id'] ?? 0);
+		if ($mid > 0) {
+			$mapping_ids[] = $mid;
+		}
+	}
+	if (!empty($mapping_ids)) {
+		$in = implode(',', $mapping_ids);
+		$q2 = mysqli_query($conn, "SELECT client_id FROM customer_mapping_lists WHERE mapping_id IN ($in)");
+		while ($q2 && ($r = mysqli_fetch_assoc($q2))) {
+			$id = (int) ($r['client_id'] ?? 0);
+			if ($id > 0) {
+				$ids[] = $id;
+			}
+		}
+	}
+	$q3 = mysqli_query($conn, "SELECT m.client FROM customer_mapping m INNER JOIN customer_mapping_lists l ON l.mapping_id=m.mapping_id WHERE l.client_id='$client_id' AND m.status='0'");
+	while ($q3 && ($r = mysqli_fetch_assoc($q3))) {
+		$id = (int) ($r['client'] ?? 0);
+		if ($id > 0) {
+			$ids[] = $id;
+		}
+	}
+	return array_values(array_unique($ids));
+}
+
+function ew_customer_mapping_overview($conn)
+{
+	$rows = array();
+	$q = mysqli_query($conn, "SELECT mapping_id, client FROM customer_mapping WHERE status='0' ORDER BY mapping_id DESC");
+	while ($q && ($m = mysqli_fetch_assoc($q))) {
+		$customer_id = (int) ($m['client'] ?? 0);
+		if ($customer_id <= 0) {
+			continue;
+		}
+		$consignees = array();
+		$lq = mysqli_query($conn, "SELECT list_id, client_id FROM customer_mapping_lists WHERE mapping_id='" . (int) $m['mapping_id'] . "' ORDER BY list_id ASC");
+		while ($lq && ($l = mysqli_fetch_assoc($lq))) {
+			$cid = (int) ($l['client_id'] ?? 0);
+			if ($cid <= 0) {
+				continue;
+			}
+			$consignees[] = array(
+				'list_id' => (int) $l['list_id'],
+				'id' => $cid,
+				'name' => get_client_name($conn, $cid),
+			);
+		}
+		if (empty($consignees)) {
+			continue;
+		}
+		$names = array();
+		foreach ($consignees as $c) {
+			if ($c['name'] !== '') {
+				$names[] = $c['name'];
+			}
+		}
+		$rows[] = array(
+			'mapping_id' => (int) $m['mapping_id'],
+			'customer_id' => $customer_id,
+			'customer_name' => get_client_name($conn, $customer_id),
+			'consignees' => $consignees,
+			'consignee_names' => implode(', ', $names),
+		);
+	}
+	return $rows;
 }
 
 function get_client_contact_name($conn, $id)
@@ -825,6 +1034,9 @@ function ew_date_input($opts = array())
 
 	$required = !empty($opts['required']) ? ' required' : '';
 	$readonly = !empty($opts['readonly']) ? ' readonly' : '';
+	$placeholder = !empty($opts['placeholder'])
+		? ' placeholder="' . htmlspecialchars((string) $opts['placeholder'], ENT_QUOTES, 'UTF-8') . '"'
+		: '';
 	$autocomplete = isset($opts['autocomplete']) ? (string) $opts['autocomplete'] : 'off';
 	$format = isset($opts['format']) ? (string) $opts['format'] : 'dd-mm-yyyy';
 	$extra = isset($opts['attrs']) ? ' ' . $opts['attrs'] : '';
@@ -844,7 +1056,7 @@ function ew_date_input($opts = array())
 		. '<input type="text"' . $idAttr . $nameAttr
 		. ' class="' . htmlspecialchars(trim($class), ENT_QUOTES, 'UTF-8') . '"'
 		. ' value="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '"'
-		. $required . $readonly
+		. $required . $readonly . $placeholder
 		. ' autocomplete="' . htmlspecialchars($autocomplete, ENT_QUOTES, 'UTF-8') . '"'
 		. $dataAttrs . $extra . '>'
 		. '<i class="fa fa-calendar date-field-icon" aria-hidden="true"></i>'

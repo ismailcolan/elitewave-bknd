@@ -2,6 +2,11 @@
 require_once('include/connect.php');
 require_once('include/function.php');
 
+if (empty($_GET['create'])) {
+	header('Location: status_sheet_list.php');
+	exit;
+}
+
 $c_date = date('d-m-Y');
 $c_mY = date('m-Y');
 $c_Y = date('Y');
@@ -45,41 +50,41 @@ $c_Y = date('Y');
 		}
 
 		/* ── Tabs ── */
-		.bulk-tabs {
+		.ew-page-v2 .bulk-tabs {
 			display: flex;
-			gap: 0;
+			gap: 6px;
 			margin-bottom: 0;
-			border-bottom: 2px solid #1a3a5c;
+			border-bottom: 2px solid var(--ew-navy, #0A1E3D);
 			flex-wrap: wrap;
+			padding: 0 0 0 2px;
 		}
 
-		.bulk-tab {
-			padding: 7px 18px;
+		.ew-page-v2 .bulk-tab {
+			padding: 8px 16px;
 			cursor: pointer;
 			font-size: 13px;
 			font-weight: 600;
-			border: 1px solid #ccc;
+			border: 1px solid var(--ew-border, #D8DDE5);
 			border-bottom: none;
-			background: #f5f5f5;
-			color: #555;
-			border-radius: 4px 4px 0 0;
-			margin-right: 3px;
-			transition: background .2s;
+			background: #F4F6F9;
+			color: var(--ew-text-secondary, #475569);
+			border-radius: 8px 8px 0 0;
+			transition: background .2s, color .2s;
 		}
 
-		.bulk-tab.active {
-			background: #1a3a5c;
+		.ew-page-v2 .bulk-tab.active {
+			background: var(--ew-navy, #0A1E3D);
 			color: #fff;
-			border-color: #1a3a5c;
+			border-color: var(--ew-navy, #0A1E3D);
 		}
 
-		.bulk-tab-content {
+		.ew-page-v2 .bulk-tab-content {
 			display: none;
-			border: 1px solid #ccc;
+			border: 1px solid var(--ew-border-light, #E9ECF0);
 			border-top: none;
-			padding: 14px;
+			padding: 20px 24px;
 			background: #fff;
-			border-radius: 0 0 4px 4px;
+			border-radius: 0 0 10px 10px;
 		}
 
 		.bulk-tab-content.active {
@@ -441,14 +446,20 @@ $c_Y = date('Y');
 
 		<div class="container-fluid main-content new_dpt_bottom">
 			<div class="row">
-				<div class="col-md-offset-1 col-md-10">
-					<div class="widget-container fluid-height clearfix">
-						<div class="heading">
-							<i class="fa fa-table"></i>Transaction Status Sheet
-							<span class="align-right"><i class="fa fa-plus"></i><a href="status_sheet_list.php">View List</a></span>
+				<div class="col-md-12">
+					<div class="ew-page-v2 ew-page-v2--wide-table ew-page-v2--status-sheet">
+						<div class="ew-page-head">
+							<div class="ew-page-head-left">
+								<a href="status_sheet_list.php" class="ew-back-btn" title="Back to list"><i class="fa fa-arrow-left"></i></a>
+								<h1 class="ew-page-title">Consignment Status Sheet</h1>
+							</div>
+							<div class="ew-toolbar-right">
+								<a href="status_sheet_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+							</div>
 						</div>
-
-						<div class="widget-content padded">
+						<div class="ew-card">
+							<h2 class="ew-card-section-title">Create Status Sheet</h2>
+							<div class="ew-form-body" style="padding:0 24px 24px;">
 							<form class="form-horizontal" id="transaction_form">
 
 								<input type="hidden" id="form_name" name="form_name" value="change_grn_status">
@@ -816,13 +827,14 @@ $c_Y = date('Y');
 									<div class="row">
 										<div class="col-md-12 form-action">
 											<button class="btn btn-primary" type="button" id="save">Submit</button>
-											<a class="btn btn-default-outline btn-reset" href="status_sheet.php">Cancel</a>
+											<a class="btn btn-default-outline btn-reset" href="status_sheet_list.php">Cancel</a>
 										</div>
 									</div>
 								</div>
 
 							</form>
-						</div><!-- /widget-content -->
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>

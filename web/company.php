@@ -18,16 +18,6 @@
             text-align: center;
         }
 
-        img#image_preview {
-            height: 93px;
-            width: 98px;
-        }
-
-        img#image_preview1 {
-            height: 93px;
-            width: 98px;
-        }
-
         #mobile_no:invalid {
             color: red !important;
         }
@@ -44,20 +34,19 @@
         </div>
         <!-- End Navigation -->
         <div class="container-fluid main-content new_dpt_bottom">
-            <!-- <div class="row">
-                <div class="col-lg-12">
-                    <h1 class="text-2xl font-bold text-black mb-2">Company Information</h1>
-                </div>
-            </div> -->
-            <br/>
 
             <div class="row">
-                <div class="col-md-offset-1 col-md-10">
-                    <div class="widget-container fluid-height clearfix" style="border-radius:5px">
-                        <div class="heading"> <i class="fa fa-user"></i> Company Info</div>
-                        <div class="widget-content padded">
-
-                            <form class="form-horizontal" id="company_form" method="post" enctype="multipart/form-data">
+                <div class="col-md-12">
+                    <div class="ew-page-v2">
+                        <div class="ew-page-head">
+                            <div class="ew-page-head-left">
+                                <h1 class="ew-page-title">Company Information</h1>
+                            </div>
+                        </div>
+                        <div class="ew-card">
+                            <h2 class="ew-card-section-title">Company Info</h2>
+                            <div class="ew-form-body">
+                            <form id="company_form" method="post" enctype="multipart/form-data">
                                 <?php
                                 $query = 'select * from company where status=0 limit 1';
                                 $result = mysqli_query($conn, $query);
@@ -86,170 +75,136 @@
                                     <div class="message" style="text-align:center"></div>
                                 </div>
 
-                                <div class="row">
-                                    <div class="col-md-offset-1 col-md-5">
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Company Code <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input class="form-control" type="text" name="comp_code" value="<?php echo $row['company_code']; ?>" id="comp_code" required />
-                                            </div>
-
+                                <div class="ew-form-grid">
+                                    <div class="ew-field">
+                                        <label class="control-label">Company Code <span style="color:red;">*</span> :</label>
+                                        <input class="form-control" type="text" name="comp_code" value="<?php echo htmlspecialchars($row['company_code']); ?>" id="comp_code" required />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Company Name <span style="color:red;">*</span> :</label>
+                                        <input class="form-control cust" type="text" name="comp_name" value="<?php echo htmlspecialchars($row['company_name']); ?>" id="comp_name" required />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Contact Person <span style="color:red;">*</span> :</label>
+                                        <input class="form-control" type="text" name="contact_person" value="<?php echo htmlspecialchars($row['contact_person']); ?>" id="contact_person" required />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Mobile No <span style="color:red;">*</span> :</label>
+                                        <input class="form-control" pattern="\d{10}" minlength="10" maxlength="10" type="text" name="mobile_no" id="mobile_no" value="<?php echo htmlspecialchars($row['mobile_no']); ?>" required inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;" autocomplete="off" />
+                                    </div>
+                                    <div class="ew-field span-2">
+                                        <label class="control-label">Address1 <span style="color:red;">*</span> :</label>
+                                        <input class="form-control" type="text" name="address1" id="address1" value="<?php echo htmlspecialchars($row['address1']); ?>" required />
+                                    </div>
+                                    <div class="ew-field span-2">
+                                        <label class="control-label">Address2 :</label>
+                                        <input type="text" name="address2" id="address2" value="<?php echo htmlspecialchars($row['address2']); ?>" class="form-control" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">State <span style="color:red;">*</span> :</label>
+                                        <select name="state" id="state" class="form-control" required>
+                                            <option value="">Select State</option>
+                                            <?php
+                                            $state_query = 'select * from state where status=0 order by state_name';
+                                            $state_result = mysqli_query($conn, $state_query);
+                                            while ($state_row = mysqli_fetch_array($state_result)) {
+                                                ?>
+                                                <option value="<?php echo $state_row['state_id']; ?>"><?php echo $state_row['state_name']; ?></option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">City <span style="color:red;">*</span> :</label>
+                                        <select name="city" id="city" class="form-control" required>
+                                            <option value="">Select City</option>
+                                        </select>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">PinCode :</label>
+                                        <input class="form-control" minlength="6" maxlength="6" type="text" name="pincode" id="pincode" value="<?php echo htmlspecialchars($row['pincode']); ?>" required inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;" autocomplete="off"/>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">E-Mail <span style="color:red;">*</span> :</label>
+                                        <input class="form-control" type="email" name="email" id="email" value="<?php echo htmlspecialchars($row['email']); ?>" required />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">PAN No :</label>
+                                        <input class="form-control" type="text" name="pan_no" value="<?php echo htmlspecialchars($row['pan_no']); ?>" id="pan_no" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">GST IN :</label>
+                                        <input class="form-control" type="text" name="gst_no" id="gst_no" value="<?php echo htmlspecialchars($row['gst_no']); ?>" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Status Autochange Hours :</label>
+                                        <input class="form-control" type="text" name="autochange_hours" value="<?php echo htmlspecialchars($row['company_code']); ?>" id="autochange_hours" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">GRN Mode :</label>
+                                        <div style="display:flex;align-items:center;gap:16px;min-height:38px;">
+                                            <label style="margin:0;font-weight:normal;"><input type="checkbox" name="grn_mode" value="client" id="grn_client" <?php echo ($row['grn_mode'] == 'client') ? 'checked' : ''; ?> /> Client Wise</label>
+                                            <label style="margin:0;font-weight:normal;"><input type="checkbox" name="grn_mode" value="company" id="grn_company" <?php echo ($row['grn_mode'] == 'company' || $row['grn_mode'] == '') ? 'checked' : ''; ?> /> Company Wise</label>
                                         </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Company Name <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input class="form-control cust" type="text" name="comp_name" value="<?php echo $row['company_name']; ?>" id="comp_name" required />
-                                            </div>
-
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Contact Person <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input class="form-control" type="text" name="contact_person" value="<?php echo $row['contact_person']; ?>" id="contact_person" required />
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Address1 <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input class="form-control" type="text" name="address1" id="address1" value="<?php echo $row['address1']; ?>" required />
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Address2:</label>
-                                            <div class="col-lg-8">
-                                                <input type="text" name="address2" id="address2" value="<?php echo $row['address2']; ?>" class="form-control" />
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">PAN No:</label>
-                                            <div class="col-lg-8">
-                                                <input class="form-control" type="text" name="pan_no" value="<?php echo $row['pan_no']; ?>" id="pan_no" />
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Status Autochange Hours:</label>
-                                            <div class="col-lg-8">
-                                                <input class="form-control" type="text" name="autochange_hours" value="<?php echo $row['company_code']; ?>" id="autochange_hours" />
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Logo:</label>
-                                            <div class="file-container">
-                                                <div class="col-sm-12 file-group" id="file-no1" data-file-no="1">
-                                                    <div class="col-sm-5">
-                                                        <input type="file" id="logo" name="logo" class="filestyle" data-id="1" data-buttonbefore="true" data-buttonname="btn-primary">
-                                                    </div>
-
-                                                    <div class="col-sm-3">
-                                                        <?php
-                                                        if ($row['logo'] != '') {
-                                                            $logo = $row['logo'];
-                                                        } else {
-                                                            $logo = 'no_image.png';
-                                                        }
-                                                        ?>
-                                                        <img src="images/<?php echo $logo; ?>" class="image_preview" id="image_preview">
-                                                    </div>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Logo :</label>
+                                        <?php
+                                        if ($row['logo'] != '') {
+                                            $logo = $row['logo'];
+                                        } else {
+                                            $logo = 'no_image.png';
+                                        }
+                                        ?>
+                                        <div class="ew-upload-image<?php echo ($row['logo'] != '') ? ' has-file' : ''; ?>">
+                                            <div class="ew-upload-image__zone" tabindex="0" role="button" aria-label="Upload logo">
+                                                <input type="file" id="logo" name="logo" class="ew-upload-image__input" accept="image/*">
+                                                <div class="ew-upload-image__body">
+                                                    <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+                                                    <span class="ew-upload-image__hint">Drag &amp; drop or browse</span>
+                                                    <span class="ew-upload-image__meta">PNG, JPG · max 2MB</span>
+                                                    <span class="ew-upload-image__filename" title="<?php echo ($row['logo'] != '') ? htmlspecialchars($row['logo']) : ''; ?>"><?php echo ($row['logo'] != '') ? htmlspecialchars($row['logo']) : ''; ?></span>
+                                                    <span class="ew-btn-v2 ew-btn-v2-outline ew-upload-image__browse">Browse</span>
                                                 </div>
+                                            </div>
+                                            <div class="ew-upload-image__preview">
+                                                <img src="images/<?php echo htmlspecialchars($logo); ?>" id="image_preview" alt="Logo preview">
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-5">
-
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">State <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <select name="state" id="state" class="form-control">
-                                                    <option value="">Select State</option>
-                                                    <?php
-                                                    $state_query = 'select * from state where status=0 order by state_name';
-                                                    $state_result = mysqli_query($conn, $state_query);
-                                                    while ($state_row = mysqli_fetch_array($state_result)) {
-                                                        ?>
-                                                        <option value="<?php echo $state_row['state_id']; ?>"><?php echo $state_row['state_name']; ?></option>
-                                                    <?php
-                                                    }
-                                                    ?>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">City <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <select name="city" id="city" class="form-control">
-                                                    <option value="">Select City</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">PinCode:</label>
-                                            <div class="col-lg-8">
-                                            <input class="form-control" minlength=6  maxlength=6 type="text" name="pincode"  id="pincode" value="<?php echo $row['pincode']; ?>" required  inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;"  autocomplete="off"/>
-
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Mobile No <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                            <input class="form-control"  pattern="\d{10}" minlength=10 maxlength=10  type="text" name="mobile_no"  id="mobile_no" value="<?php echo $row['mobile_no']; ?>" required   inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;" autocomplete="off" />
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-
-                                            <label class="control-label col-sm-4">E-Mail <span style="color:red;">*</span> :</label>
-                                            <div class="col-lg-8">
-                                                <input class="form-control" type="email" name="email" id="email" value="<?php echo $row['email']; ?>" required />
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-    <label class="control-label col-sm-4">GST IN:</label>
-    <div class="col-lg-8">
-        <input class="form-control" type="text" name="gst_no" id="gst_no" value="<?php echo $row['gst_no']; ?>" />
-    </div>
-</div>
-<div class="form-group">
-    <label class="control-label col-sm-4">GRN Mode:</label>
-    <div class="col-lg-8">
-        <label style="margin-right:15px;"><input type="checkbox" name="grn_mode" value="client" id="grn_client" <?php echo ($row['grn_mode'] == 'client') ? 'checked' : ''; ?> /> Client Wise</label>
-        <label><input type="checkbox" name="grn_mode" value="company" id="grn_company" <?php echo ($row['grn_mode'] == 'company' || $row['grn_mode'] == '') ? 'checked' : ''; ?> /> Company Wise</label>
-    </div>
-</div>
-                                        <div class="form-group">
-                                            <label class="control-label col-sm-4">Flag:</label>
-                                            <div class="file-container">
-                                                <div class="col-sm-12 file-group" id="file-no1" data-file-no="1">
-                                                    <div class="col-sm-5">
-                                                        <input type="file" id="flag" name="flag" class="filestyle1" data-id="1" data-buttonbefore="true" data-buttonname="btn-primary">
-                                                    </div>
-                                                    <?php
-                                                    if ($row['flag'] != '') {
-                                                        $flag = $row['flag'];
-                                                    } else {
-                                                        $flag = 'no_image.png';
-                                                    }
-                                                    ?>
-                                                    <div class="col-sm-3">
-                                                        <img src="images/<?php echo $flag; ?>" class="image_preview" id="image_preview1">
-                                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Flag :</label>
+                                        <?php
+                                        if ($row['flag'] != '') {
+                                            $flag = $row['flag'];
+                                        } else {
+                                            $flag = 'no_image.png';
+                                        }
+                                        ?>
+                                        <div class="ew-upload-image<?php echo ($row['flag'] != '') ? ' has-file' : ''; ?>">
+                                            <div class="ew-upload-image__zone" tabindex="0" role="button" aria-label="Upload flag">
+                                                <input type="file" id="flag" name="flag" class="ew-upload-image__input" accept="image/*">
+                                                <div class="ew-upload-image__body">
+                                                    <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+                                                    <span class="ew-upload-image__hint">Drag &amp; drop or browse</span>
+                                                    <span class="ew-upload-image__meta">PNG, JPG · max 2MB</span>
+                                                    <span class="ew-upload-image__filename" title="<?php echo ($row['flag'] != '') ? htmlspecialchars($row['flag']) : ''; ?>"><?php echo ($row['flag'] != '') ? htmlspecialchars($row['flag']) : ''; ?></span>
+                                                    <span class="ew-btn-v2 ew-btn-v2-outline ew-upload-image__browse">Browse</span>
                                                 </div>
                                             </div>
+                                            <div class="ew-upload-image__preview">
+                                                <img src="images/<?php echo htmlspecialchars($flag); ?>" id="image_preview1" alt="Flag preview">
+                                            </div>
                                         </div>
-
                                     </div>
                                 </div>
+                            </form>
+                            </div>
+                            <div class="ew-form-footer">
+                                <button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save"><i class="fa fa-save"></i> Save Company</button>
+                            </div>
                         </div>
-                        <div class="col-md-12 form-action">
-                            <button class="btn btn-primary " type="button" id="save">Submit</button>
-
-                        </div>
-                        </form>
-
                     </div>
-
                 </div>
-
             </div>
         </div>
 
@@ -337,38 +292,69 @@
 
             });
 
-            function readURL(input) {
-                if (input.files && input.files[0]) {
-                    var reader = new FileReader();
+            function initEwUploadImage($wrap) {
+                var $input = $wrap.find('.ew-upload-image__input');
+                var $zone = $wrap.find('.ew-upload-image__zone');
+                var $preview = $wrap.find('.ew-upload-image__preview img');
+                var $filename = $wrap.find('.ew-upload-image__filename');
 
-                    reader.onload = function(e) {
-                        $('#image_preview').attr('src', e.target.result);
+                function applyFile(file) {
+                    if (!file) {
+                        return;
                     }
-
-                    reader.readAsDataURL(input.files[0]);
+                    $filename.text(file.name).attr('title', file.name);
+                    $wrap.addClass('has-file');
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        $preview.attr('src', e.target.result);
+                    };
+                    reader.readAsDataURL(file);
                 }
+
+                $zone.on('click', function(e) {
+                    if ($(e.target).is('input')) {
+                        return;
+                    }
+                    $input.trigger('click');
+                });
+
+                $zone.on('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        $input.trigger('click');
+                    }
+                });
+
+                $input.on('change', function() {
+                    applyFile(this.files && this.files[0] ? this.files[0] : null);
+                });
+
+                $zone.on('dragover dragenter', function(e) {
+                    e.preventDefault();
+                    $zone.addClass('is-dragover');
+                });
+
+                $zone.on('dragleave drop', function(e) {
+                    e.preventDefault();
+                    $zone.removeClass('is-dragover');
+                });
+
+                $zone.on('drop', function(e) {
+                    var files = e.originalEvent.dataTransfer && e.originalEvent.dataTransfer.files;
+                    if (!files || !files.length) {
+                        return;
+                    }
+                    if (typeof DataTransfer !== 'undefined') {
+                        var dt = new DataTransfer();
+                        dt.items.add(files[0]);
+                        $input[0].files = dt.files;
+                    }
+                    applyFile(files[0]);
+                });
             }
 
-            $(document).on('change', '.filestyle', function() {
-                //var id = $(this).attr("data-id");
-                readURL(this);
-            });
-
-            function readURL1(input) {
-                if (input.files && input.files[0]) {
-                    var reader = new FileReader();
-
-                    reader.onload = function(e) {
-                        $('#image_preview1').attr('src', e.target.result);
-                    }
-
-                    reader.readAsDataURL(input.files[0]);
-                }
-            }
-
-            $(document).on('change', '.filestyle1', function() {
-                //var id = $(this).attr("data-id");
-                readURL1(this);
+            $('.ew-upload-image').each(function() {
+                initEwUploadImage($(this));
             });
         });
         $(window).load(function() {

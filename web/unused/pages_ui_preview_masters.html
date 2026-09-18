@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masters Preview — Elite Wave 360</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="stylesheets/font-awesome.min.css" rel="stylesheet">
+  <link href="stylesheets/ew-preview-shell.css?v=20260911" rel="stylesheet">
+</head>
+<body data-modal-on-view="createModal" data-modal-auto-view="state">
+
+  <div class="preview-banner">
+    <div>
+      <h1>Setup &amp; Transport Masters</h1>
+      <p>Template C — List + Create Popup · <a class="preview-nav-link" href="pages_ui_preview_index.html">&larr; All previews</a></p>
+    </div>
+    <div class="preview-tabs">
+      <button type="button" class="preview-tab active" data-view="state">State</button>
+      <button type="button" class="preview-tab" data-view="city">City</button>
+      <button type="button" class="preview-tab" data-view="hub">Hub</button>
+      <button type="button" class="preview-tab" data-view="transport">Mode</button>
+    </div>
+    <div class="preview-utils">
+      <button type="button" class="preview-util-btn" id="toggleSidebar">Toggle Submenu</button>
+      <span class="width-indicator">Width: <strong id="contentWidth">—</strong></span>
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="top-bar">
+      <div class="brand">EliteWave360<small>LOGISTICS</small></div>
+      <div class="spacer"></div>
+      <div class="top-user"><div class="avatar">EW</div><span>Administrator</span></div>
+    </header>
+    <div class="shell-body">
+      <aside class="dual-sidebar">
+        <nav class="icon-rail">
+          <button type="button" class="rail-item"><i class="fa fa-home"></i>Dash</button>
+          <button type="button" class="rail-item active"><i class="fa fa-cog"></i>Setup</button>
+          <button type="button" class="rail-item"><i class="fa fa-truck"></i>Trans</button>
+        </nav>
+        <div class="sub-panel">
+          <div class="panel-head"><span class="panel-pill">Setup Masters</span></div>
+          <div class="panel-links">
+            <a href="#" class="panel-link">Company</a>
+            <a href="#" class="panel-link">Branch</a>
+            <a href="#" class="panel-link active">State</a>
+            <a href="#" class="panel-link">City</a>
+            <a href="#" class="panel-link">Hub</a>
+          </div>
+        </div>
+      </aside>
+      <main class="main-content" id="mainContent">
+
+        <section id="view-state" class="preview-page active">
+          <div class="ew-page-head"><h1 class="ew-page-title">State Master</h1></div>
+          <div class="ew-card">
+            <div class="ew-card-toolbar">
+              <h2>State List</h2>
+              <div class="ew-toolbar-right">
+                <div class="ew-search-wrap"><i class="fa fa-search"></i><input class="ew-search-input" placeholder="Search"></div>
+                <button type="button" class="ew-btn ew-btn-primary" data-open-modal="createModal">Create State <i class="fa fa-plus"></i></button>
+              </div>
+            </div>
+            <div class="ew-table-wrap">
+              <table class="ew-table">
+                <thead><tr><th class="col-center">S.No</th><th>State Name</th><th>Status</th><th class="col-actions">Action</th></tr></thead>
+                <tbody>
+                  <tr><td class="col-center">1</td><td>Andhra Pradesh</td><td><span class="ew-badge ew-badge-success">Active</span></td><td class="col-actions"><span class="ew-row-actions"><button class="ew-icon-btn"><i class="fa fa-pencil"></i></button><button class="ew-icon-btn danger"><i class="fa fa-trash-o"></i></button></span></td></tr>
+                  <tr><td class="col-center">2</td><td>Assam</td><td><span class="ew-badge ew-badge-success">Active</span></td><td class="col-actions"><span class="ew-row-actions"><button class="ew-icon-btn"><i class="fa fa-pencil"></i></button><button class="ew-icon-btn danger"><i class="fa fa-trash-o"></i></button></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="ew-table-footer">
+              <div class="ew-table-footer-left"><span>Showing 1 to 10 of 31 entries</span><select class="ew-page-size"><option>10</option></select></div>
+              <div class="ew-pagination"><button class="ew-page-btn active">1</button><button class="ew-page-btn">2</button></div>
+            </div>
+          </div>
+          <div class="ew-compare"><h3>Replaces</h3><ul><li><code>state.php</code> split layout (form left + list right)</li><li>Same for city.php, hub.php, train.php, role.php, etc.</li></ul></div>
+        </section>
+
+        <section id="view-city" class="preview-page">
+          <div class="ew-page-head"><h1 class="ew-page-title">City Master</h1></div>
+          <div class="ew-card">
+            <div class="ew-card-toolbar">
+              <h2>City List</h2>
+              <div class="ew-toolbar-right">
+                <div class="ew-search-wrap"><i class="fa fa-search"></i><input class="ew-search-input" placeholder="Search"></div>
+                <button type="button" class="ew-btn ew-btn-primary" data-open-modal="cityModal">Create City <i class="fa fa-plus"></i></button>
+              </div>
+            </div>
+            <div class="ew-table-wrap">
+              <table class="ew-table">
+                <thead><tr><th class="col-center">S.No</th><th>City</th><th>State</th><th>Status</th><th class="col-actions">Action</th></tr></thead>
+                <tbody>
+                  <tr><td class="col-center">1</td><td>Mumbai</td><td>Maharashtra</td><td><span class="ew-badge ew-badge-success">Active</span></td><td class="col-actions"><span class="ew-row-actions"><button class="ew-icon-btn"><i class="fa fa-pencil"></i></button><button class="ew-icon-btn danger"><i class="fa fa-trash-o"></i></button></span></td></tr>
+                  <tr><td class="col-center">2</td><td>Delhi</td><td>Delhi</td><td><span class="ew-badge ew-badge-success">Active</span></td><td class="col-actions"><span class="ew-row-actions"><button class="ew-icon-btn"><i class="fa fa-pencil"></i></button><button class="ew-icon-btn danger"><i class="fa fa-trash-o"></i></button></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-hub" class="preview-page">
+          <div class="ew-page-head"><h1 class="ew-page-title">Hub Master</h1></div>
+          <div class="ew-card">
+            <div class="ew-card-toolbar">
+              <h2>Hub List</h2>
+              <div class="ew-toolbar-right">
+                <button type="button" class="ew-btn ew-btn-primary" data-open-modal="hubModal">Create Hub <i class="fa fa-plus"></i></button>
+              </div>
+            </div>
+            <div class="ew-table-wrap">
+              <table class="ew-table">
+                <thead><tr><th class="col-center">S.No</th><th>Hub Code</th><th>Hub Name</th><th>City</th><th class="col-actions">Action</th></tr></thead>
+                <tbody>
+                  <tr><td class="col-center">1</td><td>HUB001</td><td>Central Hub</td><td>Mumbai</td><td class="col-actions"><span class="ew-row-actions"><button class="ew-icon-btn"><i class="fa fa-pencil"></i></button></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-transport" class="preview-page">
+          <div class="ew-page-head"><h1 class="ew-page-title">Mode of Transport Master</h1></div>
+          <div class="ew-card">
+            <div class="ew-card-toolbar">
+              <h2>Transport Modes</h2>
+              <div class="ew-toolbar-right">
+                <button type="button" class="ew-btn ew-btn-primary">Create Mode <i class="fa fa-plus"></i></button>
+              </div>
+            </div>
+            <div class="ew-table-wrap">
+              <table class="ew-table">
+                <thead><tr><th class="col-center">S.No</th><th>Mode</th><th>Status</th><th class="col-actions">Action</th></tr></thead>
+                <tbody>
+                  <tr><td class="col-center">1</td><td>Surface</td><td><span class="ew-badge ew-badge-success">Active</span></td><td class="col-actions"><span class="ew-row-actions"><button class="ew-icon-btn"><i class="fa fa-pencil"></i></button></span></td></tr>
+                  <tr><td class="col-center">2</td><td>Express</td><td><span class="ew-badge ew-badge-success">Active</span></td><td class="col-actions"><span class="ew-row-actions"><button class="ew-icon-btn"><i class="fa fa-pencil"></i></button></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <div class="ew-modal-backdrop open" id="createModal">
+    <div class="ew-modal">
+      <div class="ew-modal-head"><h3>Create State Master</h3><button type="button" class="ew-modal-close" data-close-modal>&times;</button></div>
+      <div class="ew-modal-body">
+        <div class="ew-form-grid">
+          <div class="ew-field"><label>State Name <span class="req">*</span></label><input class="ew-input" placeholder="Enter state name"></div>
+        </div>
+      </div>
+      <div class="ew-modal-foot"><button class="ew-btn ew-btn-outline" data-close-modal>Cancel</button><button class="ew-btn ew-btn-primary">Create</button></div>
+    </div>
+  </div>
+
+  <div class="ew-modal-backdrop" id="cityModal">
+    <div class="ew-modal">
+      <div class="ew-modal-head"><h3>Create City Master</h3><button type="button" class="ew-modal-close" data-close-modal>&times;</button></div>
+      <div class="ew-modal-body">
+        <div class="ew-form-grid">
+          <div class="ew-field"><label>City Name <span class="req">*</span></label><input class="ew-input"></div>
+          <div class="ew-field"><label>State <span class="req">*</span></label><select class="ew-select"><option>Select State</option></select></div>
+        </div>
+      </div>
+      <div class="ew-modal-foot"><button class="ew-btn ew-btn-outline" data-close-modal>Cancel</button><button class="ew-btn ew-btn-primary">Create</button></div>
+    </div>
+  </div>
+
+  <div class="ew-modal-backdrop" id="hubModal">
+    <div class="ew-modal">
+      <div class="ew-modal-head"><h3>Create Hub Master</h3><button type="button" class="ew-modal-close" data-close-modal>&times;</button></div>
+      <div class="ew-modal-body">
+        <div class="ew-form-grid">
+          <div class="ew-field"><label>Hub Code</label><input class="ew-input is-readonly" value="Auto generated" disabled></div>
+          <div class="ew-field"><label>Hub Name <span class="req">*</span></label><input class="ew-input"></div>
+          <div class="ew-field span-2"><label>City <span class="req">*</span></label><select class="ew-select"><option>Select City</option></select></div>
+        </div>
+      </div>
+      <div class="ew-modal-foot"><button class="ew-btn ew-btn-outline" data-close-modal>Cancel</button><button class="ew-btn ew-btn-primary">Create</button></div>
+    </div>
+  </div>
+
+  <script src="javascripts/ew-preview-shell.js?v=20260911"></script>
+</body>
+</html>
