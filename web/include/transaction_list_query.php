@@ -1,5 +1,18 @@
 <?php
 
+/** S.No = company GCN sequence (EW360/0207 → 207), not table row index. */
+function transaction_gcn_serial_no($row)
+{
+	if (isset($row['grn_id']) && (int) $row['grn_id'] > 0) {
+		return (int) $row['grn_id'];
+	}
+	$grn = trim((string) ($row['grn_no'] ?? ''));
+	if ($grn !== '' && preg_match('/\/(\d+)\s*$/', $grn, $m)) {
+		return (int) $m[1];
+	}
+	return 0;
+}
+
 function transaction_list_booking_tables($conn, $year = 0)
 {
 	$tables = array();
@@ -173,8 +186,9 @@ function transaction_list_render_row($conn, $row, $i)
 	$dest_name = get_city_name($conn, $row['destination']);
 	$dest_cell = $dest_name !== '' ? '<span class="txn-dest">' . htmlspecialchars($dest_name) . '</span>' : '<span class="txn-dest-empty">—</span>';
 
+	$sno = transaction_gcn_serial_no($row);
 	$out_put = '<tr>
-			<td class="text-center">' . $i . '</td>
+			<td class="text-center" data-order="' . $sno . '">' . $sno . '</td>
 			<td><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
 			<td><span class="txn-pnr">' . htmlspecialchars($row['tracking_code'] ?? '') . '</span></td>
 			<td>' . htmlspecialchars($row['grn_date']) . '</td>
@@ -342,8 +356,9 @@ function transaction_status_list_render_row($conn, $row, $i)
 		$delivered_packages = !empty($delivery_r['delivered_packages']) ? (int) $delivery_r['delivered_packages'] : 0;
 	}
 
+	$sno = transaction_gcn_serial_no($row);
 	$out = '<tr>
-		<td class="text-center" data-label="S.No">' . $i . '</td>
+		<td class="text-center" data-label="S.No" data-order="' . $sno . '">' . $sno . '</td>
 		<td data-label="GCN No"><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
 		<td data-label="GCN Date">' . htmlspecialchars($row['grn_date']) . '</td>
 		<td class="text-center" data-label="Pkgs">' . $total_packages . '</td>

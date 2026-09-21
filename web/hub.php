@@ -526,7 +526,7 @@ div#dataTable1_length {
 				</div>
 				<div class="form-group">
 				  <label class="control-label">Hub Contact Number:</label>
-				  <input type="text" name="contact_no" id="contact_no" class="form-control" pattern="\d{10}" minlength=10 maxlength=10 inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;" autocomplete="off"/>
+				  <input type="text" name="contact_no" id="contact_no" class="form-control" pattern="\d{10}" minlength=10 maxlength=10 inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return ewNumericPaste(event,this);" autocomplete="off"/>
 				</div>
 				<div class="form-group">
 				  <label class="control-label">Hub Route:</label>

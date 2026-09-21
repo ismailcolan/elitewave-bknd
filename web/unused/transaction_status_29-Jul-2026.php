@@ -166,7 +166,7 @@ $logged_id = $_SESSION['user_id'];
                                         <div class="form-group">
                                             <label class="control-label">Month:</label>
                                             <div class="input-group cals_csss">
-                                                <input class="form-control" type="text" id="month" name="month" value="<?php echo date('m-Y'); ?>" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" required><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
+                                                <input class="form-control" type="text" id="month" name="month" value="<?php echo date('m-Y'); ?>" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" required><span class="input-group-addon fa_calend"><i class="fa fa-calendar"></i></span>
                                             </div>
                                         </div>
                                     </div>

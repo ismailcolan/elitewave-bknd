@@ -90,7 +90,7 @@
                                     </div>
                                     <div class="ew-field">
                                         <label class="control-label">Mobile No <span style="color:red;">*</span> :</label>
-                                        <input class="form-control" pattern="\d{10}" minlength="10" maxlength="10" type="text" name="mobile_no" id="mobile_no" value="<?php echo htmlspecialchars($row['mobile_no']); ?>" required inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;" autocomplete="off" />
+                                        <input class="form-control" pattern="\d{10}" minlength="10" maxlength="10" type="text" name="mobile_no" id="mobile_no" value="<?php echo htmlspecialchars($row['mobile_no']); ?>" required inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return ewNumericPaste(event,this);" autocomplete="off" />
                                     </div>
                                     <div class="ew-field span-2">
                                         <label class="control-label">Address1 <span style="color:red;">*</span> :</label>
@@ -121,7 +121,7 @@
                                     </div>
                                     <div class="ew-field">
                                         <label class="control-label">PinCode :</label>
-                                        <input class="form-control" minlength="6" maxlength="6" type="text" name="pincode" id="pincode" value="<?php echo htmlspecialchars($row['pincode']); ?>" required inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;" autocomplete="off"/>
+                                        <input class="form-control" minlength="6" maxlength="6" type="text" name="pincode" id="pincode" value="<?php echo htmlspecialchars($row['pincode']); ?>" required inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return ewNumericPaste(event,this);" autocomplete="off"/>
                                     </div>
                                     <div class="ew-field">
                                         <label class="control-label">E-Mail <span style="color:red;">*</span> :</label>

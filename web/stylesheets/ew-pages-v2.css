@@ -740,6 +740,15 @@
 
 .ew-v2-modal-backdrop.open { display: flex; }
 
+/* Keep dropdowns above open v2 modals (Select2 / date / time pickers append to body) */
+body:has(.ew-v2-modal-backdrop.open) .select2-drop,
+body:has(.ew-v2-modal-backdrop.open) .select2-drop-active,
+body:has(.ew-v2-modal-backdrop.open) .datepicker,
+body:has(.ew-v2-modal-backdrop.open) .ui-timepicker-wrapper,
+body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
+  z-index: 10150 !important;
+}
+
 .ew-v2-modal {
   background: #fff;
   border-radius: 12px;

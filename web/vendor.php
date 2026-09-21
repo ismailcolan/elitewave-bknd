@@ -303,7 +303,7 @@ if (empty($bank_accounts)) {
 									</div>
 									<div class="ew-field">
 										<label class="control-label">Pincode :</label>
-										<input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" value="<?php echo htmlspecialchars($row['pincode']); ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
+										<input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" value="<?php echo htmlspecialchars($row['pincode']); ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" autocomplete="off" />
 									</div>
 									<div class="ew-field">
 										<label class="control-label">Address 1 <span style="color:red;">*</span> :</label>
@@ -336,7 +336,7 @@ if (empty($bank_accounts)) {
 									</div>
 									<div class="ew-field">
 										<label class="control-label">Mobile No <span style="color:red;">*</span> :</label>
-										<input type="text" name="contact_no" pattern="\d{10}" minlength="10" maxlength="10" id="contact_no" value="<?php echo htmlspecialchars($row['contact_no']); ?>" class="form-control" required autocomplete="off" onpaste="return false;" />
+										<input type="text" name="contact_no" pattern="\d{10}" minlength="10" maxlength="10" id="contact_no" value="<?php echo htmlspecialchars($row['contact_no']); ?>" class="form-control" required autocomplete="off" onpaste="return ewNumericPaste(event,this);" />
 									</div>
 									<div class="ew-field">
 										<label class="control-label">Alternate Email :</label>
@@ -348,7 +348,7 @@ if (empty($bank_accounts)) {
 									</div>
 									<div class="ew-field">
 										<label class="control-label">Alternate Mobile :</label>
-										<input type="text" name="contact_no2" id="contact_no2" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($row['contact_no2']); ?>" class="form-control" autocomplete="off" onpaste="return false;" />
+										<input type="text" name="contact_no2" id="contact_no2" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($row['contact_no2']); ?>" class="form-control" autocomplete="off" onpaste="return ewNumericPaste(event,this);" />
 									</div>
 
 									<div class="ew-section-label">Tax &amp; Registration</div>

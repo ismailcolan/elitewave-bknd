@@ -10,6 +10,7 @@
 	<link href="assets/css/master.css" rel="stylesheet">
 
 	<script src="assets/plugins/jquery/jquery-1.11.3.min.js"></script>
+	<script src="assets/js/ew-numeric-paste.js?v=20260921"></script>
 	<script src="assets/js/modernizr.custom.js"></script>
 
 	<style>
@@ -240,7 +241,7 @@
 															<input class="form-control" type="email" placeholder="Email address" required>
 														</div><!-- end col -->
 														<div class="col-sm-6">
-															<input class="form-control" type="tel" id="tel" minlength=10 maxlength=10 placeholder="phone no." required inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;">
+															<input class="form-control" type="tel" id="tel" minlength=10 maxlength=10 placeholder="phone no." required inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return ewNumericPaste(event,this);">
 														</div><!-- end col -->
 													</div><!-- end row -->
 													<div class="row">

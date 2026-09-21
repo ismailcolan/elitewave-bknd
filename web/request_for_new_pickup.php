@@ -169,7 +169,7 @@ if(isset($row['consignee']))
 							</div>
 							<div class="ew-field">
 								<label class="control-label">No.of Pakages :</label>
-								<input type="text" name="no_of_package" id="no_of_package" value="<?php echo $row['no_of_package']; ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
+								<input type="text" name="no_of_package" id="no_of_package" value="<?php echo $row['no_of_package']; ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" autocomplete="off" />
 								<span class="dup-check"></span>
 							</div>
 						
@@ -192,7 +192,7 @@ if(isset($row['consignee']))
 						
 							<div class="ew-field">
 								<label class="control-label">Approx.Weight (kg):</label>
-								<input type="text" name="approx_weight" id="approx_weight" class="form-control" value="<?php echo $row['approx_weight']; ?>" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
+								<input type="text" name="approx_weight" id="approx_weight" class="form-control" value="<?php echo $row['approx_weight']; ?>" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" autocomplete="off" />
 							</div>
 				 </div>
 				</form>

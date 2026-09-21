@@ -6696,14 +6696,33 @@ if ($form_name == 'barcode_retrive') {
     function getBarcodeImages($serarch_grn)
     {
         $barcode_dir = 'qrcode/';
+        $array_new = array();
 
-        $get_exact_files = preg_grep('~^' . $serarch_grn . '.*\.png$~', scandir($barcode_dir));
+        if (is_dir($barcode_dir)) {
+            $root_files = preg_grep('~^' . preg_quote($serarch_grn, '~') . '.*\.png$~', scandir($barcode_dir));
+            foreach ($root_files as $f) {
+                $array_new[] = $f;
+            }
+        }
 
-        $array_new = array_values($get_exact_files);
+        $gcn_suffix = '';
+        if (preg_match('/\/(\d+)\s*$/', $serarch_grn, $m)) {
+            $gcn_suffix = $m[1];
+        }
+        $ew_dir = $barcode_dir . 'EW360/';
+        if ($gcn_suffix !== '' && is_dir($ew_dir)) {
+            $sub_files = preg_grep('~^' . preg_quote($gcn_suffix, '~') . '.*\.png$~', scandir($ew_dir));
+            foreach ($sub_files as $f) {
+                $array_new[] = 'EW360/' . $f;
+            }
+        }
+
+        natsort($array_new);
+        $array_new = array_values($array_new);
         $count_q = count($array_new);
 
         if ($count_q > 0) {
-            $grn_no = substr($array_new[0], 0, 9);
+            $grn_no = $serarch_grn;
             // print_r($get_exact_files);
 
             $s = 1;

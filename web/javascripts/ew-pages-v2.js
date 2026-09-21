@@ -95,15 +95,18 @@
     openModal(String($(this).data('ew-v2-open')));
   });
 
-  $(document).on('click', '[data-ew-v2-close]', function () {
+  /** Close only via header X or footer Cancel/Close (not backdrop or field clicks). */
+  $(document).on('click', '.ew-v2-modal-close[data-ew-v2-close], .ew-v2-modal-foot [data-ew-v2-close]', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
     var $backdrop = $(this).closest('.ew-v2-modal-backdrop');
-    closeModal($backdrop.length ? $backdrop.attr('id') : null);
+    if ($backdrop.length) {
+      closeModal($backdrop.attr('id'));
+    }
   });
 
-  $(document).on('click', '.ew-v2-modal-backdrop', function (e) {
-    if (e.target === this) {
-      closeModal(this.id);
-    }
+  $(document).on('mousedown click', '.ew-v2-modal-backdrop.open .ew-v2-modal', function (e) {
+    e.stopPropagation();
   });
 
   function ewEscapeRegExp(str) {

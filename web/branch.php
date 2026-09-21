@@ -436,7 +436,7 @@ th.table-title.sorting  {
                         </div>
                         <div class="ew-field">
                             <label class="control-label">Contact No <span style="color:red;">*</span> :</label>
-                            <input type="text" pattern="\d{10}" maxlength="10" minlength="10" name="contact_no" id="contact_no" class="form-control" required onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
+                            <input type="text" pattern="\d{10}" maxlength="10" minlength="10" name="contact_no" id="contact_no" class="form-control" required onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" autocomplete="off" />
                         </div>
                         <div class="ew-field span-2">
                             <label class="control-label">Address 1 <span style="color:red;">*</span> :</label>
@@ -474,7 +474,7 @@ th.table-title.sorting  {
                         </div>
                         <div class="ew-field">
                             <label class="control-label">Pincode <span style="color:red;">*</span> :</label>
-                            <input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off"/>
+                            <input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" autocomplete="off"/>
                         </div>
                         <div class="ew-field">
                             <label class="control-label">Email <span style="color:red;">*</span> :</label>

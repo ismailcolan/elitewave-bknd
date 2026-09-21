@@ -27,6 +27,7 @@ $paymentId = (isset($_SESSION['paymentId'])) ? $_SESSION['paymentId'] : "";
     <link href="assets/css/master.css" rel="stylesheet">
 
     <script src="assets/plugins/jquery/jquery-1.11.3.min.js"></script>
+    <script src="assets/js/ew-numeric-paste.js?v=20260921"></script>
     <script src="assets/js/modernizr.custom.js"></script>
     <link href="https://fonts.googleapis.com/css?family=Merriweather:400,400i,700,700i" rel="stylesheet">
 
@@ -697,7 +698,7 @@ $paymentId = (isset($_SESSION['paymentId'])) ? $_SESSION['paymentId'] : "";
                                     <input class="form-control" type="email" name="email" id="email" placeholder="Email " required>
                                 </div><!-- end col -->
                                 <div class="col-sm-6">
-                                    <input class="form-control"  type="text" inputmode="numeric" pattern="\d{10}"  name="mobile" id="mobile" placeholder="phone no "  minlength=10  maxlength=10 required  oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;">
+                                    <input class="form-control"  type="text" inputmode="numeric" pattern="\d{10}"  name="mobile" id="mobile" placeholder="phone no "  minlength=10  maxlength=10 required  oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return ewNumericPaste(event,this);">
                                 </div><!-- end col -->
                             </div><!-- end row -->
                             <div class="row">

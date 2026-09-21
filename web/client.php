@@ -121,7 +121,7 @@ if ($is_edit) {
                                     </div>
                                     <div class="ew-field">
                                         <label class="control-label">Pincode:</label>
-                                        <input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" value="<?php echo htmlspecialchars($row['pincode']); ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" autocomplete="off" />
+                                        <input type="text" name="pincode" id="pincode" minlength="6" maxlength="6" value="<?php echo htmlspecialchars($row['pincode']); ?>" class="form-control" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" autocomplete="off" />
                                     </div>
                                     <div class="ew-field span-2">
                                         <label class="control-label">Address1 <span style="color:red;">*</span> :</label>
@@ -181,12 +181,12 @@ if ($is_edit) {
                                     </div>
                                     <div class="ew-field">
                                         <label class="control-label">Contact No <span style="color:red;">*</span> :</label>
-                                        <input type="text" name="contact_no" pattern="\d{10}" minlength="10" maxlength="10" id="contact_no" value="<?php echo htmlspecialchars($row['contact_no']); ?>" class="form-control" required autocomplete="off" onpaste="return false;" />
+                                        <input type="text" name="contact_no" pattern="\d{10}" minlength="10" maxlength="10" id="contact_no" value="<?php echo htmlspecialchars($row['contact_no']); ?>" class="form-control" required autocomplete="off" onpaste="return ewNumericPaste(event,this);" />
                                         <span class="dup-check"></span>
                                     </div>
                                     <div class="ew-field">
                                         <label class="control-label">Contact No 2 :</label>
-                                        <input type="text" name="contact_no1" id="contact_no1" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($row['contact_no1']); ?>" class="form-control" autocomplete="off" onpaste="return false;" />
+                                        <input type="text" name="contact_no1" id="contact_no1" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($row['contact_no1']); ?>" class="form-control" autocomplete="off" onpaste="return ewNumericPaste(event,this);" />
                                         <span class="dup-check"></span>
                                     </div>
                                     <div class="ew-field span-2">

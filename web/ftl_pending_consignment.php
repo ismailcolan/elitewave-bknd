@@ -227,7 +227,7 @@ require_once("include/function.php");
                                 $form_name = "edit_ftl_consignment_details";
                             else $form_name = "add_new_ftl_consignment";
                             $grn_date_val = !empty($row['grn_date']) ? $row['grn_date'] : date('d-m-Y');
-                            $date_keypress_attr = 'onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"';
+                            $date_keypress_attr = 'onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);"';
                             $grn_date_opts = array(
                                 'id' => 'grn_date',
                                 'name' => 'grn_date',
@@ -566,12 +566,12 @@ require_once("include/function.php");
                                                         ?>
                                                             <tr>
                                                                 <td class="text-center"><?php echo $i; ?></td>
-                                                                <td><input type="text" name="no_of_pkg[]" id="no_of_pkg<?php echo $i; ?>" class="form-control num_only text-right" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+                                                                <td><input type="text" name="no_of_pkg[]" id="no_of_pkg<?php echo $i; ?>" class="form-control num_only text-right" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
                                                                 <td><select type="text" name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control"> <?php echo $pkg_option; ?> </select></td>
                                                                 <td><input type="text" name="party_invoice[]" id="party_invoice<?php echo $i; ?>" class="form-control" autocomplete="off" ></td>
                                                                 <td><input type="text" name="content[]" id="content<?php echo $i; ?>" class="form-control"  autocomplete="off" ></td>
-                                                                <td><input type="text" name="qty[]" id="qty<?php echo $i; ?>" class="form-control num_only text-right" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-                                                                <td><input type="text" name="gross[]" id="gross<?php echo $i; ?>" class="form-control  text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+                                                                <td><input type="text" name="qty[]" id="qty<?php echo $i; ?>" class="form-control num_only text-right" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
+                                                                <td><input type="text" name="gross[]" id="gross<?php echo $i; ?>" class="form-control  text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
                                                                 <td><input type="text" name="charged[]" id="charged<?php echo $i; ?>" class="form-control  text-right num_only charged_w" onkeyup="calculate_charge_weight();" ></td>
                                                                 <td style="display:none;"><input type="hidden" name="cumulative_charged" id="cumulative_charged" class="form-control  text-right num_only"></td>
                                                             </tr>

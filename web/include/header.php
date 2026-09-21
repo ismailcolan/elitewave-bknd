@@ -67,8 +67,8 @@ body.page-header-fixed {
   margin-left: var(--sidebar-collapsed) !important;
 }
 
-/* ---- Hamburger button ---- */
-.hamburger-btn {
+/* Menu toggle — immediately after logo */
+.top-bar .hamburger-btn {
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -81,17 +81,28 @@ body.page-header-fixed {
   justify-content: center;
   gap: 4px;
   flex-shrink: 0;
-  margin-left: 8px;
-  margin-right: 18px;
+  margin-left: 70px;
+  transition: background 0.2s ease;
 }
-.hamburger-btn:hover { background: #E2EAF1; }
-
-.hamburger-btn .hb-line {
+.top-bar .hamburger-btn:hover { background: #E2EAF1; }
+.top-bar .hamburger-btn .hb-line {
   display: block;
   width: 16px;
   height: 2px;
   border-radius: 1px;
   background: var(--ew-navy);
+  transition: transform 0.28s ease, opacity 0.2s ease;
+  transform-origin: center;
+}
+.top-bar .hamburger-btn.is-open .hb-line:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+.top-bar .hamburger-btn.is-open .hb-line:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.top-bar .hamburger-btn.is-open .hb-line:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
 }
 
 /* ---- Logo ---- */
@@ -296,16 +307,16 @@ body.page-header-fixed {
 <div class="top-bar" id="topBar">
 
   <a href="dashboard.php" class="tb-brand" style="display:flex;align-items:center;text-decoration:none;height:58px;">
-    <img src="./images/elitewave-light.png" class="app-logo" alt="Elite Wave 360">
+    <img src="./images/elitewave-light.png" class="app-logo" alt="Elite Wave 360" style="height: 85px;">
   </a>
 
-  <div class="tb-spacer"></div>
-
-  <button class="hamburger-btn" type="button" id="hamburgerBtn" onclick="toggleSidebar()" title="Toggle sidebar" aria-label="Toggle sidebar">
+  <button type="button" class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()" title="Toggle menu" aria-label="Toggle menu" aria-expanded="true">
     <span class="hb-line"></span>
     <span class="hb-line"></span>
     <span class="hb-line"></span>
   </button>
+
+  <div class="tb-spacer"></div>
 
   <div class="top-right">
 

@@ -35,7 +35,7 @@
 	<link href="stylesheets/modern-ui.css?v=20260918datefield" media="all" rel="stylesheet" type="text/css" />
 	<link href="stylesheets/ew-datepicker.css?v=20260918datefield" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-design-system.css?v=20260911tableclean" media="all" rel="stylesheet" type="text/css" />
-<link href="stylesheets/ew-pages-v2.css?v=20260918maplist" media="all" rel="stylesheet" type="text/css" />
+<link href="stylesheets/ew-pages-v2.css?v=20260921modalclose" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-form-validation.css?v=20260911valfix" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-skeleton.css?v=20260918hdr" media="all" rel="stylesheet" type="text/css" />
 	
@@ -48,6 +48,7 @@
 	
 
 	<script src="javascripts/jquery-1.10.2.min.js" type="text/javascript"></script>
+	<script src="javascripts/ew-numeric-paste.js?v=20260921" type="text/javascript"></script>
 	<script src="javascripts/jquery-ui.js" type="text/javascript"></script>
 	
 	<script src="javascripts/bootstrap.min.js" type="text/javascript"></script>
@@ -100,7 +101,7 @@
 	<script src="javascripts/main.js?v=20260918phrasesearch" type="text/javascript"></script>
 	<script src="javascripts/ew-list-layout.js?v=20260918searchfix" type="text/javascript"></script>
 	<script src="javascripts/ew-table-drag-scroll.js?v=20260909fix" type="text/javascript"></script>
-	<script src="javascripts/ew-pages-v2.js?v=20260918restore" type="text/javascript"></script>
+	<script src="javascripts/ew-pages-v2.js?v=20260921modalclose" type="text/javascript"></script>
 	<script src="javascripts/respond.js" type="text/javascript"></script>
 	<script src="javascripts/highcharts.js" type="text/javascript"></script>
 	<script src="javascripts/jSignature.js" type="text/javascript"></script>

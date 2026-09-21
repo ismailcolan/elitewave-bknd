@@ -2,6 +2,7 @@
 require_once ('include/connect.php');
 require_once ('include/function.php');
 require_once ('include/billing_functions.php');
+require_once ('include/transaction_list_query.php');
 $logged_id = $_SESSION['user_id'];
 ?>
 <!DOCTYPE html>
@@ -736,9 +737,10 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                         $pkg_r = mysqli_fetch_array($pkg_q);
                                         $trans_table_name = 'transaction_' . $m1 . '_' . $dt[2];
                                         $gcn_billed = booking_is_gcn_billed($conn, $trans_table_name, $row['transaction_id']);
+                                        $gcn_sno = (int) transaction_gcn_serial_no($row);
                                         ?>
                                         <tr>
-                                            <td class="text-center"><?php echo $i; ?></td>
+                                            <td class="text-center" data-order="<?php echo $gcn_sno; ?>"><?php echo $gcn_sno; ?></td>
                                             <td><span class="txn-gcn-no"><?php echo htmlspecialchars($row['grn_no']); ?></span></td>
                                             <td><span class="txn-pnr"><?php echo htmlspecialchars($row['tracking_code'] ?? ''); ?></span></td>
                                             <td><?php echo htmlspecialchars($row['grn_date']); ?></td>
@@ -964,12 +966,13 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                 sPaginationType: 'full_numbers',
                 iDisplayLength: 10,
                 aLengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'All']],
-                aaSorting: [[3, 'desc']],
+                aaSorting: [[0, 'desc']],
                 bAutoWidth: false,
                 bDestroy: true,
                 oSearch: { sSearch: '', bSmart: false, bRegex: false, bCaseInsensitive: true },
                 aoColumnDefs: [
                     { bSortable: false, aTargets: [9, 10] },
+                    { sType: 'numeric', aTargets: [0] },
                     { sClass: 'text-center', aTargets: [0, 4, 9] },
                     { sClass: 'col-consignor', aTargets: [5] },
                     { sClass: 'col-consignee', aTargets: [6] },

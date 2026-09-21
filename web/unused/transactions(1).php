@@ -640,13 +640,13 @@
                                                             ?>
 	                                                            <tr> 
                                                                     <td class="text-center"><?php echo $i; ?></td>
-	                                                                <td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg<?php echo $i; ?>" class="form-control num_only text-right" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+	                                                                <td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg<?php echo $i; ?>" class="form-control num_only text-right" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
 	                                                                <td id="typ_req"><select type="text" name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control" required> <?php echo $pkg_option; ?> </select></td>
 	                                                                <td id="inv_req"><input type="text" name="party_invoice[]" id="party_invoice<?php echo $i; ?>" class="form-control" onchange="party_invoice_details();" onkeyup="party_invoice_details();" autocomplete="off"></td>
 	                                                                <td><input type="text" name="content[]" id="content<?php echo $i; ?>" class="form-control" autocomplete="off"></td>
-	                                                                <td><input type="text" name="qty[]" id="qty<?php echo $i; ?>" class="form-control num_only text-right" autocomplete="off" inputmode="numeric" onpaste="return false;"></td>
-	                                                                <td><input type="text" name="gross[]" id="gross<?php echo $i; ?>" class="form-control  text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-	                                                                <td id="chrg_req"><input type="text" name="charged[]" id="charged<?php echo $i; ?>" class="form-control  text-right num_only charged_w" onkeyup="calculate_charge_weight();" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+	                                                                <td><input type="text" name="qty[]" id="qty<?php echo $i; ?>" class="form-control num_only text-right" autocomplete="off" inputmode="numeric" onpaste="return ewNumericPaste(event,this);"></td>
+	                                                                <td><input type="text" name="gross[]" id="gross<?php echo $i; ?>" class="form-control  text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
+	                                                                <td id="chrg_req"><input type="text" name="charged[]" id="charged<?php echo $i; ?>" class="form-control  text-right num_only charged_w" onkeyup="calculate_charge_weight();" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
 	                                                                <td><input type="hidden" name="cumulative_charged" id="cumulative_charged" class="form-control  text-right num_only" value=""></td>
 
 	                                                            </tr>
@@ -672,7 +672,7 @@
                                                             ?>
 	                                                            <tr>
                                                             <td class="text-center"><?php echo $j; ?></td>
-	                                                                <td><input type="text" name="no_of_pkg[]" value="<?php echo $invoice_row['no_of_pkge']; ?>" id="no_of_pkg<?php echo $j; ?>" class="form-control  text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+	                                                                <td><input type="text" name="no_of_pkg[]" value="<?php echo $invoice_row['no_of_pkge']; ?>" id="no_of_pkg<?php echo $j; ?>" class="form-control  text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
 <td>
     <select type="text" name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control" required>
         <option value="Select Package Type">Select Package Type</option>
@@ -688,9 +688,9 @@
 </td>
 <td id="inv_req"><input type="text" name="party_invoice[]" value="<?php echo $invoice_row['party_invoice_no']; ?>" id="party_invoice<?php echo $j; ?>" class="form-control" onchange="party_invoice_details();" onkeydown="party_invoice_details();" onkeyup="party_invoice_details();" autocomplete="off"></td>
 <td><input type="text" name="content[]" value="<?php echo $invoice_row['said_contents']; ?>" id="content<?php echo $j; ?>" class="form-control"></td>
-<td><input type="text" name="qty[]" value="<?php echo $invoice_row['qty']; ?>" id="qty<?php echo $j; ?>" class="form-control num_only text-right" autocomplete="off" onpaste="return false;"></td>
-<td><input type="text" name="gross[]" value="<?php echo $invoice_row['gross_weight']; ?>" id="gross<?php echo $j; ?>" class="form-control text-right num_only"  inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-<td class="chrg_req"><input type="text" name="charged[]" value="<?php echo $invoice_row['charged_weight']; ?>" id="charged<?php echo $j; ?>" class="form-control text-right num_only charged_w" onkeyup="calculate_charge_weight();"  inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+<td><input type="text" name="qty[]" value="<?php echo $invoice_row['qty']; ?>" id="qty<?php echo $j; ?>" class="form-control num_only text-right" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
+<td><input type="text" name="gross[]" value="<?php echo $invoice_row['gross_weight']; ?>" id="gross<?php echo $j; ?>" class="form-control text-right num_only"  inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
+<td class="chrg_req"><input type="text" name="charged[]" value="<?php echo $invoice_row['charged_weight']; ?>" id="charged<?php echo $j; ?>" class="form-control text-right num_only charged_w" onkeyup="calculate_charge_weight();"  inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
 <td><input type="text" name="cumulative_charged" id="cumulative_charged" class="form-control  text-right num_only" value="<?php echo $invoice_row['charged_weight']; ?>"></td>
 	                                                                
 	                                                            </tr>

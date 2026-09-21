@@ -20,6 +20,7 @@ include("./config.ini.php");
     <link rel="stylesheet" href="font-awesome-4.7.0/css/font-awesome.min.css">
     <!-- book consignment css and js finished here -->
     <script src="assets/plugins/jquery/jquery-1.11.3.min.js"></script>
+    <script src="assets/js/ew-numeric-paste.js?v=20260921"></script>
     <script src="assets/js/jquery.validate.min.js"></script>
     <script src="assets/js/modernizr.custom.js"></script>
 </head>
@@ -565,7 +566,7 @@ include("./config.ini.php");
                                                 </div>
                                                 <div class="form-group col-sm-6">
                                                     <label for="sender-contact-no" class="required-field">Contact No:</label>
-                                                    <input type="text" class="form-control" maxlength="10" pattern="\d*" name="sender-contact-no" id="sender-contact-no" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;">
+                                                    <input type="text" class="form-control" maxlength="10" pattern="\d*" name="sender-contact-no" id="sender-contact-no" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);">
                                                 </div>
                                                 <div class="form-group col-sm-6">
                                                     <label for="sender-email" class="required-field">Email</label>
@@ -620,7 +621,7 @@ include("./config.ini.php");
                                                 <div id="package-info1" class="package-info">
                                                     <div class="form-group col-sm-6">
                                                         <label for="" class="required-field">No Of Packages</label>
-                                                        <input type="text" class="form-control" name="no-of-package" id="no-of-package" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" required autocomplete="off">
+                                                        <input type="text" class="form-control" name="no-of-package" id="no-of-package" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" required autocomplete="off">
                                                     </div>
                                                     <div class="form-group col-sm-6">
                                                         <label for="" class="required-field">Type Of Package</label>
@@ -646,11 +647,11 @@ include("./config.ini.php");
                                                     </div>
                                                     <div class="form-group col-sm-6">
                                                         <label for="" class="required-field">Quantity </label>
-                                                        <input type="text" class="form-control" name="package-qty" id="package-qty" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" required autocomplete="off">
+                                                        <input type="text" class="form-control" name="package-qty" id="package-qty" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" required autocomplete="off">
                                                     </div>
                                                     <div class="form-group col-sm-6">
                                                         <label for="" class="required-field">Gross Wt.(Kgs)</label>
-                                                        <input type="text" class="form-control" name="package-gross-wgt" id="package-gross-wgt" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" required autocomplete="off">
+                                                        <input type="text" class="form-control" name="package-gross-wgt" id="package-gross-wgt" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" required autocomplete="off">
                                                     </div>
                                                     <div class="form-group col-sm-6 volumetric-info" id="ddd">
                                                         <label for=""><input type="checkbox" value="" id="volumetric-check-box"> &nbsp; Volumetric (in cm)</label>

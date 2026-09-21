@@ -134,7 +134,7 @@ function ew_panel_head($title) {
     box-shadow: inset -1px 0 0 rgba(255,255,255,.45);
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 12px 0 16px;
+    padding: 8px 0 16px;
   }
   .icon-rail::-webkit-scrollbar { width: 3px; }
   .icon-rail::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
@@ -839,12 +839,29 @@ function ew_panel_head($title) {
     try { localStorage.setItem('sidebar_module', moduleId); } catch (e) {}
   }
 
+  function syncHamburgerState() {
+    const sb = document.getElementById('sidebar');
+    if (!sb) return;
+    let open;
+    if (isMobileNav()) {
+      open = sb.classList.contains('mobile-open');
+    } else {
+      open = !sb.classList.contains('collapsed');
+    }
+    const hb = document.getElementById('hamburgerBtn');
+    if (!hb) return;
+    hb.classList.toggle('is-open', open);
+    hb.setAttribute('aria-expanded', open ? 'true' : 'false');
+    hb.title = open ? 'Close menu' : 'Open menu';
+  }
+
   function syncSidebarLayout() {
     const sb = document.getElementById('sidebar');
     const mc = document.querySelector('.main-content');
     const collapsed = !!(sb && sb.classList.contains('collapsed') && !isMobileNav());
     document.body.classList.toggle('sidebar-collapsed', collapsed);
     if (mc) mc.classList.toggle('collapsed', collapsed);
+    syncHamburgerState();
   }
 
   function closeMobileSidebar() {
@@ -869,6 +886,7 @@ function ew_panel_head($title) {
     sb.classList.toggle('collapsed');
     if (tb) tb.classList.toggle('collapsed');
     syncSidebarLayout();
+    syncHamburgerState();
     localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed') ? '1' : '0');
     window.dispatchEvent(new CustomEvent('sidebarToggled', { detail: { collapsed: sb.classList.contains('collapsed') } }));
   }

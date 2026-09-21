@@ -221,7 +221,7 @@ if ($is_edit) {
 
 									<div class="ew-field">
 										<label class="control-label">User Contact <span style="color:red;">*</span> :</label>
-										<input type="text" name="contact_no" id="contact_no" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($users_row['contact_no']); ?>" class="form-control" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return false;" autocomplete="off" required />
+										<input type="text" name="contact_no" id="contact_no" pattern="\d{10}" minlength="10" maxlength="10" value="<?php echo htmlspecialchars($users_row['contact_no']); ?>" class="form-control" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return ewNumericPaste(event,this);" autocomplete="off" required />
 									</div>
 
 									<div class="ew-field">

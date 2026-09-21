@@ -876,7 +876,7 @@ if ($booking_clients_json === false) {
 							$form_fully_locked = ($form_name === 'edit_consignment_details' && $gcn_billed);
 							$booking_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
 							$grn_date_val = !empty($row['grn_date']) ? $row['grn_date'] : date('d-m-Y');
-							$date_keypress_attr = 'onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"';
+							$date_keypress_attr = 'onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);"';
 							$grn_date_opts = array(
 								'id' => 'grn_date',
 								'name' => 'grn_date',
@@ -1273,7 +1273,7 @@ if ($booking_clients_json === false) {
 													?>
 														<tr class="pkg-data-row" data-row-index="<?php echo $i; ?>">
 															<td class="text-center pkg-sno"><?php echo $i; ?></td>
-															<td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['no_of_pkge'] ?? ''); ?>" class="form-control num_only text-right pkg-row-input" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+															<td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['no_of_pkge'] ?? ''); ?>" class="form-control num_only text-right pkg-row-input" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
 															<td id="typ_req">
 																<select name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control pkg-row-select"<?php echo ($i === 1) ? ' required' : ''; ?>>
 																	<option value="">Select Package Type</option>
@@ -1291,9 +1291,9 @@ if ($booking_clients_json === false) {
 																'end_date' => 'today',
 															)); ?></td>
 															<td><input type="text" name="content[]" id="content<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['said_contents'] ?? ''); ?>" class="form-control" autocomplete="off"></td>
-															<td><input type="text" name="qty[]" id="qty<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['qty'] ?? ''); ?>" class="form-control num_only text-right" autocomplete="off" inputmode="numeric" onpaste="return false;"></td>
-															<td><input type="text" name="gross[]" id="gross<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['gross_weight'] ?? ''); ?>" class="form-control text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
-															<td id="chrg_req"><input type="text" name="charged[]" id="charged<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['charged_weight'] ?? ''); ?>" class="form-control text-right num_only charged_w" onkeyup="calculate_charge_weight();" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>
+															<td><input type="text" name="qty[]" id="qty<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['qty'] ?? ''); ?>" class="form-control num_only text-right" autocomplete="off" inputmode="numeric" onpaste="return ewNumericPaste(event,this);"></td>
+															<td><input type="text" name="gross[]" id="gross<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['gross_weight'] ?? ''); ?>" class="form-control text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
+															<td id="chrg_req"><input type="text" name="charged[]" id="charged<?php echo $i; ?>" value="<?php echo htmlspecialchars($invoice_row['charged_weight'] ?? ''); ?>" class="form-control text-right num_only charged_w" onkeyup="calculate_charge_weight();" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>
 															<td class="text-center pkg-row-action"></td>
 														</tr>
 													<?php } ?>
@@ -1694,14 +1694,14 @@ if ($booking_clients_json === false) {
 		function buildPackageRowHtml(idx) {
 			return '<tr class="pkg-data-row" data-row-index="' + idx + '">' +
 				'<td class="text-center pkg-sno">' + idx + '</td>' +
-				'<td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg' + idx + '" class="form-control num_only text-right pkg-row-input" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>' +
+				'<td id="pkg_req"><input type="text" name="no_of_pkg[]" id="no_of_pkg' + idx + '" class="form-control num_only text-right pkg-row-input" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>' +
 				'<td id="typ_req"><select name="type_of_pkg[]" id="type_of_pkg' + idx + '" class="form-control pkg-row-select">' + window.PKG_OPTIONS_HTML + '</select></td>' +
 				'<td id="inv_req"><input type="text" name="party_invoice[]" id="party_invoice' + idx + '" class="form-control" onchange="party_invoice_details();" onkeyup="party_invoice_details();" autocomplete="off"></td>' +
 				'<td><div class="date-input-inside"><input type="text" id="party_invoice_date' + idx + '" name="party_invoice_date[]" class="form-control ew-date-field party-invoice-date" autocomplete="off" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" data-end-date="today"><i class="fa fa-calendar date-field-icon" aria-hidden="true"></i></div></td>' +
 				'<td><input type="text" name="content[]" id="content' + idx + '" class="form-control" autocomplete="off"></td>' +
-				'<td><input type="text" name="qty[]" id="qty' + idx + '" class="form-control num_only text-right" autocomplete="off" inputmode="numeric" onpaste="return false;"></td>' +
-				'<td><input type="text" name="gross[]" id="gross' + idx + '" class="form-control text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>' +
-				'<td id="chrg_req"><input type="text" name="charged[]" id="charged' + idx + '" class="form-control text-right num_only charged_w" onkeyup="calculate_charge_weight();" inputmode="numeric" autocomplete="off" onpaste="return false;"></td>' +
+				'<td><input type="text" name="qty[]" id="qty' + idx + '" class="form-control num_only text-right" autocomplete="off" inputmode="numeric" onpaste="return ewNumericPaste(event,this);"></td>' +
+				'<td><input type="text" name="gross[]" id="gross' + idx + '" class="form-control text-right num_only" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>' +
+				'<td id="chrg_req"><input type="text" name="charged[]" id="charged' + idx + '" class="form-control text-right num_only charged_w" onkeyup="calculate_charge_weight();" inputmode="numeric" autocomplete="off" onpaste="return ewNumericPaste(event,this);"></td>' +
 				'<td class="text-center pkg-row-action"></td>' +
 				'</tr>';
 		}
@@ -3446,7 +3446,7 @@ $("#consignee_branch_div").hide();
 				console.log("count", df_length);
 				//alert($dem_group);
 				if (df_length < 8) {
-					var fieldHTML = '<div class="form-group dimensions_col" id="dimensions_col' + $dem_group + '" data-dem-no="' + $dem_group + '"><div class="volumetric_width"> <input  type="text" placeholder="L" class="form-control num_only r_p length " id="length" name="length[]" onchange="vlm_calculation();" autocomplete="off" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;" /><span>X</span> </div><div class="volumetric_width"><input  type="text" placeholder="w" class="form-control num_only r_p width " id="width" name="width[]" onchange="vlm_calculation();" autocomplete="off" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"  /><span>X</span> </div><div class="volumetric_width"><input type="text" placeholder="H" class="form-control num_only r_p height" id="height" name="height[]" onchange="vlm_calculation();" autocomplete="off" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"  /><span>X</span></div><div class="volumetric_width"><input type="text" placeholder="Q" class="form-control num_only r_p quantity" id="quantity" name="quantity[]" onchange="vlm_calculation();" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return false;"  autocomplete="off" /><span>=</span></div><div class="volumetric_width"><input type="text" id="weight" value="" class="form-control num_only r_p weight" name="weight[]" readonly /></div><div class="volumetric_width"> <input type="text" class="form-control  r_p volume_weight num_only" id="volume_weight" name="volume_weight[]" /></div><div class="volumetric_width"><a href="javascript:void(0);" class="remove" id="' + $dem_group + '" title="Add field"><img src="icons/minus.png" class="dimen_img"/></a></div>'; //New input field html 
+					var fieldHTML = '<div class="form-group dimensions_col" id="dimensions_col' + $dem_group + '" data-dem-no="' + $dem_group + '"><div class="volumetric_width"> <input  type="text" placeholder="L" class="form-control num_only r_p length " id="length" name="length[]" onchange="vlm_calculation();" autocomplete="off" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);" /><span>X</span> </div><div class="volumetric_width"><input  type="text" placeholder="w" class="form-control num_only r_p width " id="width" name="width[]" onchange="vlm_calculation();" autocomplete="off" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);"  /><span>X</span> </div><div class="volumetric_width"><input type="text" placeholder="H" class="form-control num_only r_p height" id="height" name="height[]" onchange="vlm_calculation();" autocomplete="off" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);"  /><span>X</span></div><div class="volumetric_width"><input type="text" placeholder="Q" class="form-control num_only r_p quantity" id="quantity" name="quantity[]" onchange="vlm_calculation();" onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null : event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);"  autocomplete="off" /><span>=</span></div><div class="volumetric_width"><input type="text" id="weight" value="" class="form-control num_only r_p weight" name="weight[]" readonly /></div><div class="volumetric_width"> <input type="text" class="form-control  r_p volume_weight num_only" id="volume_weight" name="volume_weight[]" /></div><div class="volumetric_width"><a href="javascript:void(0);" class="remove" id="' + $dem_group + '" title="Add field"><img src="icons/minus.png" class="dimen_img"/></a></div>'; //New input field html 
 					//Check maximum text of input fields
 					$(wrapper).append(fieldHTML); //Add field html
 				}

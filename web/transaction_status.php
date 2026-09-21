@@ -1,6 +1,7 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+require_once ('include/transaction_list_query.php');
 $logged_id = $_SESSION['user_id'];
 ?>
 <!DOCTYPE html>
@@ -487,7 +488,7 @@ if ($delivery_type == 'partial') {
 }
                                             ?>
                                             <tr>
-                                                <td class="text-center" data-label="S.No"><?php echo $i; ?></td>
+                                                <td class="text-center" data-label="S.No" data-order="<?php echo (int) transaction_gcn_serial_no($row); ?>"><?php echo (int) transaction_gcn_serial_no($row); ?></td>
                                                 <td data-label="GCN No"><span class="txn-gcn-no"><?php echo htmlspecialchars($row['grn_no']); ?></span></td>
                                                 <td data-label="GCN Date"><?php echo htmlspecialchars($row['grn_date']); ?></td>
                                                 <td class="text-center" data-label="Pkgs"><?php echo (int) $pkg_r['pkge']; ?></td>
@@ -595,12 +596,13 @@ if ($delivery_type == 'partial') {
                 sPaginationType: 'full_numbers',
                 iDisplayLength: 10,
                 aLengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'All']],
-                aaSorting: [[2, 'desc']],
+                aaSorting: [[0, 'desc']],
                 bAutoWidth: false,
                 bDestroy: true,
                 oSearch: { sSearch: '', bSmart: false, bRegex: false, bCaseInsensitive: true },
                 aoColumnDefs: [
                     { bSortable: false, aTargets: [8] },
+                    { sType: 'numeric', aTargets: [0] },
                     { sClass: 'text-center', aTargets: [0, 3] },
                     { sClass: 'col-steps', aTargets: [8] }
                 ],
