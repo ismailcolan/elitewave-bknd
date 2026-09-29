@@ -262,6 +262,43 @@ if (isset($_COOKIE['persistID'])) {
     margin:0 auto 24px;
   }
 
+  .login-page-home{
+    position:fixed;
+    top:20px;
+    right:24px;
+    z-index:300;
+  }
+  .login-home-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    height:38px;
+    padding:0 14px;
+    border-radius:10px;
+    border:1.5px solid var(--line);
+    background:#fff;
+    color: var(--ink);
+    font-size:13px;
+    font-weight:600;
+    font-family:'Space Grotesk', sans-serif;
+    text-decoration:none !important;
+    box-shadow: 0 4px 16px rgba(11,20,55,0.06);
+    transition: border-color .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease;
+  }
+  .login-home-btn svg{
+    width:15px;
+    height:15px;
+    flex-shrink:0;
+    color: var(--red);
+  }
+  .login-home-btn:hover{
+    border-color: rgba(200,35,42,0.35);
+    background: rgba(200,35,42,0.04);
+    color: var(--red);
+    box-shadow: 0 6px 18px rgba(200,35,42,0.12);
+  }
+
   #login{ width:100%; }
   #login form{ width:100%; display:block; }
 
@@ -474,6 +511,11 @@ if (isset($_COOKIE['persistID'])) {
 
 <body translate="no" >
 
+  <a href="https://elitewave360.in/" class="login-home-btn login-page-home" target="_blank" rel="noopener noreferrer" title="Go to Elite Wave 360 website">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z"/></svg>
+    Home
+  </a>
+
   <div class="panel-visual">
     <div class="route-stage">
       <svg viewBox="0 0 700 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
@@ -558,7 +600,7 @@ if (isset($_COOKIE['persistID'])) {
             <a href="forgot_password.php" class="forgot-link">Forgot password?</a>
           </div>
           <div class="separator"></div>
-            <a href="https://elitewave360.in/" class="home-link">www.elitewave360.com</a>
+            <a href="https://elitewave360.in/" class="home-link">www.elitewave360.in</a>
           
         </form>
       </div>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Way Bill Part-B Integration — Manager Brief</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #0A1E3D;
+      --accent: #DD111E;
+      --text: #1A2332;
+      --muted: #6B7A8D;
+      --border: #D8DDE5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: #eef1f5;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .page { box-shadow: none; margin: 0; max-width: none; }
+    }
+    .toolbar {
+      max-width: 820px;
+      margin: 16px auto;
+      padding: 0 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .toolbar a, .toolbar button {
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--navy);
+    }
+    .toolbar .primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .page {
+      max-width: 820px;
+      margin: 0 auto 48px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(10,30,61,.08);
+      overflow: hidden;
+    }
+    .head {
+      background: linear-gradient(135deg, #0A1E3D, #06416F);
+      color: #fff;
+      padding: 28px 32px 24px;
+    }
+    .head .brand { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+    .head h1 { margin: 8px 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; line-height: 1.25; }
+    .head .sub { margin: 0; font-size: 13px; opacity: .9; max-width: 52ch; }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 24px;
+      padding: 14px 32px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .meta div b { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+    .body { padding: 24px 32px 32px; }
+    h2 {
+      margin: 22px 0 10px;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--navy);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    h2:first-child { margin-top: 0; }
+    p { margin: 0 0 10px; }
+    .lead {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--navy);
+      border-left: 4px solid var(--accent);
+      padding: 10px 14px;
+      background: #fef2f2;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 16px;
+    }
+    ul { margin: 0 0 12px; padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 10px 0 14px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 9px 11px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #dde7f0; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .decisions {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 12px 0;
+    }
+    .decisions ol { margin: 8px 0 0; padding-left: 20px; }
+    .footer {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    a { color: #06416F; }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar no-print">
+    <button type="button" class="primary" onclick="window.print()">Print / Save as PDF</button>
+    <a href="eway-partb-preview.html">Open UI preview</a>
+    <a href="dashboard.php">Back to app</a>
+  </div>
+
+  <article class="page">
+    <header class="head">
+      <div class="brand">Elite Wave 360 · Internal brief</div>
+      <h1>E-Way Bill Part-B integration — proposal for management</h1>
+      <p class="sub">Sync vehicle and hub movement from Elite Wave to the GST e-way bill portal, with audit trail and vehicle history.</p>
+    </header>
+
+    <div class="meta">
+      <div><b>Document</b>Manager memo (non-technical)</div>
+      <div><b>Date</b>21 September 2026</div>
+      <div><b>UI preview</b><a href="eway-partb-preview.html">eway-partb-preview.html</a></div>
+      <div><b>Sample GCN</b>EW360/0206 (live ERP data)</div>
+    </div>
+
+    <div class="body">
+      <p class="lead">
+        We propose connecting Elite Wave to the government e-way bill system so that when we assign or change a vehicle at a hub, the official e-way bill (Part-B) is updated—not only our internal “truck” field on the GCN.
+      </p>
+
+      <h2>Executive summary</h2>
+      <p>
+        Consignments already carry e-way bill numbers and expiry dates. Vehicles are often assigned later—or changed across hubs (transshipment). GST expects those movement details on the e-way bill. Today we enter data in Elite Wave but do not push updates to GST automatically. This project adds controlled Part-B updates, logging, and a vehicle history timeline for operations and compliance.
+      </p>
+
+      <h2>Problem today</h2>
+      <ul>
+        <li>E-way number is captured on booking; <strong>vehicle field is frequently empty</strong> until dispatch.</li>
+        <li>Hub-to-hub changes (new truck at Bangalore, Gurgaon, etc.) may not be reflected on the GST portal.</li>
+        <li>Staff may log in to the e-way portal manually—slow, error-prone, hard to audit.</li>
+        <li>Mismatch between ERP vehicle and GST e-way bill creates <strong>compliance and checkpoint risk</strong>.</li>
+      </ul>
+
+      <h2>Part-A vs Part-B (simple)</h2>
+      <table>
+        <thead>
+          <tr><th>Part</th><th>What it is</th><th>Elite Wave today</th><th>This project</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Part-A</strong></td>
+            <td>Invoice, parties, goods (e-way creation)</td>
+            <td>We store e-way no. from consignor</td>
+            <td>No change initially</td>
+          </tr>
+          <tr>
+            <td><strong>Part-B</strong></td>
+            <td>Vehicle, location, transport mode (movement)</td>
+            <td>We update <code>truck</code> in ERP only</td>
+            <td><strong>Push to GST API + history</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>What the NIC API document says</h2>
+      <p>
+        India’s e-way bill system (run by <strong>NIC — National Informatics Centre</strong>) publishes the technical spec for this feature.
+        Official page: <a href="https://docs.ewaybillgst.gov.in/apidocs/version1.01/vehicle-number-update.html" target="_blank" rel="noopener">Vehicle number update / Part-B (v1.01)</a>
+        (newer versions use the same idea; action name <strong>VEHEWB</strong>).
+      </p>
+      <p>In plain terms, that document defines:</p>
+      <ul>
+        <li><strong>When:</strong> Update movement on an existing e-way bill (new or changed vehicle, transshipment, first truck assignment).</li>
+        <li><strong>Who:</strong> The party that generated the e-way or the transporter assigned on the bill.</li>
+        <li><strong>Rules:</strong> Bill must be active and not expired; road needs vehicle; rail/air/ship need transport document no. and date.</li>
+        <li><strong>Reason codes:</strong> 1 Breakdown, 2 Transshipment, 3 Others, 4 First time.</li>
+        <li><strong>Success:</strong> GST returns update time and may refresh <strong>validity (validUpto)</strong>—we mirror that in ERP.</li>
+      </ul>
+      <p><em>Elite Wave’s Part-B preview and integration plan follow this NIC specification; live go-live requires company API registration and credentials.</em></p>
+
+      <h2>What we will build</h2>
+      <ul>
+        <li><strong>Part-B action</strong> on consignment / trip: user confirms vehicle, hub location, reason → system calls GST (API action VEHEWB).</li>
+        <li><strong>E-Way Bill integration service</strong> (backend)—not a single “button → API → done”; includes validation, auth, logging, ERP update.</li>
+        <li><strong>Vehicle history</strong> per GR: Consignment → E-Way → timeline (date, location, vehicle, action).</li>
+        <li><strong>Audit log</strong> of every attempt (success/failure, user, timestamp) for internal and GST-related review.</li>
+      </ul>
+      <p>
+        <strong>Preview (no live GST):</strong> Screens and flow using real booking <strong>EW360/0206</strong> are available for review before development spend on production API.
+      </p>
+
+      <h2>Business benefits</h2>
+      <ul>
+        <li>Align ERP vehicle with the <strong>official</strong> e-way bill.</li>
+        <li>Reduce manual portal work and data-entry mistakes.</li>
+        <li>Support <strong>hub-to-hub</strong> logistics with a clear vehicle chain.</li>
+        <li>Stronger audit trail for operations and compliance questions.</li>
+      </ul>
+
+      <h2>Phased rollout</h2>
+      <table>
+        <thead>
+          <tr><th>Phase</th><th>Deliverable</th><th>GST connection</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>UI preview + manager sign-off</td><td>None (mock)</td></tr>
+          <tr><td>2</td><td>API registration, sandbox credentials, test connection</td><td>Sandbox</td></tr>
+          <tr><td>3</td><td>Single-GCN Part-B push; update truck &amp; expiry; log</td><td>Sandbox → production</td></tr>
+          <tr><td>4</td><td>List, trip bulk, vehicle history in ERP</td><td>Production</td></tr>
+          <tr><td>5 (optional)</td><td>Generate e-way from invoice; status sync</td><td>Future</td></tr>
+        </tbody>
+      </table>
+      <p><em>Indicative timing after credentials: phases 2–3 about 2–4 weeks; phase 4 about 2–3 weeks (varies with GSP vs direct NIC).</em></p>
+
+      <h2>Decisions required from management</h2>
+      <div class="decisions">
+        <ol>
+          <li><strong>Integration path:</strong> Direct NIC API vs GST Suvidha Provider (GSP)—recommend GSP if faster support and onboarding are priorities.</li>
+          <li><strong>Account owner:</strong> Who registers the company on the e-way API portal and holds production credentials?</li>
+          <li><strong>Roles:</strong> Who in Elite Wave may push Part-B (e.g. admin only vs hub operators)?</li>
+          <li><strong>Process:</strong> Is Part-B push mandatory before dispatch / “in transit” from hub?</li>
+          <li><strong>Budget:</strong> GSP fees (if any), development, UAT, and staff training.</li>
+        </ol>
+      </div>
+
+      <h2>Risks and limitations</h2>
+      <ul>
+        <li>Cannot go live without approved API access and credentials.</li>
+        <li>Only the e-way generator or assigned transporter may update Part-B (GST rules)—product rules needed.</li>
+        <li>Some GCNs contain multiple e-way numbers in one field; process must define one update per bill.</li>
+        <li>Expired or cancelled e-way bills will be rejected by GST—UI must show clear errors.</li>
+      </ul>
+
+      <h2>Approval requested</h2>
+      <p>
+        Approve proceeding from <strong>preview (phase 1)</strong> to <strong>sandbox integration (phase 2)</strong>, nominate an owner for e-way API registration, and confirm GSP vs direct NIC preference.
+      </p>
+
+      <div class="footer">
+        Elite Wave 360 · E-Way Part-B manager brief · For internal use · Preview: <a href="https://elitewave360.in/web/eway-partb-preview.html">elitewave360.in/web/eway-partb-preview.html</a>
+      </div>
+    </div>
+  </article>
+
+</body>
+</html>

@@ -43,7 +43,9 @@ function sendAppMail($to_name, $to_mail, $subject, $msg)
 		// }
 		$mail->addAddress('info@elitewave360.in', 'Elite Wave 360');
 	} else {
-		// $mail->addAddress($to_mail, $to_name);     // Add a recipient
+		if (trim((string) $to_mail) !== '') {
+			$mail->addAddress(trim($to_mail), $to_name);
+		}
 		$mail->addCC('info@elitewave360.in', 'Elite Wave 360');
 	}
 
@@ -332,4 +334,101 @@ $mail->Debugoutput = 'html';
 	return 1;
 }
 
-//echo sendAttachments("Roselin","mailmeroselin3012@gmail.com",'test','transaction_pdf/4_2020_37transaction.pdf',array('images/5b6caecab1374lol.png'),'test','tst'); 
+//echo sendAttachments("Roselin","mailmeroselin3012@gmail.com",'test','transaction_pdf/4_2020_37transaction.pdf',array('images/5b6caecab1374lol.png'),'test','tst');
+
+/**
+ * Elite Wave branded HTML mail to customer with optional PDF attachment (quotations, etc.).
+ */
+function sendAppMailWithAttachment($to_name, $to_mail, $subject, $msg, $attachment_path = '', $attachment_name = '')
+{
+	$to_mail = trim((string) $to_mail);
+	if ($to_mail === '' || !filter_var($to_mail, FILTER_VALIDATE_EMAIL)) {
+		return array('ok' => false, 'error' => 'Invalid or missing recipient email.');
+	}
+
+	$mail = new PHPMailer;
+	$mail->isSMTP();
+	$mail->Host = 'smtpout.secureserver.net';
+	$mail->SMTPAuth = true;
+	$mail->Username = 'info@elitewave360.in';
+	$mail->Password = 'EliteWave@360#';
+	$mail->SMTPSecure = 'tls';
+	$mail->Port = 587;
+	$mail->From = 'info@elitewave360.in';
+	$mail->FromName = 'Elite Wave 360';
+	$mail->addAddress($to_mail, $to_name);
+	$mail->addCC('info@elitewave360.in', 'Elite Wave 360');
+
+	if ($attachment_path !== '' && is_file($attachment_path)) {
+		if ($attachment_name !== '') {
+			$mail->addAttachment($attachment_path, $attachment_name);
+		} else {
+			$mail->addAttachment($attachment_path);
+		}
+	}
+
+	$mail->isHTML(true);
+	$mail->Subject = $subject;
+	$mail->Body = '<body class="respond" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">    
+    <table border="0" width="100%" cellpadding="0" cellspacing="0" bgcolor="ffffff">
+    <tr>
+    <td align="center">
+    	<table border="0" align="center" width="590" cellpadding="0" cellspacing="0" class="container590">
+    		<tr>
+    			<td height="25" style="font-size: 25px; line-height: 25px;">&nbsp;</td> </tr>
+    		<tr>
+    			<td align="center">
+    				<table border="0" align="center" width="590" cellpadding="6" cellspacing="6" style="background-color: #fff;border: 10px solid #20409a;" class="container590">
+    					<tr>
+    						<td align="center" height="70" style="height:70px;background-color: #fff;">
+    							<a href="" style="display: block; border-style: none !important; border: 0 !important;"><img width="100" border="0" style="display: block; width: 75%;" src="https://elitewave360.in/web/images/elite-nav.png" alt="" /></a>
+    						</td>
+    					</tr>
+    		<tr>
+    			<td align="left">
+    				<table border="0" width="590" align="center" cellpadding="0" cellspacing="0" class="container590">
+    					<tr>
+    						<td align="left" style="color: #1a1a1a; font-size: 16px; font-family: Work Sans, Calibri, sans-serif; line-height: 24px;">
+    							<div style="line-height: 24px; color:#1a1a1a;">' . $msg . '</div>
+    						</td>
+    					</tr>
+    					<tr>
+    					<td style="padding-top:18px;">
+    							<table border="0" width="100%" align="left" cellpadding="0" cellspacing="0" style="border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; border-top:1px solid #e5e7eb;"
+    								class="container590">
+    								<tr>
+    									<td align="left" style="padding-top:14px; color: #1a1a1a; font-size: 14px; font-family: Work Sans, Calibri, sans-serif; line-height: 22px;"
+    										class="text_color">
+    										<div style="color: #1a1a1a; font-size: 14px; font-family: Work Sans, Calibri, sans-serif; mso-line-height-rule: exactly;">
+												<p style="margin:0 0 10px;color:#1a1a1a;">Thanks &amp; Regards,</p>
+												<p style="margin:0 0 8px;color:#1a1a1a;"><b>Mohammed Athar</b><br>
+												Director - Domestic &amp; International Marketing</p>
+												<p style="margin:0;color:#1a1a1a;line-height:22px;">Phone: +91-9840859711 | +91 9382307611<br>
+												E-mail: athar@elitewave360.in | info@elitewave360.in<br>
+												Website: https://www.elitewave360.in</p>
+											</div>
+    									</td>
+    								</tr>
+    							</table>
+    						</td>
+    					</tr>
+    				</table>
+    			</td>
+    		</tr>      
+    				</table>
+    			</td>
+    		</tr>
+    		<tr>
+    			<td height="25" style="font-size: 25px; line-height: 45px;">&nbsp;</td>
+    		</tr>
+    	</table>
+    </td>
+    </tr>
+    </table>
+    </body>';
+
+	if (!$mail->send()) {
+		return array('ok' => false, 'error' => $mail->ErrorInfo);
+	}
+	return array('ok' => true);
+}

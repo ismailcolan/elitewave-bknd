@@ -1810,8 +1810,10 @@ div.dataTables_wrapper .dataTables_filter {
   text-align: center;
 }
 
-#egcn_list_table .profit-positive { color: #15803d; font-weight: 700; }
-#egcn_list_table .profit-negative { color: #dc2626; font-weight: 700; }
+#egcn_list_table td.profit-positive,
+#egcn_list_table td.profit-positive .profit-value { color: #15803d !important; font-weight: 700; }
+#egcn_list_table td.profit-negative,
+#egcn_list_table td.profit-negative .profit-value { color: #dc2626 !important; font-weight: 700; }
 
 .egen-desc {
   display: inline-block;

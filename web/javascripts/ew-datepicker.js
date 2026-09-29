@@ -58,6 +58,10 @@
 		return opts;
 	}
 
+	function isMonthFormat($input) {
+		return ($input.attr('data-date-format') || '') === 'mm-yyyy';
+	}
+
 	function fixMonthPickerGrid($picker) {
 		if (!$picker || !$picker.length) {
 			return;
@@ -84,6 +88,9 @@
 	}
 
 	function refreshMonthPicker($input) {
+		if (!isMonthFormat($input)) {
+			return;
+		}
 		var dp = $input.data('datepicker');
 		if (!dp || !dp.picker) {
 			return;
@@ -91,8 +98,21 @@
 		fixMonthPickerGrid(dp.picker);
 	}
 
+	function bindDayPickerHandlers($input) {
+		if (isMonthFormat($input) || $input.data('ew-day-bound')) {
+			return;
+		}
+		$input.on('show.ewDayPicker', function() {
+			var dp = $input.data('datepicker');
+			if (dp && dp.picker) {
+				dp.picker.removeClass('ew-month-picker');
+			}
+		});
+		$input.data('ew-day-bound', true);
+	}
+
 	function bindMonthPickerHandlers($input) {
-		if (($input.attr('data-date-format') || '') !== 'mm-yyyy') {
+		if (!isMonthFormat($input)) {
 			return;
 		}
 		if ($input.data('ew-month-bound')) {
@@ -121,6 +141,7 @@
 			return;
 		}
 		bindMonthPickerHandlers($input);
+		bindDayPickerHandlers($input);
 		bindFutureDateHandlers($input);
 		if ($input.data('datepicker')) {
 			return;
@@ -206,10 +227,13 @@
 			initOne($input);
 		}
 		bindMonthPickerHandlers($input);
+		bindDayPickerHandlers($input);
 		$input.datepicker('show');
-		window.setTimeout(function() {
-			refreshMonthPicker($input);
-		}, 0);
+		if (isMonthFormat($input)) {
+			window.setTimeout(function() {
+				refreshMonthPicker($input);
+			}, 0);
+		}
 	});
 
 	$(function() {

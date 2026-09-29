@@ -48,21 +48,20 @@ $bank_rows = ew_company_bank_options($conn);
 
 		.ew-form-grid--general .type-add-wrap .btn-add-inline,
 		.ew-form-grid--general .bank-link-wrap .btn-add-inline {
-			height: 40px;
+			height: 34px;
 			padding: 0 12px;
 			white-space: nowrap;
 			flex: 0 0 auto;
 		}
 
 		#expense_no_display,
-		#net_payable_display,
 		.bank-readonly {
 			font-weight: 600;
 		}
 
-		#net_payable_display {
-			font-size: 16px;
-			text-align: right;
+		.ew-page-v2 .ew-field input.form-control,
+		.ew-page-v2 .ew-field select.form-control {
+			height: 34px;
 		}
 
 		.ew-form-grid--bank-inline {
@@ -85,25 +84,41 @@ $bank_rows = ew_company_bank_options($conn);
 
 		.ew-form-footer.egen-form-footer {
 			justify-content: space-between;
-			align-items: flex-end;
+			align-items: center;
+			gap: 16px;
 		}
 
 		.egen-net-payable {
-			min-width: 220px;
-			max-width: 280px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			flex: 0 0 auto;
 		}
 
 		.egen-net-payable label {
-			display: block;
-			margin: 0 0 6px;
-			font-size: 13px;
+			margin: 0;
+			font-size: 12px;
 			font-weight: 600;
+			color: var(--ew-text-muted, #6B7A8D);
+			white-space: nowrap;
+		}
+
+		#net_payable_display {
+			width: 128px;
+			height: 34px;
+			padding: 0 12px;
+			font-size: 13px;
+			font-weight: 700;
+			text-align: right;
+			box-sizing: border-box;
 		}
 
 		.egen-form-footer-actions {
 			display: flex;
-			gap: 12px;
+			align-items: center;
+			gap: 8px;
 			flex-wrap: wrap;
+			margin-left: auto;
 		}
 
 		.field-disabled {
@@ -122,6 +137,18 @@ $bank_rows = ew_company_bank_options($conn);
 
 			.egen-form-footer-actions {
 				justify-content: flex-end;
+				margin-left: 0;
+				width: 100%;
+			}
+
+			.egen-net-payable {
+				width: 100%;
+				justify-content: space-between;
+			}
+
+			#net_payable_display {
+				flex: 1;
+				max-width: 200px;
 			}
 		}
 	</style>

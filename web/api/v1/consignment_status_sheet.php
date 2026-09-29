@@ -81,7 +81,8 @@ if ($action == 'get_grn' && $method == 'GET') {
             $trans_table = "transaction_" . $table_name;
             $invoice_table = "transaction_invoice_" . $table_name;
 
-            $query = "SELECT * FROM $trans_table WHERE grn_no='$grn_no' AND booking_status = '' LIMIT 1";
+            $query = "SELECT * FROM $trans_table WHERE grn_no='$grn_no'"
+                . " AND (booking_status IS NULL OR booking_status = '' OR booking_status = '0') LIMIT 1";
             $result = mysqli_query($conn, $query);
 
             if ($result && mysqli_num_rows($result) > 0) {
@@ -147,7 +148,9 @@ if ($action == 'get_grn' && $method == 'GET') {
         $invoice_table = 'transaction_invoice_' . $table_name;
 
         // Note: Using error suppression to prevent API break if a table doesn't exist yet
-        $query = "SELECT * FROM $trans_table WHERE status = '$filter_status' AND booking_status = '' ORDER BY grn_date DESC, grn_no DESC";
+        $query = "SELECT * FROM $trans_table WHERE status = '$filter_status'"
+            . " AND (booking_status IS NULL OR booking_status = '' OR booking_status = '0')"
+            . " ORDER BY grn_date DESC, grn_no DESC";
         $result = @mysqli_query($conn, $query);
 
         if (!$result) {

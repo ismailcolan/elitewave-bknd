@@ -119,19 +119,23 @@
 }
 
 .ew-page-v2 .ew-btn-v2 {
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 8px;
-  font-size: 13px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 600;
   font-family: inherit;
+  line-height: 1;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
   border: 1px solid transparent;
   text-decoration: none;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .ew-page-v2 .ew-btn-v2-primary {
@@ -288,7 +292,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 24px;
+  padding: 12px 24px 22px;
   border-top: 1px solid var(--ew-border-light, #E9ECF0);
   flex-wrap: wrap;
 }
@@ -320,15 +324,6 @@
 .ew-erp-list .ew-toolbar-right {
   flex: 0 0 auto;
   margin-left: auto;
-}
-
-.ew-erp-list .ew-card-toolbar .ew-btn-v2 {
-  height: 32px;
-  min-height: 32px;
-  padding: 0 12px;
-  font-size: 13px;
-  line-height: 1;
-  border-radius: 6px;
 }
 
 .ew-erp-list .ew-list-toolbar__tools {
@@ -549,6 +544,27 @@
 /* Form grid */
 .ew-page-v2 .ew-form-body { padding: 8px 24px 24px; }
 
+/* Breathing room before card bottom border */
+.ew-page-v2 .ew-card > .ew-form-body:last-child {
+  padding-bottom: 36px;
+}
+
+.ew-page-v2 .ew-card > .ew-form-body:has(+ .ew-form-footer) {
+  padding-bottom: 20px;
+}
+
+.ew-page-v2 .ew-card > .ew-form-footer:last-child {
+  padding: 14px 24px 22px;
+}
+
+.ew-page-v2 .ew-card > .ew-table-wrap {
+  padding: 12px 20px 20px;
+}
+
+.ew-page-v2 .ew-card > .ew-table-wrap + .ew-table-footer {
+  margin-top: 0;
+}
+
 .ew-page-v2 .ew-form-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -618,6 +634,7 @@
   border: 1px solid var(--ew-border, #D8DDE5);
   font-size: 13px;
   box-shadow: none;
+  box-sizing: border-box;
 }
 
 .ew-page-v2 .ew-field textarea.form-control {
@@ -647,16 +664,16 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   margin: 0 !important;
-  padding: 16px 24px;
+  padding: 14px 24px 22px;
   border-top: 1px solid var(--ew-border-light, #E9ECF0);
   background: #FAFBFC;
   flex-wrap: wrap;
 }
 
 .ew-page-v2 .ew-form-footer .ew-btn-v2 {
-  min-width: 110px;
+  min-width: 84px;
   justify-content: center;
   margin: 0 !important;
   flex-shrink: 0;
@@ -708,7 +725,7 @@
 }
 
 .ew-page-v2.ew-page-v2--wide-table .ew-card.ew-erp-list .ew-table-wrap {
-  padding: 12px 16px 0;
+  padding: 12px 16px 16px;
 }
 
 .ew-page-v2 .ew-table-wrap table.expense_type_tab,
@@ -972,23 +989,188 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 }
 
 .ew-page-v2--consignment .party-split {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.ew-page-v2--consignment .party-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0;
   border: 1px solid var(--ew-border, #D8DDE5);
   border-radius: 12px;
   background: #fff;
-  padding: 14px 14px 16px;
+  padding: 14px 16px 16px;
+}
+
+/* Compact party block: equal 50/50 columns, branches stack under each party */
+.ew-page-v2--consignment .party-split--compact {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
+  padding: 10px 12px 22px;
+}
+
+.ew-page-v2--consignment .party-split--compact .party-card {
+  flex: 1 1 50%;
+  max-width: 50%;
   min-width: 0;
+  gap: 8px;
+}
+
+.ew-page-v2--consignment .party-split--compact .party-card--consignor {
+  padding-right: 12px;
+  border-right: 1px solid #e8ecf1;
+}
+
+.ew-page-v2--consignment .party-split--compact .party-card--consignee {
+  padding-left: 12px;
+}
+
+.ew-page-v2--consignment .party-split--compact .party-branch-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.ew-page-v2--consignment .party-split--compact .party-branch-pair .ew-field {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .ew-page-v2--consignment .party-split--compact {
+    flex-direction: column;
+  }
+
+  .ew-page-v2--consignment .party-split--compact .party-card {
+    flex: 1 1 auto;
+    max-width: 100%;
+  }
+
+  .ew-page-v2--consignment .party-split--compact .party-card--consignor {
+    padding-right: 0;
+    border-right: none;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e8ecf1;
+  }
+
+  .ew-page-v2--consignment .party-split--compact .party-card--consignee {
+    padding-left: 0;
+    padding-top: 10px;
+  }
+
+  .ew-page-v2--consignment .party-split--compact .party-branch-pair .ew-field {
+    flex: 1 1 100%;
+  }
+}
+
+.ew-page-v2--consignment .party-split--compact .ew-field > .control-label {
+  font-size: 12px !important;
+  margin-bottom: 3px !important;
+  line-height: 1.25;
+}
+
+.ew-page-v2--consignment .party-split--compact .form-control,
+.ew-page-v2--consignment .party-split--compact select.party-select {
+  height: 34px;
+  min-height: 34px;
+  font-size: 12px;
+  padding: 4px 30px 4px 10px;
+}
+
+.ew-page-v2--consignment .party-split--compact .select2-container .select2-choice {
+  height: 34px !important;
+  min-height: 34px !important;
+  line-height: 32px !important;
+  font-size: 12px !important;
+  padding-left: 10px !important;
+}
+
+.ew-page-v2--consignment .party-split--compact .select2-container .select2-chosen {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding-right: 26px;
+  line-height: 32px !important;
+}
+
+.ew-page-v2--consignment .party-section-hint {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+.ew-page-v2--consignment .ew-vehicle-type-block .ew-vehicle-dims-below {
+  margin-top: 8px;
+}
+
+.ew-page-v2--consignment .ew-vehicle-type-block .ew-vehicle-dims-below > .control-label {
+  margin-bottom: 4px !important;
+}
+
+.ew-page-v2--consignment #vehicle_type_dims_display[disabled] {
+  background: #f4f6f9;
+  cursor: default;
+}
+
+.ew-page-v2--consignment .party-card {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ew-page-v2--consignment .party-card--consignor {
+  padding-right: 16px;
+  border-right: 1px solid #e8ecf1;
+}
+
+.ew-page-v2--consignment .party-card--consignee {
+  padding-left: 16px;
+}
+
+.ew-page-v2--consignment .party-card .ew-field {
+  margin: 0;
+  width: 100%;
+}
+
+.ew-page-v2--consignment .party-card-meta--hidden,
+.ew-page-v2--consignment #con_details,
+.ew-page-v2--consignment #con_details1 {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  clip: rect(0, 0, 0, 0);
+  position: absolute;
+  width: 1px;
 }
 
 .ew-page-v2--consignment .party-card > .ew-field + .ew-field,
 .ew-page-v2--consignment .party-card > .ew-field + .party-card-meta {
-  margin-top: 12px;
+  margin-top: 0;
+}
+
+.ew-page-v2--consignment .party-card .consignor_name_val,
+.ew-page-v2--consignment .party-card .consignee_name_val {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+  overflow: hidden;
+}
+
+.ew-page-v2--consignment .party-card .ew-field > .control-label {
+  min-height: auto;
+  line-height: 1.35;
+  margin-bottom: 6px !important;
 }
 
 .ew-page-v2--consignment .party-card-meta-row {
@@ -1039,7 +1221,23 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 }
 
 @media (max-width: 900px) {
-  .ew-page-v2--consignment .party-split,
+  .ew-page-v2--consignment .party-split {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .ew-page-v2--consignment .party-card--consignor {
+    padding-right: 0;
+    border-right: none;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e8ecf1;
+  }
+
+  .ew-page-v2--consignment .party-card--consignee {
+    padding-left: 0;
+    padding-top: 12px;
+  }
+
   .ew-page-v2--consignment .party-card-meta-row {
     grid-template-columns: 1fr;
   }
@@ -1127,7 +1325,7 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 
 .ew-page-v2--consignment .booking-split-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
   gap: 14px;
   align-items: start;
   margin: 0;
@@ -1191,6 +1389,75 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 .ew-page-v2--consignment .payment-charges-table > tbody > tr:last-child > td,
 .ew-page-v2--consignment .gst-breakup-table > tbody > tr:last-child > td {
   border-bottom: none !important;
+}
+
+.ew-page-v2--consignment .payment-charges-table,
+.ew-page-v2--consignment .gst-breakup-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.ew-page-v2--consignment .payment-charges-table > thead > tr > th:first-child,
+.ew-page-v2--consignment .payment-charges-table > tbody > tr > td:first-child,
+.ew-page-v2--consignment .gst-breakup-table > thead > tr > th:first-child,
+.ew-page-v2--consignment .gst-breakup-table > tbody > tr > td:first-child {
+  text-align: left !important;
+  vertical-align: middle;
+  padding-left: 10px !important;
+  width: auto;
+}
+
+.ew-page-v2--consignment .payment-charges-table > thead > tr > th:nth-child(2),
+.ew-page-v2--consignment .payment-charges-table > tbody > tr > td:nth-child(2),
+.ew-page-v2--consignment .gst-breakup-table > thead > tr > th:nth-child(2),
+.ew-page-v2--consignment .gst-breakup-table > tbody > tr > td:nth-child(2) {
+  width: 84px;
+  max-width: 84px;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
+.ew-page-v2--consignment .payment-charges-table > thead > tr > th:nth-child(3),
+.ew-page-v2--consignment .payment-charges-table > tbody > tr > td.amt-col,
+.ew-page-v2--consignment .gst-breakup-table > thead > tr > th:nth-child(3),
+.ew-page-v2--consignment .gst-breakup-table > tbody > tr > td:last-child {
+  width: 112px;
+  max-width: 112px;
+  padding-left: 6px !important;
+  padding-right: 8px !important;
+}
+
+.ew-page-v2--consignment .payment-charges-table td.amt-col,
+.ew-page-v2--consignment .payment-charges-table th.text-right,
+.ew-page-v2--consignment .gst-breakup-table th.text-right,
+.ew-page-v2--consignment .gst-breakup-table td.text-right,
+.ew-page-v2--consignment .gst-breakup-table td.amt-col {
+  text-align: right !important;
+}
+
+.ew-page-v2--consignment .payment-charges-table td.amt-col .form-control,
+.ew-page-v2--consignment .payment-charges-table td:nth-child(2) .form-control {
+  text-align: right !important;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.ew-page-v2--consignment .payment-charges-table .freight-manual-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.ew-page-v2--consignment .payment-charges-table .freight-manual-toggle input {
+  margin: 0;
 }
 
 .ew-page-v2--consignment .pak_info_tblee .table.tabs > thead > tr > th.pkg-action-col,
@@ -1297,7 +1564,7 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 }
 
 .txn-page-wrap .txn-datatable-area {
-  padding: 12px 16px 0;
+  padding: 12px 16px 16px;
   border-top: 1px solid var(--ew-border-light, #E9ECF0);
 }
 
@@ -1582,6 +1849,10 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   width: 100%;
 }
 
+.ew-page-v2--invoice > .ew-card + .ew-card {
+  margin-top: 16px;
+}
+
 .ew-page-v2--invoice .ew-form-grid--invoice {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px 16px;
@@ -1592,18 +1863,24 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   align-self: end;
 }
 
+.ew-page-v2--invoice .ew-field input.form-control,
+.ew-page-v2--invoice .ew-field select.form-control {
+  height: 34px;
+}
+
 .ew-page-v2--invoice .ew-invoice-no-display {
   display: flex;
   align-items: center;
-  min-height: 40px;
-  padding: 0 14px;
-  font-size: 14px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ew-navy, #0A1E3D);
   background: #F4F7FB;
   border: 1px solid var(--ew-border, #D8DDE5);
   border-radius: 8px;
-  letter-spacing: .03em;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .ew-page-v2--invoice .ew-field--invoice-actions {
@@ -1645,8 +1922,8 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 }
 
 .ew-page-v2--invoice .select2-container .select2-choice {
-  height: 40px;
-  line-height: 38px;
+  height: 34px;
+  line-height: 32px;
   border-radius: 8px;
   border-color: var(--ew-border, #D8DDE5);
   background: #fff;
@@ -1660,7 +1937,7 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 }
 
 .ew-page-v2--invoice .select2-container-multi .select2-choices {
-  min-height: 40px;
+  min-height: 34px;
   border-radius: 8px;
   border-color: var(--ew-border, #D8DDE5);
   background: #fff;
@@ -1697,7 +1974,7 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 }
 
 .ew-page-v2--invoice .ew-invoice-lines-card .ew-invoice-table-wrap {
-  padding: 0 24px 8px;
+  padding: 0 24px 20px;
 }
 
 .ew-page-v2--invoice .ew-invoice-table-scroll {
@@ -1893,6 +2170,11 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 .ew-page-v2--mis-report .ew-mis-filter-shell {
   display: flex;
   flex-direction: column;
+  padding-bottom: 4px;
+}
+
+.ew-page-v2--mis-report .ew-card > .ew-form-body:last-child {
+  padding-bottom: 40px;
 }
 
 .ew-page-v2--mis-report .ew-mis-filter-footer {
@@ -1901,15 +2183,14 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
-  padding-top: 18px;
-  margin-top: 4px;
+  padding: 20px 0 0;
+  margin: 8px 0 12px;
   border-top: 1px solid var(--ew-border-light, #E9ECF0);
 }
 
 .ew-page-v2--mis-report .ew-mis-filter-footer .ew-btn-v2 {
-  min-width: 132px;
+  min-width: 96px;
   justify-content: center;
-  height: 40px;
   margin: 0;
 }
 
@@ -1924,7 +2205,8 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 
 .ew-page-v2--mis-report .ew-mis-empty-hint {
   text-align: center;
-  padding: 28px 16px;
+  padding: 36px 24px 44px;
+  margin: 0;
   color: var(--ew-text-muted, #6B7A8D);
   font-size: 14px;
 }
@@ -1963,8 +2245,16 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   background: transparent;
 }
 
-.ew-page-v2--mis-report .ew-card.ew-erp-list .ew-table-wrap:not(:has(table)) {
-  padding: 8px 24px 24px;
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap {
+  padding: 16px 24px 32px;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper:not(:has(table)),
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll:not(:has(table)) {
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ew-page-v2--mis-report #payment_report_table .num {
@@ -2185,4 +2475,217 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   .ew-page-v2--mapping .ew-mapping-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Attachment upload panel (shared with transactions.php) */
+.ew-page-v2 .booking-panel.upload-panel {
+  background: #fff;
+  border: 1px solid var(--ew-border-light, #E9ECF0);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.ew-page-v2 .booking-panel-title {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ew-navy, #0A1E3D);
+}
+.ew-page-v2 .booking-panel-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--ew-muted, #6B7A8D);
+  line-height: 1.4;
+}
+.ew-page-v2 .upload-dropzone {
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  background: #fafafa;
+  padding: 14px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.ew-page-v2 .upload-dropzone:hover,
+.ew-page-v2 .upload-dropzone.is-dragover {
+  border-color: #94a3b8;
+  background: #f4f4f5;
+}
+.ew-page-v2 .upload-dropzone-inner i {
+  font-size: 22px;
+  color: #64748b;
+  display: block;
+  margin-bottom: 6px;
+}
+.ew-page-v2 .upload-dropzone-inner span {
+  display: block;
+  font-size: 12px;
+  color: #475569;
+}
+.ew-page-v2 .upload-dropzone-inner small {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  color: #94a3b8;
+}
+.ew-page-v2 .upload-preview-list { margin-top: 8px; }
+.ew-page-v2 .upload-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  margin-bottom: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+}
+.ew-page-v2 .upload-item-preview {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ew-page-v2 .upload-item-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ew-page-v2 .upload-item-preview img.doc-placeholder {
+  object-fit: contain;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+}
+.ew-page-v2 .upload-item-body { flex: 1; min-width: 0; }
+.ew-page-v2 .upload-item-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ew-page-v2 .upload-item-sub {
+  display: block;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+.ew-page-v2 .upload-item-remove {
+  color: #dc2626 !important;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.ew-page-v2 .upload-add-btn { margin-top: 6px; font-size: 12px; padding: 4px 10px; }
+.ew-page-v2 .upload-file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+/* Receipt — same shell as tax invoice / credit note (ew-page-v2--invoice) */
+.ew-page-v2--invoice .ew-receipt-form-block {
+  display: none;
+}
+
+.ew-page-v2--invoice .ew-receipt-form-block.active {
+  display: block;
+}
+
+.ew-page-v2--invoice .ew-receipt-form-block .ew-form-grid--invoice {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ew-border-light, #E9ECF0);
+}
+
+.ew-page-v2--invoice .ew-field--spacer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.ew-page-v2--invoice .ew-receipt-attach-card .booking-panel.upload-panel {
+  border: none;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ew-page-v2--invoice .ew-receipt-attach-body {
+  padding-top: 12px;
+}
+
+.ew-page-v2--invoice.ew-receipt-view-only input,
+.ew-page-v2--invoice.ew-receipt-view-only select,
+.ew-page-v2--invoice.ew-receipt-view-only textarea {
+  pointer-events: none;
+  background: #f4f6f9;
+}
+
+.ew-page-v2--invoice #alloc_table {
+  font-size: 12px;
+  margin-bottom: 0;
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 960px;
+}
+
+.ew-page-v2--invoice #alloc_table th {
+  background: var(--rail-bg, #DDE7F0) !important;
+  color: var(--ew-text, #1A2332) !important;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 10px 8px;
+  border: none !important;
+  border-bottom: 2px solid var(--panel-border, #C5D3E0) !important;
+}
+
+.ew-page-v2--invoice #alloc_table td {
+  vertical-align: middle;
+  white-space: nowrap;
+  padding: 8px;
+  border: none !important;
+  border-bottom: 1px solid var(--ew-border-light, #E9ECF0) !important;
+  background: #fff;
+}
+
+.ew-page-v2--invoice #alloc_table tbody tr:nth-child(even):not(.ew-receipt-alloc-empty) td {
+  background: #FAFBFC;
+}
+
+.ew-page-v2--invoice #alloc_table tfoot td {
+  background: #F4F7FB;
+  font-weight: 700;
+  border: none !important;
+  border-top: 2px solid var(--panel-border, #C5D3E0) !important;
+}
+
+.ew-page-v2--invoice #alloc_table .num {
+  text-align: right;
+}
+
+.ew-page-v2--invoice #alloc_table .num input.form-control {
+  max-width: 108px;
+  margin-left: auto;
+  text-align: right;
+  height: 34px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.ew-page-v2--invoice #alloc_table .ew-receipt-alloc-empty td {
+  text-align: center;
+  color: var(--ew-text-muted, #6B7A8D);
+  font-size: 13px;
+  padding: 24px 16px;
+  background: #FAFBFC !important;
+  white-space: normal;
 }

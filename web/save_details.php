@@ -1197,8 +1197,9 @@ if ($form_name == 'inacv_user') {
 if ($form_name == 'add_consignment') {
     $consignment = $_POST['consignment'];
     $description = $_POST['description'];
-    $query = "insert into consignment_mode(consignment_mode,description,created_at,created_by,status)values
-\t\t('" . $consignment . "','" . $description . "','" . $created_at . "','" . $created_by . "','0')";
+    $mode_of_pay = isset($_POST['mode_type']) ? $_POST['mode_type'] : '';
+    $query = "insert into consignment_mode(consignment_mode,description,mode_of_pay,created_at,created_by,status)values
+\t\t('" . $consignment . "','" . $description . "','" . $mode_of_pay . "','" . $created_at . "','" . $created_by . "','0')";
     $result = mysqli_query($conn, $query);
     if ($result)
         echo 1;
@@ -1209,7 +1210,8 @@ if ($form_name == 'edit_consignment') {
     $edit_id = $_POST['edit_id'];
     $consignment = $_POST['consignment'];
     $description = $_POST['description'];
-    $query = "update consignment_mode set consignment_mode='" . $consignment . "',description='" . $description . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where consignment_id='" . $edit_id . "'";
+    $mode_of_pay = isset($_POST['mode_type']) ? $_POST['mode_type'] : '';
+    $query = "update consignment_mode set consignment_mode='" . $consignment . "',description='" . $description . "',mode_of_pay='" . $mode_of_pay . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where consignment_id='" . $edit_id . "'";
     $result = mysqli_query($conn, $query);
     if ($result)
         echo 1;
@@ -1219,9 +1221,9 @@ if ($form_name == 'edit_consignment') {
 if ($form_name == 'del_consignment') {
     $tbl_id = $_POST['tbl_id'];
 
-    $branch_query = "select * from transaction where mode_of_transportation='" . $id . "'";
+    $branch_query = "select * from transaction where mode_of_consignment='" . $tbl_id . "'";
     $branch_result = mysqli_query($conn, $branch_query);
-    $count += mysqli_num_rows($branch_result);
+    $count = mysqli_num_rows($branch_result);
     if ($count == 0) {
         $query = "delete  from consignment_mode where consignment_id='" . $tbl_id . "'";
         $result = mysqli_query($conn, $query);
@@ -1376,7 +1378,7 @@ if ($form_name == 'delete_company_bank') {
     exit;
 }
 
-// logistics vendor master — add vendor type
+// logistics vendor master — vendor type CRUD
 if ($form_name == 'add_vendor_type') {
     require_once __DIR__ . '/include/vendor_master_helpers.php';
     ew_vendor_ensure_table($conn);
@@ -1384,6 +1386,96 @@ if ($form_name == 'add_vendor_type') {
     $result = ew_vendor_add_type($conn, $type_name, $created_by);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($result);
+    exit;
+}
+if ($form_name == 'edit_vendor_type') {
+    require_once __DIR__ . '/include/vendor_master_helpers.php';
+    ew_vendor_ensure_table($conn);
+    $vendor_type_id = (int) ($_POST['vendor_type_id'] ?? 0);
+    $type_name = trim($_POST['type_name'] ?? '');
+    $result = ew_vendor_update_type($conn, $vendor_type_id, $type_name, $created_by);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($result);
+    exit;
+}
+if ($form_name == 'delete_vendor_type') {
+    require_once __DIR__ . '/include/vendor_master_helpers.php';
+    ew_vendor_ensure_table($conn);
+    $vendor_type_id = (int) ($_POST['vendor_type_id'] ?? 0);
+    $result = ew_vendor_delete_type($conn, $vendor_type_id);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($result);
+    exit;
+}
+
+// vehicle type master
+if ($form_name == 'add_vehicle_type') {
+    require_once __DIR__ . '/include/vehicle_type_helpers.php';
+    $edit_key = trim($_POST['edit_id'] ?? '');
+    $result = ew_vehicle_type_save($conn, $_POST, $edit_key, $created_by);
+    echo !empty($result['ok']) ? 1 : ($result['message'] ?? 0);
+    exit;
+}
+if ($form_name == 'inacv_vehicle_type') {
+    require_once __DIR__ . '/include/vehicle_type_helpers.php';
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $status = (int) ($_POST['status'] ?? 0);
+    $ok = ew_vehicle_type_set_status($conn, $id, $status, $created_by);
+    echo $ok ? 1 : 0;
+    exit;
+}
+if ($form_name == 'delete_vehicle_type') {
+    require_once __DIR__ . '/include/vehicle_type_helpers.php';
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $result = ew_vehicle_type_delete($conn, $id);
+    echo !empty($result['ok']) ? 1 : ($result['message'] ?? 'Delete failed.');
+    exit;
+}
+
+// rate quotation (door-to-door)
+if ($form_name == 'save_rate_quotation') {
+    require_once __DIR__ . '/include/ew_quotation_module_flag.php';
+    if (!ew_quotation_module_enabled()) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(array('ok' => false, 'message' => 'Rate Quotation module is not enabled.'));
+        exit;
+    }
+    require_once __DIR__ . '/include/quotation_functions.php';
+    $action = trim($_POST['quotation_action'] ?? 'save_draft');
+    if ($action === '') {
+        $action = 'save_draft';
+    }
+    $result = quotation_save($conn, $_POST, $created_by, $action);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($result);
+    exit;
+}
+if ($form_name == 'rate_quotation_workflow') {
+    require_once __DIR__ . '/include/ew_quotation_module_flag.php';
+    if (!ew_quotation_module_enabled()) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(array('ok' => false, 'message' => 'Rate Quotation module is not enabled.'));
+        exit;
+    }
+    require_once __DIR__ . '/include/quotation_functions.php';
+    $qid = (int) ($_POST['quotation_id'] ?? 0);
+    $existing = quotation_get($conn, $qid);
+    $action = trim($_POST['workflow_action'] ?? '');
+    $result = quotation_workflow($conn, $existing, $action, $_POST, $created_by);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($result);
+    exit;
+}
+if ($form_name == 'delete_rate_quotation') {
+    require_once __DIR__ . '/include/ew_quotation_module_flag.php';
+    if (!ew_quotation_module_enabled()) {
+        echo 'Rate Quotation module is not enabled.';
+        exit;
+    }
+    require_once __DIR__ . '/include/quotation_functions.php';
+    $qid = (int) ($_POST['quotation_id'] ?? 0);
+    $result = quotation_delete($conn, $qid);
+    echo !empty($result['ok']) ? 1 : ($result['message'] ?? 'Delete failed.');
     exit;
 }
 
@@ -1438,11 +1530,11 @@ if ($form_name == 'add_vendor') {
     }
     $bank_accounts = $bank_validation['accounts'];
 
-    if ($vendor_name === '' || $vendor_type === '' || $contact_person === '' || $contact_no === '' || trim($_POST['email'] ?? '') === '' || $state <= 0 || $city <= 0 || $address1 === '' || $pan_no === '') {
+    if ($vendor_name === '' || $vendor_type === '' || $contact_person === '' || $contact_no === '' || $state <= 0 || $city <= 0 || $address1 === '') {
         echo 'Please fill all mandatory fields.';
         exit;
     }
-    if (!ew_vendor_validate_pan($pan_no)) {
+    if ($pan_no !== '' && !ew_vendor_validate_pan($pan_no)) {
         echo 'Invalid PAN number.';
         exit;
     }
@@ -1479,10 +1571,12 @@ if ($form_name == 'add_vendor') {
             exit;
         }
     }
-    $dup_pan = mysqli_query($conn, "SELECT vendor_id FROM vendor_master WHERE pan_no='$pan_esc' $edit_check LIMIT 1");
-    if ($dup_pan && mysqli_num_rows($dup_pan) > 0) {
-        echo 'PAN already exists.';
-        exit;
+    if ($pan_no !== '') {
+        $dup_pan = mysqli_query($conn, "SELECT vendor_id FROM vendor_master WHERE pan_no='$pan_esc' $edit_check LIMIT 1");
+        if ($dup_pan && mysqli_num_rows($dup_pan) > 0) {
+            echo 'PAN already exists.';
+            exit;
+        }
     }
 
     if ($edit_key !== '') {
@@ -1672,6 +1766,7 @@ if ($form_name == 'inacv_delivery') {
         echo 0;
 }
 if ($form_name == 'add_client_branch') {
+    ew_client_branch_ensure_schema($conn);
     $edit_id = $_POST['edit_id'];
     $company_id = $_POST['company_id'];
     $branch_name = $_POST['branch_name'];
@@ -1683,16 +1778,20 @@ if ($form_name == 'add_client_branch') {
     $city = $_POST['city'];
     $pincode = $_POST['pincode'];
     $email = $_POST['email'];
+    $pan_no = strtoupper(trim($_POST['pan_no'] ?? ''));
+    $gst_no = strtoupper(trim($_POST['gst_no'] ?? ''));
+    $pan_no = mysqli_real_escape_string($conn, $pan_no);
+    $gst_no = mysqli_real_escape_string($conn, $gst_no);
     $city_name_clean = get_city_name($conn, $city);
     $state_name_clean = get_statename($conn, $state);
     $address1 = ew_clean_party_address($address1, $pincode, $city_name_clean, $state_name_clean);
     $address2 = ew_clean_party_address($address2, $pincode, $city_name_clean, $state_name_clean);
     if ($edit_id != '') {
-        $query = "update client_branch set company_id='" . $company_id . "',branch_name='" . $branch_name . "',branch_contact_person='" . $contact_person . "',contact_no='" . $contact_no . "',address1='" . $address1 . "',address2='" . $address2 . "',city='" . $city . "',state='" . $state . "',pincode='" . $pincode . "',email='" . $email . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where md5(client_branch_id) = '" . $edit_id . "'";
+        $query = "update client_branch set company_id='" . $company_id . "',branch_name='" . $branch_name . "',branch_contact_person='" . $contact_person . "',contact_no='" . $contact_no . "',address1='" . $address1 . "',address2='" . $address2 . "',city='" . $city . "',state='" . $state . "',pincode='" . $pincode . "',email='" . $email . "',pan_no='" . $pan_no . "',gst_no='" . $gst_no . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where md5(client_branch_id) = '" . $edit_id . "'";
         $result = mysqli_query($conn, $query);
     } else {
-        $query = "insert into client_branch(company_id,branch_name,branch_contact_person,contact_no,address1,address2,city,state,pincode,email,created_at,created_by,status)values
-\t\t('" . $company_id . "','" . $branch_name . "','" . $contact_person . "','" . $contact_no . "','" . $address1 . "','" . $address2 . "','" . $city . "','" . $state . "','" . $pincode . "','" . $email . "','" . $created_at . "','" . $created_by . "','0')";
+        $query = "insert into client_branch(company_id,branch_name,branch_contact_person,contact_no,address1,address2,city,state,pincode,email,pan_no,gst_no,created_at,created_by,status)values
+\t\t('" . $company_id . "','" . $branch_name . "','" . $contact_person . "','" . $contact_no . "','" . $address1 . "','" . $address2 . "','" . $city . "','" . $state . "','" . $pincode . "','" . $email . "','" . $pan_no . "','" . $gst_no . "','" . $created_at . "','" . $created_by . "','0')";
         $result = mysqli_query($conn, $query);
     }
     if ($result)
@@ -2331,61 +2430,7 @@ $invoice_id = 0;
                 $get_package = $package_type1[$key];
                 // var_dump($get_package);
 
-                switch ($get_package) {
-                    case '1':
-                        $pack_name = 'CBX';
-                        break;
-                    case '2':
-                        $pack_name = 'PBG';
-                        break;
-                    case '3':
-                        $pack_name = 'ROL';
-                        break;
-                    case '5':
-                        $pack_name = 'SHT';
-                        break;
-                    case '6':
-                        $pack_name = 'BDL';
-                        break;
-                    case '7':
-                        $pack_name = 'CVR';
-                        break;
-                    case '8':
-                        $pack_name = 'PBL';
-                        break;
-                    case '9':
-                        $pack_name = 'CAN';
-                        break;
-                    case '10':
-                        $pack_name = 'BOX';
-                        break;
-                    case '11':
-                        $pack_name = 'BAG';
-                        break;
-                    case '12':
-                        $pack_name = 'MLD';
-                        break;
-                    case '13':
-                        $pack_name = 'PKT';
-                        break;
-                    case '14':
-                        $pack_name = 'CES';
-                        break;
-                    case '15':
-                        $pack_name = 'CAT';
-                        break;
-                    case '16':
-                        $pack_name = 'GRL';
-                        break;
-                    case '17':
-                        $pack_name = 'P.B';
-                        break;
-                    case '18':
-                        $pack_name = 'PRL';
-                        break;
-                    default:
-                        $pack_name = 'No Package Type Found!';
-                }
+                $pack_name = ew_qr_package_code_for_file($conn, $get_package);
 
                 // $productData = "098{$get_qty}10{$name}55{$rate}";
                 $tempDir = 'qrcode/';
@@ -2875,7 +2920,9 @@ if ($form_name == 'add_new_consignment_manual') {
         $vehicle_halting_charge = (isset($_POST['vehicle_halting_charge']) && is_numeric($_POST['vehicle_halting_charge'])) ? $_POST['vehicle_halting_charge'] : '0';
         $vehicle_loading_unloading = (isset($_POST['vehicle_loading_unloading']) && is_numeric($_POST['vehicle_loading_unloading'])) ? $_POST['vehicle_loading_unloading'] : '0';
         $consignor_branch_id = isset($_POST['consignor_branch']) ? (int) $_POST['consignor_branch'] : 0;
+        $bill_to_branch_id = isset($_POST['bill_to_branch']) ? (int) $_POST['bill_to_branch'] : 0;
         $consignee_branch_id = isset($_POST['consignee_branch']) ? (int) $_POST['consignee_branch'] : 0;
+        ew_transaction_ensure_party_branch_columns($conn, $table0);
         $supplier_invoice_value = isset($_POST['supplier_invoice_value']) ? $_POST['supplier_invoice_value'] : '';
         $description_of_goods = isset($_POST['description_of_goods']) ? $_POST['description_of_goods'] : '';
         $quotation_approval = isset($_POST['quotation_approval']) ? $_POST['quotation_approval'] : '';
@@ -2914,14 +2961,14 @@ lc_number,
 cfs,
 mamul_charge,
 vehicle_halting_charge,
-vehicle_loading_unloading,other_train_name,consignor_branch_id,consignee_branch_id,book_manual) values('" . $grn_num1 . "','" . $grn_date . "','" . $mode_of_trasport . "','$train_name','$ftl_type','" . $origin . "','" . $destination . "','" . $mode_of_consignment . "','" . $consignor . "','" . $address1 . "','" . $address2 . "','" . $city . "','" . $pincode . "','" . $state . "','" . $phone . "','" . $gst_no . "','" . $consignee . "','" . $con_address1 . "','" . $con_address2 . "','$ship_address','$shipping_address_name', '$shipping_gst_no', '$shipping_phone','" . $con_city . "','" . $con_state . "','" . $con_pincode . "','" . $con_phone . "','" . $con_gst . "','" . $goods_dedared_value . "','" . $supplier_invoice_value . "','" . $description_of_goods . "','" . $octroi . "','$len','$wid','$hei','$quanti','$volumetric_weight','$vlm_wei','" . $frieght_rate . "','" . $frieght_amount . "','" . $loading_unload_rate . "','" . $loading_unload_chrg . "','" . $crane_forklift_rate . "','" . $crane_forklift_chrg . "','" . $cod_rate . "','" . $cod_amount . "','" . $fov_rate . "','" . $fov_amount . "','" . $doc_rate . "','" . $doc_amount . "','" . $cartage_rate . "','" . $cartage_amount . "','" . $labour_rate . "','" . $labour_amount . "','" . $octroi_rate . "','" . $octroi_amount . "','" . $other_rate . "','" . $other_amount . "','$rajdhani_charges','" . $gst_rate . "','" . $gst_amount . "','$gst_type','$gst_tax_id','$gst_tax_code','$cgst_rate','$sgst_rate','$igst_rate','$cess_rate','$cgst_amount','$sgst_amount','$igst_amount','$cess_amount','$taxable_value','$bill_to_state_id','" . $total . "','" . $total . "','0','1','" . $amount_in_words . "','" . $note1 . "','" . $note2 . "','" . $vehicle_no . "','" . $vehicle_purchase_contact_person . "','" . $quotation_approval . "','" . $highload_challan . "','" . $signature . "','" . $consignor . "','" . $created_at . "','" . $created_by . "','1','" . $eway_number . "','$eway_expiryDate','$vehicle_type',
+vehicle_loading_unloading,other_train_name,consignor_branch_id,bill_to_branch_id,consignee_branch_id,book_manual) values('" . $grn_num1 . "','" . $grn_date . "','" . $mode_of_trasport . "','$train_name','$ftl_type','" . $origin . "','" . $destination . "','" . $mode_of_consignment . "','" . $consignor . "','" . $address1 . "','" . $address2 . "','" . $city . "','" . $pincode . "','" . $state . "','" . $phone . "','" . $gst_no . "','" . $consignee . "','" . $con_address1 . "','" . $con_address2 . "','$ship_address','$shipping_address_name', '$shipping_gst_no', '$shipping_phone','" . $con_city . "','" . $con_state . "','" . $con_pincode . "','" . $con_phone . "','" . $con_gst . "','" . $goods_dedared_value . "','" . $supplier_invoice_value . "','" . $description_of_goods . "','" . $octroi . "','$len','$wid','$hei','$quanti','$volumetric_weight','$vlm_wei','" . $frieght_rate . "','" . $frieght_amount . "','" . $loading_unload_rate . "','" . $loading_unload_chrg . "','" . $crane_forklift_rate . "','" . $crane_forklift_chrg . "','" . $cod_rate . "','" . $cod_amount . "','" . $fov_rate . "','" . $fov_amount . "','" . $doc_rate . "','" . $doc_amount . "','" . $cartage_rate . "','" . $cartage_amount . "','" . $labour_rate . "','" . $labour_amount . "','" . $octroi_rate . "','" . $octroi_amount . "','" . $other_rate . "','" . $other_amount . "','$rajdhani_charges','" . $gst_rate . "','" . $gst_amount . "','$gst_type','$gst_tax_id','$gst_tax_code','$cgst_rate','$sgst_rate','$igst_rate','$cess_rate','$cgst_amount','$sgst_amount','$igst_amount','$cess_amount','$taxable_value','$bill_to_state_id','" . $total . "','" . $total . "','0','1','" . $amount_in_words . "','" . $note1 . "','" . $note2 . "','" . $vehicle_no . "','" . $vehicle_purchase_contact_person . "','" . $quotation_approval . "','" . $highload_challan . "','" . $signature . "','" . $consignor . "','" . $created_at . "','" . $created_by . "','1','" . $eway_number . "','$eway_expiryDate','$vehicle_type',
 '$freight_paid_by',
 '$insurance_number',
 '$lc_number',
 '$cfs',
 '$mamul_charge',
 '$vehicle_halting_charge',
-'$vehicle_loading_unloading','$other_train_names','$consignor_branch_id','$consignee_branch_id',2)";
+'$vehicle_loading_unloading','$other_train_names','$consignor_branch_id','$bill_to_branch_id','$consignee_branch_id',2)";
 
         $result = mysqli_query($conn, $query);
         $transaction_id = mysqli_insert_id($conn);
@@ -2999,61 +3046,7 @@ $invoice_id    = NULL;
                 $get_package = $package_type1[$key];
                 // var_dump($get_package);
 
-                switch ($get_package) {
-                    case '1':
-                        $pack_name = 'CBX';
-                        break;
-                    case '2':
-                        $pack_name = 'PBG';
-                        break;
-                    case '3':
-                        $pack_name = 'ROL';
-                        break;
-                    case '5':
-                        $pack_name = 'SHT';
-                        break;
-                    case '6':
-                        $pack_name = 'BDL';
-                        break;
-                    case '7':
-                        $pack_name = 'CVR';
-                        break;
-                    case '8':
-                        $pack_name = 'PBL';
-                        break;
-                    case '9':
-                        $pack_name = 'CAN';
-                        break;
-                    case '10':
-                        $pack_name = 'BOX';
-                        break;
-                    case '11':
-                        $pack_name = 'BAG';
-                        break;
-                    case '12':
-                        $pack_name = 'MLD';
-                        break;
-                    case '13':
-                        $pack_name = 'PKT';
-                        break;
-                    case '14':
-                        $pack_name = 'CES';
-                        break;
-                    case '15':
-                        $pack_name = 'CAT';
-                        break;
-                    case '16':
-                        $pack_name = 'GRL';
-                        break;
-                    case '17':
-                        $pack_name = 'P.B';
-                        break;
-                    case '18':
-                        $pack_name = 'PRL';
-                        break;
-                    default:
-                        $pack_name = 'No Package Type Found!';
-                }
+                $pack_name = ew_qr_package_code_for_file($conn, $get_package);
 
                 $tempDir = 'qrcode/';
                 $productData = strtoupper($name);
@@ -3377,61 +3370,7 @@ $invoice_id    = NULL;
                 $get_package = $package_type1[$key];
                 // var_dump($get_package);
 
-                switch ($get_package) {
-                    case '1':
-                        $pack_name = 'CBX';
-                        break;
-                    case '2':
-                        $pack_name = 'PBG';
-                        break;
-                    case '3':
-                        $pack_name = 'ROL';
-                        break;
-                    case '5':
-                        $pack_name = 'SHT';
-                        break;
-                    case '6':
-                        $pack_name = 'BDL';
-                        break;
-                    case '7':
-                        $pack_name = 'CVR';
-                        break;
-                    case '8':
-                        $pack_name = 'PBL';
-                        break;
-                    case '9':
-                        $pack_name = 'CAN';
-                        break;
-                    case '10':
-                        $pack_name = 'BOX';
-                        break;
-                    case '11':
-                        $pack_name = 'BAG';
-                        break;
-                    case '12':
-                        $pack_name = 'MLD';
-                        break;
-                    case '13':
-                        $pack_name = 'PKT';
-                        break;
-                    case '14':
-                        $pack_name = 'CES';
-                        break;
-                    case '15':
-                        $pack_name = 'CAT';
-                        break;
-                    case '16':
-                        $pack_name = 'GRL';
-                        break;
-                    case '17':
-                        $pack_name = 'P.B';
-                        break;
-                    case '18':
-                        $pack_name = 'PRL';
-                        break;
-                    default:
-                        $pack_name = 'No Package Type Found!';
-                }
+                $pack_name = ew_qr_package_code_for_file($conn, $get_package);
 
                 // $productData = "098{$get_qty}10{$name}55{$rate}";
                 $tempDir = 'qrcode/';
@@ -3816,6 +3755,13 @@ if ($form_name == 'edit_consignment_details') {
     $train_name = $_POST['train_name'];
     $rajdhani_charges = $_POST['rajdhani_charges'];
 
+    $consignor_branch_id = isset($_POST['consignor_branch']) ? (int) $_POST['consignor_branch'] : 0;
+    $bill_to_branch_id = isset($_POST['bill_to_branch']) ? (int) $_POST['bill_to_branch'] : 0;
+    $consignee_branch_id = isset($_POST['consignee_branch']) ? (int) $_POST['consignee_branch'] : 0;
+    ew_transaction_ensure_party_branch_columns($conn, $tables[0]);
+    ew_booking_apply_client_branch($conn, $consignor_branch_id, $address1, $address2, $city, $state, $pincode, $phone, $gst_no);
+    ew_booking_apply_client_branch($conn, $consignee_branch_id, $con_address1, $con_address2, $con_city, $con_state, $con_pincode, $con_phone, $con_gst);
+
     // Volumetric Values
     $len = $_POST['length'] ? $_POST['length'] : null;
     $wid = $_POST['width'] ? $_POST['width'] : null;
@@ -3974,7 +3920,7 @@ cfs='$cfs',
 
 mamul_charge='$mamul_charge',
 vehicle_halting_charge='$vehicle_halting_charge',
-vehicle_loading_unloading='$vehicle_loading_unloading',  consigner_signature='" . $signature . "',updated_at = '" . $updated_at . "',updated_by ='" . $updated_by . "', eway_number = '$eway_number', eway_expirydate = '$eway_expiryDate', other_train_name = '$other_train_names' where transaction_id='$edit_id'";
+vehicle_loading_unloading='$vehicle_loading_unloading',consignor_branch_id='$consignor_branch_id',bill_to_branch_id='$bill_to_branch_id',consignee_branch_id='$consignee_branch_id',consigner_signature='" . $signature . "',updated_at = '" . $updated_at . "',updated_by ='" . $updated_by . "', eway_number = '$eway_number', eway_expirydate = '$eway_expiryDate', other_train_name = '$other_train_names' where transaction_id='$edit_id'";
     $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
 
     // Update Packages
@@ -4035,61 +3981,7 @@ vehicle_loading_unloading='$vehicle_loading_unloading',  consigner_signature='" 
             $get_package = $package_type1[$key];
             // var_dump($get_package);
 
-            switch ($get_package) {
-                case '1':
-                    $pack_name = 'CBX';
-                    break;
-                case '2':
-                    $pack_name = 'PBG';
-                    break;
-                case '3':
-                    $pack_name = 'ROL';
-                    break;
-                case '5':
-                    $pack_name = 'SHT';
-                    break;
-                case '6':
-                    $pack_name = 'BDL';
-                    break;
-                case '7':
-                    $pack_name = 'CVR';
-                    break;
-                case '8':
-                    $pack_name = 'PBL';
-                    break;
-                case '9':
-                    $pack_name = 'CAN';
-                    break;
-                case '10':
-                    $pack_name = 'BOX';
-                    break;
-                case '11':
-                    $pack_name = 'BAG';
-                    break;
-                case '12':
-                    $pack_name = 'MLD';
-                    break;
-                case '13':
-                    $pack_name = 'PKT';
-                    break;
-                case '14':
-                    $pack_name = 'CES';
-                    break;
-                case '15':
-                    $pack_name = 'CAT';
-                    break;
-                case '16':
-                    $pack_name = 'GRL';
-                    break;
-                case '17':
-                    $pack_name = 'P.B';
-                    break;
-                case '18':
-                    $pack_name = 'PRL';
-                    break;
-                default:
-                    $pack_name = 'No Package Type Found!';
-            }
+            $pack_name = ew_qr_package_code_for_file($conn, $get_package);
 
             // $productData = "098{$get_qty}10{$name}55{$rate}";
             $tempDir = 'qrcode/';
@@ -4380,61 +4272,7 @@ vehicle_loading_unloading='$vehicle_loading_unloading',other_train_name='$other_
         if (array_key_exists($key, $package_type1)) {
             $get_package = $package_type1[$key];
 
-            switch ($get_package) {
-                case '1':
-                    $pack_name = 'CBX';
-                    break;
-                case '2':
-                    $pack_name = 'PBG';
-                    break;
-                case '3':
-                    $pack_name = 'ROL';
-                    break;
-                case '5':
-                    $pack_name = 'SHT';
-                    break;
-                case '6':
-                    $pack_name = 'BDL';
-                    break;
-                case '7':
-                    $pack_name = 'CVR';
-                    break;
-                case '8':
-                    $pack_name = 'PBL';
-                    break;
-                case '9':
-                    $pack_name = 'CAN';
-                    break;
-                case '10':
-                    $pack_name = 'BOX';
-                    break;
-                case '11':
-                    $pack_name = 'BAG';
-                    break;
-                case '12':
-                    $pack_name = 'MLD';
-                    break;
-                case '13':
-                    $pack_name = 'PKT';
-                    break;
-                case '14':
-                    $pack_name = 'CES';
-                    break;
-                case '15':
-                    $pack_name = 'CAT';
-                    break;
-                case '16':
-                    $pack_name = 'GRL';
-                    break;
-                case '17':
-                    $pack_name = 'P.B';
-                    break;
-                case '18':
-                    $pack_name = 'PRL';
-                    break;
-                default:
-                    $pack_name = 'No Package Type Found!';
-            }
+            $pack_name = ew_qr_package_code_for_file($conn, $get_package);
 
             $tempDir = 'qrcode/';
             $productData = strtoupper($name);
@@ -5852,61 +5690,7 @@ $invoice_id    = NULL;
             $get_package = $package_type1[$key];
             // var_dump($get_package);
 
-            switch ($get_package) {
-                case '1':
-                    $pack_name = 'CBX';
-                    break;
-                case '2':
-                    $pack_name = 'PBG';
-                    break;
-                case '3':
-                    $pack_name = 'ROL';
-                    break;
-                case '5':
-                    $pack_name = 'SHT';
-                    break;
-                case '6':
-                    $pack_name = 'BDL';
-                    break;
-                case '7':
-                    $pack_name = 'CVR';
-                    break;
-                case '8':
-                    $pack_name = 'PBL';
-                    break;
-                case '9':
-                    $pack_name = 'CAN';
-                    break;
-                case '10':
-                    $pack_name = 'BOX';
-                    break;
-                case '11':
-                    $pack_name = 'BAG';
-                    break;
-                case '12':
-                    $pack_name = 'MLD';
-                    break;
-                case '13':
-                    $pack_name = 'PKT';
-                    break;
-                case '14':
-                    $pack_name = 'CES';
-                    break;
-                case '15':
-                    $pack_name = 'CAT';
-                    break;
-                case '16':
-                    $pack_name = 'GRL';
-                    break;
-                case '17':
-                    $pack_name = 'P.B';
-                    break;
-                case '18':
-                    $pack_name = 'PRL';
-                    break;
-                default:
-                    $pack_name = 'No Package Type Found!';
-            }
+            $pack_name = ew_qr_package_code_for_file($conn, $get_package);
 
             // $productData = "098{$get_qty}10{$name}55{$rate}";
             $tempDir = 'qrcode/';
@@ -7244,7 +7028,8 @@ $status_time = $_POST['status_time'];
         $status_date = $date_parts[3] . '-' . $date_parts[2] . '-' . $date_parts[1];
     }
 
-    $querys = "SELECT client_id FROM $table_names WHERE grn_no='$grn_no' AND `status` <= '$status' AND booking_status = '' ";
+    $querys = "SELECT client_id FROM $table_names WHERE grn_no='$grn_no' AND `status` <= '$status'"
+        . " AND (booking_status IS NULL OR booking_status = '' OR booking_status = '0')";
     $result = mysqli_query($conn, $querys);
     $transact_client = mysqli_fetch_array($result);
     $client_id = $transact_client['client_id'];
@@ -7335,7 +7120,7 @@ if ($total_packages <= 1 && $delivery_type === 'partial') {
 
     if (empty($client_id)) {
         echo 0;
-        // exit;
+        exit;
     }
 
     $sheetq = 'SELECT max(sheet_id) AS id FROM transaction_status';

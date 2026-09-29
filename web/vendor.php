@@ -123,9 +123,62 @@ if (empty($bank_accounts)) {
 
 		.vendor-type-wrap .btn-add-inline {
 			flex: 0 0 auto;
-			height: 40px;
+			height: 34px;
 			padding: 0 12px;
 			white-space: nowrap;
+		}
+
+		.vendor-type-wrap .select2-container {
+			flex: 1;
+			min-width: 0;
+		}
+
+		.ew-vt-select-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px;
+			min-height: 28px;
+		}
+
+		.ew-vt-select-label {
+			flex: 1;
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		.ew-vt-select-actions {
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			flex-shrink: 0;
+		}
+
+		.ew-vt-action {
+			border: none;
+			background: #e8edf3;
+			color: #0A1E3D;
+			width: 26px;
+			height: 26px;
+			border-radius: 4px;
+			padding: 0;
+			cursor: pointer;
+			line-height: 1;
+		}
+
+		.ew-vt-action:hover {
+			background: #dde7f0;
+		}
+
+		.ew-vt-del-btn {
+			color: #b91c1c;
+			background: #fee2e2;
+		}
+
+		.ew-vt-del-btn:hover {
+			background: #fecaca;
 		}
 
 		.vendor-yesno-row {
@@ -274,8 +327,8 @@ if (empty($bank_accounts)) {
 										</select>
 									</div>
 									<div class="ew-field">
-										<label class="control-label">Vendor Code <span style="color:red;">*</span> :</label>
-										<input type="text" name="vendor_code" id="vendor_code" value="<?php echo htmlspecialchars($row['vendor_code']); ?>" class="form-control" readonly required autocomplete="off" />
+										<label class="control-label">Vendor Code :</label>
+										<input type="text" name="vendor_code" id="vendor_code" value="<?php echo htmlspecialchars($row['vendor_code']); ?>" class="form-control" readonly autocomplete="off" />
 									</div>
 									<div class="ew-field">
 										<label class="control-label">City <span style="color:red;">*</span> :</label>
@@ -327,8 +380,8 @@ if (empty($bank_accounts)) {
 										<input type="text" name="contact_person" id="contact_person" value="<?php echo htmlspecialchars($row['contact_person']); ?>" class="form-control" required autocomplete="off" />
 									</div>
 									<div class="ew-field">
-										<label class="control-label">Email <span style="color:red;">*</span> :</label>
-										<input type="email" name="email" id="email" value="<?php echo htmlspecialchars($row['email']); ?>" class="form-control" required autocomplete="off" />
+										<label class="control-label">Email :</label>
+										<input type="email" name="email" id="email" value="<?php echo htmlspecialchars($row['email']); ?>" class="form-control" autocomplete="off" />
 									</div>
 									<div class="ew-field">
 										<label class="control-label">Designation :</label>
@@ -353,7 +406,7 @@ if (empty($bank_accounts)) {
 
 									<div class="ew-section-label">Tax &amp; Registration</div>
 									<div class="ew-field">
-										<label class="control-label">GST Registered <span style="color:red;">*</span> :</label>
+										<label class="control-label">GST Registered :</label>
 										<div class="vendor-yesno-row">
 											<label><input type="radio" name="gst_registered" value="1" class="gst-registered-toggle" <?php echo ((int) ($row['gst_registered'] ?? 0) === 1) ? 'checked' : ''; ?>> Yes</label>
 											<label><input type="radio" name="gst_registered" value="0" class="gst-registered-toggle" <?php echo ((int) ($row['gst_registered'] ?? 0) !== 1) ? 'checked' : ''; ?>> No</label>
@@ -383,8 +436,8 @@ if (empty($bank_accounts)) {
 										<input type="number" name="tds_rate" id="tds_rate" min="0" max="100" step="0.01" class="form-control" value="<?php echo htmlspecialchars($row['tds_rate'] ?? ''); ?>" autocomplete="off" />
 									</div>
 									<div class="ew-field">
-										<label class="control-label">PAN No <span style="color:red;">*</span> :</label>
-										<input type="text" style="text-transform:uppercase" name="pan_no" id="pan_no" maxlength="10" class="form-control" value="<?php echo htmlspecialchars($row['pan_no']); ?>" required autocomplete="off" />
+										<label class="control-label">PAN No :</label>
+										<input type="text" style="text-transform:uppercase" name="pan_no" id="pan_no" maxlength="10" class="form-control" value="<?php echo htmlspecialchars($row['pan_no']); ?>" autocomplete="off" />
 										<span class="pan_dup-check"></span>
 									</div>
 
@@ -400,7 +453,7 @@ if (empty($bank_accounts)) {
 
 									<div class="ew-section-label">Bank &amp; Payment Details</div>
 									<div class="ew-vendor-bank-block">
-										<p class="ew-vendor-bank-note">Add bank accounts and mark one as <strong>Primary</strong> (required). All bank fields are mandatory for each account added.</p>
+										<p class="ew-vendor-bank-note">Bank details are optional. If you add an account, fill all fields for that row and mark one as <strong>Primary</strong>.</p>
 										<div class="bank-accounts-wrap" id="bank_accounts_wrap">
 											<?php foreach ($bank_accounts as $idx => $acc) {
 												$role = strtoupper($acc['account_role'] ?? 'OTHER');
@@ -408,34 +461,34 @@ if (empty($bank_accounts)) {
 											<div class="bank-account-row" data-index="<?php echo (int) $idx; ?>">
 												<div class="ew-form-grid ew-form-grid--bank">
 													<div class="ew-field">
-														<label class="control-label">Account Holder Name <span style="color:red;">*</span> :</label>
-														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_holder_name]" value="<?php echo htmlspecialchars($acc['account_holder_name'] ?? ''); ?>" class="form-control" required autocomplete="off" />
+														<label class="control-label">Account Holder Name :</label>
+														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_holder_name]" value="<?php echo htmlspecialchars($acc['account_holder_name'] ?? ''); ?>" class="form-control" autocomplete="off" />
 													</div>
 													<div class="ew-field">
-														<label class="control-label">Bank Name <span style="color:red;">*</span> :</label>
-														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][bank_name]" value="<?php echo htmlspecialchars($acc['bank_name'] ?? ''); ?>" class="form-control" required autocomplete="off" />
+														<label class="control-label">Bank Name :</label>
+														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][bank_name]" value="<?php echo htmlspecialchars($acc['bank_name'] ?? ''); ?>" class="form-control" autocomplete="off" />
 													</div>
 													<div class="ew-field">
-														<label class="control-label">Branch Name <span style="color:red;">*</span> :</label>
-														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][bank_branch]" value="<?php echo htmlspecialchars($acc['bank_branch'] ?? ''); ?>" class="form-control" required autocomplete="off" />
+														<label class="control-label">Branch Name :</label>
+														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][bank_branch]" value="<?php echo htmlspecialchars($acc['bank_branch'] ?? ''); ?>" class="form-control" autocomplete="off" />
 													</div>
 													<div class="ew-field">
-														<label class="control-label">Account Type <span style="color:red;">*</span> :</label>
-														<select name="bank_accounts[<?php echo (int) $idx; ?>][account_type]" class="form-control" required>
+														<label class="control-label">Account Type :</label>
+														<select name="bank_accounts[<?php echo (int) $idx; ?>][account_type]" class="form-control">
 															<?php echo ew_vendor_account_type_select_html($acc['account_type'] ?? ''); ?>
 														</select>
 													</div>
 													<div class="ew-field">
-														<label class="control-label">Account Number <span style="color:red;">*</span> :</label>
-														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_number]" value="<?php echo htmlspecialchars($acc['account_number'] ?? ''); ?>" class="form-control bank-account-number" required autocomplete="off" />
+														<label class="control-label">Account Number :</label>
+														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_number]" value="<?php echo htmlspecialchars($acc['account_number'] ?? ''); ?>" class="form-control bank-account-number" autocomplete="off" />
 													</div>
 													<div class="ew-field">
-														<label class="control-label">Confirm Account Number <span style="color:red;">*</span> :</label>
-														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_number_confirm]" value="<?php echo htmlspecialchars($acc['account_number_confirm'] ?? ($acc['account_number'] ?? '')); ?>" class="form-control bank-account-confirm" required autocomplete="off" />
+														<label class="control-label">Confirm Account Number :</label>
+														<input type="text" name="bank_accounts[<?php echo (int) $idx; ?>][account_number_confirm]" value="<?php echo htmlspecialchars($acc['account_number_confirm'] ?? ($acc['account_number'] ?? '')); ?>" class="form-control bank-account-confirm" autocomplete="off" />
 													</div>
 													<div class="ew-field">
-														<label class="control-label">IFSC Code <span style="color:red;">*</span> :</label>
-														<input type="text" style="text-transform:uppercase" name="bank_accounts[<?php echo (int) $idx; ?>][ifsc]" maxlength="11" value="<?php echo htmlspecialchars($acc['ifsc'] ?? ''); ?>" class="form-control bank-ifsc" required autocomplete="off" />
+														<label class="control-label">IFSC Code :</label>
+														<input type="text" style="text-transform:uppercase" name="bank_accounts[<?php echo (int) $idx; ?>][ifsc]" maxlength="11" value="<?php echo htmlspecialchars($acc['ifsc'] ?? ''); ?>" class="form-control bank-ifsc" autocomplete="off" />
 													</div>
 												</div>
 												<div class="bank-role-row">
@@ -470,26 +523,28 @@ if (empty($bank_accounts)) {
 		<?php require_once("include/footer.php"); ?>
 	</div>
 
-	<div class="modal fade" id="modal_add_vendor_type" tabindex="-1" role="dialog">
-		<div class="modal-dialog" role="document">
-			<div class="modal-content">
-				<div class="modal-header">
-					<button type="button" class="close" data-dismiss="modal">&times;</button>
-					<h4 class="modal-title">Add Vendor Type</h4>
-				</div>
-				<div class="modal-body">
-					<form id="quick_vendor_type_form">
-						<div class="form-group">
-							<label>Type Name <span style="color:red;">*</span></label>
-							<input type="text" class="form-control" id="quick_vendor_type_name" maxlength="100" required autocomplete="off" placeholder="e.g. Custom Broker" />
-						</div>
-					</form>
-					<div id="vendor_type_msg" class="text-danger" style="display:none;"></div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-default-outline" data-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-primary" id="quick_vendor_type_save">Save &amp; Select</button>
-				</div>
+	<div class="ew-v2-modal-backdrop" id="vendorTypeModal">
+		<div class="ew-v2-modal">
+			<div class="ew-v2-modal-head">
+				<h3 id="vendorTypeModalTitle">Add Vendor Type</h3>
+				<button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+			</div>
+			<div class="ew-v2-modal-body">
+				<form id="quick_vendor_type_form">
+					<input type="hidden" id="vendor_type_edit_id" value="">
+					<input type="hidden" id="vendor_type_form_name" value="add_vendor_type">
+					<div id="vendor_type_msg" class="alert alert-danger" style="display:none;">
+						<div class="message" style="text-align:center"></div>
+					</div>
+					<div class="form-group">
+						<label class="control-label">Type Name <span style="color:red;">*</span> :</label>
+						<input type="text" class="form-control" id="quick_vendor_type_name" maxlength="100" required autocomplete="off" placeholder="e.g. Custom Broker" />
+					</div>
+				</form>
+			</div>
+			<div class="ew-v2-modal-foot">
+				<button type="button" class="btn btn-default-outline" data-ew-v2-close>Cancel</button>
+				<button type="button" class="btn btn-primary" id="vendor_type_modal_save">Save &amp; Select</button>
 			</div>
 		</div>
 	</div>
@@ -497,13 +552,13 @@ if (empty($bank_accounts)) {
 	<script type="text/template" id="bank-row-template">
 	<div class="bank-account-row" data-index="__INDEX__">
 		<div class="ew-form-grid ew-form-grid--bank">
-			<div class="ew-field"><label class="control-label">Account Holder Name <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][account_holder_name]" class="form-control" required autocomplete="off" /></div>
-			<div class="ew-field"><label class="control-label">Bank Name <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][bank_name]" class="form-control" required autocomplete="off" /></div>
-			<div class="ew-field"><label class="control-label">Branch Name <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][bank_branch]" class="form-control" required autocomplete="off" /></div>
-			<div class="ew-field"><label class="control-label">Account Type <span style="color:red;">*</span> :</label><select name="bank_accounts[__INDEX__][account_type]" class="form-control" required><?php echo ew_vendor_account_type_select_html(''); ?></select></div>
-			<div class="ew-field"><label class="control-label">Account Number <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][account_number]" class="form-control bank-account-number" required autocomplete="off" /></div>
-			<div class="ew-field"><label class="control-label">Confirm Account Number <span style="color:red;">*</span> :</label><input type="text" name="bank_accounts[__INDEX__][account_number_confirm]" class="form-control bank-account-confirm" required autocomplete="off" /></div>
-			<div class="ew-field"><label class="control-label">IFSC Code <span style="color:red;">*</span> :</label><input type="text" style="text-transform:uppercase" name="bank_accounts[__INDEX__][ifsc]" maxlength="11" class="form-control bank-ifsc" required autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">Account Holder Name :</label><input type="text" name="bank_accounts[__INDEX__][account_holder_name]" class="form-control" autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">Bank Name :</label><input type="text" name="bank_accounts[__INDEX__][bank_name]" class="form-control" autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">Branch Name :</label><input type="text" name="bank_accounts[__INDEX__][bank_branch]" class="form-control" autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">Account Type :</label><select name="bank_accounts[__INDEX__][account_type]" class="form-control"><?php echo ew_vendor_account_type_select_html(''); ?></select></div>
+			<div class="ew-field"><label class="control-label">Account Number :</label><input type="text" name="bank_accounts[__INDEX__][account_number]" class="form-control bank-account-number" autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">Confirm Account Number :</label><input type="text" name="bank_accounts[__INDEX__][account_number_confirm]" class="form-control bank-account-confirm" autocomplete="off" /></div>
+			<div class="ew-field"><label class="control-label">IFSC Code :</label><input type="text" style="text-transform:uppercase" name="bank_accounts[__INDEX__][ifsc]" maxlength="11" class="form-control bank-ifsc" autocomplete="off" /></div>
 		</div>
 		<div class="bank-role-row">
 			<div class="bank-role-options">
@@ -537,18 +592,47 @@ if (empty($bank_accounts)) {
 				}
 			}
 
+			function bankRowIsEmpty($row) {
+				var fields = [
+					$row.find('[name*="[account_holder_name]"]').val(),
+					$row.find('[name*="[bank_name]"]').val(),
+					$row.find('[name*="[bank_branch]"]').val(),
+					$row.find('[name*="[account_type]"]').val(),
+					$row.find('.bank-account-number').val(),
+					$row.find('.bank-account-confirm').val(),
+					$row.find('.bank-ifsc').val()
+				];
+				for (var i = 0; i < fields.length; i++) {
+					if ($.trim(fields[i]) !== '') {
+						return false;
+					}
+				}
+				return true;
+			}
+
 			function validateBankAccountsClient() {
 				var hasPrimary = false;
+				var hasAnyBankData = false;
 				var rows = $('#bank_accounts_wrap .bank-account-row');
-				if (!rows.length) {
-					alert('Add at least one bank account.');
-					return false;
-				}
 				var ok = true;
 				rows.each(function(i) {
 					var $row = $(this);
+					if (bankRowIsEmpty($row)) {
+						return true;
+					}
+					hasAnyBankData = true;
+					var holder = $.trim($row.find('[name*="[account_holder_name]"]').val());
+					var bank = $.trim($row.find('[name*="[bank_name]"]').val());
+					var branch = $.trim($row.find('[name*="[bank_branch]"]').val());
+					var accType = $.trim($row.find('[name*="[account_type]"]').val());
 					var num = $.trim($row.find('.bank-account-number').val());
 					var conf = $.trim($row.find('.bank-account-confirm').val());
+					var ifsc = $.trim($row.find('.bank-ifsc').val());
+					if (!holder || !bank || !branch || !accType || !num || !conf || !ifsc) {
+						alert('Bank row ' + (i + 1) + ': fill all bank fields or clear the row.');
+						ok = false;
+						return false;
+					}
 					if (num !== conf) {
 						alert('Account number and confirm account number must match in bank row ' + (i + 1) + '.');
 						ok = false;
@@ -560,6 +644,9 @@ if (empty($bank_accounts)) {
 				});
 				if (!ok) {
 					return false;
+				}
+				if (!hasAnyBankData) {
+					return true;
 				}
 				if (!hasPrimary) {
 					alert('Mark one bank account as Primary.');
@@ -593,33 +680,198 @@ if (empty($bank_accounts)) {
 				refreshBankRemoveButtons();
 			}
 
-			function reloadVendorTypes(selected) {
-				$.get('fetch_details.php', {
-					cmd: 'get_vendor_type_options',
-					selected: selected || $('#vendor_type').val()
-				}, function(html) {
-					$('#vendor_type').html(html);
+			function formatVendorTypeSelection(item) {
+				return item.text || '';
+			}
+
+			function formatVendorTypeResult(item) {
+				if (!item.id) {
+					return $('<div>').text(item.text).html();
+				}
+				var typeId = $(item.element).attr('data-vendor-type-id') || '';
+				var safeLabel = $('<div>').text(item.text).html();
+				var safeCode = $('<div>').text(item.id).html();
+				return '<div class="ew-vt-select-row">' +
+					'<span class="ew-vt-select-label">' + safeLabel + '</span>' +
+					'<span class="ew-vt-select-actions">' +
+					'<button type="button" class="ew-vt-action ew-vt-edit-btn" data-vendor-type-id="' + typeId + '" data-type-code="' + safeCode + '" title="Edit"><i class="fa fa-pencil"></i></button>' +
+					'<button type="button" class="ew-vt-action ew-vt-del-btn" data-vendor-type-id="' + typeId + '" data-type-code="' + safeCode + '" title="Delete"><i class="fa fa-trash-o"></i></button>' +
+					'</span></div>';
+			}
+
+			function initVendorTypeSelect2() {
+				var $el = $('#vendor_type');
+				if (!$el.length) {
+					return;
+				}
+				if ($el.data('select2')) {
+					$el.select2('destroy');
+				}
+				$el.select2({
+					width: '100%',
+					placeholder: 'Select Vendor Type',
+					allowClear: false,
+					minimumResultsForSearch: 0,
+					formatResult: formatVendorTypeResult,
+					formatSelection: formatVendorTypeSelection,
+					escapeMarkup: function(m) { return m; }
 				});
 			}
 
-			$('#btn_add_vendor_type').on('click', function() {
+			function reloadVendorTypes(selected, cb) {
+				var keep = selected || $('#vendor_type').val();
+				$.get('fetch_details.php', {
+					cmd: 'get_vendor_type_options',
+					selected: keep
+				}, function(html) {
+					$('#vendor_type').html(html);
+					initVendorTypeSelect2();
+					if (keep) {
+						$('#vendor_type').select2('val', keep);
+					}
+					if (typeof cb === 'function') {
+						cb();
+					}
+				});
+			}
+
+			function resetVendorTypeModal() {
+				$('#vendor_type_form_name').val('add_vendor_type');
+				$('#vendor_type_edit_id').val('');
 				$('#quick_vendor_type_name').val('');
-				$('#vendor_type_msg').hide().text('');
-				$('#modal_add_vendor_type').modal('show');
+				$('#vendor_type_msg').hide().find('.message').text('');
+				$('#vendorTypeModalTitle').text('Add Vendor Type');
+				$('#vendor_type_modal_save').text('Save & Select');
+			}
+
+			function openVendorTypeModalAdd() {
+				resetVendorTypeModal();
+				ewV2OpenModal('vendorTypeModal');
+				setTimeout(function() { $('#quick_vendor_type_name').focus(); }, 120);
+			}
+
+			function openVendorTypeModalEdit(vendorTypeId) {
+				$.getJSON('fetch_details.php', {
+					cmd: 'get_vendor_type_details',
+					vendor_type_id: vendorTypeId
+				}, function(data) {
+					if (!data || !data.ok) {
+						alert(data && data.message ? data.message : 'Could not load vendor type.');
+						return;
+					}
+					$('#vendor_type_form_name').val('edit_vendor_type');
+					$('#vendor_type_edit_id').val(data.vendor_type_id);
+					$('#quick_vendor_type_name').val(data.type_name || '');
+					$('#vendor_type_msg').hide().find('.message').text('');
+					$('#vendorTypeModalTitle').text('Edit Vendor Type');
+					$('#vendor_type_modal_save').text('Update');
+					ewV2OpenModal('vendorTypeModal');
+					setTimeout(function() { $('#quick_vendor_type_name').focus(); }, 120);
+				});
+			}
+
+			initVendorTypeSelect2();
+
+			function deleteVendorTypeById(typeId, typeCode) {
+				$.post('save_details.php', {
+					form_name: 'delete_vendor_type',
+					vendor_type_id: typeId
+				}, function(res) {
+					var data = res;
+					if (typeof res === 'string') {
+						try { data = JSON.parse(res); } catch (err) { data = {}; }
+					}
+					if (!data.ok) {
+						alert(data.message || 'Could not delete vendor type.');
+						return;
+					}
+					var cur = $('#vendor_type').val();
+					if (cur === typeCode) {
+						cur = '';
+					}
+					reloadVendorTypes(cur);
+					if (typeof ewFormToast === 'function') {
+						ewFormToast(data.message || 'Deleted.', 'success', 4000);
+					}
+				}, 'json').fail(function() {
+					alert('Network error. Please try again.');
+				});
+			}
+
+			function confirmDeleteVendorType(typeId, typeCode) {
+				var opened = false;
+				if (typeof ewConfirmDelete === 'function') {
+					opened = ewConfirmDelete({
+						title: 'Delete vendor type',
+						message: 'Remove this vendor type from the list?',
+						onConfirm: function() { deleteVendorTypeById(typeId, typeCode); }
+					});
+				}
+				if (!opened && window.confirm('Remove this vendor type from the list?')) {
+					deleteVendorTypeById(typeId, typeCode);
+				}
+			}
+
+			/* Select2 traps events inside .select2-drop — use capture so edit/delete work */
+			document.addEventListener('mouseup', function(e) {
+				var target = e.target;
+				if (!target || !target.closest) {
+					return;
+				}
+				var editBtn = target.closest('.ew-vt-edit-btn');
+				var delBtn = target.closest('.ew-vt-del-btn');
+				var btn = editBtn || delBtn;
+				if (!btn || !btn.closest('.select2-drop')) {
+					return;
+				}
+				e.preventDefault();
+				e.stopPropagation();
+				e.stopImmediatePropagation();
+
+				var typeId = btn.getAttribute('data-vendor-type-id');
+				var typeCode = btn.getAttribute('data-type-code') || '';
+
+				if ($('#vendor_type').data('select2')) {
+					$('#vendor_type').select2('close');
+				}
+
+				if (editBtn) {
+					if (!typeId) {
+						alert('Unable to edit this vendor type.');
+						return;
+					}
+					openVendorTypeModalEdit(typeId);
+					return;
+				}
+				if (!typeId) {
+					alert('Unable to delete this vendor type.');
+					return;
+				}
+				confirmDeleteVendorType(typeId, typeCode);
+			}, true);
+
+			$('#btn_add_vendor_type').on('click', function() {
+				openVendorTypeModalAdd();
 			});
 
-			$('#quick_vendor_type_save').on('click', function() {
+			$('#vendor_type_modal_save').on('click', function() {
 				var name = $.trim($('#quick_vendor_type_name').val());
 				if (!name) {
-					$('#vendor_type_msg').text('Enter vendor type name.').show();
+					$('#vendor_type_msg .message').text('Enter vendor type name.');
+					$('#vendor_type_msg').show();
 					return;
+				}
+				var formName = $('#vendor_type_form_name').val() || 'add_vendor_type';
+				var payload = {
+					form_name: formName,
+					type_name: name
+				};
+				if (formName === 'edit_vendor_type') {
+					payload.vendor_type_id = $('#vendor_type_edit_id').val();
 				}
 				var $btn = $(this);
 				$btn.prop('disabled', true);
-				$.post('save_details.php', {
-					form_name: 'add_vendor_type',
-					type_name: name
-				}, function(res) {
+				$.post('save_details.php', payload, function(res) {
 					$btn.prop('disabled', false);
 					var data = res;
 					if (typeof res === 'string') {
@@ -627,13 +879,18 @@ if (empty($bank_accounts)) {
 					}
 					if (data.ok) {
 						reloadVendorTypes(data.type_code);
-						$('#modal_add_vendor_type').modal('hide');
+						ewV2CloseModal('vendorTypeModal');
+						if (typeof ewFormToast === 'function') {
+							ewFormToast(data.message || 'Saved.', 'success', 4000);
+						}
 					} else {
-						$('#vendor_type_msg').text(data.message || 'Could not add vendor type.').show();
+						$('#vendor_type_msg .message').text(data.message || 'Save failed.');
+						$('#vendor_type_msg').show();
 					}
 				}, 'json').fail(function() {
 					$btn.prop('disabled', false);
-					$('#vendor_type_msg').text('Network error. Please try again.').show();
+					$('#vendor_type_msg .message').text('Network error. Please try again.');
+					$('#vendor_type_msg').show();
 				});
 			});
 

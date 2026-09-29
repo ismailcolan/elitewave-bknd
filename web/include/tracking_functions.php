@@ -81,7 +81,7 @@ function get_tracking_data($conn, $grn_no, $tracking_code)
         $tbl = rtrim($tbl, ",");
         $tbl_inv = rtrim($tbl_inv, ",");
 
-        $query = "select * from $tbl where grn_no='$grn_no' and booking_status = ''";
+        $query = "select * from $tbl where grn_no='$grn_no' and " . ew_sql_not_cancelled_booking('booking_status');
         $result = mysqli_query($conn, $query);
 
         if ($result && mysqli_num_rows($result) > 0) {
@@ -260,6 +260,9 @@ if($r = mysqli_fetch_assoc($q)){
 
             if ($res_status) {
                 while ($result_status = mysqli_fetch_assoc($res_status)) {
+                    if ((int) ($result_status['status'] ?? 0) === 1) {
+                        continue;
+                    }
                     $timestamp = strtotime($result_status['created_at']);
                     if ($timestamp) {
                         $date = date('d-m-Y', $timestamp);

@@ -91,18 +91,6 @@ body.page-header-fixed {
   height: 2px;
   border-radius: 1px;
   background: var(--ew-navy);
-  transition: transform 0.28s ease, opacity 0.2s ease;
-  transform-origin: center;
-}
-.top-bar .hamburger-btn.is-open .hb-line:nth-child(1) {
-  transform: translateY(6px) rotate(45deg);
-}
-.top-bar .hamburger-btn.is-open .hb-line:nth-child(2) {
-  opacity: 0;
-  transform: scaleX(0);
-}
-.top-bar .hamburger-btn.is-open .hb-line:nth-child(3) {
-  transform: translateY(-6px) rotate(-45deg);
 }
 
 /* ---- Logo ---- */

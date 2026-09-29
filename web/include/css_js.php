@@ -35,7 +35,7 @@
 	<link href="stylesheets/modern-ui.css?v=20260918datefield" media="all" rel="stylesheet" type="text/css" />
 	<link href="stylesheets/ew-datepicker.css?v=20260918datefield" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-design-system.css?v=20260911tableclean" media="all" rel="stylesheet" type="text/css" />
-<link href="stylesheets/ew-pages-v2.css?v=20260921modalclose" media="all" rel="stylesheet" type="text/css" />
+<link href="stylesheets/ew-pages-v2.css?v=20260929vehicledims" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-form-validation.css?v=20260911valfix" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-skeleton.css?v=20260918hdr" media="all" rel="stylesheet" type="text/css" />
 	
@@ -108,7 +108,7 @@
 	<script src="javascripts/bootstrap-multiselect.js" type="text/javascript"></script>
 	<script src="javascripts/jquery.timepicker.js" type="text/javascript"></script>
 	<script src="javascripts/duplicate_check.js" type="text/javascript"></script>
-	<script src="javascripts/ew-datepicker.js?v=20260828b" type="text/javascript"></script>
+	<script src="javascripts/ew-datepicker.js?v=20260922iconfix" type="text/javascript"></script>
 	<script src="javascripts/ew-form-validation.js?v=20260911reload" type="text/javascript"></script>
 	
 	<!-- Modern UI Toast Notification System -->

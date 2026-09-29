@@ -214,6 +214,186 @@ function get_city_name($conn, $id)
 	return $row['city_name'];
 }
 
+function ew_client_branch_ensure_schema($conn)
+{
+	static $done = false;
+	if ($done) {
+		return;
+	}
+	$done = true;
+	$columns = array(
+		'pan_no' => "VARCHAR(20) NOT NULL DEFAULT ''",
+		'gst_no' => "VARCHAR(20) NOT NULL DEFAULT ''",
+	);
+	foreach ($columns as $col => $def) {
+		$q = mysqli_query($conn, "SHOW COLUMNS FROM client_branch LIKE '" . mysqli_real_escape_string($conn, $col) . "'");
+		if ($q && mysqli_num_rows($q) === 0) {
+			mysqli_query($conn, "ALTER TABLE client_branch ADD COLUMN $col $def");
+		}
+	}
+}
+
+/**
+ * When a consignor/consignee client branch is selected on booking, overlay branch address fields.
+ */
+function ew_transaction_ensure_party_branch_columns($conn, $table_name)
+{
+	$table_name = preg_replace('/[^a-z0-9_]/i', '', (string) $table_name);
+	if ($table_name === '') {
+		return;
+	}
+	static $done = array();
+	if (!empty($done[$table_name])) {
+		return;
+	}
+	$done[$table_name] = true;
+	$chk = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE 'bill_to_branch_id'");
+	if ($chk && mysqli_num_rows($chk) === 0) {
+		mysqli_query($conn, "ALTER TABLE `$table_name` ADD COLUMN `bill_to_branch_id` INT NOT NULL DEFAULT 0 AFTER `consignee_branch_id`");
+	}
+}
+
+function ew_gcn_display_or_na($value)
+{
+	$v = trim((string) $value);
+	if ($v === '' || strcasecmp($v, 'null') === 0) {
+		return 'Not Available';
+	}
+	return $v;
+}
+
+function ew_gcn_normalize_party_label($label)
+{
+	$label = trim((string) $label);
+	$label = preg_replace('/\s+/', ' ', $label);
+	$label = strtolower($label);
+	// Ignore spacing differences: "( Noida )" vs "(Noida)"
+	return preg_replace('/\s+/', '', $label);
+}
+
+/** True when branch label repeats or overlaps the client display name. */
+function ew_gcn_party_labels_redundant($client_label, $branch_label)
+{
+	$a = ew_gcn_normalize_party_label($client_label);
+	$b = ew_gcn_normalize_party_label($branch_label);
+	if ($a === '' || $b === '') {
+		return false;
+	}
+	if ($a === $b) {
+		return true;
+	}
+	if (strpos($a, $b) !== false || strpos($b, $a) !== false) {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * GCN Bill To / Ship To block from consignee client + optional branch.
+ *
+ * @return array{name:string,addr_html:string,gst:string,phone:string}
+ */
+function ew_gcn_party_block($conn, $client_id, $branch_id, $branch_name_only = false)
+{
+	$client_id = (int) $client_id;
+	$branch_id = (int) $branch_id;
+	$branch_name_only = (bool) $branch_name_only;
+	$det = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM client WHERE client_id='" . $client_id . "' LIMIT 1"));
+	if (!$det) {
+		return array(
+			'name' => '',
+			'addr_html' => '',
+			'gst' => '',
+			'phone' => '',
+		);
+	}
+	$name = get_client_name($conn, $client_id);
+	$gst = $det['gst_no'] ?? '';
+	$phone = $det['contact_no'] ?? '';
+	$addr_html = ew_format_party_address_invoice_html($det, $conn);
+
+	if ($branch_id > 0) {
+		$bq = mysqli_query(
+			$conn,
+			"SELECT cb.*, c.city_name, s.state_name
+			 FROM client_branch cb
+			 LEFT JOIN city c ON c.city_id = cb.city
+			 LEFT JOIN state s ON s.state_id = cb.state
+			 WHERE cb.client_branch_id='" . $branch_id . "' LIMIT 1"
+		);
+		$branch = $bq ? mysqli_fetch_assoc($bq) : null;
+		if ($branch) {
+			$branch_label = trim((string) ($branch['branch_name'] ?? ''));
+			if ($branch_label !== '') {
+				$redundant = ew_gcn_party_labels_redundant($name, $branch_label);
+				if ($branch_name_only) {
+					$name = $redundant ? $name : $branch_label;
+				} elseif (!$redundant) {
+					$name .= ' (' . $branch_label . ')';
+				}
+			} elseif ($branch_name_only) {
+				$name = get_client_name($conn, $client_id);
+			}
+			$party = array(
+				'address1' => $branch['address1'],
+				'address2' => $branch['address2'],
+				'city' => $branch['city'],
+				'pincode' => $branch['pincode'],
+			);
+			$addr_html = ew_format_party_address_invoice_html($party, $conn);
+			if (trim((string) ($branch['gst_no'] ?? '')) !== '') {
+				$gst = $branch['gst_no'];
+			}
+			if (trim((string) ($branch['contact_no'] ?? '')) !== '') {
+				$phone = $branch['contact_no'];
+			}
+		}
+	}
+
+	return array(
+		'name' => $name,
+		'addr_html' => $addr_html,
+		'gst' => $gst,
+		'phone' => $phone,
+	);
+}
+
+function ew_booking_apply_client_branch($conn, $branch_id, &$address1, &$address2, &$city, &$state, &$pincode, &$phone, &$gst_no)
+{
+	$branch_id = (int) $branch_id;
+	if ($branch_id <= 0) {
+		return;
+	}
+	$q = mysqli_query(
+		$conn,
+		"SELECT address1, address2, city, state, pincode, contact_no, gst_no
+		 FROM client_branch
+		 WHERE client_branch_id='" . $branch_id . "' AND status='0'
+		 LIMIT 1"
+	);
+	if (!$q || mysqli_num_rows($q) === 0) {
+		return;
+	}
+	$row = mysqli_fetch_assoc($q);
+	$address1 = $row['address1'] ?? $address1;
+	$address2 = $row['address2'] ?? $address2;
+	if (!empty($row['city'])) {
+		$city = $row['city'];
+	}
+	if (!empty($row['state'])) {
+		$state = $row['state'];
+	}
+	if (isset($row['pincode']) && $row['pincode'] !== '') {
+		$pincode = $row['pincode'];
+	}
+	if (!empty($row['contact_no'])) {
+		$phone = $row['contact_no'];
+	}
+	if (!empty($row['gst_no'])) {
+		$gst_no = $row['gst_no'];
+	}
+}
+
 /**
  * Strip pincode / trailing city / trailing state from a street address so Invoice
  * and GCN do not print them twice (they already print city + pincode separately).
@@ -548,6 +728,50 @@ function get_package_name($conn, $id)
 	$result = mysqli_query($conn, $query);
 	$row = mysqli_fetch_array($result);
 	return $row['package_code'];
+}
+
+/** Active consignment (booking_status 1 = cancelled). */
+function ew_sql_not_cancelled_booking($column = 'booking_status')
+{
+	return "($column IS NULL OR $column = '' OR $column = '0' OR $column != '1')";
+}
+
+/** Package code segment used in QR PNG filenames (from package master). */
+function ew_qr_package_code_for_file($conn, $package_id)
+{
+	$code = trim((string) get_package_name($conn, $package_id));
+	if ($code === '') {
+		$id = (int) $package_id;
+		return $id > 0 ? ('PK' . $id) : '';
+	}
+	return preg_replace('/[\\\\\\/:*?"<>|]+/', '', $code);
+}
+
+/** First matching package QR PNG for a GCN (web/qrcode/). */
+function ew_resolve_qr_png_for_grn($conn, $grn_no, $package_type_id, $web_root = null)
+{
+	if ($web_root === null) {
+		$web_root = dirname(__DIR__);
+	}
+	$grn_key = strtoupper(trim((string) $grn_no));
+	if ($grn_key === '') {
+		return '';
+	}
+	$pack = ew_qr_package_code_for_file($conn, $package_type_id);
+	$dir = rtrim($web_root, '/') . '/qrcode/';
+	$patterns = array();
+	if ($pack !== '') {
+		$patterns[] = $dir . $grn_key . $pack . '-*.png';
+	}
+	$patterns[] = $dir . $grn_key . '*-001.png';
+	$patterns[] = $dir . str_replace('/', DIRECTORY_SEPARATOR, $grn_key) . '*-001.png';
+	foreach ($patterns as $pattern) {
+		$files = glob($pattern);
+		if (!empty($files)) {
+			return $files[0];
+		}
+	}
+	return '';
 }
 
 function get_company($conn, $id)

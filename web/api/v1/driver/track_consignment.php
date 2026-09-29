@@ -45,7 +45,7 @@ if ($grn_no != "" && $tracking_code != "") {
             $tbl_inv = "transaction_invoice_" . $row2['table_name'];
             
             // Find by grn_no and restrict to driver's assigned vehicle
-            $query = "SELECT * FROM $tbl WHERE grn_no='$grn_no' AND truck='$assigned_veh' AND booking_status=''";
+            $query = "SELECT * FROM $tbl WHERE grn_no='$grn_no' AND truck='$assigned_veh' AND " . ew_sql_not_cancelled_booking('booking_status');
             $result = mysqli_query($conn, $query);
             
             if ($result && mysqli_num_rows($result) > 0) {

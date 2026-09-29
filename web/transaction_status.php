@@ -254,6 +254,10 @@ $logged_id = $_SESSION['user_id'];
         .ui-timepicker-wrapper {
             z-index: 10140 !important;
         }
+        /* Time list is appended to body; hide when status modal is closed */
+        body:not(:has(#status_popup_modal.open)) .ui-timepicker-wrapper {
+            display: none !important;
+        }
         @media (max-width: 767px) {
             .txn-page-wrap { padding: 0 12px 24px; }
         }
@@ -705,6 +709,23 @@ if ($delivery_type == 'partial') {
             return val;
         }
 
+        function hideStatusDatePicker() {
+            var $statusDate = $('#status_date');
+            if ($statusDate.length && $statusDate.data('datepicker')) {
+                $statusDate.datepicker('hide');
+            }
+        }
+
+        function hideStatusTimePicker() {
+            var $time = $('#status_time');
+            if ($time.length && typeof $time.timepicker === 'function') {
+                try {
+                    $time.timepicker('hide');
+                } catch (err) {}
+            }
+            $('.ui-timepicker-wrapper').hide();
+        }
+
         function initStatusTimePicker() {
             var $time = $('#status_time');
             if (!$time.length || $time.data('ew-time-init')) {
@@ -721,6 +742,13 @@ if ($delivery_type == 'partial') {
                 dropdown: true,
                 scrollbar: true,
                 appendTo: 'body'
+            });
+            $time.on('showTimepicker', function() {
+                if (!$('#status_popup_modal').hasClass('open')) {
+                    hideStatusTimePicker();
+                    return;
+                }
+                hideStatusDatePicker();
             });
             $time.data('ew-time-init', true);
         }
@@ -746,6 +774,8 @@ if ($delivery_type == 'partial') {
         }
 
         function closeStatusChangeModal() {
+            hideStatusDatePicker();
+            hideStatusTimePicker();
             if (typeof ewV2CloseModal === 'function') {
                 ewV2CloseModal('status_popup_modal');
             } else {
@@ -783,8 +813,25 @@ if ($delivery_type == 'partial') {
 
             $(document).on('show', '#status_date', function() {
                 unlockStatusDatePicker();
+                hideStatusTimePicker();
             });
 
+            $(document).on('focus click', '#status_date', function() {
+                hideStatusTimePicker();
+            });
+
+            $(document).on('focus click', '#status_time', function() {
+                hideStatusDatePicker();
+            });
+
+            $(document).on('click', '#status_popup_modal .date-field-icon', function() {
+                hideStatusTimePicker();
+            });
+
+            $(document).on('click', '#status_popup_modal [data-ew-v2-close]', function() {
+                hideStatusDatePicker();
+                hideStatusTimePicker();
+            });
 
             $(document).on('click', '.close-popup', function() {
                 $(".form-data-saving").hide();

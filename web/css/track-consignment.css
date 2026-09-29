@@ -59,7 +59,7 @@
     background: #f8fafb;
 }
 .track-search-btn {
-    height: 42px;
+    height: 34px !important;
     border: 0;
     border-radius: 8px;
     background: #dd111e;

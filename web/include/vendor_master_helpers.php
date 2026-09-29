@@ -210,13 +210,33 @@ function ew_vendor_type_label($conn, $code)
 
 function ew_vendor_type_select_html($conn, $selected = '')
 {
+	ew_vendor_ensure_type_table($conn);
 	$html = '<option value="">Select Vendor Type</option>';
-	foreach (ew_vendor_type_options($conn) as $code => $label) {
-		$sel = ((string) $selected === (string) $code) ? ' selected' : '';
-		$html .= '<option value="' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>'
-			. htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</option>';
+	$q = mysqli_query($conn, "SELECT vendor_type_id, type_code, type_name FROM vendor_type_master WHERE status=0 ORDER BY type_name ASC");
+	if ($q) {
+		while ($row = mysqli_fetch_assoc($q)) {
+			$code = $row['type_code'];
+			$sel = ((string) $selected === (string) $code) ? ' selected' : '';
+			$html .= '<option value="' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '"'
+				. ' data-vendor-type-id="' . (int) $row['vendor_type_id'] . '"' . $sel . '>'
+				. htmlspecialchars($row['type_name'], ENT_QUOTES, 'UTF-8') . '</option>';
+		}
 	}
 	return $html;
+}
+
+function ew_vendor_get_type($conn, $vendor_type_id)
+{
+	ew_vendor_ensure_type_table($conn);
+	$vendor_type_id = (int) $vendor_type_id;
+	if ($vendor_type_id <= 0) {
+		return null;
+	}
+	$q = mysqli_query($conn, "SELECT * FROM vendor_type_master WHERE vendor_type_id='$vendor_type_id' AND status=0 LIMIT 1");
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
+		return $row;
+	}
+	return null;
 }
 
 function ew_vendor_add_type($conn, $type_name, $created_by = 0)
@@ -242,9 +262,71 @@ function ew_vendor_add_type($conn, $type_name, $created_by = 0)
 	}
 	return array(
 		'ok' => true,
+		'vendor_type_id' => (int) mysqli_insert_id($conn),
 		'type_code' => $type_code,
 		'type_name' => $type_name,
 		'message' => 'Vendor type added.',
+	);
+}
+
+function ew_vendor_update_type($conn, $vendor_type_id, $type_name, $updated_by = 0)
+{
+	ew_vendor_ensure_type_table($conn);
+	$vendor_type_id = (int) $vendor_type_id;
+	$type_name = trim((string) $type_name);
+	if ($vendor_type_id <= 0) {
+		return array('ok' => false, 'message' => 'Invalid vendor type.');
+	}
+	if ($type_name === '') {
+		return array('ok' => false, 'message' => 'Vendor type name is required.');
+	}
+	$row = ew_vendor_get_type($conn, $vendor_type_id);
+	if (!$row) {
+		return array('ok' => false, 'message' => 'Vendor type not found.');
+	}
+	$name_esc = mysqli_real_escape_string($conn, $type_name);
+	$dup = mysqli_query($conn, "SELECT vendor_type_id FROM vendor_type_master WHERE status=0 AND type_name='$name_esc' AND vendor_type_id!='$vendor_type_id' LIMIT 1");
+	if ($dup && mysqli_num_rows($dup) > 0) {
+		return array('ok' => false, 'message' => 'This vendor type name already exists.');
+	}
+	$type_code = $row['type_code'];
+	$ok = mysqli_query($conn, "UPDATE vendor_type_master SET type_name='$name_esc' WHERE vendor_type_id='$vendor_type_id' LIMIT 1");
+	if (!$ok) {
+		return array('ok' => false, 'message' => 'Could not update vendor type.');
+	}
+	return array(
+		'ok' => true,
+		'vendor_type_id' => $vendor_type_id,
+		'type_code' => $type_code,
+		'type_name' => $type_name,
+		'message' => 'Vendor type updated.',
+	);
+}
+
+function ew_vendor_delete_type($conn, $vendor_type_id)
+{
+	ew_vendor_ensure_type_table($conn);
+	$vendor_type_id = (int) $vendor_type_id;
+	if ($vendor_type_id <= 0) {
+		return array('ok' => false, 'message' => 'Invalid vendor type.');
+	}
+	$row = ew_vendor_get_type($conn, $vendor_type_id);
+	if (!$row) {
+		return array('ok' => false, 'message' => 'Vendor type not found.');
+	}
+	$code_esc = mysqli_real_escape_string($conn, $row['type_code']);
+	$in_use = mysqli_query($conn, "SELECT vendor_id FROM vendor_master WHERE vendor_type='$code_esc' AND status=0 LIMIT 1");
+	if ($in_use && mysqli_num_rows($in_use) > 0) {
+		return array('ok' => false, 'message' => 'This vendor type is used on existing vendors and cannot be deleted.');
+	}
+	$ok = mysqli_query($conn, "UPDATE vendor_type_master SET status=1 WHERE vendor_type_id='$vendor_type_id' LIMIT 1");
+	if (!$ok) {
+		return array('ok' => false, 'message' => 'Could not delete vendor type.');
+	}
+	return array(
+		'ok' => true,
+		'type_code' => $row['type_code'],
+		'message' => 'Vendor type deleted.',
 	);
 }
 
@@ -299,9 +381,12 @@ function ew_vendor_validate_bank_accounts($accounts)
 	$has_primary = false;
 	$has_secondary = false;
 	if (empty($accounts)) {
-		return array('ok' => false, 'message' => 'Add at least one bank account and mark one as Primary.');
+		return array('ok' => true, 'accounts' => array());
 	}
 	foreach ($accounts as $idx => $acc) {
+		if (ew_vendor_bank_row_is_empty($acc)) {
+			continue;
+		}
 		$holder = trim($acc['account_holder_name'] ?? '');
 		$bank = trim($acc['bank_name'] ?? '');
 		$number = trim($acc['account_number'] ?? '');
@@ -350,6 +435,9 @@ function ew_vendor_validate_bank_accounts($accounts)
 			'account_type' => $account_type,
 			'account_role' => $role,
 		);
+	}
+	if (empty($clean)) {
+		return array('ok' => true, 'accounts' => array());
 	}
 	if (!$has_primary) {
 		return array('ok' => false, 'message' => 'Mark one bank account as Primary.');
@@ -487,9 +575,23 @@ function ew_vendor_validate_pan($pan)
 {
 	$pan = strtoupper(trim((string) $pan));
 	if ($pan === '') {
-		return false;
+		return true;
 	}
 	return (bool) preg_match('/^[A-Z]{5}[0-9]{4}[A-Z]$/', $pan);
+}
+
+function ew_vendor_bank_row_is_empty($acc)
+{
+	if (!is_array($acc)) {
+		return true;
+	}
+	return trim($acc['account_holder_name'] ?? '') === ''
+		&& trim($acc['bank_name'] ?? '') === ''
+		&& trim($acc['account_number'] ?? '') === ''
+		&& trim($acc['account_number_confirm'] ?? '') === ''
+		&& trim($acc['ifsc'] ?? '') === ''
+		&& trim($acc['bank_branch'] ?? '') === ''
+		&& trim($acc['account_type'] ?? '') === '';
 }
 
 function ew_vendor_validate_ifsc($ifsc)

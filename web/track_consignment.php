@@ -2,7 +2,7 @@
 require_once ('include/connect.php');
 require_once ('include/function.php');
 
-$grn_no = trim($_REQUEST['grn_no'] ?? '');
+$grn_no = trim($_REQUEST['grn_no'] ?? $_REQUEST['gcn_no'] ?? '');
 $tracking_code = $grn_no;
 
 ?>
@@ -89,7 +89,7 @@ $tracking_code = $grn_no;
                                                 $query = "SELECT *
                                                           FROM $tbl
                                                           WHERE grn_no='$grn_no'
-                                                          AND booking_status=''
+                                                          AND " . ew_sql_not_cancelled_booking('booking_status') . "
                                                           $add_on";
                                                 $result = mysqli_query($conn, $query);
                                                 $grnr = mysqli_fetch_array($result);
@@ -270,6 +270,10 @@ $mask_phone = function ($phone) {
 $trans_status = "SELECT * FROM `transaction_status` WHERE sheet_id IN(select sheet_id from transaction_status_log where grn_no='$grn_no') ORDER BY created_at ASC, sheet_id ASC";
 $res = mysqli_query($conn, $trans_status);
 $scan_rows = ($res) ? mysqli_fetch_all($res, MYSQLI_ASSOC) : array();
+// Status 1 (booked) is rendered once from GCN booking date/time; sheet rows duplicate it.
+$scan_rows = array_values(array_filter($scan_rows, function ($row) {
+    return (int) ($row['status'] ?? 0) !== 1;
+}));
 $scan_row_count = count($scan_rows);
 
 $tempRow = $grnr;

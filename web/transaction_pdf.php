@@ -1,6 +1,7 @@
 <?php
 require_once('include/connect.php');
 require_once('include/function.php');
+require_once('include/vehicle_type_helpers.php');
 
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -91,40 +92,7 @@ while ($r = mysqli_fetch_assoc($inv_result3)) {
     $total_charged += (float)$r['charged_weight'];
 }
 
-//QR generation
-function getQrPackageCode($id)
-{
-    switch ($id) {
-        case '1': return 'CBX';
-        case '2': return 'PBG';
-        case '3': return 'ROL';
-        case '5': return 'SHT';
-        case '6': return 'BDL';
-        case '7': return 'CVR';
-        case '8': return 'PBL';
-        case '9': return 'CAN';
-        case '10': return 'BOX';
-        case '11': return 'BAG';
-        case '12': return 'MLD';
-        case '13': return 'PKT';
-        case '14': return 'CES';
-        case '15': return 'CAT';
-        case '16': return 'GRL';
-        case '17': return 'P.B';
-        case '18': return 'PRL';
-        default: return '';
-    }
-}
-$package_code = getQrPackageCode($first_inv['type_of_pkge']);
-$pattern = __DIR__ . "/qrcode/" . strtoupper($grn_no) . $package_code . "-*.png";
-
-$files = glob($pattern);
-
-$qrImage = '';
-
-if (!empty($files)) {
-    $qrImage = $files[0];
-}
+$qrImage = ew_resolve_qr_png_for_grn($conn, $grn_no, $first_inv['type_of_pkge'] ?? '', __DIR__);
 
 // Volumetric weight
 $d1 = (float)$dimension1;
@@ -137,6 +105,13 @@ $dim_display = ($d1 || $d2 || $d3)
     ? trim($dimension1) . ' X ' . trim($dimension2) . ' X ' . trim($dimension3)
       . ($dimension4 ? ' X ' . $dimension4 : '') . '-'
     : '0 X 0 X 0 -';
+
+$vehicle_type_dims_pdf = htmlspecialchars(
+	ew_vehicle_type_dims_display_for_booking($conn, $vehicle_type ?? ''),
+	ENT_QUOTES,
+	'UTF-8'
+);
+$highload_mamul_pdf = ew_booking_highload_mamul_total($highload_challan ?? '', $mamul_charge ?? 0);
 
 // ─── Mode checkboxes ──────────────────────────────────────────────────────────
 $mode_name = strtoupper(trim(get_mode($conn, $mode_of_transportation)));
@@ -185,25 +160,38 @@ function fmt_addr($det, $conn)
 }
 
 $consignor_addr   = fmt_addr($consignor_det, $conn);
-$consignee_addr   = fmt_addr($consignee_det, $conn);
 
-// Shipping Address display
-if (trim($shipping_address) == '') {
+$bill_to_branch_id = isset($bill_to_branch_id) ? (int) $bill_to_branch_id : 0;
+$ship_to_branch_id = isset($consignee_branch_id) ? (int) $consignee_branch_id : 0;
 
-    $shipping_name_display = get_client_name($conn, $consignee);
+$bill_block = ew_gcn_party_block($conn, $consignee, $bill_to_branch_id);
+$ship_block = ew_gcn_party_block($conn, $consignee, $ship_to_branch_id, true);
 
-    $shipping_addr_display = ew_format_party_address_invoice_html($consignee_det, $conn);
+$consignee_addr = str_replace('<br>', ', ', $bill_block['addr_html']);
 
-    $shipping_gst_display   = $consignee_det['gst_no'];
-    $shipping_phone_display = $consignee_det['contact_no'];
+$has_manual_shipping = trim((string) $shipping_address) !== ''
+    || trim((string) ($shipping_address_name ?? '')) !== '';
 
-} else {
-
+if ($has_manual_shipping) {
     $shipping_name_display  = $shipping_address_name;
     $shipping_addr_display  = nl2br($shipping_address);
     $shipping_gst_display   = $shipping_gst_no;
     $shipping_phone_display = $shipping_phone;
+} else {
+    $shipping_name_display  = $ship_block['name'];
+    $shipping_addr_display  = $ship_block['addr_html'];
+    $shipping_gst_display   = $ship_block['gst'];
+    $shipping_phone_display = $ship_block['phone'];
 }
+
+$bill_to_name_display   = $bill_block['name'];
+$bill_to_addr_display   = $bill_block['addr_html'];
+$bill_to_gst_display    = ew_gcn_display_or_na($bill_block['gst']);
+$bill_to_phone_display  = ew_gcn_display_or_na($bill_block['phone']);
+$consignor_gst_pdf      = ew_gcn_display_or_na($consignor_det['gst_no'] ?? '');
+$consignor_phone_pdf    = ew_gcn_display_or_na($consignor_det['contact_no'] ?? '');
+$shipping_gst_display   = ew_gcn_display_or_na($shipping_gst_display);
+$shipping_phone_display = ew_gcn_display_or_na($shipping_phone_display);
 
 //Time and dare
 $booking_datetime = date('d-m-Y', strtotime($grn_date));
@@ -265,6 +253,8 @@ function split_addr_lines($addr, $max_chars = 95) {
 
 $consignor_addr_html = split_addr_lines($consignor_addr);
 $consignee_addr_html = split_addr_lines($consignee_addr);
+$bill_to_addr_plain = str_replace('<br>', ', ', $bill_to_addr_display);
+$bill_to_addr_html = split_addr_lines($bill_to_addr_plain);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // A4 PAGE LAYOUT STRATEGY
@@ -435,7 +425,7 @@ if (!empty($qrImage) && file_exists($qrImage)) {
 
     $qrSection = '
         <div style="text-align:center;padding-top:8px;width:150px;">
-            <img src="'.$qrImage.'" style="">
+            <img src="'.$qrImage.'" style="width:130px;">
         </div>
     ';
 }
@@ -449,7 +439,7 @@ $html .= '
     <!-- QR -->
     <td width="18%" rowspan="6" align="center" valign="middle" style="height:48mm;">
 
-       <img src="'.$qrImage.'" style="width:130px;">
+       '.$qrSection.'
 
     </td>
 
@@ -627,9 +617,9 @@ style="padding:4px 5px;height:24mm;font-size:8.5pt;line-height:14px;">
 
 '.$consignor_addr_html.'<br>
 
-<b>GST No : '.$consignor_det['gst_no'].'</b><br>
+<b>GST No : '.$consignor_gst_pdf.'</b><br>
 
-<b>Phone No : '.$consignor_det['contact_no'].'</b>
+<b>Phone No : '.$consignor_phone_pdf.'</b>
 
 </td>
 
@@ -638,13 +628,13 @@ style="padding:4px 5px;height:24mm;font-size:8.5pt;line-height:14px;">
 
 <span style="font-size:9pt;font-weight:bold;">Bill To</span><br>
 
-<b>'.get_client_name($conn,$consignee).'</b><br>
+<b>'.$bill_to_name_display.'</b><br>
 
-'.$consignee_addr_html.'<br>
+'.$bill_to_addr_html.'<br>
 
-<b>GST No : '.$consignee_det['gst_no'].'</b><br>
+<b>GST No : '.$bill_to_gst_display.'</b><br>
 
-<b>Phone No : '.$consignee_det['contact_no'].'</b>
+<b>Phone No : '.$bill_to_phone_display.'</b>
 
 </td>
 
@@ -727,18 +717,16 @@ $html .= '
   <td style="font-size:9pt;">' . $insurance_number . '</td>
 </tr>
 <tr style="height:5.5mm;">
-  <td style="font-size:9pt;">Party Invoice Date</td>
- <td align="center" style="font-size:9pt;"><b>' .
-      (!empty($first_inv['party_invoice_date']) ? date('d-m-Y', strtotime($first_inv['party_invoice_date'])) : '')
-      . '</b></td>
+  <td style="font-size:9pt;vertical-align:top;">Description of Goods</td>
+  <td style="font-size:9pt;vertical-align:top;font-weight:bold;">' . $description_of_goods . '</td>
   <td style="font-size:9pt;">Vehicle Type</td>
   <td style="font-size:8pt;"><b>' . $vehicle_type . '</b></td>
 </tr>
 <tr style="height:5.5mm;">
   <td style="font-size:9pt;">Supplier Invoice Value</td>
   <td align="center" style="font-size:9pt;"><b>Rs.' . number_format((float)$supplier_invoice_value, 2) . '</b></td>
-  <td style="font-size:9pt;">HighLoad Challan</td>
-  <td style="font-size:9pt;">' . $highload_challan . '</td>
+  <td style="font-size:9pt;">Vehicle Dimensions / CBM</td>
+  <td style="font-size:8pt;font-weight:bold;">' . $vehicle_type_dims_pdf . '</td>
 </tr>
 <tr style="height:5.5mm;">
   <td style="font-size:9pt;">Eway Bill Number</td>
@@ -749,8 +737,8 @@ $html .= '
 <tr style="height:5.5mm;">
   <td style="font-size:9pt;">Eway Bill Expiry Date</td>
   <td align="center" style="font-size:9pt;"><b>' . $eway_expirydate . '</b></td>
-  <td style="font-size:9pt;">Mamul Charges</td>
-  <td style="font-size:9pt;">' . $mamul_charge . '</td>
+  <td style="font-size:9pt;">Highload Challan / Mamul Charges</td>
+  <td style="font-size:9pt;"><b>' . $highload_mamul_pdf . '</b></td>
 </tr>
 <tr style="height:5.5mm;">
   <td style="font-size:9pt;">LC Number</td>
@@ -758,10 +746,11 @@ $html .= '
   <td style="font-size:9pt;">Vehicle Halting Charges</td>
   <td style="font-size:9pt;">' . $vehicle_halting_charge . '</td>
 </tr>
-<tr style="height:8mm;">
-  <!-- FIX: Description row gets extra height since it may contain longer text -->
-  <td style="font-size:9pt;vertical-align:top;padding-top:3px;">Description of Goods</td>
-  <td style="font-size:9pt;vertical-align:top;padding-top:3px;font-weight:bold;">' . $description_of_goods . '</td>
+<tr style="height:5.5mm;">
+  <td style="font-size:9pt;">Party Invoice Date</td>
+  <td align="center" style="font-size:9pt;"><b>' .
+      (!empty($first_inv['party_invoice_date']) ? date('d-m-Y', strtotime($first_inv['party_invoice_date'])) : '')
+      . '</b></td>
   <td style="font-size:9pt;">Vehicle Loading/Unloading</td>
   <td style="font-size:9pt;">' . $vehicle_loading_unloading . '</td>
 </tr>

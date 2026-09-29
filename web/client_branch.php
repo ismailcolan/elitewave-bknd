@@ -1,6 +1,7 @@
 <?php
 require_once("include/connect.php");
 require_once("include/function.php");
+ew_client_branch_ensure_schema($conn);
 $key = $_REQUEST['key'] ?? '';
 $is_edit = ($key != '');
 if (!$is_edit && empty($_GET['create'])) {
@@ -18,6 +19,8 @@ $client_branch_row = array(
     'city' => '',
     'pincode' => '',
     'email' => '',
+    'pan_no' => '',
+    'gst_no' => '',
 );
 if ($is_edit) {
     $client_query = "select * from client_branch where md5(client_branch_id)='" . mysqli_real_escape_string($conn, $key) . "'";
@@ -152,6 +155,14 @@ if ($is_edit) {
                                         <label class="control-label">Email <span style="color:red;">*</span> :</label>
                                         <input type="email" name="email" id="email" value="<?php echo htmlspecialchars($client_branch_row['email']); ?>" class="form-control" required autocomplete="off" />
                                         <span class="dup-check"></span>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">PAN No :</label>
+                                        <input type="text" name="pan_no" id="pan_no" maxlength="10" value="<?php echo htmlspecialchars($client_branch_row['pan_no'] ?? ''); ?>" class="form-control" autocomplete="off" style="text-transform:uppercase;" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">GST No :</label>
+                                        <input type="text" name="gst_no" id="gst_no" maxlength="15" value="<?php echo htmlspecialchars($client_branch_row['gst_no'] ?? ''); ?>" class="form-control" autocomplete="off" style="text-transform:uppercase;" />
                                     </div>
                                 </div>
                             </form>

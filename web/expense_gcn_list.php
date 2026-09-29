@@ -53,6 +53,18 @@ $list_rows = expense_gcn_fetch_list($conn);
 		#egcn_list_table td.col-gcn {
 			min-width: 160px;
 		}
+
+		#egcn_list_table td.profit-negative,
+		#egcn_list_table td.profit-negative .profit-value {
+			color: #dc2626 !important;
+			font-weight: 700;
+		}
+
+		#egcn_list_table td.profit-positive,
+		#egcn_list_table td.profit-positive .profit-value {
+			color: #15803d !important;
+			font-weight: 700;
+		}
 	</style>
 </head>
 
@@ -87,7 +99,7 @@ $list_rows = expense_gcn_fetch_list($conn);
 									<a href="expense_gcn.php?create=1" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-plus"></i> Add Expense against GCN</a>
 								</div>
 							<?php } else { ?>
-									<table class="table table-bordered table-striped egcn_list_tab" id="dataTable1">
+									<table class="table table-bordered table-striped egcn_list_tab" id="egcn_list_table">
 										<thead>
 											<tr>
 												<th>S.No</th>
@@ -148,7 +160,7 @@ $list_rows = expense_gcn_fetch_list($conn);
 													</td>
 													<td class="num"><?php echo htmlspecialchars($row['revenue_without_gst']); ?></td>
 													<td class="num"><?php echo htmlspecialchars($row['expenses_without_gst']); ?></td>
-													<td class="num <?php echo $profit_class; ?>"><?php echo htmlspecialchars($row['profit_amount']); ?></td>
+													<td class="num <?php echo $profit_class; ?>"><span class="profit-value"><?php echo htmlspecialchars($row['profit_amount']); ?></span></td>
 													<td><?php echo htmlspecialchars($row['updated_at']); ?></td>
 													<td class="col-actions">
 														<span class="act-wrap">
@@ -178,6 +190,17 @@ $list_rows = expense_gcn_fetch_list($conn);
 	<?php if (!empty($list_rows)) { ?>
 	<script>
 		$(function() {
+			if ($.fn.dataTable && $('#egcn_list_table').length) {
+				$('#egcn_list_table').dataTable({
+					sPaginationType: 'full_numbers',
+					oSearch: { sSearch: '', bSmart: false, bRegex: false, bCaseInsensitive: true },
+					aoColumnDefs: [{ bSortable: false, aTargets: [0, -1] }]
+				});
+				if (window.applyEwListLayout) {
+					window.applyEwListLayout();
+				}
+			}
+
 			$(document).on('click', '.btn-delete-gcn-expense', function() {
 				var id = $(this).data('id');
 				var gcn = $(this).data('gcn') || '';

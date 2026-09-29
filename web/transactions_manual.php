@@ -3,6 +3,14 @@ require_once("include/connect.php");
 require_once("include/function.php");
 require_once('include/gst_tax_functions.php');
 require_once('include/billing_functions.php');
+require_once('include/quotation_functions.php');
+require_once('include/vehicle_type_helpers.php');
+ew_vehicle_type_ensure_schema($conn);
+$booking_vehicle_type_dims = ew_vehicle_type_booking_dims_lookup($conn);
+$booking_vehicle_type_dims_json = json_encode($booking_vehicle_type_dims, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS);
+if ($booking_vehicle_type_dims_json === false) {
+	$booking_vehicle_type_dims_json = '{}';
+}
 ensure_gst_tax_master_table($conn);
 $company_query = mysqli_query($conn, 'SELECT company_id, company_code, grn_mode, state FROM company WHERE status=0 LIMIT 1');
 $company_row = mysqli_fetch_array($company_query);
@@ -702,6 +710,9 @@ if ($booking_clients_json === false) {
 							if (!is_array($row)) {
 								$row = array();
 							}
+							$saved_booking_vehicle_type = trim((string) ($row['vehicle_type'] ?? ''));
+							$initial_vehicle_type_dims_display = isset($booking_vehicle_type_dims[$saved_booking_vehicle_type])
+								? $booking_vehicle_type_dims[$saved_booking_vehicle_type] : '';
 							$transaction_id = $row['transaction_id'] ?? '';
 							$ftl_type = $row['ftl_type'] ?? '';
 							if (($row['transaction_id'] ?? 0) > 0) {
@@ -1146,12 +1157,25 @@ if ($booking_clients_json === false) {
 													<input type="text" name="cfs" id="cfs" value="<?php echo htmlspecialchars($row['cfs'] ?? ''); ?>" class="form-control">
 												</div>
 												<div class="ew-field">
-													<label class="control-label">Part Number / Article Name</label>
-													<input type="text" name="vehicle_purchase_contact_person" value="<?php echo htmlspecialchars($row['vehicle_purchase_contact_person'] ?? ''); ?>" class="form-control">
+													<label class="control-label">Part Number / Article Name / Article Number</label>
+													<input type="text" name="vehicle_purchase_contact_person" value="<?php echo htmlspecialchars($row['vehicle_purchase_contact_person'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="form-control">
 												</div>
 												<div class="ew-field">
-													<label class="control-label">Quotation Approval</label>
-													<input type="text" name="quotation_approval" value="<?php echo htmlspecialchars($row['quotation_approval'] ?? ''); ?>" class="form-control">
+													<label class="control-label">Quotation approval</label>
+													<select name="quotation_approval" id="quotation_approval" class="form-control">
+														<option value="">Select option</option>
+														<?php
+														$qa = trim((string) ($row['quotation_approval'] ?? ''));
+														$qa_opts = quotation_quotation_approval_options();
+														if ($qa !== '' && !isset($qa_opts[$qa])) {
+															$qa_opts = array($qa => $qa) + $qa_opts;
+														}
+														foreach ($qa_opts as $k => $lbl) {
+															$sel = ($qa === (string) $k) ? ' selected' : '';
+															echo '<option value="' . htmlspecialchars($k, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>' . htmlspecialchars($lbl, ENT_QUOTES, 'UTF-8') . '</option>';
+														}
+														?>
+													</select>
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Truck / Vehicle No</label>
@@ -1163,11 +1187,15 @@ if ($booking_clients_json === false) {
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Vehicle Type</label>
-													<input type="text" name="vehicle_type" id="vehicle_type" value="<?php echo htmlspecialchars($row['vehicle_type'] ?? ''); ?>" class="form-control">
+													<?php echo ew_vehicle_type_transaction_select_html($conn, $row['vehicle_type'] ?? ''); ?>
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Highload Challan</label>
 													<input type="text" name="highload_challan" value="<?php echo htmlspecialchars($row['highload_challan'] ?? ''); ?>" class="form-control">
+												</div>
+												<div class="ew-field" id="vehicle_type_dims_wrap">
+													<label class="control-label" for="vehicle_type_dims_display">Vehicle Dimensions / CBM</label>
+													<input type="text" id="vehicle_type_dims_display" class="form-control" readonly disabled value="<?php echo htmlspecialchars($initial_vehicle_type_dims_display, ENT_QUOTES, 'UTF-8'); ?>" tabindex="-1" aria-readonly="true" placeholder="Select vehicle type" />
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Goods Declared Value (INR)</label>
@@ -2344,8 +2372,18 @@ if ($booking_clients_json === false) {
 
 		//Edit VLM Calculation
 		var V_mode, T;
+		var bookingVehicleTypeDims = <?php echo $booking_vehicle_type_dims_json; ?>;
+
+		function syncVehicleTypeDimsDisplay() {
+			var val = $.trim($('#vehicle_type').val() || '');
+			var text = val ? (bookingVehicleTypeDims[val] || '') : '';
+			$('#vehicle_type_dims_display').val(text);
+		}
+
+		$(document).on('change', '#vehicle_type', syncVehicleTypeDimsDisplay);
 
 		$(function() {
+			syncVehicleTypeDimsDisplay();
 
 			$('#mode_of_trasport').change(function() {
 				V_mode1 = $('#mode_of_trasport').val();

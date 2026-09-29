@@ -148,11 +148,8 @@ $logged_id = $_SESSION['user_id'];
 }
 
 /* ===== E-Way Attachments modal ===== */
-#eway_popup .modal-dialog {
+#eway_popup .ew-v2-modal {
     max-width: 720px;
-}
-#eway_popup .modal-body {
-    padding: 20px 24px;
 }
 .eway-list {
     display: flex;
@@ -242,14 +239,6 @@ $logged_id = $_SESSION['user_id'];
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
-}
-.eway-form-actions {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 18px;
-    padding-top: 16px;
-    border-top: 1px solid #e2e8f0;
 }
 @media (max-width: 640px) {
     .eway-card-grid,
@@ -525,9 +514,32 @@ $logged_id = $_SESSION['user_id'];
 .txn-print-dd:hover > .dropdown-menu {
     display: none;
 }
-.txn-action-group .dropdown.table-actions .dropdown-menu li a {
+.txn-print-dd.open {
+    background: #0A1E3D !important;
+    color: #ffffff !important;
+    border-color: #0A1E3D !important;
+    z-index: 20;
+    box-shadow: 0 2px 8px rgba(10, 30, 61, .25);
+}
+.txn-action-group .dropdown.table-actions .dropdown-menu li a,
+.dropdown-menu.txn-print-floating li a {
     padding: 8px 14px;
     font-size: 12px;
+    color: #1E293B;
+    display: block;
+}
+.dropdown-menu.txn-print-floating {
+    min-width: 200px;
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(10, 30, 61, .18);
+    border: 1px solid #E2E8F0;
+    padding: 6px 0;
+    background: #fff;
+    list-style: none;
+    margin: 0;
+}
+.dropdown-menu.txn-print-floating li {
+    list-style: none;
 }
 .txn-table-footer {
     padding: 10px 16px 14px;
@@ -803,6 +815,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                     <?php if ($booking == '1') { ?>
                                                         <a title="Info" href="#cancel_grn_popup" class="table-actions show_info_popup"  data-toggle="modal" data-remarks="<?php echo $remarks; ?>" data-createdby="<?php echo $cancelled_by; ?>" data-createdat="<?php echo $updated_at; ?>" id="<?php echo $row['transaction_id']; ?>" ><i class="fa fa-exclamation-circle"></i></a>
                                                         <a title="Edit" href="#" class="table-actions btn-edit edit_disabled disable_action" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                        <?php echo transaction_list_track_action_html($row); ?>
                                                         <a class="table-actions disable_action" href="javascript:void(0);" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-print"></i></a>
                                                         <a class="table-actions disable_action " href="javascript:void(0);" data-status="<?php echo $row['status'] ?>" title="Invoice" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-file"></i></a>
                                                         <a class="table-actions send_invoices disable_action " href="javascript:void(0);" title="Send Invoice" id="send_invoices" data-month="<?php echo $m1; ?>" data-year="<?php echo $y; ?>" data-id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-envelope"></i></a>
@@ -851,10 +864,11 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                             }
                                                         }
                                                         ?>
+                                                        <?php echo transaction_list_track_action_html($row); ?>
                                                         <!-- <a class="table-actions " target="BLANK" href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-print"></i></a> -->
                                                         
-                                                        <span class="table-actions dropdown" id="print_grn"><i class="fa fa-print"></i>
-                                                            <ul class="dropdown-menu" style="display: none;">
+                                                        <span class="table-actions dropdown txn-print-dd" title="Print GR"><i class="fa fa-print"></i>
+                                                            <ul class="dropdown-menu">
                                                                 <li><a href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>&copy=consignor" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>" target="_blank">Consignor GR</a></li>
                                                                 <li><a href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>&copy=consignee" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>" target="_blank">Consignee GR</a></li>
                                                                 <li><a href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>&copy=pod" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>" target="_blank">P.O.D GR</a></li>
@@ -887,7 +901,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                     	<?php } else { ?>
                                                             <a class="table-actions disable_action" href="javascript:void(0)"><i class="fa fa-ban"></i></a>
                                                         <?php } ?>
-                                                        <a title="E-way Attachments" href="#eway_popup" class="table-actions btn-eway" data-toggle="modal" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-paperclip"></i></a>
+                                                        <a title="E-way Attachments" href="javascript:void(0);" class="table-actions btn-eway" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-paperclip"></i></a>
                                                         <?php
                                                         $invoice_query = mysqli_query($conn, 'select * from transaction_images_' . $m1 . '_' . $dt[2] . " where transaction_id='" . $row['transaction_id'] . "' ");
                                                         $invoice_count = mysqli_num_rows($invoice_query);
@@ -1264,27 +1278,149 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
 
             //Cancel Grn Popup Script 
 
-            function resetEwayModal() {
-                $('#eway_form')[0].reset();
-                $('#old_attach_div').html('').show();
-                $('#attachment_body').hide();
+            function resetEwayUploadUi() {
+                $('#eway_upload_file').val('');
+                $('#eway_upload_wrap').removeClass('has-file');
+                $('#eway_upload_wrap .ew-upload-image__filename').text('').attr('title', '');
             }
 
+            function resetEwayModal() {
+                if ($('#eway_form').length && $('#eway_form')[0]) {
+                    $('#eway_form')[0].reset();
+                }
+                resetEwayUploadUi();
+                $('#eway_issue_date, #eway_expire_date').each(function() {
+                    var $inp = $(this);
+                    $inp.val('');
+                    if ($inp.data('datepicker')) {
+                        $inp.datepicker('update', '');
+                    }
+                });
+                $('#old_attach_div').html('').show();
+                $('#attachment_body').hide();
+                $('#eway_modal_foot').hide();
+            }
+
+            function closeEwayModal() {
+                if (typeof ewV2CloseModal === 'function') {
+                    ewV2CloseModal('eway_popup');
+                } else {
+                    $('#eway_popup').removeClass('open');
+                }
+                resetEwayModal();
+            }
+
+            function showEwayForm(show) {
+                if (show) {
+                    $('#attachment_body').show();
+                    $('#eway_modal_foot').show();
+                    if (typeof initEwDatepickers === 'function') {
+                        initEwDatepickers('#attachment_body');
+                    }
+                } else {
+                    $('#attachment_body').hide();
+                    $('#eway_modal_foot').hide();
+                }
+            }
+
+            function ewayFileLabel(files) {
+                if (!files || !files.length) {
+                    return '';
+                }
+                if (files.length === 1) {
+                    return files[0].name;
+                }
+                return files.length + ' files selected';
+            }
+
+            function ewaySetInputFiles($input, files) {
+                if (typeof DataTransfer !== 'undefined' && files && files.length) {
+                    var dt = new DataTransfer();
+                    for (var i = 0; i < files.length; i++) {
+                        dt.items.add(files[i]);
+                    }
+                    $input[0].files = dt.files;
+                }
+            }
+
+            function initEwayUploadMulti() {
+                var $wrap = $('#eway_upload_wrap');
+                if (!$wrap.length || $wrap.data('ew-upload-init')) {
+                    return;
+                }
+                $wrap.data('ew-upload-init', 1);
+                var $input = $wrap.find('.ew-upload-image__input');
+                var $zone = $wrap.find('.ew-upload-image__zone');
+                var $filename = $wrap.find('.ew-upload-image__filename');
+
+                function applyFiles(fileList) {
+                    if (!fileList || !fileList.length) {
+                        $filename.text('').attr('title', '');
+                        $wrap.removeClass('has-file');
+                        return;
+                    }
+                    var label = ewayFileLabel(fileList);
+                    $filename.text(label).attr('title', label);
+                    $wrap.addClass('has-file');
+                }
+
+                $zone.on('click', function(e) {
+                    if ($(e.target).is('input')) {
+                        return;
+                    }
+                    $input.trigger('click');
+                });
+
+                $zone.on('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        $input.trigger('click');
+                    }
+                });
+
+                $input.on('change', function() {
+                    applyFiles(this.files);
+                });
+
+                $zone.on('dragover dragenter', function(e) {
+                    e.preventDefault();
+                    $zone.addClass('is-dragover');
+                });
+
+                $zone.on('dragleave drop', function(e) {
+                    e.preventDefault();
+                    $zone.removeClass('is-dragover');
+                });
+
+                $zone.on('drop', function(e) {
+                    var files = e.originalEvent.dataTransfer && e.originalEvent.dataTransfer.files;
+                    if (!files || !files.length) {
+                        return;
+                    }
+                    ewaySetInputFiles($input, files);
+                    applyFiles($input[0].files);
+                });
+            }
+
+            initEwayUploadMulti();
+
             $(document).on('click', '#new_eway', function() {
-                $("#old_attach_div").hide();
-                $("#attachment_body").show();
+                $('#old_attach_div').hide();
+                showEwayForm(true);
             });
 
-            $(document).on('click', '#eway_cancel', function() {
+            $(document).on('click', '#eway_cancel', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 if ($('#old_attach_div').html().trim() !== '') {
-                    $("#old_attach_div").show();
-                    $("#attachment_body").hide();
+                    $('#old_attach_div').show();
+                    showEwayForm(false);
                 } else {
-                    $('#eway_popup').modal('hide');
+                    closeEwayModal();
                 }
             });
 
-            $('#eway_popup').on('hidden.bs.modal', function() {
+            $(document).on('click', '#eway_popup .ew-v2-modal-close[data-ew-v2-close]', function() {
                 resetEwayModal();
             });
 
@@ -1302,6 +1438,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             //Button Delete
 
             $(document).on('click', '.btn-eway', function(ev) {
+                ev.preventDefault();
                 if ($(this).hasClass('disable_action')) {
                     return;
                 }
@@ -1310,6 +1447,11 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                 resetEwayModal();
                 $("#attachment_id").val(id);
                 $("#table_name").val(table_name);
+                if (typeof ewV2OpenModal === 'function') {
+                    ewV2OpenModal('eway_popup');
+                } else {
+                    $('#eway_popup').addClass('open');
+                }
                 $.ajax({
                     url: 'fetch_details.php',
                     type: "GET",
@@ -1321,15 +1463,15 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                     success: function(result) {
                         if (result != 0 && String(result).trim() !== '0') {
                             $('#old_attach_div').html(result).show();
-                            $("#attachment_body").hide();
+                            showEwayForm(false);
                         } else {
                             $('#old_attach_div').html('').hide();
-                            $("#attachment_body").show();
+                            showEwayForm(true);
                         }
                     },
                     error: function() {
                         $('#old_attach_div').html('<p class="text-danger">Could not load attachments.</p>').show();
-                        $("#attachment_body").hide();
+                        showEwayForm(false);
                     }
                 });
 
@@ -1452,7 +1594,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                 if (typeof ewFormToast === 'function') {
                                     ewFormToast('E-Way attachment saved successfully.', 'success', 4000);
                                 }
-                                $('#eway_popup').modal('hide');
+                                closeEwayModal();
                                 setTimeout(function() { location.reload(); }, 800);
                             } else if (typeof ewFormToast === 'function') {
                                 ewFormToast('Could not save attachment. Please check all fields and try again.', 'error', 5000);
@@ -1483,6 +1625,12 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             if (!$menu.length) {
                 return;
             }
+            if (!$menu.data('txn-print-parent')) {
+                $menu.data('txn-print-parent', $dd);
+            }
+            if (!$menu.parent().is('body')) {
+                $menu.appendTo(document.body);
+            }
             $menu.css({
                 display: 'block',
                 visibility: 'hidden',
@@ -1508,7 +1656,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             if (left + mw > window.innerWidth - 8) {
                 left = window.innerWidth - mw - 8;
             }
-            $menu.css({
+            $menu.addClass('txn-print-floating').css({
                 display: 'block',
                 visibility: 'visible',
                 position: 'fixed',
@@ -1522,13 +1670,21 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
 
         function hideTxnPrintMenus() {
             $('.txn-print-dd').removeClass('open');
-            $('.txn-print-dd .dropdown-menu').hide().css({
-                position: '',
-                top: '',
-                left: '',
-                bottom: '',
-                right: '',
-                visibility: ''
+            $('.txn-print-dd .dropdown-menu, body > .dropdown-menu.txn-print-floating').each(function() {
+                var $menu = $(this);
+                var $parent = $menu.data('txn-print-parent');
+                $menu.hide().css({
+                    position: '',
+                    top: '',
+                    left: '',
+                    bottom: '',
+                    right: '',
+                    visibility: '',
+                    zIndex: ''
+                }).removeClass('txn-print-floating');
+                if ($parent && $parent.length) {
+                    $menu.appendTo($parent);
+                }
             });
         }
 
@@ -1550,34 +1706,6 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             hideTxnPrintMenus();
         });
         $(window).on('scroll resize', hideTxnPrintMenus);
-
-        // On click print icon show gr copy download options
-        $(document).on('click','#print_grn',function(){
-            const element = $(this).children(".dropdown-menu");
-            const display = element.css("display");
-            if (display === "none") {
-                $(this).children('.dropdown-menu').css({"display":"block"});
-                $(this).addClass('table-actions-click');
-            }
-            //  else {
-            //     $(this).removeClass('table-actions-click');
-            //     $(this).children('.dropdown-menu').css({"display":"none"});
-            // }
-        });
-      
-        //  On click outside of print icon options will hide
-        const print_btn = $("#print_grn");
-        $(document.body).on("click", function(event) {
-            const closestDiv = $(event.target).closest("#print_grn");
-            if (closestDiv.length === 0) {
-                const element = $('.table-actions-click').children(".dropdown-menu");
-                const display = element.css("display");
-                if (display === "block") {
-                    $('.table-actions-click').children('.dropdown-menu').css({"display":"none"});
-                    $('.table-actions-click').removeClass('table-actions-click')
-                }
-            }
-        });
 
 		
 		// import excel file to database
@@ -1749,49 +1877,55 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
         </div>
     </div>
 
-    <div class="modal fade" id="eway_popup" style="display:none">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button aria-hidden="true" class="close" data-dismiss="modal" type="button">&times;</button>
-                    <h4 class="modal-title" style="color:#fff">
-                        E-Way Attachments
-                    </h4>
-                </div>
-                <div class="modal-body">
-                    <div id="old_attach_div"></div>
-                    <div id="attachment_body" style="display:none">
-                        <form id="eway_form" class="eway-add-form" enctype="multipart/form-data">
-                            <input type="hidden" name="form_name" value="add_eway_bill">
-                            <input type="hidden" name="attachment_id" id="attachment_id" value="">
-                            <input type="hidden" name="table_name" id="table_name" value="">
+    <div class="ew-v2-modal-backdrop" id="eway_popup">
+        <div class="ew-v2-modal ew-v2-modal--wide">
+            <div class="ew-v2-modal-head">
+                <h3>E-Way Attachments</h3>
+                <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+            </div>
+            <div class="ew-v2-modal-body">
+                <div id="old_attach_div"></div>
+                <div id="attachment_body" style="display:none">
+                    <form id="eway_form" class="eway-add-form" enctype="multipart/form-data">
+                        <input type="hidden" name="form_name" value="add_eway_bill">
+                        <input type="hidden" name="attachment_id" id="attachment_id" value="">
+                        <input type="hidden" name="table_name" id="table_name" value="">
 
-                            <div class="form-group">
-                                <label class="control-label">E-Way Attachment</label>
-                                <input type="file" class="form-control" name="attachment[]" required multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
-                                <small class="text-muted">Upload image or PDF (multiple files allowed).</small>
-                            </div>
-                            <div class="form-group">
-                                <label class="control-label">E-Way Bill No</label>
-                                <input type="text" class="form-control" name="eway_bill_no" required placeholder="Enter e-way bill number">
-                            </div>
-                            <div class="eway-form-grid">
-                                <div class="form-group">
-                                    <label class="control-label">Date of Issue</label>
-                                    <input type="date" class="form-control" name="issue_date">
-                                </div>
-                                <div class="form-group">
-                                    <label class="control-label">Date of Expiry</label>
-                                    <input type="date" class="form-control expiredate" name="expire_date">
+                        <div class="form-group">
+                            <label class="control-label">E-Way Attachment</label>
+                            <div class="ew-upload-image ew-upload-image--multi" id="eway_upload_wrap">
+                                <div class="ew-upload-image__zone" tabindex="0" role="button" aria-label="Upload E-Way files">
+                                    <input type="file" name="attachment[]" id="eway_upload_file" class="ew-upload-image__input" required multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,image/*,application/pdf">
+                                    <div class="ew-upload-image__body">
+                                        <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+                                        <span class="ew-upload-image__hint">Drag &amp; drop or browse</span>
+                                        <span class="ew-upload-image__meta">Image or PDF · multiple files allowed</span>
+                                        <span class="ew-upload-image__filename"></span>
+                                        <span class="ew-btn-v2 ew-btn-v2-outline ew-upload-image__browse">Browse</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="eway-form-actions">
-                                <button class="btn btn-danger btn-cancel" type="button" id="eway_cancel">Cancel</button>
-                                <button class="btn btn-primary btn-submit" type="button" id="save_eway">Submit</button>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">E-Way Bill No</label>
+                            <input type="text" class="form-control" name="eway_bill_no" required placeholder="Enter e-way bill number">
+                        </div>
+                        <div class="eway-form-grid">
+                            <div class="form-group">
+                                <label class="control-label">Date of Issue</label>
+                                <?php echo ew_date_input(array('id' => 'eway_issue_date', 'name' => 'issue_date', 'placeholder' => 'dd-mm-yyyy')); ?>
                             </div>
-                        </form>
-                    </div>
+                            <div class="form-group">
+                                <label class="control-label">Date of Expiry</label>
+                                <?php echo ew_date_input(array('id' => 'eway_expire_date', 'name' => 'expire_date', 'placeholder' => 'dd-mm-yyyy')); ?>
+                            </div>
+                        </div>
+                    </form>
                 </div>
+            </div>
+            <div class="ew-v2-modal-foot" id="eway_modal_foot" style="display:none">
+                <button type="button" class="btn btn-default-outline" id="eway_cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save_eway">Submit</button>
             </div>
         </div>
     </div>

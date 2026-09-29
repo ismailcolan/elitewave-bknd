@@ -440,6 +440,24 @@ if ($cmd == 'get_vendor_type_options') {
 	echo ew_vendor_type_select_html($conn, $selected);
 	exit;
 }
+if ($cmd == 'get_vendor_type_details') {
+	require_once __DIR__ . '/include/vendor_master_helpers.php';
+	ew_vendor_ensure_table($conn);
+	header('Content-Type: application/json; charset=utf-8');
+	$vendor_type_id = (int) ($_REQUEST['vendor_type_id'] ?? 0);
+	$row = ew_vendor_get_type($conn, $vendor_type_id);
+	if (!$row) {
+		echo json_encode(array('ok' => false, 'message' => 'Vendor type not found.'));
+		exit;
+	}
+	echo json_encode(array(
+		'ok' => true,
+		'vendor_type_id' => (int) $row['vendor_type_id'],
+		'type_code' => $row['type_code'],
+		'type_name' => $row['type_name'],
+	));
+	exit;
+}
 if ($cmd == 'get_consignee') {
 	$tbl_id = $_REQUEST['id'];
 	$out_put = '<option value="">--Select Consignee--</option>';
@@ -881,7 +899,8 @@ if ($cmd == 'get_grn_for_status') {
 
 	while ($row2 = mysqli_fetch_assoc($result2)) {
 		$query = 'SELECT * FROM transaction_' . $row2['table_name']
-			. " WHERE grn_no='$grn_no' AND status < '$status' AND booking_status = ''";
+			. " WHERE grn_no='$grn_no' AND status < '$status'"
+			. " AND (booking_status IS NULL OR booking_status = '' OR booking_status = '0')";
 		$result = mysqli_query($conn, $query);
 
 		if (mysqli_num_rows($result) > 0) {
@@ -951,9 +970,9 @@ if ($cmd == 'get_all_bookings_for_status') {
 		$invoice_table = 'transaction_invoice_' . $table_name;
 
 		$query = "SELECT * FROM $trans_table
-			\t   WHERE status = '$filter_status'
-			\t   AND booking_status = ''
-			\t   ORDER BY grn_date DESC, grn_no DESC";
+			WHERE status = '$filter_status'
+			AND " . ew_sql_not_cancelled_booking('booking_status') . "
+			ORDER BY grn_date DESC, grn_no DESC";
 
 		$result = mysqli_query($conn, $query);
 

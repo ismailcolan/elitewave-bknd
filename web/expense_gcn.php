@@ -811,7 +811,6 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 										</div>
 
 										<div class="egcn-panel-footer">
-											<button type="button" class="btn btn-default" id="btn_reset">Reset</button>
 											<button type="button" class="btn btn-primary" id="btn_save"><i class="fa fa-save"></i> Save Expenses</button>
 										</div>
 									</div>
@@ -899,7 +898,9 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 		function formatMoney(v) {
 			var n = parseMoney(v);
-			return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+			var abs = Math.abs(n);
+			var formatted = abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+			return n < 0 ? ('-' + formatted) : formatted;
 		}
 
 		function getCategoryDefaultAmount(categoryId) {
@@ -1323,19 +1324,6 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			});
 		}
 
-		function resetForm(keepMode) {
-			if (!keepMode) {
-				$('input[name="expense_mode"][value="single"]').prop('checked', true);
-				updateModeUI();
-			}
-			gcnExpenseId = 0;
-			setSelectVal($('#gcn_key'), '');
-			setMultiSelectVal($('#gcn_keys'), []);
-			clearSummary();
-			$('#expense_lines_body').empty();
-			addExpenseLine();
-		}
-
 		$(document).ready(function() {
 			var preselectKey = <?php echo json_encode($preselect_gcn_key, JSON_UNESCAPED_UNICODE); ?>;
 			var preselectGroupId = <?php echo (int) $preselect_group_id; ?>;
@@ -1442,22 +1430,10 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 							alert(r && r.message ? r.message : 'Save failed.');
 							return;
 						}
-						alert(r.message || 'Saved.');
-						if (r.gcn_expense_id) {
-							gcnExpenseId = parseInt(r.gcn_expense_id, 10) || 0;
-						}
-						if (isGroupMode()) {
-							loadGroupContext(getMultiSelectVal($('#gcn_keys')), gcnExpenseId);
-						} else {
-							loadGcnContext(getSelectVal($('#gcn_key')));
-						}
+						window.location.href = 'expense_gcn_list.php';
 					},
 					error: function() { alert('Save request failed.'); }
 				});
-			});
-
-			$('#btn_reset').on('click', function() {
-				resetForm(false);
 			});
 		});
 	</script>

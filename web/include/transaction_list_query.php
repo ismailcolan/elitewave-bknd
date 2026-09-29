@@ -13,6 +13,19 @@ function transaction_gcn_serial_no($row)
 	return 0;
 }
 
+function transaction_list_track_action_html($row)
+{
+	$grn = trim((string) ($row['grn_no'] ?? ''));
+	if ($grn === '') {
+		$grn = trim((string) ($row['tracking_code'] ?? ''));
+	}
+	if ($grn === '') {
+		return '<a title="Track unavailable" href="javascript:void(0);" class="table-actions disable_action"><i class="fa fa-map-marker"></i></a>';
+	}
+	$href = 'track_consignment.php?grn_no=' . rawurlencode($grn);
+	return '<a title="Track Consignment" href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" class="table-actions btn-track-consignment"><i class="fa fa-map-marker"></i></a>';
+}
+
 function transaction_list_booking_tables($conn, $year = 0)
 {
 	$tables = array();
@@ -243,10 +256,12 @@ function transaction_list_render_row($conn, $row, $i)
 	if (booking_is_gcn_billed($conn, $trans_name, $row['transaction_id'])) {
 		$edit_btn = '<a title="Invoiced — edit locked" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>';
 	}
+	$track_btn = transaction_list_track_action_html($row);
 	if ($booking == '1') {
 		$out_put .= "
 			\t    <a title=\"Info\" href=\"#cancel_grn_popup\" class=\"table-actions show_info_popup\"  data-toggle=\"modal\" data-remarks=\"" . htmlspecialchars((string) $remarks, ENT_QUOTES, 'UTF-8') . '" data-createdby="' . htmlspecialchars((string) $cancelled_by, ENT_QUOTES, 'UTF-8') . '" data-createdat="' . htmlspecialchars((string) $updated_at, ENT_QUOTES, 'UTF-8') . '" id="' . $row['transaction_id'] . '" ><i class="fa fa-exclamation-circle"></i></a>
                     <a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>
+                    ' . $track_btn . '
                     <a class="table-actions disable_action"  href="javascript:void(0)" ><i class="fa fa-print"></i></a>
                     <a class="table-actions disable_action" href="javascript:void(0)" data-status="' . $row['status'] . '" title="Invoice" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-file"></i></a>
                     <a class="table-actions send_invoices disable_action" href="javascript:void(0)" title="Send Invoice" id="send_invoice_d" data-month="' . $m1 . '" data-year="' . $y . '" data-id="' . $row['transaction_id'] . '" > <i class="fa fa-envelope"></i></a>
@@ -258,6 +273,7 @@ function transaction_list_render_row($conn, $row, $i)
 		} else {
 			$out_put .= $edit_btn;
 		}
+		$out_put .= $track_btn;
 		$out_put .= '<span class="table-actions dropdown txn-print-dd"><i class="fa fa-print"></i>
 						<ul class="dropdown-menu">
 							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=consignor" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">Consignor GR</a></li>
@@ -288,7 +304,7 @@ function transaction_list_render_row($conn, $row, $i)
 	} else {
 		$out_put .= '<a class="table-actions disable_action" href="javascript:void(0)"><i class="fa fa-ban"></i></a>';
 	}
-	$out_put .= '<a title="E-way Attachments" href="#eway_popup" class="table-actions btn-eway" data-toggle="modal" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
+	$out_put .= '<a title="E-way Attachments" href="javascript:void(0);" class="table-actions btn-eway" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
 	if ($count >= 1) {
 		$out_put .= '<a title="View POD" href="#pod_popup" class="table-actions btn-view-pod" data-toggle="modal" data-grn="' . htmlspecialchars($row['grn_no'], ENT_QUOTES, 'UTF-8') . '" id="' . $row['transaction_id'] . '"><i class="fa fa-camera"></i></a>';
 	} else {

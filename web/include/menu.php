@@ -3,7 +3,6 @@
    Rollback: menu.php.rollback-dual-rail | menu.php.rollback-modules | menu.php.rollback */
 require_once ('include/connect.php');
 require_once ('include/function.php');
-
 $read_status = mysqli_query($conn, 'SELECT read_status FROM `user_registrations` WHERE read_status = 0');
 $count_read = mysqli_num_rows($read_status);
 
@@ -15,6 +14,9 @@ $page_module_map = array(
   'state.php' => 'setup', 'city.php' => 'setup', 'hub.php' => 'setup',
   'mode_of_transportation.php' => 'transport', 'consignment_mode.php' => 'transport',
   'package_type.php' => 'transport', 'vehicle.php' => 'transport', 'vehicle_list.php' => 'transport',
+  'eway_partb.php' => 'transport',
+  'vehicle_type_master.php' => 'transport', 'vehicle_type.php' => 'transport',
+  'quotation_list.php' => 'transport', 'quotation.php' => 'transport', 'quotation_pdf.php' => 'transport',
   'train.php' => 'transport', 'flight.php' => 'transport',
   'client.php' => 'party', 'client_list.php' => 'party',
   'client_branch.php' => 'party', 'client_branch_list.php' => 'party',
@@ -28,6 +30,7 @@ $page_module_map = array(
   'expense_gcn.php' => 'expense', 'expense_gcn_list.php' => 'expense',
   'expense_general.php' => 'expense', 'expense_general_list.php' => 'expense',
   'qrcode_master.php' => 'tools', 'bulkmail.php' => 'tools', 'users.php' => 'tools', 'user_list.php' => 'tools',
+  'eway_partb_settings.php' => 'tools',
   'pod_list.php' => 'portal', 'pod_master.php' => 'portal', 'edit_pod_list.php' => 'portal',
   'user-draftconsignment.php' => 'portal', 'user-inquiry.php' => 'portal',
   'user-approval.php' => 'portal', 'user-requestpickup-list.php' => 'portal',
@@ -41,11 +44,14 @@ $page_module_map = array(
   'transaction_status.php' => 'consignment', 'transactions_manual.php' => 'consignment',
   'create_invoice.php' => 'invoice', 'invoice_list.php' => 'invoice',
   'credit_note_list.php' => 'invoice', 'create_credit_note.php' => 'invoice',
+  'receipt_list.php' => 'invoice', 'create_receipt.php' => 'invoice',
   'consignment_report.php' => 'mis', 'client_arrival_report.php' => 'mis',
   'cargo_booking_report.php' => 'mis', 'gst_tax_report.php' => 'mis',
+  'invoice_register.php' => 'mis',
+  'pending_payments.php' => 'mis',
   'client_payment_transactions.php' => 'mis',
-  'customer_mapping.php' => 'mapping',
-  'customer_mapping_form.php' => 'mapping',
+  'customer_mapping.php' => 'party',
+  'customer_mapping_form.php' => 'party',
 );
 
 if ($current_page === 'pod_master.php') {
@@ -532,32 +538,33 @@ function ew_panel_head($title) {
       <span class="rail-icon"><img src="./icons/png/003-delivery-truck-with-circular-clock.png" alt=""></span>
       <span class="rail-label">Transport</span>
     </button>
-    <button type="button" class="rail-item<?php echo ew_module_active('party', $active_module); ?>" data-module="party" data-tooltip="Party Masters" title="Party Masters">
+    <button type="button" class="rail-item<?php echo ew_module_active('party', $active_module); ?>" data-module="party" data-tooltip="Customer Masters" title="Customer Masters">
       <span class="rail-icon"><img src="./icons/png/007-delivery-worker-giving-a-box-to-a-receiver.png" alt=""></span>
-      <span class="rail-label">Party</span>
+      <span class="rail-label">Customers</span>
     </button>
     <button type="button" class="rail-item<?php echo ew_module_active('billing', $active_module); ?>" data-module="billing" data-tooltip="Billing &amp; Tax" title="Billing &amp; Tax">
       <span class="rail-icon"><img src="./icons/002-cart.png" alt=""></span>
       <span class="rail-label">Billing</span>
     </button>
     <button type="button" class="rail-item<?php echo ew_module_active('expense', $active_module); ?>" data-module="expense" data-tooltip="Expense" title="Expense">
-      <span class="rail-icon"><img src="./icons/pickup.png" alt=""></span>
+      <span class="rail-icon"><i class="fa fa-money" aria-hidden="true"></i></span>
       <span class="rail-label">Expense</span>
     </button>
     <button type="button" class="rail-item<?php echo ew_module_active('tools', $active_module); ?>" data-module="tools" data-tooltip="Tools &amp; Users" title="Tools &amp; Users">
       <span class="rail-icon"><i class="fa fa-wrench" aria-hidden="true"></i></span>
       <span class="rail-label">Tools</span>
     </button>
-    <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
-    <button type="button" class="rail-item<?php echo ew_module_active('mapping', $active_module); ?>" data-module="mapping" data-tooltip="Customer Mapping" title="Customer Mapping">
-      <span class="rail-icon"><img src="./icons/png/004-delivery-package-opened.png" alt=""></span>
-      <span class="rail-label">Mapping</span>
-    </button>
-    <?php endif; ?>
     <button type="button" class="rail-item<?php echo ew_module_active('portal', $active_module); ?>" data-module="portal" data-tooltip="User Portal" title="User Portal">
       <span class="rail-icon"><img src="./icons/user-check.png" alt=""></span>
       <span class="rail-label">Portal</span>
       <?php if ($count_read > 0): ?><span class="rail-badge"><?php echo $count_read; ?></span><?php endif; ?>
+    </button>
+    <?php endif; ?>
+
+    <?php if ($_SESSION['role'] == 'USER'): ?>
+    <button type="button" class="rail-item<?php echo ew_module_active('party', $active_module); ?>" data-module="party" data-tooltip="Customer Masters" title="Customer Masters">
+      <span class="rail-icon"><img src="./icons/png/007-delivery-worker-giving-a-box-to-a-receiver.png" alt=""></span>
+      <span class="rail-label">Customers</span>
     </button>
     <?php endif; ?>
 
@@ -590,18 +597,12 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active('mode_of_transportation.php', $current_page); ?>" href="mode_of_transportation.php">Mode of Transport</a>
         <a class="panel-link<?php echo ew_menu_active('consignment_mode.php', $current_page); ?>" href="consignment_mode.php">Consignment Mode</a>
         <a class="panel-link<?php echo ew_menu_active('package_type.php', $current_page); ?>" href="package_type.php">Package Type</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('vehicle_type_master.php', 'vehicle_type.php'), $current_page); ?>" href="vehicle_type_master.php">Vehicle Type Master</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('quotation_list.php', 'quotation.php'), $current_page); ?>" href="quotation_list.php">Rate Quotation</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('vehicle_list.php', 'vehicle.php'), $current_page); ?>" href="vehicle_list.php">Vehicle</a>
+        <a class="panel-link<?php echo ew_menu_active('eway_partb.php', $current_page); ?>" href="eway_partb.php">E-Way Part-B</a>
         <a class="panel-link<?php echo ew_menu_active('train.php', $current_page); ?>" href="train.php">Train</a>
         <a class="panel-link<?php echo ew_menu_active('flight.php', $current_page); ?>" href="flight.php">Flight</a>
-      </div>
-    </div>
-
-    <div class="panel-module<?php echo ew_module_active('party', $active_module); ?>" data-module="party">
-      <?php ew_panel_head('Party Masters'); ?>
-      <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active_any(array('client_list.php', 'client.php'), $current_page); ?>" href="client_list.php">Client</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('client_branch_list.php', 'client_branch.php'), $current_page); ?>" href="client_branch_list.php">Client Branch</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('vendor_list.php', 'vendor.php'), $current_page); ?>" href="vendor_list.php">Vendor</a>
       </div>
     </div>
 
@@ -629,6 +630,9 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active('qrcode_master.php', $current_page); ?>" href="qrcode_master.php">Print QR Code</a>
         <a class="panel-link<?php echo ew_menu_active('bulkmail.php', $current_page); ?>" href="bulkmail.php">Bulk Email</a>
         <a class="panel-link<?php echo ew_menu_active('user_list.php', $current_page); ?>" href="user_list.php">Users</a>
+        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'AD') { ?>
+        <a class="panel-link<?php echo ew_menu_active('eway_partb_settings.php', $current_page); ?>" href="eway_partb_settings.php">E-Way API settings</a>
+        <?php } ?>
       </div>
     </div>
 
@@ -649,6 +653,21 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active_any(array('rate_calc_list.php', 'rate_calculator_form.php'), $current_page); ?>" href="rate_calc_list.php">Rate Calculator</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('expected_delivery_list.php', 'expected_delivery_form.php'), $current_page); ?>" href="expected_delivery_list.php">Expected Delivery</a>
         <a class="panel-link<?php echo ew_menu_active('request_for_new_pickup.php', $current_page); ?>" href="request_for_new_pickup.php">Request For Pickup</a>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
+    <div class="panel-module<?php echo ew_module_active('party', $active_module); ?>" data-module="party">
+      <?php ew_panel_head('Customer Masters'); ?>
+      <div class="panel-scroll">
+        <?php if ($_SESSION['role'] == 'AD'): ?>
+        <a class="panel-link<?php echo ew_menu_active_any(array('client_list.php', 'client.php'), $current_page); ?>" href="client_list.php">Customer</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('client_branch_list.php', 'client_branch.php'), $current_page); ?>" href="client_branch_list.php">Customer Branch</a>
+        
+        <a class="panel-link<?php echo ew_menu_active_any(array('customer_mapping.php', 'customer_mapping_form.php'), $current_page); ?>" href="customer_mapping.php">Customer Mapping</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('vendor_list.php', 'vendor.php'), $current_page); ?>" href="vendor_list.php">Vendor</a>
+        <?php endif; ?>
       </div>
     </div>
     <?php endif; ?>
@@ -682,6 +701,7 @@ function ew_panel_head($title) {
       <div class="panel-scroll">
         <a class="panel-link<?php echo ew_menu_active_any(array('invoice_list.php', 'create_invoice.php'), $current_page); ?>" href="invoice_list.php">Tax Invoice</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('credit_note_list.php', 'create_credit_note.php'), $current_page); ?>" href="credit_note_list.php">Credit Note</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('receipt_list.php', 'create_receipt.php'), $current_page); ?>" href="receipt_list.php">Receipt</a>
       </div>
     </div>
     <?php endif; ?>
@@ -697,17 +717,10 @@ function ew_panel_head($title) {
           <a class="panel-link<?php echo ew_menu_active('consignment_report.php', $current_page); ?>" href="consignment_report.php">Booking Status Report</a>
           <a class="panel-link<?php echo ew_menu_active('cargo_booking_report.php', $current_page); ?>" href="cargo_booking_report.php">Cargo Booking Report</a>
           <a class="panel-link<?php echo ew_menu_active('gst_tax_report.php', $current_page); ?>" href="gst_tax_report.php">GST Tax Report</a>
+          <a class="panel-link<?php echo ew_menu_active('invoice_register.php', $current_page); ?>" href="invoice_register.php">Invoice Register</a>
+          <a class="panel-link<?php echo ew_menu_active('pending_payments.php', $current_page); ?>" href="pending_payments.php">Pending Payments</a>
           <a class="panel-link<?php echo ew_menu_active('client_payment_transactions.php', $current_page); ?>" href="client_payment_transactions.php">Payment History</a>
         <?php endif; ?>
-      </div>
-    </div>
-    <?php endif; ?>
-
-    <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
-    <div class="panel-module<?php echo ew_module_active('mapping', $active_module); ?>" data-module="mapping">
-      <?php ew_panel_head('Customer Mapping'); ?>
-      <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active_any(array('customer_mapping.php', 'customer_mapping_form.php'), $current_page); ?>" href="customer_mapping.php">Customer Mapping</a>
       </div>
     </div>
     <?php endif; ?>
@@ -850,9 +863,9 @@ function ew_panel_head($title) {
     }
     const hb = document.getElementById('hamburgerBtn');
     if (!hb) return;
-    hb.classList.toggle('is-open', open);
+    hb.classList.remove('is-open');
     hb.setAttribute('aria-expanded', open ? 'true' : 'false');
-    hb.title = open ? 'Close menu' : 'Open menu';
+    hb.title = 'Toggle menu';
   }
 
   function syncSidebarLayout() {

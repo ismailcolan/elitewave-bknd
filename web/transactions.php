@@ -3,6 +3,14 @@ require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/gst_tax_functions.php');
 require_once('include/billing_functions.php');
+require_once('include/quotation_functions.php');
+require_once('include/vehicle_type_helpers.php');
+ew_vehicle_type_ensure_schema($conn);
+$booking_vehicle_type_dims = ew_vehicle_type_booking_dims_lookup($conn);
+$booking_vehicle_type_dims_json = json_encode($booking_vehicle_type_dims, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS);
+if ($booking_vehicle_type_dims_json === false) {
+	$booking_vehicle_type_dims_json = '{}';
+}
 ensure_gst_tax_master_table($conn);
 ensure_transaction_gst_columns($conn, 'transaction');
 $company_query = mysqli_query($conn, 'SELECT company_id, company_code, grn_mode, state FROM company WHERE status=0 LIMIT 1');
@@ -135,6 +143,42 @@ if ($booking_clients_json === false) {
 		#grn_details .con_name_val1,
 		#grn_details .con_name_val2 {
 			display: none !important;
+		}
+
+		/* Party address/phone/GST — data only, never shown on booking form */
+		#con_details,
+		#con_details1,
+		.party-card-meta--hidden {
+			display: none !important;
+			visibility: hidden !important;
+			height: 0 !important;
+			overflow: hidden !important;
+			margin: 0 !important;
+			padding: 0 !important;
+		}
+
+		.ew-booking-section--parties .party-section-hint {
+			margin: -4px 0 10px;
+			font-size: 12px;
+			color: #64748b;
+			line-height: 1.4;
+		}
+
+		.ew-booking-section--parties .party-split--compact .select2-container {
+			max-width: 100%;
+		}
+
+		.ew-vehicle-type-block .ew-vehicle-dims-below {
+			margin-top: 8px;
+		}
+
+		.ew-vehicle-type-block .ew-vehicle-dims-below > .control-label {
+			margin-bottom: 4px !important;
+		}
+
+		#vehicle_type_dims_display[disabled] {
+			background: #f4f6f9;
+			cursor: default;
 		}
 		.invoice_exist {
 			border: 1px solid #e71717 !important;
@@ -411,17 +455,20 @@ if ($booking_clients_json === false) {
 
 		.payment-gst-panel .table > thead > tr > th:first-child,
 		.payment-gst-panel .table > tbody > tr > td:first-child {
-			width: 44%;
+			text-align: left;
+			width: auto;
 		}
 
 		.payment-gst-panel .table > thead > tr > th:nth-child(2),
 		.payment-gst-panel .table > tbody > tr > td:nth-child(2) {
-			width: 24%;
+			width: 84px;
+			max-width: 84px;
 		}
 
 		.payment-gst-panel .table > thead > tr > th:nth-child(3),
 		.payment-gst-panel .table > tbody > tr > td:nth-child(3) {
-			width: 32%;
+			width: 112px;
+			max-width: 112px;
 		}
 
 		.payment-gst-panel .form-control {
@@ -870,6 +917,13 @@ if ($booking_clients_json === false) {
 							}
 							$booking_status = (int) ($row['status'] ?? 0);
 							$trans_table_name = 'transaction_' . $m . '_' . $y;
+							ew_transaction_ensure_party_branch_columns($conn, 'transaction');
+							if ($m !== '' && $y !== '') {
+								ew_transaction_ensure_party_branch_columns($conn, $trans_table_name);
+							}
+							$saved_booking_vehicle_type = trim((string) ($row['vehicle_type'] ?? ''));
+							$initial_vehicle_type_dims_display = isset($booking_vehicle_type_dims[$saved_booking_vehicle_type])
+								? $booking_vehicle_type_dims[$saved_booking_vehicle_type] : '';
 							$gcn_billed = ($transaction_id > 0) && booking_is_gcn_billed($conn, $trans_table_name, $transaction_id);
 							// Billing-only lock applies only after delivery (status 8), not on submitted bookings.
 							$billing_only_edit = ($form_name === 'edit_consignment_details' && $booking_status === 8 && !$gcn_billed);
@@ -1106,9 +1160,9 @@ if ($booking_clients_json === false) {
 									</div>
 								</div>
 
-								<div class="ew-booking-section">
+								<div class="ew-booking-section ew-booking-section--parties">
 									<h2 class="ew-card-section-title">Consignor &amp; Consignee Information</h2>
-									<div class="party-split">
+									<div class="party-split party-split--compact">
 										<div class="party-card party-card--consignor">
 											<div class="ew-field">
 												<label class="control-label">Consignor <span class="req-star">*</span></label>
@@ -1126,30 +1180,10 @@ if ($booking_clients_json === false) {
 												<input name="consignor" id="consignor" required value="<?php echo $row['consigner']; ?>" type="hidden" class="get_consigner_valll" />
 											</div>
 											<div class="ew-field" id="consignor_branch_div" style="display:none;">
-												<label class="control-label">Consignor Branch</label>
-												<select id="consignor_branch" name="consignor_branch" class="form-control party-select" data-placeholder="Select Branch">
-													<option value="">Select Branch</option>
+												<label class="control-label" title="Consignor branch / pickup address">Pickup branch</label>
+												<select id="consignor_branch" name="consignor_branch" class="form-control party-select" data-placeholder="Select branch">
+													<option value="">Select branch</option>
 												</select>
-											</div>
-											<div id="con_details" class="party-card-meta" style="display:none;">
-												<div class="ew-field">
-													<label class="control-label">Consignor Address</label>
-													<div class="meta-value" id="address1"></div>
-												</div>
-												<div class="party-card-meta-row">
-													<div class="ew-field">
-														<label class="control-label">Phone</label>
-														<div class="meta-value" id="phone"></div>
-													</div>
-													<div class="ew-field">
-														<label class="control-label">GST No</label>
-														<div class="meta-value" id="gst_no"></div>
-													</div>
-												</div>
-												<span id="address2" style="display:none;"></span>
-												<span id="city" style="display:none;"></span>
-												<span id="state" style="display:none;"></span>
-												<span id="pincode" style="display:none;"></span>
 											</div>
 										</div>
 										<div class="party-card party-card--consignee">
@@ -1167,54 +1201,43 @@ if ($booking_clients_json === false) {
 												<label for="" class="consignee_name_val"></label>
 												<input name="consignee" id="consignee" required value="<?php echo $row['consignee']; ?>" type="hidden" class="get_consignee_valll" />
 											</div>
-											<div class="ew-field" id="consignee_branch_div" style="display:none;">
-												<label class="control-label">Consignee Branch</label>
-												<select id="consignee_branch" name="consignee_branch" class="form-control party-select" data-placeholder="Select Branch">
-													<option value="">Select Branch</option>
-												</select>
-											</div>
-											<div id="con_details1" class="party-card-meta" style="display:none;">
-												<div class="ew-field">
-													<label class="control-label">Consignee Address</label>
-													<div class="meta-value" id="con_address1"></div>
+											<div class="party-branch-pair">
+												<div class="ew-field" id="bill_to_branch_div" style="display:none;">
+													<label class="control-label">Bill To</label>
+													<select id="bill_to_branch" name="bill_to_branch" class="form-control party-select" data-placeholder="Select branch">
+														<option value="">Select branch</option>
+													</select>
 												</div>
-												<div class="party-card-meta-row">
-													<div class="ew-field">
-														<label class="control-label">Phone</label>
-														<div class="meta-value" id="con_phone"></div>
-													</div>
-													<div class="ew-field">
-														<label class="control-label">GST No</label>
-														<div class="meta-value" id="con_gst"></div>
-													</div>
-												</div>
-												<span id="con_address2" style="display:none;"></span>
-												<span id="con_state" style="display:none;"></span>
-												<span id="con_city" style="display:none;"></span>
-												<span id="con_pincode" style="display:none;"></span>
-												<?php
-												$ship_checked = (!empty($row['shipping_address']) || !empty($row['shipping_address_name'])) ? 'checked="checked"' : '';
-												?>
-												<div class="ew-field shipping-block">
-													<div class="ship-toggle">
-														<input type="checkbox" id="ship_adddress" name="ship_adddress" <?php echo $ship_checked; ?>>
-														<label for="ship_adddress">Shipping Address (optional)</label>
-													</div>
-													<div id="shipadd" style="display: none;">
-														<input type="text" name="shipping_address_name" id="shipping_address_name" class="form-control" style="margin-bottom:6px;" placeholder="Recipient Name" value="<?php echo htmlspecialchars($row['shipping_address_name'] ?? ''); ?>">
-														<textarea class="form-control" rows="3" name="shipping_address" id="shipping_address" style="margin-bottom:6px;" placeholder="Shipping Address"><?php echo htmlspecialchars($row['shipping_address'] ?? ''); ?></textarea>
-														<div class="ew-form-grid" style="margin-top:6px;">
-															<div class="ew-field">
-																<input type="text" name="shipping_gst_no" id="shipping_gst_no" class="form-control" placeholder="GST No" value="<?php echo htmlspecialchars($row['shipping_gst_no'] ?? ''); ?>">
-															</div>
-															<div class="ew-field">
-																<input type="text" name="shipping_phone" id="shipping_phone" class="form-control" placeholder="Phone No" value="<?php echo htmlspecialchars($row['shipping_phone'] ?? ''); ?>">
-															</div>
-														</div>
-													</div>
+												<div class="ew-field" id="consignee_branch_div" style="display:none;">
+													<label class="control-label">Ship To</label>
+													<select id="consignee_branch" name="consignee_branch" class="form-control party-select" data-placeholder="Select branch">
+														<option value="">Select branch</option>
+													</select>
 												</div>
 											</div>
 										</div>
+									</div>
+									<div id="con_details" class="party-card-meta--hidden" aria-hidden="true">
+										<input type="hidden" id="address1" value="">
+										<input type="hidden" id="address2" value="">
+										<input type="hidden" id="phone" value="">
+										<input type="hidden" id="gst_no" value="">
+										<input type="hidden" id="city" value="">
+										<input type="hidden" id="state" value="">
+										<input type="hidden" id="pincode" value="">
+									</div>
+									<div id="con_details1" class="party-card-meta--hidden" aria-hidden="true">
+										<input type="hidden" id="con_address1" value="">
+										<input type="hidden" id="con_address2" value="">
+										<input type="hidden" id="con_phone" value="">
+										<input type="hidden" id="con_gst" value="">
+										<input type="hidden" id="con_state" value="">
+										<input type="hidden" id="con_city" value="">
+										<input type="hidden" id="con_pincode" value="">
+										<input type="hidden" name="shipping_address_name" id="shipping_address_name" value="">
+										<input type="hidden" name="shipping_address" id="shipping_address" value="">
+										<input type="hidden" name="shipping_gst_no" id="shipping_gst_no" value="">
+										<input type="hidden" name="shipping_phone" id="shipping_phone" value="">
 									</div>
 								</div>
 
@@ -1338,12 +1361,25 @@ if ($booking_clients_json === false) {
 													<input type="text" name="cfs" id="cfs" value="<?php echo $row['cfs']; ?>" class="form-control">
 												</div>
 												<div class="ew-field">
-													<label class="control-label">Part Number / Article Name</label>
-													<input type="text" name="vehicle_purchase_contact_person" value="<?php echo $row['vehicle_purchase_contact_person']; ?>" class="form-control">
+													<label class="control-label">Part Number / Article Name / Article Number</label>
+													<input type="text" name="vehicle_purchase_contact_person" value="<?php echo htmlspecialchars($row['vehicle_purchase_contact_person'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="form-control">
 												</div>
 												<div class="ew-field">
-													<label class="control-label">Quotation Approval</label>
-													<input type="text" name="quotation_approval" value="<?php echo $row['quotation_approval']; ?>" class="form-control">
+													<label class="control-label">Quotation approval</label>
+													<select name="quotation_approval" id="quotation_approval" class="form-control">
+														<option value="">Select option</option>
+														<?php
+														$qa = trim((string) ($row['quotation_approval'] ?? ''));
+														$qa_opts = quotation_quotation_approval_options();
+														if ($qa !== '' && !isset($qa_opts[$qa])) {
+															$qa_opts = array($qa => $qa) + $qa_opts;
+														}
+														foreach ($qa_opts as $k => $lbl) {
+															$sel = ($qa === (string) $k) ? ' selected' : '';
+															echo '<option value="' . htmlspecialchars($k, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>' . htmlspecialchars($lbl, ENT_QUOTES, 'UTF-8') . '</option>';
+														}
+														?>
+													</select>
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Truck / Vehicle No</label>
@@ -1355,11 +1391,15 @@ if ($booking_clients_json === false) {
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Vehicle Type</label>
-													<input type="text" name="vehicle_type" id="vehicle_type" value="<?php echo $row['vehicle_type']; ?>" class="form-control">
+													<?php echo ew_vehicle_type_transaction_select_html($conn, $row['vehicle_type'] ?? ''); ?>
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Highload Challan</label>
 													<input type="text" name="highload_challan" value="<?php echo $row['highload_challan']; ?>" class="form-control">
+												</div>
+												<div class="ew-field" id="vehicle_type_dims_wrap">
+													<label class="control-label" for="vehicle_type_dims_display">Vehicle Dimensions / CBM</label>
+													<input type="text" id="vehicle_type_dims_display" class="form-control" readonly disabled value="<?php echo htmlspecialchars($initial_vehicle_type_dims_display, ENT_QUOTES, 'UTF-8'); ?>" tabindex="-1" aria-readonly="true" placeholder="Select vehicle type" />
 												</div>
 											</div>
 											<input type="hidden" name="volumetric_weight" id="volumetric_weight" value="<?php echo $row['volumetric_weight']; ?>">
@@ -1433,70 +1473,88 @@ if ($booking_clients_json === false) {
 											<table class="table table-bordered payment-charges-table">
 												<thead>
 													<tr>
-														<th>Particulars</th>
+														<th class="text-left">Particulars</th>
 														<th class="text-right">Rate</th>
 														<th class="text-right">Amount (INR)</th>
 													</tr>
 												</thead>
 												<tbody>
 													<tr>
-														<td>Freight</td>
+														<td>
+															Freight Charges
+															<label class="freight-manual-toggle">
+																<input type="checkbox" id="freight_manual_amount" name="freight_manual_amount" value="1">
+																<span>Enter amount manually</span>
+															</label>
+														</td>
 														<td><input type="text" name="frieght_rate" id="frieght_rate" value="<?php echo $row['frieght_rate'] ?? ''; ?>" class="form-control text-right" onchange="calc_charge_amt();" autocomplete="off" /></td>
-														<td><input type="text" name="frieght_amount" id="frieght_amount" value="<?php echo $row['frieght_amount'] ?? ''; ?>" class="form-control text-right calculation" onchange="sum_amount();" readonly autocomplete="off" /></td>
+														<td class="amt-col"><input type="text" name="frieght_amount" id="frieght_amount" value="<?php echo $row['frieght_amount'] ?? ''; ?>" class="form-control text-right calculation freight-amt-field" onchange="sum_amount();" readonly autocomplete="off" /></td>
 													</tr>
 													<tr>
 														<td>Doc.Charges</td>
-														<td><input type="text" name="doc_rate" id="doc_rate" value="<?php echo $row['doc_charges'] ?? ''; ?>" class="form-control text-right" autocomplete="off" /></td>
-														<td><input type="text" name="doc_amount" id="doc_amount" value="<?php echo $row['doc_amount'] ?? ''; ?>" class="form-control text-right calculation" onchange="sum_amount();" autocomplete="off" /></td>
+														<td class="rate-empty text-right">—</td>
+														<td class="amt-col"><input type="text" name="doc_amount" id="doc_amount" value="<?php echo $row['doc_amount'] ?? ''; ?>" class="form-control text-right calculation" onchange="sum_amount();" autocomplete="off" /></td>
 													</tr>
 													<tr>
 														<td>Mamul Charges</td>
 														<td class="rate-empty text-right">—</td>
-														<td>
+														<td class="amt-col">
 															<input type="text"
 																name="mamul_charge"
 																id="mamul_charge"
 																value="<?php echo (($row['mamul_charge'] ?? '') != '' && ($row['mamul_charge'] ?? null) !== null) ? $row['mamul_charge'] : ''; ?>"
 																onchange="sum_amount();"
-																class="form-control text-right">
+																class="form-control text-right calculation">
 														</td>
 													</tr>
 													<tr>
 														<td>Vehicle Halting Charges</td>
 														<td class="rate-empty text-right">—</td>
-														<td>
+														<td class="amt-col">
 															<input type="text"
 																name="vehicle_halting_charge"
 																id="vehicle_halting_charge"
 																value="<?php echo (($row['vehicle_halting_charge'] ?? '') != '' && ($row['vehicle_halting_charge'] ?? null) !== null) ? $row['vehicle_halting_charge'] : ''; ?>"
 																onchange="sum_amount();"
-																class="form-control text-right">
+																class="form-control text-right calculation">
 														</td>
 													</tr>
 													<tr>
 														<td>Vehicle Loading / Unloading</td>
 														<td class="rate-empty text-right">—</td>
-														<td>
+														<td class="amt-col">
 															<input type="text"
 																name="vehicle_loading_unloading"
 																id="vehicle_loading_unloading"
 																value="<?php echo (($row['vehicle_loading_unloading'] ?? '') != '' && ($row['vehicle_loading_unloading'] ?? null) !== null) ? $row['vehicle_loading_unloading'] : ''; ?>"
 																onchange="sum_amount();"
-																class="form-control text-right">
+																class="form-control text-right calculation">
+														</td>
+													</tr>
+													<tr>
+														<td>Local Pickup &amp; Deliver Charges</td>
+														<td class="rate-empty text-right">—</td>
+														<td class="amt-col">
+															<input type="text"
+																name="cartage_amount"
+																id="cartage_amount"
+																value="<?php echo (($row['cartage_amount'] ?? '') != '' && ($row['cartage_amount'] ?? null) !== null) ? $row['cartage_amount'] : ''; ?>"
+																onchange="sum_amount();"
+																class="form-control text-right calculation"
+																autocomplete="off">
 														</td>
 													</tr>
 													<tr id="rajdhani_ex" style="display: none;">
 														<td>Rajdhani Charges</td>
 														<td class="rate-empty text-right">—</td>
-														<td><input type="text" name="rajdhani_charges" id="rajdhani_charges" value="<?php echo $row['rajdhani_charges'] ?? ''; ?>" class="form-control text-right calculation" onchange="sum_amount();" autocomplete="off" /></td>
-													</tr>
-													<tr>
-														<td>Any Other charges</td>
-														<td><input type="text" name="other_rate" id="other_rate" value="<?php echo $row['other_charge_rate'] ?? ''; ?>" class="form-control text-right" autocomplete="off" /></td>
-														<td><input type="text" name="other_amount" id="other_amount" value="<?php echo $row['other_charge_amount'] ?? ''; ?>" class="form-control text-right calculation" onchange="sum_amount();" autocomplete="off" /></td>
+														<td class="amt-col"><input type="text" name="rajdhani_charges" id="rajdhani_charges" value="<?php echo $row['rajdhani_charges'] ?? ''; ?>" class="form-control text-right calculation" onchange="sum_amount();" autocomplete="off" /></td>
 													</tr>
 												</tbody>
 											</table>
+											<input type="hidden" name="doc_rate" id="doc_rate" value="0">
+											<input type="hidden" name="cartage_rate" id="cartage_rate" value="0">
+											<input type="hidden" name="other_rate" id="other_rate" value="0">
+											<input type="hidden" name="other_amount" id="other_amount" value="<?php echo htmlspecialchars($row['other_charge_amount'] ?? '0'); ?>">
 
 											<div class="gst-config-block<?php echo !empty($billing_only_edit) ? ' gst-locked' : ''; ?>">
 												<div class="form-group">
@@ -1535,7 +1593,7 @@ if ($booking_clients_json === false) {
 												<table class="table table-bordered table-condensed gst-breakup-table">
 													<thead>
 														<tr>
-															<th>Component</th>
+															<th class="text-left">Component</th>
 															<th class="text-right">Rate %</th>
 															<th class="text-right">Amount (INR)</th>
 														</tr>
@@ -1687,6 +1745,7 @@ if ($booking_clients_json === false) {
 	</div>
 
 	<script src="include/calculation.js"></script>
+	<script src="javascripts/ew-attachment-upload.js?v=20260922"></script>
 	<script type="text/javascript">
 		window.PKG_OPTIONS_HTML = <?php echo json_encode($pkg_option ?? '<option value="">Select Package Type</option>'); ?>;
 		var PKG_MAX_ROWS = 5;
@@ -1804,14 +1863,13 @@ if ($booking_clients_json === false) {
 			var paymentAllow = {
 				frieght_rate: 1,
 				frieght_amount: 1,
-				doc_rate: 1,
 				doc_amount: 1,
 				mamul_charge: 1,
 				vehicle_halting_charge: 1,
 				vehicle_loading_unloading: 1,
+				cartage_amount: 1,
 				rajdhani_charges: 1,
-				other_rate: 1,
-				other_amount: 1,
+				freight_manual_amount: 1,
 				total: 1,
 				amount_in_words: 1
 			};
@@ -1826,7 +1884,18 @@ if ($booking_clients_json === false) {
 				}
 				if (paymentAllow[id] || paymentAllow[name] || $el.closest('.payment-charges-table').length) {
 					if (id === 'frieght_amount') {
-						$el.prop('readonly', true);
+						if ($('#freight_manual_amount').is(':checked')) {
+							$el.prop('readonly', false);
+						} else {
+							$el.prop('readonly', true);
+						}
+					} else if (id === 'frieght_rate') {
+						if ($('#freight_manual_amount').is(':checked')) {
+							$el.prop('readonly', true);
+						} else {
+							$el.prop('readonly', false);
+						}
+						$el.prop('disabled', false);
 					} else {
 						$el.prop('disabled', false).prop('readonly', false);
 					}
@@ -1968,10 +2037,24 @@ if ($booking_clients_json === false) {
 			$('#gst_type_hint').text(hint);
 		}
 
+		function syncFreightManualMode() {
+			var manual = $('#freight_manual_amount').is(':checked');
+			var $rate = $('#frieght_rate');
+			var $amt = $('#frieght_amount');
+			if (manual) {
+				$rate.prop('readonly', true);
+				$amt.prop('readonly', false);
+			} else {
+				$rate.prop('readonly', false);
+				$amt.prop('readonly', true);
+				calc_charge_amt();
+			}
+		}
+
 		function calculateTaxableValue() {
 			var fields = [
 				'#frieght_amount', '#doc_amount', '#mamul_charge', '#vehicle_halting_charge',
-				'#vehicle_loading_unloading', '#other_amount', '#rajdhani_charges'
+				'#vehicle_loading_unloading', '#cartage_amount', '#other_amount', '#rajdhani_charges'
 			];
 			var total = 0;
 			fields.forEach(function(selector) {
@@ -2163,10 +2246,13 @@ if ($booking_clients_json === false) {
 			}
 		}
 
-		function loadMappedConsignees(consignorId, selected) {
+		function loadMappedConsignees(consignorId, selected, done) {
 			if (!consignorId) {
 				fillConsigneeNameSelect([], '', true);
 				$('#consignee').val('');
+				if (typeof done === 'function') {
+					done();
+				}
 				return;
 			}
 			$.getJSON('fetch_details.php', {
@@ -2177,20 +2263,43 @@ if ($booking_clients_json === false) {
 				var hasMapped = rows.length > 0;
 				fillConsigneeNameSelect(rows, hasMapped ? (selected || '') : '', !hasMapped);
 				if (!hasMapped) {
-					$('#consignee').val('');
+					if (selected) {
+						var label = $('#consignee_name option[value="' + selected + '"]').text() || '';
+						if (label) {
+							fillConsigneeNameSelect([{ id: selected, name: label }], selected, false);
+						}
+						$('#consignee').val(String(selected));
+					} else {
+						$('#consignee').val('');
+					}
+				}
+				if (typeof done === 'function') {
+					done();
 				}
 			});
 		}
 
-		function populateBranchDropdown(selectId, branches, excludeBranchId) {
+		function branchDropdownWrap(selectId) {
+			if (selectId === '#consignor_branch') {
+				return '#consignor_branch_div';
+			}
+			if (selectId === '#bill_to_branch') {
+				return '#bill_to_branch_div';
+			}
+			return '#consignee_branch_div';
+		}
+
+		function populateBranchDropdown(selectId, branches, excludeBranchId, preselectBranchId, emptyLabel) {
 			var $sel = $(selectId);
-			var divId = (selectId === '#consignor_branch') ? '#consignor_branch_div' : '#consignee_branch_div';
-			var currentVal = partySelectVal($sel);
+			var divId = branchDropdownWrap(selectId);
+			var currentVal = preselectBranchId ? String(preselectBranchId) : partySelectVal($sel);
+			var noExclude = (selectId === '#bill_to_branch' || selectId === '#consignee_branch');
 			try {
 				if ($sel.data('select2')) $sel.select2('destroy');
 			} catch (e) {}
 
-			$sel.html('<option value="">Select Branch</option>');
+			emptyLabel = emptyLabel || 'Select Branch';
+			$sel.html('<option value="">' + emptyLabel + '</option>');
 
 			if (!branches || !branches.length) {
 				$(divId).hide();
@@ -2198,7 +2307,7 @@ if ($booking_clients_json === false) {
 			}
 
 			$.each(branches, function(i, row) {
-				var isExcluded = excludeBranchId && String(row.client_branch_id) === String(excludeBranchId);
+				var isExcluded = !noExclude && excludeBranchId && String(row.client_branch_id) === String(excludeBranchId);
 				var $opt = $('<option></option>')
 					.val(row.client_branch_id)
 					.text(row.branch_name)
@@ -2210,7 +2319,7 @@ if ($booking_clients_json === false) {
 			});
 
 			$(divId).show();
-			initPartyNameSelect($sel, 'Select Branch', false);
+			initPartyNameSelect($sel, emptyLabel, false);
 			if (currentVal && $sel.find('option[value="' + currentVal + '"]:not(:disabled)').length) {
 				$sel.select2('val', String(currentVal));
 			} else if ($sel.data('select2')) {
@@ -2218,19 +2327,27 @@ if ($booking_clients_json === false) {
 			}
 		}
 
-		function syncBranchDropdowns() {
-			var consignorBranchId = $('#consignor_branch').val();
-			var consigneeBranchId = $('#consignee_branch').val();
+		function refreshConsigneeBranchDropdowns(preBill, preShip) {
+			var branches = cachedConsigneeBranches || [];
+			var has = branches.length > 0;
+			if (!has) {
+				$('#bill_to_branch_div, #consignee_branch_div').hide();
+				return;
+			}
+			populateBranchDropdown('#bill_to_branch', branches, null, preBill || partySelectVal($('#bill_to_branch')));
+			populateBranchDropdown('#consignee_branch', branches, null, preShip || partySelectVal($('#consignee_branch')));
+		}
 
+		function syncBranchDropdowns() {
 			if (cachedConsignorBranches.length && $('#consignor').val()) {
-				populateBranchDropdown('#consignor_branch', cachedConsignorBranches, consigneeBranchId);
+				populateBranchDropdown('#consignor_branch', cachedConsignorBranches, $('#consignee_branch').val());
 			}
 			if (cachedConsigneeBranches.length && $('#consignee').val()) {
-				populateBranchDropdown('#consignee_branch', cachedConsigneeBranches, consignorBranchId);
+				refreshConsigneeBranchDropdowns();
 			}
 		}
 
-		function loadClientBranches(companyId, party, callback, syncRequest) {
+		function loadClientBranches(companyId, party, callback, syncRequest, preselectBranchId, preselectBillBranchId, preselectShipBranchId) {
 			if (!companyId) {
 				return;
 			}
@@ -2246,10 +2363,10 @@ if ($booking_clients_json === false) {
 				success: function(branches) {
 					if (party === 'consignor') {
 						cachedConsignorBranches = branches || [];
-						populateBranchDropdown('#consignor_branch', cachedConsignorBranches, $('#consignee_branch').val());
+						populateBranchDropdown('#consignor_branch', cachedConsignorBranches, $('#consignee_branch').val(), preselectBranchId);
 					} else {
 						cachedConsigneeBranches = branches || [];
-						populateBranchDropdown('#consignee_branch', cachedConsigneeBranches, $('#consignor_branch').val());
+						refreshConsigneeBranchDropdowns(preselectBillBranchId, preselectShipBranchId || preselectBranchId);
 					}
 					syncBranchDropdowns();
 					if (callback) {
@@ -2257,6 +2374,38 @@ if ($booking_clients_json === false) {
 					}
 				}
 			});
+		}
+
+		var savedConsignorBranchId = <?php echo (int) ($row['consignor_branch_id'] ?? 0); ?>;
+		var savedBillToBranchId = <?php echo (int) ($row['bill_to_branch_id'] ?? 0); ?>;
+		var savedConsigneeBranchId = <?php echo (int) ($row['consignee_branch_id'] ?? 0); ?>;
+		var bookingVehicleTypeDims = <?php echo $booking_vehicle_type_dims_json; ?>;
+
+		function syncVehicleTypeDimsDisplay() {
+			var val = $.trim($('#vehicle_type').val() || '');
+			var text = val ? (bookingVehicleTypeDims[val] || '') : '';
+			$('#vehicle_type_dims_display').val(text);
+		}
+
+		$(document).on('change', '#vehicle_type', syncVehicleTypeDimsDisplay);
+
+		function restoreEditConsignmentBranches() {
+			if ($('#form_name').val() !== 'edit_consignment_details') {
+				return;
+			}
+			var consignorId = $('#consignor').val();
+			var consigneeId = $('#consignee').val();
+			var loadConsigneeBranches = function() {
+				if (!consigneeId) {
+					return;
+				}
+				loadClientBranches(consigneeId, 'consignee', null, true, null, savedBillToBranchId || null, savedConsigneeBranchId || null);
+			};
+			if (consignorId) {
+				loadClientBranches(consignorId, 'consignor', loadConsigneeBranches, true, savedConsignorBranchId || null);
+			} else {
+				loadConsigneeBranches();
+			}
 		}
 
 		function reloadDestinationDropdown(originCityId, callback) {
@@ -2301,11 +2450,11 @@ if ($booking_clients_json === false) {
 				},
 				success: function(r) {
 					var addr = window.ewJoinPartyAddress ? window.ewJoinPartyAddress(r) : [r.address1, r.address2, r.city_name, r.pincode].filter(Boolean).join(', ');
-					$('#address1').html(addr);
-					$('#address2').html('');
-					$('#phone').html(r.contact_no || '');
+					$('#address1').val(addr);
+					$('#address2').val('');
+					$('#phone').val(r.contact_no || '');
 					if (r.gst_no) {
-						$('#gst_no').html(r.gst_no);
+						$('#gst_no').val(r.gst_no);
 					}
 					if (r.state) {
 						$('#consignor_state_id').val(r.state);
@@ -2337,11 +2486,11 @@ if ($booking_clients_json === false) {
 				},
 				success: function(r) {
 					var addr = [r.address1, r.address2, r.city_name, r.state_name, r.pincode].filter(Boolean).join(', ');
-					$('#con_address1').html(addr);
-					$('#con_address2').html('');
-					$('#con_phone').html(r.contact_no || '');
+					$('#con_address1').val(addr);
+					$('#con_address2').val('');
+					$('#con_phone').val(r.contact_no || '');
 					if (r.gst_no) {
-						$('#con_gst').html(r.gst_no);
+						$('#con_gst').val(r.gst_no);
 					}
 					if (r.state) {
 						$('#consignee_state_id').val(r.state);
@@ -2357,21 +2506,29 @@ if ($booking_clients_json === false) {
 		}
 
 		$(document).on('change', '#consignor_branch', function() {
+			applyConsignorBranch($(this).val());
+		});
+
+		$(document).on('change', '#bill_to_branch', function() {
 			var branchId = $(this).val();
-			if ($('#consignee_branch').val() && $('#consignee_branch').val() === branchId) {
-				$('#consignee_branch').val('');
+			if (branchId) {
+				$.ajax({
+					url: 'fetch_details.php',
+					type: 'GET',
+					dataType: 'json',
+					data: { cmd: 'get_branch_details', branch_id: branchId },
+					success: function(r) {
+						if (r && r.state) {
+							$('#consignee_state_id').val(r.state);
+							refreshGstCalculation();
+						}
+					}
+				});
 			}
-			syncBranchDropdowns();
-			applyConsignorBranch(branchId);
 		});
 
 		$(document).on('change', '#consignee_branch', function() {
-			var branchId = $(this).val();
-			if ($('#consignor_branch').val() && $('#consignor_branch').val() === branchId) {
-				$('#consignor_branch').val('');
-			}
-			syncBranchDropdowns();
-			applyConsigneeBranch(branchId);
+			applyConsigneeBranch($(this).val());
 		});
 		//Auto Calculation Part
 		var ftl_flag = '<?php echo $ftl_type; ?>';
@@ -2510,7 +2667,10 @@ if ($booking_clients_json === false) {
 
 		//Calculate Amount
 		function calc_charge_amt() {
-			//alert("tr");
+			if ($('#freight_manual_amount').is(':checked')) {
+				sum_amount();
+				return;
+			}
 			var charge_weight1 = $('#cumulative_charged').val();
 
 			var v_weight = $('#v_weight').val();
@@ -2763,6 +2923,7 @@ if ($booking_clients_json === false) {
 		var V_mode, T;
 
 		$(function() {
+			syncVehicleTypeDimsDisplay();
 
 			$('#mode_of_trasport').change(function() {
 				V_mode1 = $('#mode_of_trasport').val();
@@ -2954,13 +3115,22 @@ if ($booking_clients_json === false) {
 		//End
 
 		$(document).ready(function() {
-		$("#consignor_branch_div").hide();
-$("#consignee_branch_div").hide();
+		$("#consignor_branch_div, #bill_to_branch_div, #consignee_branch_div").hide();
+			var freightRateVal = parseFloat($('#frieght_rate').val()) || 0;
+			var freightAmtVal = parseFloat($('#frieght_amount').val()) || 0;
+			if (freightRateVal <= 0 && freightAmtVal > 0) {
+				$('#freight_manual_amount').prop('checked', true);
+			}
+			syncFreightManualMode();
+			$(document).on('change', '#freight_manual_amount', syncFreightManualMode);
 			fillConsignorNameSelect($('#consignor').val() || '');
 			if ($('#consignor').val()) {
-				loadMappedConsignees($('#consignor').val(), $('#consignee').val() || '');
+				loadMappedConsignees($('#consignor').val(), $('#consignee').val() || '', function() {
+					restoreEditConsignmentBranches();
+				});
 			} else {
 				fillConsigneeNameSelect([], '', true);
+				restoreEditConsignmentBranches();
 			}
 
 			$("#grn_details").validate({
@@ -3106,27 +3276,26 @@ $("#consignee_branch_div").hide();
 							//$("#origin").val(result['city']).trigger("change"); 
 							$("#origin").val(result['city']);
 
-							$("#con_details").show();
 							$("#consignor").val(result['client_id']);
 							fillConsignorNameSelect(result['client_id']);
 							loadMappedConsignees(result['client_id'], '');
-							// $('#address1').html(result['address1']);
-							// $('#address2').html(result['address2']);
+							// $('#address1').val(result['address1']);
+							// $('#address2').val(result['address2']);
 							var address = [result['address1'], result['address2']]
 								.filter(function(item) {
 									return item && item.trim() !== "";
 								})
 								.join(", ");
 
-							$('#address1').html(address);
-							$('#address2').html('');
-							$('#city').html(result['city_name']);
+							$('#address1').val(address);
+							$('#address2').val('');
+							$('#city').val(result['city_name']);
 
-							$('#state').html(result['state_name']);
-							$('#pincode').html(result['pincode']);
+							$('#state').val(result['state_name']);
+							$('#pincode').val(result['pincode']);
 
-							$('#phone').html(result['contact_no']);
-							$('#gst_no').html(result['gst_no']);
+							$('#phone').val(result['contact_no']);
+							$('#gst_no').val(result['gst_no']);
 							$('#consignee_name').focus();
 
 						}, 300);
@@ -3249,7 +3418,6 @@ $("#consignee_branch_div").hide();
 
 									}
 								}
-								$("#con_details").show();
 								if ($('#origin').val() == "" && cachedConsignorBranches.length <= 1) {
 									if (result['city']) {
 										$('#origin').val(result['city']);
@@ -3269,11 +3437,11 @@ $("#consignee_branch_div").hide();
 									return item && item.trim() !== "";
 								}).join(", ");
 
-								$('#address1').html(address);
-								$('#address2').html('');
+								$('#address1').val(address);
+								$('#address2').val('');
 
-								$('#phone').html(result['contact_no']);
-								$('#gst_no').html(result['gst_no']);
+								$('#phone').val(result['contact_no']);
+								$('#gst_no').val(result['gst_no']);
 								$('#consignor_state_id').val(result['state_id'] || '');
 								sum_amount();
 
@@ -3345,15 +3513,14 @@ $("#consignee_branch_div").hide();
 							success: function(result) {
 								//console.log(result);
 
-								$("#con_details1").show();
 								if ($('#destination').val() == "" && cachedConsigneeBranches.length <= 1) {
 									if (result['city']) {
 										$('#destination').val(result['city']);
 									}
 								}
 								$("#consignee").val(ui.item.id);
-								// $('#con_address1').html(result['address1']);
-								// $('#con_address2').html(result['address2']);
+								// $('#con_address1').val(result['address1']);
+								// $('#con_address2').val(result['address2']);
 								var conAddress = [
 									result['address1'],
 									result['address2'],
@@ -3364,11 +3531,11 @@ $("#consignee_branch_div").hide();
 									return item && item.trim() !== "";
 								}).join(", ");
 
-								$('#con_address1').html(conAddress);
-								$('#con_address2').html('');
+								$('#con_address1').val(conAddress);
+								$('#con_address2').val('');
 
-								$('#con_phone').html(result['contact_no']);
-								$('#con_gst').html(result['gst_no']);
+								$('#con_phone').val(result['contact_no']);
+								$('#con_gst').val(result['gst_no']);
 								$('#consignee_state_id').val(result['state_id'] || '');
 								sum_amount();
 								$(".consignee_name_val").removeClass("con_name_val2");
@@ -3381,52 +3548,6 @@ $("#consignee_branch_div").hide();
 					},
 
 				});
-
-				$(document).on("change","#consignee_branch",function(){
-
-    var branch_id=$(this).val();
-
-    if(branch_id=="")
-        return;
-
-    $.ajax({
-
-        url:"fetch_details.php",
-        type:"GET",
-        dataType:"json",
-
-        data:{
-            cmd:"get_client_branch_details",
-            branch_id:branch_id
-        },
-
-        success:function(result){
-
-            var address=[
-
-                result.address1,
-                result.address2,
-                result.city_name,
-                result.state_name,
-                result.pincode
-
-            ].filter(function(v){
-
-                return v && v!='';
-
-            }).join(", ");
-
-            $("#con_address1").html(address);
-            $("#con_address2").html("");
-
-            $("#con_phone").html(result.contact_no);
-            $("#con_gst").html(result.gst_no);
-
-        }
-
-    });
-
-});
 
 			});
 
@@ -3470,30 +3591,6 @@ $("#consignee_branch_div").hide();
 			});
 			//End
 
-			//Edit Shipping Address
-			var edit_form = '<?php echo $form_name; ?>';
-			if (edit_form == 'edit_consignment_details') {
-				var checkboxcheked = $('#ship_adddress').is(':checked');
-				if (checkboxcheked == true) {
-					$('#shipadd').show();
-				} else {
-					$('#shipadd').hide();
-				}
-			}
-
-			//End
-
-
-			//Shipping Address
-			$('#ship_adddress').change(function() {
-				if ($(this).is(':checked')) {
-					$('div#shipadd').show();
-					// alert('d');
-				} else {
-					$('div#shipadd').hide();
-				}
-			})
-			//End
 			function reset_consignor() {
 
 				$('#consignor').val('');
@@ -3502,13 +3599,13 @@ $("#consignee_branch_div").hide();
 				} else {
 					$('#consignor_name').val('');
 				}
-				$('#address1').html('');
-				$('#address2').html('');
-				$('#city').html('');
-				$('#state').html('');
-				$('#pincode').html('');
-				$('#phone').html('');
-				$('#gst_no').html('');
+				$('#address1').val('');
+				$('#address2').val('');
+				$('#city').val('');
+				$('#state').val('');
+				$('#pincode').val('');
+				$('#phone').val('');
+				$('#gst_no').val('');
 				$('#consignor_state_id').val('');
 				cachedConsignorBranches = [];
 				$("#consignor_branch_div").hide();
@@ -3522,17 +3619,17 @@ $("#consignee_branch_div").hide();
 				} else {
 					$('#consignee_name').val('').prop('disabled', true);
 				}
-				$('#con_address1').html('');
-				$('#con_address2').html('');
-				$('#con_state').html('');
-				$('#con_city').html('');
-				$('#con_pincode').html('');
-				$('#con_phone').html('');
-				$('#con_gst').html('');
+				$('#con_address1').val('');
+				$('#con_address2').val('');
+				$('#con_state').val('');
+				$('#con_city').val('');
+				$('#con_pincode').val('');
+				$('#con_phone').val('');
+				$('#con_gst').val('');
 				$('#consignee_state_id').val('');
 				cachedConsigneeBranches = [];
-				$("#consignee_branch_div").hide();
-				$("#consignee_branch").html('<option value="">Select Branch</option>');
+				$("#bill_to_branch_div, #consignee_branch_div").hide();
+				$("#bill_to_branch, #consignee_branch").html('<option value="">Select Branch</option>');
 			}
 
 			$(document).on('change', '#consignor_name', function() {
@@ -3549,7 +3646,6 @@ $("#consignee_branch_div").hide();
 				}
 				loadClientBranches(id, 'consignor', null, true);
 				loadMappedConsignees(id, '');
-				$('#con_details').show();
 				$.ajax({
 					url: 'fetch_details.php',
 					type: 'GET',
@@ -3562,7 +3658,6 @@ $("#consignee_branch_div").hide();
 							$('#grn_no').val((grn_no || '').toUpperCase());
 							$('#grn_no1').val((grn_no || '').toUpperCase()).attr('disabled', true);
 						}
-						$('#con_details').show();
 						if ($('#origin').val() == '' && cachedConsignorBranches.length <= 1 && result && result['city']) {
 							$('#origin').val(result['city']);
 							if (typeof reloadDestinationDropdown === 'function') {
@@ -3574,10 +3669,10 @@ $("#consignee_branch_div").hide();
 						var address = [result['address1'], result['address2'], result['city_name'], result['state'], result['pincode']].filter(function(item) {
 							return item && String(item).trim() !== '';
 						}).join(', ');
-						$('#address1').html(address);
-						$('#address2').html('');
-						$('#phone').html(result['contact_no']);
-						$('#gst_no').html(result['gst_no']);
+						$('#address1').val(address);
+						$('#address2').val('');
+						$('#phone').val(result['contact_no']);
+						$('#gst_no').val(result['gst_no']);
 						$('#consignor_state_id').val(result['state_id'] || '');
 						if (typeof sum_amount === 'function') sum_amount();
 						$('.consignor_name_val').removeClass('con_name_val1');
@@ -3599,14 +3694,12 @@ $("#consignee_branch_div").hide();
 					return;
 				}
 				loadClientBranches(id, 'consignee', null, true);
-				$('#con_details1').show();
 				$.ajax({
 					url: 'fetch_details.php',
 					type: 'GET',
 					dataType: 'JSON',
 					data: { cmd: 'get_client_details_consignment', tbl_id: id },
 					success: function(result) {
-						$('#con_details1').show();
 						if ($('#destination').val() == '' && cachedConsigneeBranches.length <= 1 && result && result['city']) {
 							$('#destination').val(result['city']);
 							refreshGstCalculation();
@@ -3614,9 +3707,9 @@ $("#consignee_branch_div").hide();
 						var address = [result['address1'], result['address2'], result['city_name'], result['state'], result['pincode']].filter(function(item) {
 							return item && String(item).trim() !== '';
 						}).join(', ');
-						$('#con_address1').html(address);
-						$('#con_phone').html(result['contact_no']);
-						$('#con_gst').html(result['gst_no']);
+						$('#con_address1').val(address);
+						$('#con_phone').val(result['contact_no']);
+						$('#con_gst').val(result['gst_no']);
 						$('#consignee_state_id').val(result['state_id'] || '');
 						if (typeof sum_amount === 'function') sum_amount();
 					}
@@ -3759,138 +3852,19 @@ $("#consignee_branch_div").hide();
 				$('div#signatureparent').removeClass('height_check');
 			});
 
-			function getNextFileNo() {
-				var last = $(".file-group:last").data("file-no");
-				return isNaN(last) || !last ? 1 : (parseInt(last, 10) + 1);
-			}
-
-			function isImageUploadFile(file) {
-				return file && file.type && file.type.indexOf('image/') === 0;
-			}
-
-			function escapeUploadHtml(text) {
-				return $('<div>').text(text || '').html();
-			}
-
-			function formatUploadFileSize(bytes) {
-				if (!bytes && bytes !== 0) return 'Ready to upload';
-				if (bytes < 1024) return bytes + ' B';
-				if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-				return (bytes / 1048576).toFixed(1) + ' MB';
-			}
-
-			function buildUploadItemHtml(fileNo, fileName, previewSrc, attachmentId) {
-				fileName = fileName || 'Select a file';
-				previewSrc = previewSrc || 'images/no_image.png';
-				var imgClass = (previewSrc.indexOf('no_image') >= 0) ? ' doc-placeholder' : '';
-				var idAttr = attachmentId ? ' id="' + attachmentId + '"' : '';
-				return '<div class="upload-item file-group" id="file-no' + fileNo + '" data-file-no="' + fileNo + '">' +
-					'<div class="upload-item-preview img_pre_div">' +
-					'<img src="' + previewSrc + '" class="image_preview' + imgClass + '" id="image_preview' + fileNo + '" alt="">' +
-					'</div>' +
-					'<div class="upload-item-body">' +
-					'<span class="upload-item-name">' + escapeUploadHtml(fileName) + '</span>' +
-					'<span class="upload-item-sub">Ready to upload</span>' +
-					'<input type="file" id="file_receipt' + fileNo + '" name="file_receipt[]" class="filestyle upload-file-input" data-id="' + fileNo + '" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">' +
-					'</div>' +
-					'<div class="upload-item-actions remov">' +
-					'<button type="button" data-id="' + fileNo + '"' + idAttr + ' class="btn btn-link upload-item-remove remove-image" title="Remove"><i class="fa fa-times"></i></button>' +
-					'</div>' +
-					'</div>';
-			}
-
-			function assignFileToInput(input, file) {
-				try {
-					var dt = new DataTransfer();
-					dt.items.add(file);
-					input.files = dt.files;
-					return true;
-				} catch (e) {
-					return false;
-				}
-			}
-
-			function previewUploadFile(fileNo, file) {
-				var $item = $('#file-no' + fileNo);
-				var $img = $('#image_preview' + fileNo);
-				if (isImageUploadFile(file)) {
-					var reader = new FileReader();
-					reader.onload = function(e) {
-						$img.attr('src', e.target.result).removeClass('doc-placeholder');
-					};
-					reader.readAsDataURL(file);
-				} else {
-					$img.attr('src', 'images/no_image.png').addClass('doc-placeholder');
-				}
-				$item.find('.upload-item-name').text(file.name);
-				$item.find('.upload-item-sub').text(formatUploadFileSize(file.size));
-			}
-
-			function addUploadItem(file, options) {
-				options = options || {};
-				var fileNo = getNextFileNo();
-				var fileName = options.fileName || (file ? file.name : 'Select a file');
-				var previewSrc = options.previewSrc || 'images/no_image.png';
-				var attachmentId = options.attachmentId || '';
-				$(".file-container").append(buildUploadItemHtml(fileNo, fileName, previewSrc, attachmentId));
-				var $input = $('#file_receipt' + fileNo);
-				if (file) {
-					assignFileToInput($input[0], file);
-					previewUploadFile(fileNo, file);
-				}
-				syncUploadRemoveButtons();
-				return fileNo;
-			}
-
-			function handleUploadFiles(fileList) {
-				if (!fileList || !fileList.length) return;
-				for (var i = 0; i < fileList.length; i++) {
-					addUploadItem(fileList[i]);
-				}
-			}
-
-			function syncUploadRemoveButtons() {
-				$(".remove-image").prop("disabled", false);
-			}
-
-			var $uploadDropzone = $('#upload_dropzone');
-			$uploadDropzone.on('dragover dragenter', function(e) {
-				e.preventDefault();
-				e.stopPropagation();
-				$(this).addClass('is-dragover');
-			});
-			$uploadDropzone.on('dragleave drop', function(e) {
-				e.preventDefault();
-				e.stopPropagation();
-				$(this).removeClass('is-dragover');
-			});
-			$uploadDropzone.on('drop', function(e) {
-				var files = e.originalEvent.dataTransfer.files;
-				handleUploadFiles(files);
-			});
-			$uploadDropzone.on('click', function(e) {
-				if ($(e.target).closest('.remove-image, .upload-item').length) return;
-				$('#upload_dropzone_input').trigger('click');
-			});
-			$('#upload_dropzone_input').on('change', function() {
-				handleUploadFiles(this.files);
-				this.value = '';
-			});
-
-			//addmore
 			var attachment_id = [];
-			$(document).on('click', '.remove-image', function(e) {
-				e.preventDefault();
-				e.stopPropagation();
-				var id = $(this).attr('data-id');
-				$('#file-no' + id).remove();
-				var image_id = $(this).attr('id');
-				if (image_id) {
-					attachment_id.push(image_id);
-				}
-				syncUploadRemoveButtons();
-			});
-
+			if (typeof ewInitAttachmentUpload === 'function') {
+				ewInitAttachmentUpload({
+					inputName: 'file_receipt[]',
+					inputIdPrefix: 'file_receipt',
+					onRemove: function($btn) {
+						var image_id = $btn.attr('id');
+						if (image_id) {
+							attachment_id.push(image_id);
+						}
+					}
+				});
+			}
 
 			$(document).on('click', '#save', function() {
 				if ($('#form_fully_locked').val() === '1') {
@@ -4026,6 +4000,9 @@ $("input[name='file_receipt[]']").each(function () {
 					// Re-enable after validation so destination/origin/GST values are posted
 					$('#grn_details').find('input:disabled, select:disabled, textarea:disabled').prop('disabled', false);
 					var formData = new FormData(document.getElementById("grn_details"));
+					formData.set('consignor_branch', $('#consignor_branch').val() || '');
+					formData.set('bill_to_branch', $('#bill_to_branch').val() || '');
+					formData.set('consignee_branch', $('#consignee_branch').val() || '');
 					formData.append('del_id', id);
 					formData.append('length', length);
 					formData.append('width', width);
@@ -4160,20 +4137,7 @@ $("input[name='file_receipt[]']").each(function () {
 				}, 1200);
 			});
 
-			$(document).on('change', '.filestyle', function() {
-				var id = $(this).attr("data-id");
-				if (this.files && this.files[0]) {
-					previewUploadFile(id, this.files[0]);
-				}
-			});
-
-			syncUploadRemoveButtons();
 			refreshGstCalculation();
-			$(document).on('click', '#add_more', function(evt) {
-				var fileNo = addUploadItem(null);
-				$('#file_receipt' + fileNo).trigger('click');
-			});
-
 
 			//Check if file exist
 			var img_avail;

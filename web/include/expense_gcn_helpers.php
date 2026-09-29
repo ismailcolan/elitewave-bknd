@@ -8,6 +8,15 @@ function expense_gcn_format_money($amount)
 	return number_format((float) $amount, 2, '.', ',');
 }
 
+function expense_gcn_format_profit_display($amount)
+{
+	$amount = round((float) $amount, 2);
+	if ($amount < 0) {
+		return '-' . expense_gcn_format_money(abs($amount));
+	}
+	return expense_gcn_format_money($amount);
+}
+
 function expense_gcn_parse_money($value)
 {
 	if ($value === null || $value === '') {
@@ -946,7 +955,7 @@ function expense_gcn_fetch_list($conn)
 				'route_list' => $unique_routes,
 				'revenue_without_gst' => expense_gcn_format_money($h['revenue_without_gst'] ?? 0),
 				'expenses_without_gst' => expense_gcn_format_money($h['expenses_without_gst'] ?? 0),
-				'profit_amount' => expense_gcn_format_money($profit),
+				'profit_amount' => expense_gcn_format_profit_display($profit),
 				'profit_raw' => $profit,
 				'line_count' => (int) ($h['line_count'] ?? 0),
 				'updated_at' => $h['updated_at'] ?? ($h['created_at'] ?? ''),
@@ -968,7 +977,7 @@ function expense_gcn_fetch_list($conn)
 			'route_list' => array(),
 			'revenue_without_gst' => expense_gcn_format_money($h['revenue_without_gst'] ?? 0),
 			'expenses_without_gst' => expense_gcn_format_money($h['expenses_without_gst'] ?? 0),
-			'profit_amount' => expense_gcn_format_money($profit),
+			'profit_amount' => expense_gcn_format_profit_display($profit),
 			'profit_raw' => $profit,
 			'line_count' => (int) ($h['line_count'] ?? 0),
 			'updated_at' => $h['updated_at'] ?? ($h['created_at'] ?? ''),
