@@ -158,6 +158,10 @@ th.table-title.sorting  {
                 $('#edit_id').val('');
                 $('#form_data')[0].reset();
                 $('#city').html('<option value="">Select City</option>');
+                $('#branch_code').prop('readonly', true);
+                $.getJSON('fetch_details.php', { cmd: 'get_branch_next_code' }, function(data) {
+                    $('#branch_code').val(data && data.branch_code ? data.branch_code : '');
+                });
                 $('#branchModalTitle').text('Create Branch');
                 ewV2OpenModal('branchModal');
             });
@@ -321,7 +325,7 @@ th.table-title.sorting  {
                         }
                         $("#form_name").val("edit_branch");
                         $("#edit_id").val(result.branch_id);
-                        $("#branch_code").val(result.branch_code);
+                        $("#branch_code").val(result.branch_code).prop('readonly', false);
                         $('#branch_name').val(result.branch_name);
                         $('#contact_person').val(result.contact_person);
                         $('#contact_no').val(result.contact_no);
@@ -424,7 +428,7 @@ th.table-title.sorting  {
                     <div class="ew-form-grid">
                         <div class="ew-field">
                             <label class="control-label">Branch Code <span style="color:red;">*</span> :</label>
-                            <input type="text" id="branch_code" name="branch_code" class="form-control" required autocomplete="off" />
+                            <input type="text" id="branch_code" name="branch_code" class="form-control" required autocomplete="off" readonly />
                         </div>
                         <div class="ew-field">
                             <label class="control-label">Branch Name <span style="color:red;">*</span> :</label>

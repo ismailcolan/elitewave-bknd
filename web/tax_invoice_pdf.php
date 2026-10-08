@@ -3,6 +3,7 @@ require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/billing_functions.php');
 require_once('include/tax_invoice_pdf_builder.php');
+require_once('include/ew_pdf_browser_view.php');
 
 $id = (int) ($_GET['id'] ?? 0);
 if ($id <= 0) {
@@ -13,6 +14,8 @@ $data = billing_get_invoice($conn, $id);
 if (!$data || $data['master']['status'] !== 'final') {
     die('Invoice not available.');
 }
+
+ew_pdf_maybe_browser_shell('Tax Invoice — ' . ($data['master']['invoice_no'] ?? ''));
 
 require_once __DIR__ . '/vendor/autoload.php';
 

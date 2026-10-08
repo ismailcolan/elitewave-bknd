@@ -64,6 +64,7 @@ if (!$is_edit && empty($_GET['create'])) {
 								<div class="ew-field span-2">
 									<label>Invoice No</label>
 									<div class="ew-invoice-no-display" id="invoice_no_preview"><?php echo htmlspecialchars($preview_no); ?></div>
+									<p class="ew-field-hint" style="margin-top:6px;">Auto-generated on save (draft or final). Same HRGST series as delivered GCN invoices — no duplicates.</p>
 								</div>
 								<div class="ew-field">
 									<label>Date <span class="req">*</span></label>
@@ -422,6 +423,9 @@ function saveInvoice(status) {
 		if (typeof ewFormToast === 'function') ewFormToast(r.message, 'success', 5000);
 		if (r.billing_invoice_id) {
 			$('#billing_invoice_id').val(r.billing_invoice_id);
+		}
+		if (r.invoice_no) {
+			$('#invoice_no_preview').text(r.invoice_no);
 		}
 		if (status === 'final') {
 			updatePdfButton(r.billing_invoice_id, 'final');

@@ -2,9 +2,7 @@
 	<div class="cld-mast">
 		<div>
 			<p class="cld-kicker">Elite Wave · operations</p>
-			<h1>Operations ledger</h1>
-			<p class="cld-sub" id="cldAsOf">Bookings, delivery, invoices and collections — the day’s operations at a glance.</p>
-		</div>
+			</div>
 		<div class="cld-seg" id="cldPeriod">
 			<button type="button" data-p="weekly">Week</button>
 			<button type="button" class="on" data-p="monthly">Month</button>
@@ -39,22 +37,29 @@
 		</div>
 
 		<div class="cld-trio">
-			<div class="cld-panel">
+			<div class="cld-panel cld-panel--chart">
 				<h2>Revenue · collection · expense</h2>
 				<p class="hint" id="monHint">GST invoice value, payments, expense entries</p>
-				<div id="cldMonChart" class="cld-chart cld-chart-sm"></div>
+				<div class="cld-panel-chart">
+					<div id="cldMonChart" class="cld-chart cld-chart-trio"></div>
+				</div>
+				<div class="cld-legend cld-legend--inline" id="cldMonLegend"></div>
 			</div>
-			<div class="cld-panel">
+			<div class="cld-panel cld-panel--chart">
 				<h2>Invoice money</h2>
-				<p class="hint">Billed vs still open</p>
-				<div id="cldColChart" class="cld-chart cld-chart-sm"></div>
-				<div class="cld-legend" id="cldColLegend"></div>
+				<p class="hint">Collected vs outstanding (₹)</p>
+				<div class="cld-panel-chart">
+					<div id="cldColChart" class="cld-chart cld-chart-trio"></div>
+				</div>
+				<div class="cld-legend cld-legend--inline" id="cldColLegend"></div>
 			</div>
-			<div class="cld-panel">
+			<div class="cld-panel cld-panel--chart">
 				<h2>Expense mix</h2>
-				<p class="hint">GCN lines + general expense</p>
-				<div id="cldExpChart" class="cld-chart cld-chart-sm"></div>
-				<div class="cld-legend" id="cldExpLegend"></div>
+				<p class="hint">Top expense categories (GCN + general)</p>
+				<div class="cld-panel-chart">
+					<div id="cldExpChart" class="cld-chart cld-chart-trio"></div>
+				</div>
+				<div class="cld-legend cld-legend--inline cld-legend--stack" id="cldExpLegend"></div>
 			</div>
 		</div>
 

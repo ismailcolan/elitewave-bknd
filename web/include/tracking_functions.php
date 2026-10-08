@@ -255,7 +255,7 @@ if($r = mysqli_fetch_assoc($q)){
             );
 
             $tracking_history = array();
-            $trans_status_query = "SELECT * FROM `transaction_status` WHERE sheet_id IN (select sheet_id from transaction_status_log where grn_no='$grn_no') ORDER BY created_at ASC, sheet_id ASC";
+            $trans_status_query = "SELECT * FROM `transaction_status` WHERE sheet_id IN (select sheet_id from transaction_status_log where grn_no='$grn_no') ORDER BY created_at DESC, sheet_id DESC";
             $res_status = mysqli_query($conn, $trans_status_query);
 
             if ($res_status) {
@@ -343,6 +343,8 @@ if($r = mysqli_fetch_assoc($q)){
                         'details'             => $history_details,
                         'date'                => $date,
                         'time'                => $time,
+                        'ts'                  => $timestamp ?: 0,
+                        'sheet_id'            => (int) ($result_status['sheet_id'] ?? 0),
                         'origin'              => get_city_name($conn, $result_status['origin']),
                         'destination'         => get_city_name($conn, $result_status['destination']),
                         'is_partial'          => $history_is_partial,
@@ -353,6 +355,11 @@ if($r = mysqli_fetch_assoc($q)){
                     );
                 }
             }
+
+            if (!function_exists('ew_tracking_timeline_sort')) {
+                require_once __DIR__ . '/tracking_templates.php';
+            }
+            ew_tracking_timeline_sort($tracking_history);
 
             $status_log = array();
             array_push($status_log, 1);

@@ -2,8 +2,21 @@
 require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/vehicle_type_helpers.php');
+require_once('include/ew_pdf_browser_view.php');
 
 require_once __DIR__ . '/vendor/autoload.php';
+
+$gcn_copy_label = 'GCN PDF';
+if (isset($_GET['copy'])) {
+	switch ((string) $_GET['copy']) {
+		case 'original':  $gcn_copy_label = 'GCN — Original Copy'; break;
+		case 'consignor': $gcn_copy_label = 'GCN — Consignor Copy'; break;
+		case 'consignee': $gcn_copy_label = 'GCN — Consignee Copy'; break;
+		case 'pod':       $gcn_copy_label = 'GCN — POD Copy'; break;
+		case 'accounts':  $gcn_copy_label = 'GCN — Accounts Copy'; break;
+	}
+}
+ew_pdf_maybe_browser_shell($gcn_copy_label);
 
 $month          = $_GET['month'];
 $year           = $_GET['year'];
@@ -17,6 +30,7 @@ extract($row);
 // ─── Copy label ───────────────────────────────────────────────────────────────
 if (isset($_GET['copy'])) {
     switch ($_GET['copy']) {
+        case 'original':  $copy = 'ORIGINAL COPY';   break;
         case 'consignor': $copy = 'CONSIGNER COPY';  break;
         case 'consignee': $copy = 'CONSIGNEE COPY'; break;
         case 'pod':       $copy = 'POD COPY';        break;
@@ -24,7 +38,7 @@ if (isset($_GET['copy'])) {
         default:          $copy = 'ORIGINAL COPY';
     }
 } else {
-    $copy = 'CONSIGNER COPY';
+    $copy = 'ORIGINAL COPY';
 }
 
 // ─── Cancelled-watermark class ────────────────────────────────────────────────
@@ -414,6 +428,11 @@ PAN : '.$company_row['pan_no'].'
 </table>
 
 ';
+$ew_org_dest_icon = __DIR__ . '/images/org&dest.png';
+$ew_org_dest_icon_html = is_file($ew_org_dest_icon)
+	? '<img src="' . $ew_org_dest_icon . '" style="width:30px;height:28px;vertical-align:middle;" alt="" />'
+	: '<span style="font-size:24pt;">&#8597;</span>';
+
 /// ══════════════════════════════════════════════════════════════════════════════
 // SECTION 2 – ORIGIN / DESTINATION / MODE / GCN
 // FIX: Each row has explicit height to keep this block at ~36mm regardless
@@ -489,7 +508,7 @@ $html .= '
 
         <br><br>
 
-        <span style="font-size:24pt;">&#8597;</span>
+        '.$ew_org_dest_icon_html.'
 
         <br><br>
 
@@ -508,7 +527,7 @@ $html .= '
     <td align="right"
         style="font-size:9pt;font-weight:bold;padding-right:3px;">
 
-        PNR No.
+        Tracking code
 
     </td>
 
@@ -611,7 +630,7 @@ $html .= '
 <td width="50%" valign="top"
 style="padding:4px 5px;height:24mm;font-size:8.5pt;line-height:14px;">
 
-<span style="font-size:9pt;font-weight:bold;">Consignor Address</span><br>
+<span style="font-size:9pt;font-weight:bold;">Consignor</span><br>
 
 <b>'.get_client_name($conn,$consigner).'</b>
 
@@ -626,7 +645,7 @@ style="padding:4px 5px;height:24mm;font-size:8.5pt;line-height:14px;">
 <td width="50%" valign="top"
 style="padding:4px 5px;height:24mm;font-size:8.5pt;line-height:14px;">
 
-<span style="font-size:9pt;font-weight:bold;">Bill To</span><br>
+<span style="font-size:9pt;font-weight:bold;">Consignee</span><br>
 
 <b>'.$bill_to_name_display.'</b><br>
 

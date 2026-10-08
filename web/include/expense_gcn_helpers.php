@@ -476,6 +476,71 @@ function expense_gcn_fetch_delivered_gcns($conn, $search = '')
 	return expense_gcn_fetch_gcns($conn, $search);
 }
 
+function expense_gcn_mode_label($conn, $row)
+{
+	$mode_id = (int) ($row['mode_of_transportation'] ?? 0);
+	if ($mode_id <= 0) {
+		return '—';
+	}
+	if (function_exists('get_mode')) {
+		$name = trim((string) get_mode($conn, $mode_id));
+		return $name !== '' ? $name : '—';
+	}
+	return '—';
+}
+
+function expense_gcn_revenue_breakup_for_row($conn, $row, $line_agg, $revenue_total, $revenue_source = 'booking')
+{
+	$items = array();
+	$push = function ($label, $amount) use (&$items) {
+		$amount = round((float) $amount, 2);
+		if ($amount <= 0) {
+			return;
+		}
+		$items[] = array(
+			'label' => $label,
+			'amount' => expense_gcn_format_money($amount),
+			'amount_raw' => $amount,
+		);
+	};
+
+	$freight = billing_freight_from_row($row, $line_agg);
+	$push('Freight charges', $freight);
+	$push('Documentation charges', $row['doc_amount'] ?? 0);
+	$loading = (float) ($row['vehicle_loading_unloading'] ?? 0);
+	if ($loading <= 0) {
+		$loading = (float) ($row['loading_unloading_amount'] ?? 0);
+	}
+	$push('Loading / unloading', $loading);
+	$push('Local pickup & deliver charges', $row['cartage_amount'] ?? 0);
+	$push('Mamul charges', $row['mamul_charge'] ?? 0);
+	$push('Other charges', $row['other_charge_amount'] ?? 0);
+	$push('Vehicle halting charges', $row['vehicle_halting_charge'] ?? 0);
+	$push('Rajdhani charges', $row['rajdhani_charges'] ?? 0);
+
+	$revenue_total = round((float) $revenue_total, 2);
+	if ($revenue_total > 0) {
+		if ($items === array()) {
+			$lbl = ($revenue_source === 'billing') ? 'Billing revenue (excl. GST)' : 'Booking revenue (excl. GST)';
+			$items[] = array(
+				'label' => $lbl,
+				'amount' => expense_gcn_format_money($revenue_total),
+				'amount_raw' => $revenue_total,
+				'is_total' => true,
+			);
+		} else {
+			$items[] = array(
+				'label' => 'Total revenue (excl. GST)',
+				'amount' => expense_gcn_format_money($revenue_total),
+				'amount_raw' => $revenue_total,
+				'is_total' => true,
+			);
+		}
+	}
+
+	return $items;
+}
+
 function expense_gcn_billed_taxable($conn, $trans_table, $transaction_id)
 {
 	$trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
@@ -529,6 +594,7 @@ function expense_gcn_fetch_context($conn, $trans_table, $transaction_id)
 
 	$origin_name = get_city_name($conn, $row['origin']);
 	$destination_name = get_city_name($conn, $row['destination']);
+	$revenue_source = $billed['taxable_value'] > 0 ? 'billing' : 'booking';
 
 	return array(
 		'ok' => true,
@@ -550,7 +616,9 @@ function expense_gcn_fetch_context($conn, $trans_table, $transaction_id)
 		'revenue_without_gst_raw' => $revenue_without_gst,
 		'invoice_no' => $billed['invoice_no'],
 		'invoice_status' => $billed['invoice_status'],
-		'revenue_source' => $billed['taxable_value'] > 0 ? 'billing' : 'booking',
+		'revenue_source' => $revenue_source,
+		'mode_of_transport' => expense_gcn_mode_label($conn, $row),
+		'revenue_breakup' => expense_gcn_revenue_breakup_for_row($conn, $row, $line_agg, $revenue_without_gst, $revenue_source),
 	);
 }
 
@@ -902,6 +970,58 @@ function expense_gcn_build_key($trans_table, $transaction_id)
 	return $trans_table . '|' . $transaction_id;
 }
 
+function expense_gcn_current_revenue_raw($conn, $header)
+{
+	$mode = (($header['expense_mode'] ?? 'single') === 'group') ? 'group' : 'single';
+	if ($mode === 'group') {
+		$gcn_expense_id = (int) ($header['gcn_expense_id'] ?? 0);
+		$items = expense_gcn_load_group_items($conn, $gcn_expense_id);
+		$total = 0.0;
+		foreach ($items as $item) {
+			$ctx = expense_gcn_fetch_context($conn, $item['trans_table'], (int) $item['transaction_id']);
+			if (!empty($ctx['ok'])) {
+				$total += (float) ($ctx['revenue_without_gst_raw'] ?? 0);
+			}
+		}
+		return round($total, 2);
+	}
+
+	$trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) ($header['trans_table'] ?? ''));
+	$transaction_id = (int) ($header['transaction_id'] ?? 0);
+	if ($trans_table === '' || $transaction_id <= 0) {
+		return round((float) ($header['revenue_without_gst'] ?? 0), 2);
+	}
+	$ctx = expense_gcn_fetch_context($conn, $trans_table, $transaction_id);
+	if (empty($ctx['ok'])) {
+		return round((float) ($header['revenue_without_gst'] ?? 0), 2);
+	}
+	return round((float) ($ctx['revenue_without_gst_raw'] ?? 0), 2);
+}
+
+function expense_gcn_refresh_header_revenue_profit($conn, &$header)
+{
+	$gcn_expense_id = (int) ($header['gcn_expense_id'] ?? 0);
+	if ($gcn_expense_id <= 0) {
+		return;
+	}
+
+	$revenue = expense_gcn_current_revenue_raw($conn, $header);
+	$expenses = round((float) ($header['expenses_without_gst'] ?? 0), 2);
+	$profit = round($revenue - $expenses, 2);
+	$old_revenue = round((float) ($header['revenue_without_gst'] ?? 0), 2);
+	$old_profit = round((float) ($header['profit_amount'] ?? 0), 2);
+	if (abs($revenue - $old_revenue) < 0.005 && abs($profit - $old_profit) < 0.005) {
+		return;
+	}
+
+	mysqli_query($conn, "UPDATE gcn_expense_header SET
+		revenue_without_gst='$revenue',
+		profit_amount='$profit'
+		WHERE gcn_expense_id='$gcn_expense_id'");
+	$header['revenue_without_gst'] = $revenue;
+	$header['profit_amount'] = $profit;
+}
+
 function expense_gcn_fetch_list($conn)
 {
 	expense_gcn_ensure_schema($conn);
@@ -914,6 +1034,7 @@ function expense_gcn_fetch_list($conn)
 		return $rows;
 	}
 	while ($h = mysqli_fetch_assoc($q)) {
+		expense_gcn_refresh_header_revenue_profit($conn, $h);
 		$profit = round((float) ($h['profit_amount'] ?? 0), 2);
 		$mode = $h['expense_mode'] ?? 'single';
 		$gcn_expense_id = (int) $h['gcn_expense_id'];
@@ -984,6 +1105,104 @@ function expense_gcn_fetch_list($conn)
 		);
 	}
 	return $rows;
+}
+
+function expense_gcn_fetch_view($conn, $gcn_expense_id)
+{
+	expense_gcn_ensure_schema($conn);
+	$gcn_expense_id = (int) $gcn_expense_id;
+	if ($gcn_expense_id <= 0) {
+		return array('ok' => false, 'message' => 'Invalid expense record.');
+	}
+
+	$hq = mysqli_query($conn, "SELECT * FROM gcn_expense_header WHERE gcn_expense_id='$gcn_expense_id' LIMIT 1");
+	if (!$hq || !($header = mysqli_fetch_assoc($hq))) {
+		return array('ok' => false, 'message' => 'Expense record not found.');
+	}
+
+	expense_gcn_refresh_header_revenue_profit($conn, $header);
+
+	$mode = ($header['expense_mode'] ?? 'single') === 'group' ? 'group' : 'single';
+	$lines = expense_gcn_load_lines($conn, $gcn_expense_id);
+	foreach ($lines as &$line) {
+		$line['expense_date_display'] = ew_format_display_date($line['expense_date'] ?? '');
+	}
+	unset($line);
+
+	$profit = round((float) ($header['profit_amount'] ?? 0), 2);
+	$view = array(
+		'ok' => true,
+		'gcn_expense_id' => $gcn_expense_id,
+		'expense_mode' => $mode,
+		'revenue_without_gst' => expense_gcn_format_money($header['revenue_without_gst'] ?? 0),
+		'expenses_without_gst' => expense_gcn_format_money($header['expenses_without_gst'] ?? 0),
+		'profit_amount' => expense_gcn_format_profit_display($profit),
+		'profit_raw' => $profit,
+		'lines' => $lines,
+		'gcns' => array(),
+		'mode_of_transport' => '—',
+		'revenue_breakup' => array(),
+	);
+
+	if ($mode === 'group') {
+		$saved = expense_gcn_load_saved_group($conn, $gcn_expense_id);
+		$view['group_label'] = $saved['context']['group_label'] ?? ('Group (' . count($saved['items'] ?? array()) . ' GCNs)');
+		$view['grn_no'] = $view['group_label'];
+		$view['grn_date'] = ew_format_display_date($header['grn_date'] ?? '', '—');
+		$modes = array();
+		foreach ($saved['context']['gcns'] ?? array() as $g) {
+			$mode_lbl = $g['mode_of_transport'] ?? '—';
+			if ($mode_lbl !== '' && $mode_lbl !== '—') {
+				$modes[$mode_lbl] = true;
+			}
+			$view['gcns'][] = array(
+				'grn_no' => $g['grn_no'] ?? '',
+				'grn_date' => ew_format_display_date($g['grn_date'] ?? '', '—'),
+				'route_label' => $g['route_label'] ?? '—',
+				'consignor' => $g['consignor'] ?? '',
+				'consignee' => $g['consignee'] ?? '',
+				'mode_of_transport' => $mode_lbl,
+				'revenue_without_gst' => $g['revenue_without_gst'] ?? expense_gcn_format_money(0),
+			);
+		}
+		$mode_keys = array_keys($modes);
+		if (count($mode_keys) === 1) {
+			$view['mode_of_transport'] = $mode_keys[0];
+		} elseif (count($mode_keys) > 1) {
+			$view['mode_of_transport'] = implode(', ', $mode_keys);
+		}
+		$routes = array();
+		foreach ($view['gcns'] as $g) {
+			if (($g['route_label'] ?? '') !== '' && $g['route_label'] !== '—') {
+				$routes[$g['route_label']] = true;
+			}
+		}
+		$route_keys = array_keys($routes);
+		if (count($route_keys) === 1) {
+			$view['route_label'] = $route_keys[0];
+		} elseif (count($route_keys) > 1) {
+			$view['route_label'] = count($route_keys) . ' routes';
+		} else {
+			$view['route_label'] = '—';
+		}
+	} else {
+		$trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) ($header['trans_table'] ?? ''));
+		$transaction_id = (int) ($header['transaction_id'] ?? 0);
+		$ctx = expense_gcn_fetch_context($conn, $trans_table, $transaction_id);
+		$view['grn_no'] = $header['grn_no'] ?? ($ctx['grn_no'] ?? '');
+		$view['grn_date'] = ew_format_display_date($header['grn_date'] ?? ($ctx['grn_date'] ?? ''), '—');
+		$view['route_label'] = !empty($ctx['route_label'])
+			? $ctx['route_label']
+			: expense_gcn_route_label($conn, $trans_table, $transaction_id);
+		$view['consignor'] = $ctx['consignor'] ?? '';
+		$view['consignee'] = $ctx['consignee'] ?? '';
+		$view['invoice_no'] = $ctx['invoice_no'] ?? '';
+		$view['invoice_status'] = $ctx['invoice_status'] ?? '';
+		$view['mode_of_transport'] = $ctx['mode_of_transport'] ?? '—';
+		$view['revenue_breakup'] = $ctx['revenue_breakup'] ?? array();
+	}
+
+	return $view;
 }
 
 function expense_gcn_delete($conn, $gcn_expense_id)

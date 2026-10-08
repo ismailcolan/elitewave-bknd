@@ -1,6 +1,8 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+require_once ('include/city_transport_endpoint_helpers.php');
+require_once ('include/tracking_templates.php');
 
 $grn_no = trim($_REQUEST['grn_no'] ?? $_REQUEST['gcn_no'] ?? '');
 $tracking_code = $grn_no;
@@ -44,8 +46,8 @@ $tracking_code = $grn_no;
                                 </div>
                                 <div class="track-search-row">
                                     <div class="track-search-field">
-                                        <label>GCN / PNR Number <span class="req">*</span></label>
-                                        <input type="text" autocomplete="off" name="grn_no" id="grn_no" value="<?php echo htmlspecialchars($grn_no, ENT_QUOTES, 'UTF-8'); ?>" class="form-control" placeholder="Enter GCN or PNR number">
+                                        <label>GCN / Tracking code <span class="req">*</span></label>
+                                        <input type="text" autocomplete="off" name="grn_no" id="grn_no" value="<?php echo htmlspecialchars($grn_no, ENT_QUOTES, 'UTF-8'); ?>" class="form-control" placeholder="Enter GCN or tracking code">
                                     </div>
                                     <button class="track-search-btn" type="submit" id="search"><i class="fa fa-search" aria-hidden="true"></i> Track Now</button>
                                 </div>
@@ -281,23 +283,124 @@ $tempRow['active_status'] = 1;
 $bookedMessage = get_tracking_message($conn, $tempRow);
 $booked_date = date('d-m-Y', strtotime($grn_date));
 $booked_time = !empty($booking_time) ? date('H:i:s', strtotime($booking_time)) : '';
-$is_booked_latest = ($scan_row_count === 0);
-$total_scans = $scan_row_count + 1;
+
+$booked_ts = 0;
+if (!empty($grn_date)) {
+    $booked_dt_str = trim($grn_date . ' ' . (!empty($booking_time) ? $booking_time : '00:00:00'));
+    $booked_ts = strtotime($booked_dt_str) ?: (int) strtotime($grn_date);
+}
+
+$history_timeline = array(
+    array(
+        'ts' => $booked_ts,
+        'status_id' => 1,
+        'title' => get_trans_status(1),
+        'date' => $booked_date,
+        'time' => $booked_time,
+        'remarks' => $bookedMessage,
+        'is_partial' => false,
+        'sheet_id' => 0,
+    ),
+);
+
+foreach ($scan_rows as $result_status) {
+    $re = $result_status['status'];
+    $date_data = $result_status['created_at'];
+    $tempRow = $grnr;
+    $tempRow['active_status'] = $re;
+
+    $remarks = get_tracking_message($conn, $tempRow);
+
+    $scan_sheet_id = (int)($result_status['sheet_id'] ?? 0);
+    $scan_delivery = isset($delivery_by_sheet[$scan_sheet_id])
+        ? $delivery_by_sheet[$scan_sheet_id]
+        : null;
+
+    $scan_delivery_type = $scan_delivery
+        ? $scan_delivery['delivery_type']
+        : '';
+    $scan_delivered = $scan_delivery
+        ? (int)$scan_delivery['delivered_packages']
+        : $delivered_packages;
+    $scan_total = $scan_delivery
+        ? (int)$scan_delivery['total_packages']
+        : $total_packages;
+    if ($scan_total <= 0) {
+        $scan_total = $total_packages;
+    }
+    $scan_pending = max(0, $scan_total - $scan_delivered);
+
+    $scan_is_partial = (
+        (int)$re === 8 &&
+        $scan_delivery_type === 'partial' &&
+        $scan_delivered > 0 &&
+        ($scan_total <= 0 || $scan_delivered < $scan_total)
+    );
+    $scan_is_full = (
+        (int)$re === 8 &&
+        (
+            $scan_delivery_type === 'full' ||
+            ($scan_total > 0 && $scan_delivered >= $scan_total)
+        )
+    );
+
+    if ($scan_is_partial) {
+        $remarks =
+            "Your consignment <strong style=\"color:#000;\">$grn_no</strong> " .
+            "has been partially delivered. " .
+            "<strong style=\"color:#000;\">" .
+            $scan_delivered . '/' . $scan_total .
+            " packages</strong> have been delivered successfully. " .
+            "<strong style=\"color:#DD111E;\">" .
+            $scan_pending .
+            " packages are still pending.</strong>";
+    } elseif ($scan_is_full && $had_partial_delivery) {
+        $remarks =
+            "Your consignment <strong style=\"color:#000;\">$grn_no</strong> " .
+            "has been fully delivered. " .
+            "<strong style=\"color:#000;\">" .
+            $scan_total . '/' . $scan_total .
+            " packages</strong> have been delivered successfully.";
+    }
+
+    $timestamp = strtotime($date_data);
+    $date = $timestamp ? date('d-m-Y', $timestamp) : $date_data;
+    $time = $timestamp ? date('H:i:s', $timestamp) : '';
+
+    if ($scan_is_partial) {
+        $hist_title = 'Partial Delivery – ' . $scan_delivered . '/' . $scan_total . ' Packages Delivered';
+    } elseif ($scan_is_full) {
+        $hist_title = 'Fully Delivered – ' . $scan_total . '/' . $scan_total . ' Packages';
+    } else {
+        $hist_title = get_trans_status($re);
+    }
+
+    $history_timeline[] = array(
+        'ts' => $timestamp ?: 0,
+        'status_id' => (int) $re,
+        'sheet_id' => (int) ($result_status['sheet_id'] ?? 0),
+        'title' => $hist_title,
+        'date' => $date,
+        'time' => $time,
+        'remarks' => $remarks,
+        'is_partial' => $scan_is_partial,
+    );
+}
+
+ew_tracking_timeline_sort($history_timeline);
+
+$total_scans = count($history_timeline);
 
 $last_updated = trim($booked_date . ' ' . $booked_time);
 $delivered_on = '';
-if ($scan_row_count > 0) {
-    $last_scan = $scan_rows[$scan_row_count - 1];
-    $last_ts = strtotime($last_scan['created_at']);
-    if ($last_ts) {
-        $last_updated = date('d-m-Y, H:i:s', $last_ts);
+if (!empty($history_timeline)) {
+    $newest_ts = (int) ($history_timeline[0]['ts'] ?? 0);
+    if ($newest_ts > 0) {
+        $last_updated = date('d-m-Y, H:i:s', $newest_ts);
     }
-    foreach (array_reverse($scan_rows) as $sr) {
-        if ((int)$sr['status'] === 8) {
-            $dts = strtotime($sr['created_at']);
-            if ($dts) {
-                $delivered_on = date('d M Y (H:i:s)', $dts);
-            }
+    foreach ($history_timeline as $hist_item) {
+        if ((int) ($hist_item['status_id'] ?? 0) === 8 && !empty($hist_item['ts'])) {
+            $delivered_on = date('d M Y (H:i:s)', $hist_item['ts']);
             break;
         }
     }
@@ -457,103 +560,16 @@ if ($is_full_delivery) {
                 <span class="count-pill"><?php echo $total_scans; ?> update<?php echo $total_scans > 1 ? 's' : ''; ?></span>
             </div>
             <div class="hist-list">
-                                                        <div class="hist-item<?php echo $is_booked_latest ? ' latest' : ''; ?>">
-                                                            <span class="hist-dot"><i class="fa fa-check"></i></span>
-                                                            <div class="hist-time"><?php echo $booked_date; ?><?php echo $booked_time ? ' at ' . $booked_time : ''; ?></div>
-                                                            <div class="hist-title"><?php echo get_trans_status(1); ?></div>
-                                                            <p class="hist-desc"><?php echo $bookedMessage; ?></p>
-                                                        </div>
-                                                        <?php
-                                                        foreach ($scan_rows as $scan_index => $result_status) {
-                                                            $re = $result_status['status'];
-                                                            $date_data = $result_status['created_at'];
-                                                            $tempRow = $grnr;
-                                                            $tempRow['active_status'] = $re;
-
-                                                            $remarks = get_tracking_message($conn, $tempRow);
-
-                                                            $scan_sheet_id = (int)($result_status['sheet_id'] ?? 0);
-                                                            $scan_delivery = isset($delivery_by_sheet[$scan_sheet_id])
-                                                                ? $delivery_by_sheet[$scan_sheet_id]
-                                                                : null;
-
-                                                            $scan_delivery_type = $scan_delivery
-                                                                ? $scan_delivery['delivery_type']
-                                                                : '';
-                                                            $scan_delivered = $scan_delivery
-                                                                ? (int)$scan_delivery['delivered_packages']
-                                                                : $delivered_packages;
-                                                            $scan_total = $scan_delivery
-                                                                ? (int)$scan_delivery['total_packages']
-                                                                : $total_packages;
-                                                            if ($scan_total <= 0) {
-                                                                $scan_total = $total_packages;
-                                                            }
-                                                            $scan_pending = max(0, $scan_total - $scan_delivered);
-
-                                                            $scan_is_partial = (
-                                                                (int)$re === 8 &&
-                                                                $scan_delivery_type === 'partial' &&
-                                                                $scan_delivered > 0 &&
-                                                                ($scan_total <= 0 || $scan_delivered < $scan_total)
-                                                            );
-                                                            $scan_is_full = (
-                                                                (int)$re === 8 &&
-                                                                (
-                                                                    $scan_delivery_type === 'full' ||
-                                                                    ($scan_total > 0 && $scan_delivered >= $scan_total)
-                                                                )
-                                                            );
-
-                                                        // ------------------------------------------------------------
-// Delivery message override for this scan row
-// ------------------------------------------------------------
-
-if ($scan_is_partial) {
-
-    $remarks =
-        "Your consignment <strong style=\"color:#000;\">$grn_no</strong> " .
-        "has been partially delivered. " .
-        "<strong style=\"color:#000;\">" .
-        $scan_delivered . '/' . $scan_total .
-        " packages</strong> have been delivered successfully. " .
-        "<strong style=\"color:#DD111E;\">" .
-        $scan_pending .
-        " packages are still pending.</strong>";
-
-} elseif ($scan_is_full && $had_partial_delivery) {
-
-    $remarks =
-        "Your consignment <strong style=\"color:#000;\">$grn_no</strong> " .
-        "has been fully delivered. " .
-        "<strong style=\"color:#000;\">" .
-        $scan_total . '/' . $scan_total .
-        " packages</strong> have been delivered successfully.";
-}
-
-                                                            $timestamp = strtotime($date_data);
-
-                                                            $date = date('d-m-Y', $timestamp);
-                                                            $time = date('H:i:s', $timestamp);
-
-                                                            $is_latest = ($scan_index === $scan_row_count - 1);
-                                                            if ($scan_is_partial) {
-                                                                $hist_title = 'Partial Delivery – ' . $scan_delivered . '/' . $scan_total . ' Packages Delivered';
-                                                            } elseif ($scan_is_full) {
-                                                                $hist_title = 'Fully Delivered – ' . $scan_total . '/' . $scan_total . ' Packages';
-                                                            } else {
-                                                                $hist_title = get_trans_status($re);
-                                                            }
-                                                            ?>
-                                                            <div class="hist-item<?php echo $is_latest ? ' latest' : ''; ?><?php echo $scan_is_partial ? ' partial' : ''; ?>">
-                                                                <span class="hist-dot"><i class="fa fa-check"></i></span>
-                                                                <div class="hist-time"><?php echo $date; ?><?php echo $time ? ' at ' . $time : ''; ?></div>
-                                                                <div class="hist-title"><?php echo htmlspecialchars($hist_title); ?></div>
-                                                                <p class="hist-desc"><?php echo $remarks; ?></p>
-                                                            </div>
-                                                        <?php
-                                                        }
-                                                        ?>
+                <?php foreach ($history_timeline as $hist_index => $hist_item) {
+                    $is_latest = ($hist_index === 0);
+                    ?>
+                <div class="hist-item<?php echo $is_latest ? ' latest' : ''; ?><?php echo !empty($hist_item['is_partial']) ? ' partial' : ''; ?>">
+                    <span class="hist-dot"><i class="fa fa-check"></i></span>
+                    <div class="hist-time"><?php echo htmlspecialchars($hist_item['date']); ?><?php echo !empty($hist_item['time']) ? ' at ' . htmlspecialchars($hist_item['time']) : ''; ?></div>
+                    <div class="hist-title"><?php echo htmlspecialchars($hist_item['title']); ?></div>
+                    <p class="hist-desc"><?php echo $hist_item['remarks']; ?></p>
+                </div>
+                <?php } ?>
             </div>
         </div>
     </section>
@@ -567,7 +583,7 @@ if ($scan_is_partial) {
                                                 echo '<p class="track-plain-msg">Incorrect GCN No or Booking Cancelled. Please check and try again!</p>';
                                             }
                                         } else {
-                                            echo '<p class="track-plain-msg">Invalid GCN or PNR number. Please check and try again!</p>';
+                                            echo '<p class="track-plain-msg">Invalid GCN or tracking code. Please check and try again!</p>';
                                         }
                                     }
                                     ?>

@@ -235,6 +235,30 @@ if ($cmd == 'get_city_details') {
 	$row = mysqli_fetch_array($result);
 	echo json_encode($row);
 }
+if ($cmd == 'get_city_next_code') {
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode(ew_city_next_code($conn));
+	exit;
+}
+if ($cmd == 'get_cfs_details') {
+	require_once __DIR__ . '/include/cfs_master_helpers.php';
+	$tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
+	$row = ew_cfs_master_get($conn, $tbl_id);
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode($row ?: array());
+	exit;
+}
+if ($cmd == 'get_cfs_next_code') {
+	require_once __DIR__ . '/include/cfs_master_helpers.php';
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode(ew_cfs_master_next_code($conn));
+	exit;
+}
+if ($cmd == 'get_branch_next_code') {
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode(array('branch_code' => ew_branch_next_code($conn)));
+	exit;
+}
 if ($cmd == 'get_state_details') {
 	$tbl_id = $_REQUEST['tbl_id'];
 

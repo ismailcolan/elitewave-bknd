@@ -2,6 +2,22 @@
 
 require_once __DIR__ . '/quotation_functions.php';
 require_once __DIR__ . '/quotation_pdf_builder.php';
+require_once __DIR__ . '/quotation_multi_mode.php';
+require_once __DIR__ . '/quotation_consignor_multi_dest.php';
+
+/** SMTP settings used only for quotation approve / resend emails. */
+function quotation_mail_smtp_options()
+{
+	return array(
+		'username' => 'athar@elitewave360.in',
+		'password' => 'EliteWave@360##',
+		'from' => 'athar@elitewave360.in',
+		'from_name' => 'Mohammed Athar | EliteWave360',
+		'cc' => array(
+			array('info@elitewave360.in', 'Elite Wave 360'),
+		),
+	);
+}
 
 function quotation_pdf_write_temp_file($conn, $quotation_id)
 {
@@ -48,33 +64,56 @@ function quotation_build_approval_email_body($conn, $row)
 	$greet = $attn !== '' ? htmlspecialchars($attn, ENT_QUOTES, 'UTF-8') : 'Sir / Madam';
 	$origin = htmlspecialchars($row['origin_text'] ?? '', ENT_QUOTES, 'UTF-8');
 	$unload = htmlspecialchars($row['unloading_at'] ?? '', ENT_QUOTES, 'UTF-8');
+	$is_multi = quotation_is_multi_mode_quote_type($row['quote_type'] ?? '');
+	$is_consignor_md = quotation_is_consignor_multi_dest_quote_type($row['quote_type'] ?? '');
 	$mode = htmlspecialchars(quotation_mode_of_transport_label($conn, (int) ($row['mode_of_transportation'] ?? 0)), ENT_QUOTES, 'UTF-8');
 	$total = quotation_format_money_display($row['total_amount'] ?? 0);
+	$quote_type_lbl = quotation_quote_type_options()[$row['quote_type'] ?? ''] ?? 'Rate Quotation';
 	$quote_no = htmlspecialchars($row['quote_no'] ?? '', ENT_QUOTES, 'UTF-8');
 	$quote_date = htmlspecialchars($row['quote_date'] ?? '', ENT_QUOTES, 'UTF-8');
 	$valid = htmlspecialchars($row['valid_till'] ?? '', ENT_QUOTES, 'UTF-8');
 	$company = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
 
 	$text = 'color:#1a1a1a;font-size:16px;line-height:24px;';
-	$route = $origin . ' &rarr; ' . $unload;
 	$valid_phrase = $valid !== '' ? ', valid till <b>' . $valid . '</b>' : '';
 
-	$summary_rows = ''
-		. '<tr><td style="padding:6px 12px 6px 0;color:#1a1a1a;font-weight:bold;vertical-align:top;">Route</td>'
-		. '<td style="padding:6px 0;color:#1a1a1a;vertical-align:top;">' . $route . '</td></tr>';
-	if ($mode !== '') {
+	$summary_rows = '';
+	if ($is_consignor_md) {
+		$summary_rows .= '<tr><td style="padding:6px 12px 6px 0;color:#1a1a1a;font-weight:bold;vertical-align:top;">Consignor</td>'
+			. '<td style="padding:6px 0;color:#1a1a1a;vertical-align:top;">' . $company . '</td></tr>';
+	} elseif ($is_multi) {
+		$consignee = htmlspecialchars(trim((string) ($row['destination_name'] ?? '')), ENT_QUOTES, 'UTF-8');
+		if ($consignee === '') {
+			$consignee = '—';
+		}
+		$summary_rows .= '<tr><td style="padding:6px 12px 6px 0;color:#1a1a1a;font-weight:bold;vertical-align:top;">Consignee / delivery party</td>'
+			. '<td style="padding:6px 0;color:#1a1a1a;vertical-align:top;">' . $consignee . '</td></tr>';
+	} else {
+		$route = $origin . ' &rarr; ' . $unload;
+		$summary_rows .= '<tr><td style="padding:6px 12px 6px 0;color:#1a1a1a;font-weight:bold;vertical-align:top;">Route</td>'
+			. '<td style="padding:6px 0;color:#1a1a1a;vertical-align:top;">' . $route . '</td></tr>';
+	}
+	if (!$is_multi && !$is_consignor_md && $mode !== '') {
 		$summary_rows .= '<tr><td style="padding:6px 12px 6px 0;color:#1a1a1a;font-weight:bold;vertical-align:top;">Mode of transport</td>'
 			. '<td style="padding:6px 0;color:#1a1a1a;vertical-align:top;">' . $mode . '</td></tr>';
 	}
 	$summary_rows .= '<tr><td style="padding:6px 12px 6px 0;color:#1a1a1a;font-weight:bold;vertical-align:top;">Total amount</td>'
 		. '<td style="padding:6px 0;color:#1a1a1a;vertical-align:top;">&#8377; ' . htmlspecialchars($total, ENT_QUOTES, 'UTF-8') . ' /- (inclusive of applicable taxes as per attachment)</td></tr>';
 
+	$mm_table = '';
+	if ($is_consignor_md) {
+		$mm_table = quotation_consignor_multi_dest_email_table_html($conn, (int) ($row['quotation_id'] ?? 0));
+	} elseif ($is_multi) {
+		$mm_table = quotation_multi_mode_email_table_html($conn, (int) ($row['quotation_id'] ?? 0));
+	}
+
 	return '<p style="' . $text . 'margin:0 0 14px;"><b>Dear ' . $greet . ',</b></p>'
 		. '<p style="' . $text . 'margin:0 0 14px;">Thank you for considering <b>EliteWave360 Logistics</b> for your transportation requirement.</p>'
-		. '<p style="' . $text . 'margin:0 0 14px;">Please find attached our <b>Door-to-Door Rate Quotation</b> <b>' . $quote_no . '</b>, dated <b>' . $quote_date . '</b>'
+		. '<p style="' . $text . 'margin:0 0 14px;">Please find attached our <b>' . htmlspecialchars($quote_type_lbl, ENT_QUOTES, 'UTF-8') . '</b> <b>' . $quote_no . '</b>, dated <b>' . $quote_date . '</b>'
 		. $valid_phrase . ', prepared for <b>' . $company . '</b>.</p>'
 		. '<p style="' . $text . 'margin:0 0 8px;font-weight:bold;">Quotation summary</p>'
 		. '<table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;font-size:16px;line-height:24px;">' . $summary_rows . '</table>'
+		. ($mm_table !== '' ? '<p style="' . $text . 'margin:0 0 8px;font-weight:bold;">' . ($is_consignor_md ? 'Destination-wise charges' : 'Mode-wise charges') . '</p>' . $mm_table : '')
 		. '<p style="' . $text . 'margin:0 0 14px;">The attached PDF contains full shipment details, commercial terms, and standard conditions. We request you to review the quotation and share your confirmation at your earliest convenience. If you need any revision to route, vehicle type, or charges, we will be glad to assist.</p>'
 		. '<p style="' . $text . 'margin:0 0 14px;">For any queries regarding this quotation, please reply to this email.</p>'
 		. '<p style="' . $text . 'margin:0;">Thank you for your business.</p>';
@@ -106,7 +145,8 @@ function quotation_send_approved_email($conn, $row)
 	$body = quotation_build_approval_email_body($conn, $row);
 
 	$attach_name = 'Rate_Quotation_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $row['quote_no'] ?? 'quote') . '.pdf';
-	$sent = sendAppMailWithAttachment($to_name, $email, $subject, $body, $pdf['path'], $attach_name);
+	$quotation_smtp = quotation_mail_smtp_options();
+	$sent = sendAppMailWithAttachment($to_name, $email, $subject, $body, $pdf['path'], $attach_name, $quotation_smtp);
 	@unlink($pdf['path']);
 
 	if (empty($sent['ok'])) {

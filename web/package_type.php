@@ -118,19 +118,6 @@ th.table-title.sorting_disabled {
                                             <td class="actions center-content ">
                                                 <div class="action-buttons">
                                                     <a title="Edit" class="table-actions btn-edit" id="<?php echo $row['package_id']; ?>"><i class="fa fa-pencil"></i></a>
-                                                    <?php
-                                                    if ($row['status'] == 0) {
-                                                        ?>
-                                                        <a class="table-actions btn-active" data-status="<?php echo $row['status'] ?>" title="InActive" id="<?php echo $row['package_id'] ?>"><i class="fa fa-check"></i></a>
-                                                    <?php
-                                                    } else {
-                                                        ?>
-                                                        <a class="table-actions btn-active" style="color:red;" data-status="<?php echo $row['status'] ?>" title="Active" id="<?php echo $row['package_id'] ?>"><i class="fa fa-times"></i></a>
-                                                    <?php
-                                                    }
-                                                    ?>
-                                                    <!-- <a title="Delete" href="#myModal" class="table-actions btn-trash" data-toggle="modal" id="<?php echo $row['package_id'] ?>"><i class="fa fa-trash-o"></i></a> -->
-
                                                 </div>
                                             </td>
                                         </tr>
@@ -275,52 +262,6 @@ th.table-title.sorting_disabled {
                         }
                     });
                 });
-                //Active Inactive
-                $(document).on('click', '.btn-active', function(ev) {
-                    $(".form-data-saving").show();
-                    var status1 = '';
-                    var msg = '';
-                    var status = $(this).attr('data-status');
-                    if (status == '1') {
-                        status1 = '0';
-                        msg = "Activated";
-                    } else {
-                        status1 = '1';
-                        msg = "In-Activated";
-                    }
-                    $.post('save_details.php', {
-                        form_name: "inacv_package",
-                        tbl_id: $(this).attr("id"),
-                        status: status1
-                    }, function(data, status) {
-                        console.log(data);
-                        if (data == 1) {
-                            $(".form-data-saving").hide();
-                            $("#alert-status").text("");
-                            $("#alert-message").text("Package Type Is " + msg + "...");
-                            $("#alert-container").addClass("alert-success").slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
-                                $("#alert-container").hide();
-                                $("#alert-container").removeClass("alert-success");
-                                location.reload();
-                            });
-                        } else if (data == 2) {
-                            $(".form-data-saving").hide();
-                            $("#alert-status").text("");
-                            $("#alert-message").text("Package Type Is " + msg + "...");
-                            $("#alert-container").addClass("alert-danger").slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
-                                $("#alert-container").hide();
-                                $("#alert-container").removeClass("alert-danger");
-                                location.reload();
-                            });
-                        } else if (data == "404-del") {
-                            $(".delete-error-popup").show();
-                            $(".form-data-saving").hide();
-                        }
-
-                    });
-                });
-
-
                 $('#openCreatePackage').on('click', function() {
                     $('#form_name').val('add_package');
                     $('#edit_id').val('');

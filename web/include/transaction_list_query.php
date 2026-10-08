@@ -134,7 +134,7 @@ function transaction_list_fetch_rows($conn, $params = array())
 		$sql = "SELECT t.*, l.tracking_code
 			FROM `$name` t
 			LEFT JOIN transaction_log l ON t.transaction_id = l.transaction_id AND t.grn_no = l.grn_no
-			WHERE t.invoice_no != '' $date_sql $client_sql";
+			WHERE TRIM(COALESCE(t.grn_no, '')) != '' $date_sql $client_sql";
 		$result = mysqli_query($conn, $sql);
 		if (!$result) {
 			continue;
@@ -175,6 +175,20 @@ function transaction_list_html($conn, $params = array())
 	return $out;
 }
 
+function transaction_list_mode_cell($conn, $row)
+{
+	$mode_id = (int) ($row['mode_of_transportation'] ?? 0);
+	if ($mode_id <= 0) {
+		return '<span class="txn-mode-empty">—</span>';
+	}
+	$mode_name = function_exists('get_mode') ? trim((string) get_mode($conn, $mode_id)) : '';
+	if ($mode_name === '') {
+		return '<span class="txn-mode-empty">—</span>';
+	}
+
+	return '<span class="txn-mode">' . htmlspecialchars($mode_name, ENT_QUOTES, 'UTF-8') . '</span>';
+}
+
 function transaction_list_render_row($conn, $row, $i)
 {
 	$m1 = (int) ($row['list_qtr'] ?? 0);
@@ -209,36 +223,8 @@ function transaction_list_render_row($conn, $row, $i)
 			<td class="col-consignor">' . transaction_list_client_cell($conn, $row['consigner'], $row['consignor_branch_id'] ?? 0) . '</td>
 			<td class="col-consignee">' . transaction_list_client_cell($conn, $row['consignee'], $row['consignee_branch_id'] ?? 0) . '</td>
 			<td>' . $dest_cell . '</td>
-			<td>' . transaction_list_status_badge($booking, $status) . '</td>';
-	$out_put .= '<td class="txn-pod-cell">';
-	$grn_no = $row['grn_no'];
-	$count = 0;
-	$imagesd1 = array();
-	$filtered_array = array();
-	if ($grn_no != '') {
-		$screens = $grn_no;
-		$images = "SELECT screens FROM pod_files WHERE screens LIKE '%" . mysqli_real_escape_string($conn, $screens) . "%' ";
-		$res = mysqli_query($conn, $images);
-		while ($res && ($pod_row = mysqli_fetch_assoc($res))) {
-			$imagesd1[] = explode('@@', $pod_row['screens']);
-		}
-		foreach ($imagesd1 as $value1) {
-			foreach ($value1 as $value2) {
-				$filtered_array[] = $value2;
-			}
-		}
-		$filter_img = preg_grep('/^' . preg_quote($screens, '/') . '.*/', $filtered_array);
-		$count = count(array_unique($filter_img));
-	}
-	if ($count == 1) {
-		$out_put .= '<a title="POD Uploaded"  class="table-actions btn-edit" id=' . $row['transaction_id'] . '><i class="fa fa-check-circle"></i></a>';
-	} elseif ($count == 2) {
-		$out_put .= '<a style="color:green;" title="POD Uploaded"  class="table-actions btn-edit" id=' . $row['transaction_id'] . '><i class="fa fa-check-circle"></i></a>';
-	} else {
-		$out_put .= '<a title="POD Not Uploaded"  class="table-actions btn-edit" id=' . $row['transaction_id'] . '><i class="fa fa-times-circle-o"></i></a>';
-	}
-
-	$out_put .= '</td>
+			<td>' . transaction_list_mode_cell($conn, $row) . '</td>
+			<td>' . transaction_list_status_badge($booking, $status, ew_transaction_badge_opts_for_row($conn, $row, (int) ($pkg_r['pkge'] ?? 0))) . '</td>
 			<td class="actions center-content col-actions">
 				<div class="action-buttons txn-action-group">';
 	if ($row['book_manual'] == 2) {
@@ -264,7 +250,6 @@ function transaction_list_render_row($conn, $row, $i)
                     ' . $track_btn . '
                     <a class="table-actions disable_action"  href="javascript:void(0)" ><i class="fa fa-print"></i></a>
                     <a class="table-actions disable_action" href="javascript:void(0)" data-status="' . $row['status'] . '" title="Invoice" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-file"></i></a>
-                    <a class="table-actions send_invoices disable_action" href="javascript:void(0)" title="Send Invoice" id="send_invoice_d" data-month="' . $m1 . '" data-year="' . $y . '" data-id="' . $row['transaction_id'] . '" > <i class="fa fa-envelope"></i></a>
                     <a title="Cancel" href="javascript:void(0) disable_action" class="table-actions cancel_booking disable_action" id="' . $row['transaction_id'] . '" ><i  class="fa fa-ban"></i></a>
                     <a title="E-way Attachments" href="javascript:void(0) disable_action" class="table-actions btn-eways disable_action" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
 	} else {
@@ -274,15 +259,8 @@ function transaction_list_render_row($conn, $row, $i)
 			$out_put .= $edit_btn;
 		}
 		$out_put .= $track_btn;
-		$out_put .= '<span class="table-actions dropdown txn-print-dd"><i class="fa fa-print"></i>
-						<ul class="dropdown-menu">
-							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=consignor" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">Consignor GR</a></li>
-							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=consignee" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">Consignee GR</a></li>
-							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=pod" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">P.O.D GR</a></li>
-							<li><a href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=accounts" data-status="' . $row['status'] . '" title="View" id="' . $row['transaction_id'] . '" target="_blank">Accounts GR</a></li>
-						</ul>
-					</span>
-                    <a class="table-actions " target="BLANK" href="gst_invoice_page.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '" data-status="' . $row['status'] . '" title="Invoice" id="' . $row['transaction_id'] . '"><i class="fa fa-file"></i></a>';
+		$out_put .= '<a class="table-actions" target="_blank" href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=original" data-status="' . $row['status'] . '" title="GCN Copy" id="' . $row['transaction_id'] . '"><i class="fa fa-print"></i></a>';
+		$out_put .= '<a class="table-actions " target="BLANK" href="gst_invoice_page.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '" data-status="' . $row['status'] . '" title="Invoice" id="' . $row['transaction_id'] . '"><i class="fa fa-file"></i></a>';
 	}
 	if ($consignment_mode == '1' || $consignment_mode == '4') {
 		$restricted = check_invoice_restricted($conn, $row['consignee']);
@@ -294,22 +272,12 @@ function transaction_list_render_row($conn, $row, $i)
 	if ($consignment_mode == '3') {
 		$pay_at_book = 1;
 	}
-	if ($status == 8 && $restricted == 1 && $pay_at_book != 1) {
-		$out_put .= '<a class="table-actions send_invoice" href="#" title="Send Invoice" id="send_invoice" data-month="' . $m1 . '" data-year="' . $y . '" data-id="' . $row['transaction_id'] . '" > <i class="fa fa-envelope"></i></a>';
-	} else {
-		$out_put .= '<a class="table-actions disable_action" href="javascript:void(0)" ><i class="fa fa-envelope"></i></a>';
-	}
 	if ($status < 6) {
 		$out_put .= '<a title="Cancel" href="#cancel_grn_popup" class="table-actions cancel_booking" id="' . $row['transaction_id'] . '" data-toggle="modal" data-grnid="' . htmlspecialchars($row['grn_no'], ENT_QUOTES, 'UTF-8') . '" data-tabid="' . $trans_name . '"  ><i class="fa fa-ban "></i></a>';
 	} else {
 		$out_put .= '<a class="table-actions disable_action" href="javascript:void(0)"><i class="fa fa-ban"></i></a>';
 	}
 	$out_put .= '<a title="E-way Attachments" href="javascript:void(0);" class="table-actions btn-eway" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
-	if ($count >= 1) {
-		$out_put .= '<a title="View POD" href="#pod_popup" class="table-actions btn-view-pod" data-toggle="modal" data-grn="' . htmlspecialchars($row['grn_no'], ENT_QUOTES, 'UTF-8') . '" id="' . $row['transaction_id'] . '"><i class="fa fa-camera"></i></a>';
-	} else {
-		$out_put .= '<a title="No POD Uploaded" href="javascript:void(0);" class="table-actions no-attach"><i class="fa fa-camera"></i></a>';
-	}
 	$out_put .= '</div></td></tr>';
 	return $out_put;
 }
@@ -364,13 +332,9 @@ function transaction_status_list_render_row($conn, $row, $i)
 	$pkg_r = $pkg_q ? mysqli_fetch_array($pkg_q) : array('pkge' => 0);
 	$total_packages = (int) ($pkg_r['pkge'] ?? 0);
 
-	$delivery_type = '';
-	$delivered_packages = 0;
-	$delivery_q = mysqli_query($conn, "SELECT delivery_type, delivered_packages FROM transaction_status_log WHERE grn_no='" . mysqli_real_escape_string($conn, (string) $row['grn_no']) . "' AND to_status='8' ORDER BY sheet_id DESC LIMIT 1");
-	if ($delivery_q && ($delivery_r = mysqli_fetch_assoc($delivery_q))) {
-		$delivery_type = !empty($delivery_r['delivery_type']) ? $delivery_r['delivery_type'] : '';
-		$delivered_packages = !empty($delivery_r['delivered_packages']) ? (int) $delivery_r['delivered_packages'] : 0;
-	}
+	$badge_opts = ew_transaction_badge_opts_for_row($conn, $row, $total_packages);
+	$delivery_type = $badge_opts['delivery_type'];
+	$delivered_packages = $badge_opts['delivered_packages'];
 
 	$sno = transaction_gcn_serial_no($row);
 	$out = '<tr>
@@ -381,11 +345,7 @@ function transaction_status_list_render_row($conn, $row, $i)
 		<td data-label="Consignor">' . htmlspecialchars(get_client_name($conn, $row['consigner'])) . '</td>
 		<td data-label="Consignee">' . htmlspecialchars(get_client_name($conn, $row['consignee'])) . '</td>
 		<td data-label="Destination">' . htmlspecialchars(get_city_name($conn, $row['destination'])) . '</td>
-		<td data-label="Status">' . transaction_status_badge($booking, $status, array(
-			'delivery_type' => $delivery_type,
-			'delivered_packages' => $delivered_packages,
-			'total_packages' => $total_packages,
-		)) . '</td>
+		<td data-label="Status">' . transaction_status_badge($booking, $status, $badge_opts) . '</td>
 		<td class="col-steps actions center-content" data-label="Change Status"><div>';
 	$out .= '<button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>';
 	$out .= transaction_status_step_button($status, $booking, 2, 'picked-up', 'Consignment Picked Up', $trans_name, $row);

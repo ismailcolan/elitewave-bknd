@@ -4,6 +4,7 @@ ini_set('display_errors', 0);
 require_once('include/connect.php');
 // require_once("save_admin.php");
 include('include/function.php');
+require_once('include/gcn_gst_invoice_helpers.php');
 require_once('appMail.php');
 if (file_exists(__DIR__ . '/../Twillio/vendor/autoload.php')) {
     require_once __DIR__ . '/../Twillio/vendor/autoload.php';
@@ -230,7 +231,7 @@ if ($form_name == 'verify_login_otp') {
 }
 
 if ($form_name == 'add_branch') {
-    $branch_code = $_POST['branch_code'];
+    $branch_code = ew_branch_next_code($conn);
     $branch_name = $_POST['branch_name'];
     $contact_person = $_POST['contact_person'];
     $contact_no = $_POST['contact_no'];
@@ -379,9 +380,9 @@ if ($form_name == 'inacv_state') {
         echo 0;
 }
 if ($form_name == 'add_city') {
-    $select_query = mysqli_fetch_array(mysqli_query($conn, 'select max(city_code_id) as code_id from city'));
-    $id = $select_query['code_id'] + 1;
-    $city_code = 'GEC' . sprintf('%03d', $id);
+    $city_next = ew_city_next_code($conn);
+    $id = $city_next['city_code_id'];
+    $city_code = $city_next['city_code'];
     $city_name = $_POST['city_name'];
     $state_name = $_POST['state_name'];
     $city = $_POST['city'];
@@ -655,13 +656,13 @@ if ($form_name == 'inacv_role') {
 // Train
 
 if ($form_name == 'add_train') {
-    $train_name = $_POST['train_name'];
-    $train_number = $_POST['train_number'];
-    $loading_point1 = $_POST['loading_point1'];
-    $loading_point2 = $_POST['loading_point2'];
-    $loading_point3 = $_POST['loading_point3'];
-    $loading_point4 = $_POST['loading_point4'];
-    $journey_hours = $_POST['journey_hours'];
+    $train_name = mysqli_real_escape_string($conn, $_POST['train_name'] ?? '');
+    $train_number = mysqli_real_escape_string($conn, $_POST['train_number'] ?? '');
+    $loading_point1 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 1));
+    $loading_point2 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 2));
+    $loading_point3 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 3));
+    $loading_point4 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 4));
+    $journey_hours = mysqli_real_escape_string($conn, $_POST['journey_hours'] ?? '');
 
     $query = "INSERT INTO train (
     train_name,
@@ -679,10 +680,10 @@ if ($form_name == 'add_train') {
 ) VALUES (
     '$train_name',
     '$train_number',
-    '$loading_point1',
-    '$loading_point2',
-    '$loading_point3',
-    '$loading_point4',
+    $loading_point1,
+    $loading_point2,
+    $loading_point3,
+    $loading_point4,
     '$journey_hours',
     '$created_at',
     '$created_by',
@@ -700,16 +701,16 @@ if ($form_name == 'add_train') {
 }
 
 if ($form_name == 'edit_train') {
-    $edit_id = $_POST['edit_id'];
-    $train_name = $_POST['train_name'];
-    $train_number = $_POST['train_number'];
-    $loading_point1 = $_POST['loading_point1'];
-    $loading_point2 = $_POST['loading_point2'];
-    $loading_point3 = $_POST['loading_point3'];
-    $loading_point4 = $_POST['loading_point4'];
-    $journey_hours = $_POST['journey_hours'];
+    $edit_id = (int) ($_POST['edit_id'] ?? 0);
+    $train_name = mysqli_real_escape_string($conn, $_POST['train_name'] ?? '');
+    $train_number = mysqli_real_escape_string($conn, $_POST['train_number'] ?? '');
+    $loading_point1 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 1));
+    $loading_point2 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 2));
+    $loading_point3 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 3));
+    $loading_point4 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 4));
+    $journey_hours = mysqli_real_escape_string($conn, $_POST['journey_hours'] ?? '');
 
-    $query = "update train set train_name='" . $train_name . "',train_number='" . $train_number . "',loading_point1='" . $loading_point1 . "',loading_point2='" . $loading_point2 . "',loading_point3='" . $loading_point3 . "',loading_point4='" . $loading_point4 . "',journey_hours='" . $journey_hours . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where train_id='" . $edit_id . "'";
+    $query = "update train set train_name='" . $train_name . "',train_number='" . $train_number . "',loading_point1=" . $loading_point1 . ",loading_point2=" . $loading_point2 . ",loading_point3=" . $loading_point3 . ",loading_point4=" . $loading_point4 . ",journey_hours='" . $journey_hours . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where train_id='" . $edit_id . "'";
 
     $result = mysqli_query($conn, $query);
     if (!$result) {
@@ -739,13 +740,13 @@ if ($form_name == 'inacv_train') {
 // Flight
 
 if ($form_name == 'add_flight') {
-    $flight_name = $_POST['flight_name'];
-    $flight_number = $_POST['flight_number'];
-    $loading_point1 = $_POST['loading_point1'];
-    $loading_point2 = $_POST['loading_point2'];
-    $loading_point3 = $_POST['loading_point3'];
-    $loading_point4 = $_POST['loading_point4'];
-    $journey_hours = $_POST['journey_hours'];
+    $flight_name = mysqli_real_escape_string($conn, $_POST['flight_name'] ?? '');
+    $flight_number = mysqli_real_escape_string($conn, $_POST['flight_number'] ?? '');
+    $loading_point1 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 1));
+    $loading_point2 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 2));
+    $loading_point3 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 3));
+    $loading_point4 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 4));
+    $journey_hours = mysqli_real_escape_string($conn, $_POST['journey_hours'] ?? '');
 
     $query = "INSERT INTO flight(
     flight_name,
@@ -764,10 +765,10 @@ if ($form_name == 'add_flight') {
 VALUES(
     '$flight_name',
     '$flight_number',
-    '$loading_point1',
-    '$loading_point2',
-    '$loading_point3',
-    '$loading_point4',
+    $loading_point1,
+    $loading_point2,
+    $loading_point3,
+    $loading_point4,
     '$journey_hours',
     '$created_at',
     '$created_by',
@@ -784,16 +785,16 @@ VALUES(
 }
 
 if ($form_name == 'edit_flight') {
-    $edit_id = $_POST['edit_id'];
-    $flight_name = $_POST['flight_name'];
-    $flight_number = $_POST['flight_number'];
-    $loading_point1 = $_POST['loading_point1'];
-    $loading_point2 = $_POST['loading_point2'];
-    $loading_point3 = $_POST['loading_point3'];
-    $loading_point4 = $_POST['loading_point4'];
-    $journey_hours = $_POST['journey_hours'];
+    $edit_id = (int) ($_POST['edit_id'] ?? 0);
+    $flight_name = mysqli_real_escape_string($conn, $_POST['flight_name'] ?? '');
+    $flight_number = mysqli_real_escape_string($conn, $_POST['flight_number'] ?? '');
+    $loading_point1 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 1));
+    $loading_point2 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 2));
+    $loading_point3 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 3));
+    $loading_point4 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 4));
+    $journey_hours = mysqli_real_escape_string($conn, $_POST['journey_hours'] ?? '');
 
-    $query = "update flight set flight_name='" . $flight_name . "',flight_number='" . $flight_number . "',loading_point1='" . $loading_point1 . "',loading_point2='" . $loading_point2 . "',loading_point3='" . $loading_point3 . "',loading_point4='" . $loading_point4 . "',journey_hours='" . $journey_hours . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where flight_id='" . $edit_id . "'";
+    $query = "update flight set flight_name='" . $flight_name . "',flight_number='" . $flight_number . "',loading_point1=" . $loading_point1 . ",loading_point2=" . $loading_point2 . ",loading_point3=" . $loading_point3 . ",loading_point4=" . $loading_point4 . ",journey_hours='" . $journey_hours . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where flight_id='" . $edit_id . "'";
 
     $result = mysqli_query($conn, $query);
     if ($result)
@@ -822,13 +823,18 @@ if ($form_name == 'inacv_flight') {
 }
 
 if ($form_name == 'add_mode_of_transportation') {
-    $mode_type = $_POST['mode_type'];
-    $delivery = $_POST['delivery'];
-    $sac_code = $_POST['sac_code'];
+    $mode_group = mysqli_real_escape_string($conn, trim($_POST['mode_group'] ?? ''));
+    $mode_type = mysqli_real_escape_string($conn, trim($_POST['mode_type'] ?? ''));
+    $delivery = mysqli_real_escape_string($conn, trim($_POST['delivery'] ?? ''));
+    $sac_code = mysqli_real_escape_string($conn, trim($_POST['sac_code'] ?? ''));
 
-    $query = "insert into mode_of_transportation(mode_type
-\t,max_hrs_delivery,sac_code,created_at,created_by,status)values
-\t('" . $mode_type . "','" . $delivery . "','" . $sac_code . "','" . $created_at . "','" . $created_by . "','0')";
+    if ($mode_group === '' || $mode_type === '' || $delivery === '' || $sac_code === '') {
+        echo 0;
+        exit;
+    }
+
+    $query = "insert into mode_of_transportation(mode_type, mode_group, max_hrs_delivery, sac_code, created_at, created_by, status) values
+\t('" . $mode_type . "','" . $mode_group . "','" . $delivery . "','" . $sac_code . "','" . $created_at . "','" . $created_by . "','0')";
     $result = mysqli_query($conn, $query);
     if ($result)
         echo 1;
@@ -838,12 +844,19 @@ if ($form_name == 'add_mode_of_transportation') {
 if ($form_name == 'edit_mode') {
 
     $edit_id   = $_POST['edit_id'];
-    $mode_type = trim($_POST['mode_type']);
-    $delivery  = trim($_POST['delivery']);
-    $sac_code = trim($_POST['sac_code']);
+    $mode_group = mysqli_real_escape_string($conn, trim($_POST['mode_group'] ?? ''));
+    $mode_type = mysqli_real_escape_string($conn, trim($_POST['mode_type'] ?? ''));
+    $delivery  = mysqli_real_escape_string($conn, trim($_POST['delivery'] ?? ''));
+    $sac_code = mysqli_real_escape_string($conn, trim($_POST['sac_code'] ?? ''));
+
+    if ($mode_group === '' || $mode_type === '' || $delivery === '' || $sac_code === '') {
+        echo 0;
+        exit;
+    }
 
     $query = "UPDATE mode_of_transportation SET
         mode_type='$mode_type',
+        mode_group='$mode_group',
         max_hrs_delivery='$delivery',
         sac_code='$sac_code',
         updated_at='$updated_at',
@@ -1429,6 +1442,28 @@ if ($form_name == 'delete_vehicle_type') {
     $id = (int) ($_POST['tbl_id'] ?? 0);
     $result = ew_vehicle_type_delete($conn, $id);
     echo !empty($result['ok']) ? 1 : ($result['message'] ?? 'Delete failed.');
+    exit;
+}
+
+// CFS master (booking dropdown)
+if ($form_name == 'add_cfs_master') {
+    require_once __DIR__ . '/include/cfs_master_helpers.php';
+    $result = ew_cfs_master_insert($conn, $_POST, $created_by);
+    echo !empty($result['result']) ? 1 : ($result['message'] ?? 0);
+    exit;
+}
+if ($form_name == 'edit_cfs_master') {
+    require_once __DIR__ . '/include/cfs_master_helpers.php';
+    $result = ew_cfs_master_update($conn, $_POST, $created_by);
+    echo !empty($result['result']) ? 1 : ($result['message'] ?? 0);
+    exit;
+}
+if ($form_name == 'inacv_cfs_master') {
+    require_once __DIR__ . '/include/cfs_master_helpers.php';
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $status = (int) ($_POST['status'] ?? 0);
+    $ok = ew_cfs_master_set_status($conn, $id, $status, $created_by);
+    echo $ok ? 1 : 0;
     exit;
 }
 
@@ -2218,14 +2253,7 @@ if ($form_name == 'add_new_consignment') {
             $chk_unique = mysqli_query($conn, "SELECT id FROM transaction_log WHERE tracking_code='$tracking_code'");
         } while (mysqli_num_rows($chk_unique) > 0);
 
-        // Get Latest GCN No based on selected client (consignor or main company)
-        $id_01 = get_next_grn_id($conn, $comp_grn_mode === 'company' ? 'COMPANY' : $grn_client_id);
-        if ($comp_grn_mode === 'company') {
-            $grn_num1 = strtoupper($billing_code . sprintf('%04d', $id_01));
-        } else {
-            $grn_num1 = strtoupper($billing_code . sprintf('%05d', $id_01));
-        }
-        // echo $grn_num1;
+        $grn_seq_key = ew_grn_seq_key_for_booking($comp_grn_mode, $grn_client_id);
 
         $consigneequery = "select * from client where client_id='$consignee'";
         $consigneeresult = mysqli_query($conn, $consigneequery);
@@ -2280,6 +2308,8 @@ if ($form_name == 'add_new_consignment') {
 
         require_once('include/gst_tax_functions.php');
         ensure_transaction_gst_columns($conn, $table0);
+        ew_transaction_ensure_party_branch_columns($conn, $table0);
+        ew_transaction_ensure_booking_schema($conn, $table0);
         $company_state_q = mysqli_query($conn, 'SELECT state FROM company WHERE status=0 LIMIT 1');
         $company_state_row = mysqli_fetch_assoc($company_state_q);
         $company_state_id = (int) ($company_state_row['state'] ?? 0);
@@ -2301,13 +2331,17 @@ if ($form_name == 'add_new_consignment') {
         $gst_amount = (float) ($gst_snapshot['gst_amount'] ?? 0);
         $total = (float) ($gst_snapshot['grand_total'] ?? $total);
 
+        $id_01 = get_next_grn_id($conn, $grn_seq_key);
+        $grn_num1 = strtoupper(ew_grn_no_from_id($billing_code, $id_01, $comp_grn_mode));
+
         $chk_dup = mysqli_query($conn, "SELECT transaction_id FROM $table0 WHERE grn_no = '$grn_num1'");
         if (mysqli_num_rows($chk_dup) > 0) {
+            rollback_last_grn_id($conn, $grn_seq_key);
             $out_put['result'] = '0';
             $out_put['sql_error'] = 'Duplicate GRN: this booking was already saved.';
             ob_clean();
             echo json_encode($out_put);
-            // exit;
+            exit;
         }
 
         $query = "insert into $table0 (grn_no,grn_id,grn_date,booking_time,mode_of_transportation,train_type,ftl_type,origin,destination,mode_of_consignment,consigner,address1,address2,city,pincode,state,phone,gst_no,consignee,con_address1,con_address2,shipping_address,shipping_address_name, shipping_gst_no, shipping_phone,con_city,con_state,con_pincode,con_phone,con_gst_no,goods_dedared_value,bill_to,
@@ -2334,21 +2368,22 @@ vehicle_loading_unloading,other_train_name) values('" . $grn_num1 . "','" . $id_
 '$mamul_charge',
 '$vehicle_halting_charge',
 '$vehicle_loading_unloading','$other_train_names')";
-        // $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
-        $result = mysqli_query($conn, $query);
-        $transaction_id = mysqli_insert_id($conn);
-        if (!$result) {
+        // $insert_result = mysqli_query($conn, $query) or die(mysqli_error($conn));
+        $insert_result = mysqli_query($conn, $query);
+        $transaction_id = (int) mysqli_insert_id($conn);
+        if (!$insert_result) {
+            rollback_last_grn_id($conn, $grn_seq_key);
             $out_put['result'] = '0';
-            $out_put['sql_error'] = mysqli_error($conn);
+            $out_put['sql_error'] = mysqli_error($conn) ?: 'Could not save consignment (database error).';
             ob_clean();
             echo json_encode($out_put);
-            // exit;
+            exit;
         }
 //         $attachment_id = NULL;
 // $invoice_id    = NULL;
 $attachment_id = null;
 $invoice_id = 0;
-        if ($result) {
+        if ($insert_result) {
             for ($k = 0; $k < count($_FILES['file_receipt']['name']); $k++) {
                 $file_name = uniqid() . $_FILES['file_receipt']['name'][$k];
                 if (move_uploaded_file($_FILES['file_receipt']['tmp_name'][$k], 'invoice_image/' . $file_name)) {  // images/
@@ -2390,10 +2425,10 @@ $invoice_id = 0;
                 : '';
 
             if (!empty($party_invoice_dates1)) {
-                $party_invoice_dates1 = date(
-                    'Y-m-d',
-                    strtotime(str_replace('/', '-', $party_invoice_dates1))
-                );
+                $party_invoice_dates1 = ew_parse_input_date_to_mysql($party_invoice_dates1);
+                if ($party_invoice_dates1 === '') {
+                    $party_invoice_dates1 = null;
+                }
             } else {
                 $party_invoice_dates1 = null;
             }
@@ -2482,8 +2517,14 @@ $attachment_sql = ($attachment_id === null)
     VALUES ('$transaction_id',$attachment_sql,'$invoice_id','$id_01','$grn_num1','$log_client_id','$grn_type_db','$comp_id','$tracking_code')");
 
     if (!$query_log) {
-    die(mysqli_error($conn));
-}
+                    rollback_last_grn_id($conn, $grn_seq_key);
+                    mysqli_query($conn, "DELETE FROM $table0 WHERE transaction_id='$transaction_id'");
+                    $out_put['result'] = '0';
+                    $out_put['sql_error'] = 'Could not save booking log: ' . mysqli_error($conn);
+                    ob_clean();
+                    echo json_encode($out_put);
+                    exit;
+                }
             } else {
 
             $attachment_sql = ($attachment_id === null)
@@ -2498,8 +2539,14 @@ $attachment_sql = ($attachment_id === null)
                 $query_log = mysqli_query($conn, "UPDATE transaction_log SET transaction_id='$transaction_id',attachment_id=$attachment_sql,invoice_id='$invoice_id',grn_id='$id_01',grn_no='$grn_num1',grn_type='" . $grn_type_db . "',company_id='" . $comp_id . "',tracking_code='" . $tracking_code . "' WHERE client_id='0'");
 
                 if (!$query_log) {
-    die(mysqli_error($conn));
-}
+                    rollback_last_grn_id($conn, $grn_seq_key);
+                    mysqli_query($conn, "DELETE FROM $table0 WHERE transaction_id='$transaction_id'");
+                    $out_put['result'] = '0';
+                    $out_put['sql_error'] = 'Could not save booking log: ' . mysqli_error($conn);
+                    ob_clean();
+                    echo json_encode($out_put);
+                    exit;
+                }
             }
 
             ew_send_booking_json_success(array(
@@ -2515,7 +2562,7 @@ $attachment_sql = ($attachment_id === null)
                 }
             }
             $inv = rtrim($inv, ',');
-            $url = 'https://elitewave360.in/web/transaction_pdf.php?month=' . $month . '&year=' . $year . '&id=' . $transaction_id . '&copy=consignor';
+            $url = 'https://elitewave360.in/web/transaction_pdf.php?month=' . $month . '&year=' . $year . '&id=' . $transaction_id . '&copy=consignor&embed=1';
             $path = 'transaction_pdf/' . $month . '_' . $year . '_' . $transaction_id . 'transaction.pdf';
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -2526,6 +2573,7 @@ $attachment_sql = ($attachment_id === null)
             $result_url = file_put_contents($path, $data);
 
             // *Invoice Section Start
+            if (gcn_gst_invoice_booking_auto_enabled()) {
             // Sequence Generation
 
             if ($mode_of_trasport == '1' || $mode_of_trasport == '2' || $mode_of_trasport == '3') {
@@ -2606,6 +2654,7 @@ $attachment_sql = ($attachment_id === null)
                 $res = mysqli_query($conn, $query_inv);
             }
 
+            } // gcn_gst_invoice_booking_auto_enabled
             // *Invoice Section End
             $image = array();
             $tables_1 = $tables[1];
@@ -2808,7 +2857,12 @@ $attachment_sql = ($attachment_id === null)
             $out_put['data'] = $grn_num1;
             $out_put['tracking_code'] = $tracking_code;
         } else {
+            rollback_last_grn_id($conn, $grn_seq_key);
+            if ($insert_result) {
+                mysqli_query($conn, "DELETE FROM $table0 WHERE transaction_id='$transaction_id'");
+            }
             $out_put['result'] = '0';
+            $out_put['sql_error'] = 'Booking could not be completed (missing transaction id). ' . mysqli_error($conn);
         }
     } else {
         $out_put['logout'] = 1;
@@ -2869,13 +2923,8 @@ if ($form_name == 'add_new_consignment_manual') {
         $phone = $consignorrow['contact_no'];
         $gst_no = $consignorrow['gst_no'];
 
-        // Get Latest GCN No
-        // $query_max = mysqli_query($conn, "select * from transaction_log where client_id='$consignor'"); //duplicate-1
-        // $r_max = mysqli_fetch_array($query_max);
-        // $id_01 = $r_max['grn_id'] + 1;
-        $id_01 = get_next_grn_id($conn, $comp_grn_mode === 'company' ? 'COMPANY' : $consignor);
-        // $grn_num1 = strtoupper($billing_code . sprintf("%05d", $id_01));
-        $grn_num1 = $grn_no;
+        $grn_seq_key = ew_grn_seq_key_for_booking($comp_grn_mode, $comp_grn_mode === 'company' ? $_SESSION['company_id'] : $consignor);
+        $grn_num1 = strtoupper(trim($grn_no));
 
         $consigneequery = "select * from client where client_id='$consignee'";
         $consigneeresult = mysqli_query($conn, $consigneequery);
@@ -2975,6 +3024,7 @@ vehicle_loading_unloading,other_train_name,consignor_branch_id,bill_to_branch_id
         $attachment_id = NULL;
 $invoice_id    = NULL;
         if ($result) {
+            sync_grn_sequence_min_id($conn, $grn_seq_key, ew_grn_numeric_id_from_no($grn_num1));
             for ($k = 0; $k < count($_FILES['file_receipt']['name']); $k++) {
                 $file_name = uniqid() . $_FILES['file_receipt']['name'][$k];
                 if (move_uploaded_file($_FILES['file_receipt']['tmp_name'][$k], 'invoice_image/' . $file_name)) {  // images/
@@ -3077,7 +3127,7 @@ $invoice_id    = NULL;
                 }
             }
             $inv = rtrim($inv, ',');
-            $url = 'https://elitewave360.in/web/transaction_pdf.php?month=' . $month . '&year=' . $year . '&id=' . $transaction_id . '&copy=consignor';
+            $url = 'https://elitewave360.in/web/transaction_pdf.php?month=' . $month . '&year=' . $year . '&id=' . $transaction_id . '&copy=consignor&embed=1';
             $path = 'transaction_pdf/' . $month . '_' . $year . '_' . $transaction_id . 'transaction.pdf';
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -3088,6 +3138,7 @@ $invoice_id    = NULL;
             $result_url = file_put_contents($path, $data);
 
             // *Invoice Section Start
+            if (gcn_gst_invoice_booking_auto_enabled()) {
             // Sequence Generation
 
             if ($mode_of_trasport == '1' || $mode_of_trasport == '2' || $mode_of_trasport == '3') {
@@ -3158,6 +3209,7 @@ $invoice_id    = NULL;
                 $res = mysqli_query($conn, $query_inv);
             }
 
+            } // gcn_gst_invoice_booking_auto_enabled
             // *Invoice Section End
 
             $image = array();
@@ -3265,10 +3317,6 @@ if ($form_name == 'add_new_user_consignment') {
         $phone = $consignorrow['contact_no'];
         $gst_no = $consignorrow['gst_no'];
 
-        // Get Latest GCN No
-        $id = get_next_grn_id($conn, $consignor);
-        $grn_no = strtoupper($billing_code . sprintf('%05d', $id));
-
         $consigneequery = "select * from client where client_id='$consignee'";
         $consigneeresult = mysqli_query($conn, $consigneequery);
         $consigneerow = mysqli_fetch_array($consigneeresult);
@@ -3301,9 +3349,29 @@ if ($form_name == 'add_new_user_consignment') {
 
         $eway_expiryDate = $_POST['eway_expiryDate'] ? $_POST['eway_expiryDate'] : null;
 
+        $grn_seq_key = ew_grn_seq_key_for_booking($comp_grn_mode, $comp_grn_mode === 'company' ? $comp_id : $consignor);
+        $grn_seq_reserved = false;
+        if ($comp_grn_mode === 'company') {
+            $grn_no = strtoupper(trim($grn_no));
+            $id = ew_grn_numeric_id_from_no($grn_no);
+        } else {
+            $id = get_next_grn_id($conn, $grn_seq_key);
+            $grn_no = strtoupper($billing_code . sprintf('%05d', $id));
+            $grn_seq_reserved = true;
+        }
+
         $query = "insert into $tables[0](grn_no,grn_id,grn_date,mode_of_transportation,train_type,ftl_type,origin,destination,mode_of_consignment,consigner,address1,address2,city,pincode,state,phone,gst_no,consignee,con_address1,con_address2,shipping_address,shipping_address_name, shipping_gst_no, shipping_phone,con_city,con_state,con_pincode,con_phone,con_gst_no,goods_dedared_value,octroi,dimension1,dimension2,dimension3,dimension4,consignment_weight,frieght_rate,frieght_amount,loading_unloading_rate,
 \t\t loading_unloading_amount, crane_fork_lift_rate, crane_fork_lift_amount,cod_rate,cod_amount,fov_rate,fov_amount,doc_charges,doc_amount,cartage_rate,cartage_amount,labour_handling_rate,labour_handling_amount,octroi_rate,octroi_amount,other_charge_rate,other_charge_amount,rajdhani_charges,gst_rate,gst_amount,total,paid_amount, balance, paid_status,total_words,note1,note2,truck,consigner_signature,client_id,created_at,created_by,status,eway_number,eway_expirydate,other_train_name) values('" . $grn_no . "','" . $id . "','" . $grn_date . "','" . $mode_of_trasport . "','$train_name','$ftl_type','" . $origin . "','" . $destination . "','" . $mode_of_consignment . "','" . $consignor . "','" . $address1 . "','" . $address2 . "','" . $city . "','" . $pincode . "','" . $state . "','" . $phone . "','" . $gst_no . "','" . $consignee . "','" . $con_address1 . "','" . $con_address2 . "','$ship_address','$shipping_address_name', '$shipping_gst_no', '$shipping_phone','" . $con_city . "','" . $con_state . "','" . $con_pincode . "','" . $con_phone . "','" . $con_gst . "','" . $goods_dedared_value . "','" . $octroi . "','$len','$wid','$hei','$quanti','$vlm_wei','" . $frieght_rate . "','" . $frieght_amount . "','" . $loading_unload_rate . "','" . $loading_unload_chrg . "','" . $crane_forklift_rate . "','" . $crane_forklift_chrg . "','" . $cod_rate . "','" . $cod_amount . "','" . $fov_rate . "','" . $fov_amount . "','" . $doc_rate . "','" . $doc_amount . "','" . $cartage_rate . "','" . $cartage_amount . "','" . $labour_rate . "','" . $labour_amount . "','" . $octroi_rate . "','" . $octroi_amount . "','" . $other_rate . "','" . $other_amount . "','$rajdhani_charges','" . $gst_rate . "','" . $gst_amount . "','" . $total . "','0','" . $total . "','0','" . $amount_in_words . "','" . $note1 . "','" . $note2 . "','" . $vehicle_no . "','" . $signature . "','" . $consignor . "','" . $created_at . "','" . $created_by . "','1','" . $eway_number . "','$eway_expiryDate','$other_train_names')";
-        $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
+        $result = mysqli_query($conn, $query);
+        if (!$result) {
+            if ($grn_seq_reserved) {
+                rollback_last_grn_id($conn, $grn_seq_key);
+            }
+            die(mysqli_error($conn));
+        }
+        if ($comp_grn_mode === 'company') {
+            sync_grn_sequence_min_id($conn, 'COMPANY', $id);
+        }
         $transaction_id = mysqli_insert_id($conn);
 
         if ($_FILES['file_receipt']['name'] != '') {
@@ -3427,7 +3495,7 @@ $invoice_id    = NULL;
             }
 
             $invi = rtrim($invi, ',');
-            $url = 'https://elitewave360.in/web/transaction_pdf.php?month=' . $month . '&year=' . $year . '&id=' . $transaction_id . '&copy=consignor';
+            $url = 'https://elitewave360.in/web/transaction_pdf.php?month=' . $month . '&year=' . $year . '&id=' . $transaction_id . '&copy=consignor&embed=1';
             $path = 'transaction_pdf/' . $month . '_' . $year . '_' . $transaction_id . 'transaction.pdf';
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -3438,6 +3506,7 @@ $invoice_id    = NULL;
             $result_url = file_put_contents($path, $data);
 
             // *Invoice Section Start
+            if (gcn_gst_invoice_booking_auto_enabled()) {
             // Sequence Generation
 
             if ($mode_of_trasport == '1' || $mode_of_trasport == '2' || $mode_of_trasport == '3') {
@@ -3522,6 +3591,7 @@ $invoice_id    = NULL;
             }
 
             // $attachments = array($download_path,$path);
+            } // gcn_gst_invoice_booking_auto_enabled
             // *Invoice Section End
 
             $image = array();
@@ -3864,12 +3934,16 @@ if ($form_name == 'edit_consignment_details') {
         $mamul_charge = mysqli_real_escape_string($conn, $mamul_charge);
         $vehicle_halting_charge = mysqli_real_escape_string($conn, $vehicle_halting_charge);
         $vehicle_loading_unloading = mysqli_real_escape_string($conn, $vehicle_loading_unloading);
+        $cartage_amount = mysqli_real_escape_string($conn, isset($cartage_amount) ? $cartage_amount : '');
+        $cartage_rate = mysqli_real_escape_string($conn, isset($cartage_rate) ? $cartage_rate : '0');
 
         $query = "UPDATE {$tables[0]} SET
             frieght_rate='$frieght_rate',
             frieght_amount='$frieght_amount',
             doc_charges='$doc_rate',
             doc_amount='$doc_amount',
+            cartage_rate='$cartage_rate',
+            cartage_amount='$cartage_amount',
             other_charge_rate='$other_rate',
             other_charge_amount='$other_amount',
             rajdhani_charges='$rajdhani_charges',
@@ -3900,6 +3974,76 @@ if ($form_name == 'edit_consignment_details') {
         $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
         $out_put['result'] = 1;
         $out_put['data'] = isset($grn_no) ? $grn_no : '';
+
+        $billing_preview_draft = isset($_POST['billing_preview_draft']) && (string) $_POST['billing_preview_draft'] === '1';
+        if ($billing_preview_draft) {
+            $out_put['preview_draft'] = 1;
+            echo json_encode($out_put);
+            exit;
+        }
+
+        $billing_invoice_mode = trim((string) ($_POST['billing_invoice_mode'] ?? ''));
+        if ($billing_invoice_mode === '' && isset($_POST['generate_gst_invoice']) && (string) $_POST['generate_gst_invoice'] === '1') {
+            $billing_invoice_mode = 'gst';
+        }
+        $generate_gst_invoice = ($billing_invoice_mode === 'gst');
+        $generate_other_invoice = ($billing_invoice_mode === 'other');
+        $freight_num = (float) preg_replace('/[^\d.-]/', '', (string) ($frieght_amount ?? '0'));
+        $total_num = (float) preg_replace('/[^\d.-]/', '', (string) ($total ?? '0'));
+
+        if ($generate_gst_invoice || $generate_other_invoice) {
+            if ($freight_num <= 0 && $total_num <= 0) {
+                $out_put['invoice_error'] = $generate_other_invoice
+                    ? 'Enter freight or total amount before generating the invoice.'
+                    : 'Enter freight or total amount before generating GST invoice.';
+            } else {
+                $meta_q = mysqli_query($conn, "SELECT mode_of_transportation, grn_date, invoice_no FROM {$tables[0]} WHERE transaction_id='" . mysqli_real_escape_string($conn, $edit_id) . "' LIMIT 1");
+                $meta_row = $meta_q ? mysqli_fetch_assoc($meta_q) : array();
+                if ($generate_other_invoice) {
+                    $gst_snap_row = array(
+                        'gst_type' => $gst_type,
+                        'gst_tax_id' => (int) $gst_tax_id,
+                        'gst_tax_code' => $gst_tax_code,
+                        'gst_amount' => $gst_amount,
+                        'cgst_amount' => $cgst_amount,
+                        'sgst_amount' => $sgst_amount,
+                        'igst_amount' => $igst_amount,
+                    );
+                    $existing_inv_no = trim((string) ($meta_row['invoice_no'] ?? ''));
+                    $existing_hroth = ($existing_inv_no !== '' && stripos($existing_inv_no, 'HROTH') === 0);
+                    if (gcn_booking_includes_gst($gst_snap_row) && !$existing_hroth) {
+                        $out_put['invoice_error'] = 'This consignment includes GST. Use Generate GST invoice only.';
+                    }
+                }
+                if (empty($out_put['invoice_error'])) {
+                $inv_opts = array(
+                    'transaction_id' => (int) $edit_id,
+                    'month' => $month,
+                    'year' => $year,
+                    'grn_date' => $meta_row['grn_date'] ?? $grn_date,
+                    'mode_of_transport' => $meta_row['mode_of_transportation'] ?? '',
+                    'trans_table' => $tables[0],
+                    'user_id' => (int) $updated_by,
+                    'updated_at' => $updated_at,
+                    'existing_invoice_no' => $meta_row['invoice_no'] ?? '',
+                );
+                if ($generate_other_invoice) {
+                    $inv_gen = gcn_other_invoice_generate($conn, $inv_opts);
+                } else {
+                    $inv_gen = gcn_gst_invoice_generate($conn, $inv_opts);
+                }
+                if (empty($inv_gen['ok'])) {
+                    $out_put['invoice_error'] = $inv_gen['message'] ?? 'Invoice could not be generated.';
+                } else {
+                    $out_put['invoice_no'] = $inv_gen['invoice_no'];
+                    $out_put['message'] = 'Payment saved. ' . ($inv_gen['message'] ?? 'Invoice generated.') . ' (' . $inv_gen['invoice_no'] . ')';
+                }
+                }
+            }
+        } elseif ($freight_num > 0 || $total_num > 0) {
+            $out_put['invoice_warning'] = 'Payment amounts saved. No invoice was generated — choose Generate GST invoice or Other when ready.';
+        }
+
         echo json_encode($out_put);
         exit;
     }
@@ -3923,14 +4067,44 @@ vehicle_halting_charge='$vehicle_halting_charge',
 vehicle_loading_unloading='$vehicle_loading_unloading',consignor_branch_id='$consignor_branch_id',bill_to_branch_id='$bill_to_branch_id',consignee_branch_id='$consignee_branch_id',consigner_signature='" . $signature . "',updated_at = '" . $updated_at . "',updated_by ='" . $updated_by . "', eway_number = '$eway_number', eway_expirydate = '$eway_expiryDate', other_train_name = '$other_train_names' where transaction_id='$edit_id'";
     $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
 
-    // Update Packages
+    $package = array();
+    $pkg_name = array();
+    $invoice_rows = array();
     for ($up_p = 0; $up_p < count($_POST['no_of_pkg']); $up_p++) {
-        $update_q = mysqli_query($conn, "UPDATE $tables[2] set `no_of_pkge`='" . $_POST['no_of_pkg'][$up_p] . "',
-\t\t`type_of_pkge`='" . $_POST['type_of_pkg'][$up_p] . "',`party_invoice_no`='" . $_POST['party_invoice'][$up_p] . "',`said_contents`='" . $_POST['content'][$up_p] . "',`qty`='" . $_POST['qty'][$up_p] . "',`gross_weight`='" . $_POST['gross'][$up_p] . "',`charged_weight`='" . $_POST['charged'][$up_p] . "',`updated_by`='" . $updated_by . "',`updated_at`='$updated_at ' WHERE transaction_id = '" . $edit_id . "' ");
+        $no_of_pkgs1 = isset($_POST['no_of_pkg'][$up_p]) ? trim((string) $_POST['no_of_pkg'][$up_p]) : '';
+        $type_of_pkgs1 = isset($_POST['type_of_pkg'][$up_p]) ? trim((string) $_POST['type_of_pkg'][$up_p]) : '';
+        $party_invoices1 = isset($_POST['party_invoice'][$up_p]) ? trim((string) $_POST['party_invoice'][$up_p]) : '';
+        $qtys1 = isset($_POST['qty'][$up_p]) ? trim((string) $_POST['qty'][$up_p]) : '';
+        $grosss1 = isset($_POST['gross'][$up_p]) ? trim((string) $_POST['gross'][$up_p]) : '';
+        if ($no_of_pkgs1 === '' && $type_of_pkgs1 === '' && $party_invoices1 === '' && $qtys1 === '' && $grosss1 === '') {
+            continue;
+        }
+        $party_invoice_dates1 = isset($_POST['party_invoice_date'][$up_p])
+            ? trim((string) $_POST['party_invoice_date'][$up_p])
+            : '';
+        $invoice_rows[] = array(
+            'no_of_pkge' => $no_of_pkgs1,
+            'type_of_pkge' => $type_of_pkgs1,
+            'party_invoice_no' => $party_invoices1,
+            'party_invoice_date' => $party_invoice_dates1,
+            'said_contents' => isset($_POST['content'][$up_p]) ? trim((string) $_POST['content'][$up_p]) : '',
+            'qty' => $qtys1,
+            'gross_weight' => $grosss1,
+            'charged_weight' => isset($_POST['charged'][$up_p]) ? trim((string) $_POST['charged'][$up_p]) : '',
+        );
+        $package[] = $no_of_pkgs1;
+        $pkg_name[] = $type_of_pkgs1;
+    }
 
-        $package[] = $_POST['no_of_pkg'][$up_p];  // 2 old to new 4
-
-        $pkg_name[] = $_POST['type_of_pkg'][$up_p];  // 2 to 3
+    $invoice_save_error = '';
+    if (!ew_replace_transaction_invoice_rows($conn, $tables[2], (int) $edit_id, $invoice_rows, array(
+        'created_at' => $created_at,
+        'created_by' => $created_by,
+    ), $invoice_save_error)) {
+        $out_put['result'] = '0';
+        $out_put['sql_error'] = $invoice_save_error !== '' ? $invoice_save_error : 'Could not save package details.';
+        echo json_encode($out_put);
+        exit;
     }
 
     // Remove Old Qrcode
@@ -4017,23 +4191,9 @@ vehicle_loading_unloading='$vehicle_loading_unloading',consignor_branch_id='$con
     // $attachment_id = $_REQUEST['id'];
     $attachment_id = $_REQUEST['del_id'];
     // var_dump($attachment_id);
-    $sql_delete = "delete from $tables[1] where attachment_id IN($attachment_id)";
-    $del_image = mysqli_query($conn, $sql_delete);
-    $del_q = mysqli_query($conn, "delete from $tables[2] where transaction_id='$edit_id'");
-
-    for ($j = 0; $j < count($_POST['no_of_pkg']); $j++) {
-        $party_inv_date = '';
-
-        if (!empty($_POST['party_invoice_date'][$j])) {
-            $party_inv_date = date(
-                'd-m-Y',
-                strtotime(
-                    str_replace('/', '-', $_POST['party_invoice_date'][$j])
-                )
-            );
-        }
-        $f_query = "insert into $tables[2](transaction_id,no_of_pkge,type_of_pkge,party_invoice_no,party_invoice_date,said_contents,qty,gross_weight,charged_weight,created_at,created_by,status) values('" . $edit_id . "','" . $no_of_pkg[$j] . "','" . $type_of_pkg[$j] . "','" . $party_invoice[$j] . "','" . $party_inv_date . "','" . $content[$j] . "','" . $qty[$j] . "','" . $gross[$j] . "','" . $charged[$j] . "','" . $created_at . "','" . $created_by . "','0')";
-        $f_result = mysqli_query($conn, $f_query) or die(mysqli_error($conn));
+    if (trim((string) $attachment_id) !== '') {
+        $sql_delete = "delete from $tables[1] where attachment_id IN($attachment_id)";
+        $del_image = mysqli_query($conn, $sql_delete);
     }
 
     // *Start Invoice
@@ -5486,12 +5646,6 @@ $consignee_branch_id=$_POST['consignee_branch'];
     $phone = $consignorrow['contact_no'];
     $gst_no = $consignorrow['gst_no'];
 
-    // Get Latest GCN No
-    // Get Latest GCN No
-    $id = get_next_grn_id($conn, $consignor);
-    $grn_no = strtoupper($billing_code . sprintf('%05d', $id));
-    // echo $grn_no;
-
     $consigneequery = "select * from client where client_id='$consignee'";
     $consigneeresult = mysqli_query($conn, $consigneequery);
     $consigneerow = mysqli_fetch_array($consigneeresult);
@@ -5623,6 +5777,17 @@ $consignee_branch_id=$_POST['consignee_branch'];
     $eway_expiryDate = $_POST['eway_expiryDates'] ? $_POST['eway_expiryDates'] : null;
     // $consignmet_weight1 = $_POST['weight1'];
 
+    $grn_seq_key = ew_grn_seq_key_for_booking($comp_grn_mode, $comp_grn_mode === 'company' ? $comp_id : $consignor);
+    $grn_seq_reserved = false;
+    if ($comp_grn_mode === 'company' && !empty($_SESSION['company_id'])) {
+        $grn_no = strtoupper(trim($grn_no));
+        $id = ew_grn_numeric_id_from_no($grn_no);
+    } else {
+        $id = get_next_grn_id($conn, $grn_seq_key);
+        $grn_no = strtoupper($billing_code . sprintf('%05d', $id));
+        $grn_seq_reserved = true;
+    }
+
     $query = "insert into $tables[0](grn_no,grn_id,grn_date,mode_of_transportation,train_type,ftl_type,origin,destination,mode_of_consignment,consigner,address1,address2,
 \t\t\t\tcity,pincode,state,phone,gst_no,consignee,con_address1,con_address2,shipping_address,con_city,con_state,con_pincode,con_phone,
 \t\t\t\tcon_gst_no,goods_dedared_value,octroi,dimension1,dimension2,dimension3,dimension4,consignment_weight,frieght_rate,frieght_amount,loading_unloading_rate,
@@ -5637,7 +5802,16 @@ $consignee_branch_id=$_POST['consignee_branch'];
 \t\t\t\t'" . $labour_rate . "','" . $labour_amount . "','" . $octroi_rate . "','" . $octroi_amount . "','" . $other_rate . "','" . $other_amount . "','$rajdhani_charges',
 \t\t\t\t'" . $gst_rate . "','" . $gst_amount . "','" . $total . "','0','" . $total . "','0','" . $total_amount_word . "','" . $note1 . "','" . $note2 . "','" . $vehicle_no . "',
 \t\t\t\t'" . $signature . "','" . $consignor . "','" . $created_at . "','" . $created_by . "','1','" . $eway_number . "','$eway_expiryDate', '" . $consignor_branch_id . "', '" . $consignee_branch_id . "')";
-    $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
+    $result = mysqli_query($conn, $query);
+    if (!$result) {
+        if ($grn_seq_reserved) {
+            rollback_last_grn_id($conn, $grn_seq_key);
+        }
+        die(mysqli_error($conn));
+    }
+    if ($comp_grn_mode === 'company') {
+        sync_grn_sequence_min_id($conn, 'COMPANY', $id);
+    }
     $transaction_id = mysqli_insert_id($conn);
 $attachment_id = NULL;
 $invoice_id    = NULL;
@@ -5797,7 +5971,7 @@ if (!$query_log) {
 
         $invi = rtrim($invi, ',');
         // $url = "https://elitewave360.in/web/user_transaction_pdf.php?month=" . $month . "&year=" . $year . "&id=" . $transaction_id . "&copy=consignor";
-        $url = 'https://elitewave360.in/web/transaction_pdf.php?month=' . $month . '&year=' . $year . '&id=' . $transaction_id . '&copy=consignor';
+        $url = 'https://elitewave360.in/web/transaction_pdf.php?month=' . $month . '&year=' . $year . '&id=' . $transaction_id . '&copy=consignor&embed=1';
         $path = 'transaction_pdf/' . $month . '_' . $year . '_' . $transaction_id . 'transaction.pdf';
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -5808,6 +5982,7 @@ if (!$query_log) {
         $result_url = file_put_contents($path, $data);
 
         // *Invoice Section Start
+        if (gcn_gst_invoice_booking_auto_enabled()) {
         // Sequence Generation
 
         if ($shipping_mode != '7') {  // Check if not FTL
@@ -5892,6 +6067,7 @@ if (!$query_log) {
                 $res = mysqli_query($conn, $query_inv);
             }
         }
+        } // gcn_gst_invoice_booking_auto_enabled
         // *Invoice Section End
 
         $image = array();
@@ -6254,7 +6430,7 @@ if ($form_name == 'edit_ftl_consignment_details') {
     $origin = $fetch_det['origin'];
     $destination = $fetch_det['destination'];
 
-    if ($check_inv_no == '') {
+    if ($check_inv_no == '' && gcn_gst_invoice_booking_auto_enabled()) {
         // *Start Invoice
         // $transport_type = '7';
         $type = 'GTA';
@@ -6793,7 +6969,7 @@ if ($form_name == 'cancel_booking_consignment') {
         $res_q = mysqli_query($conn, $upd_query);
         if ($res_q) {
             // GRN Regenerate Replace old to new grn
-            $url = 'https://elitewave360.in/web/transaction_pdf.php?month=' . $m . '&year=' . $y . '&id=' . $transaction_id . '&copy=consignor';
+            $url = 'https://elitewave360.in/web/transaction_pdf.php?month=' . $m . '&year=' . $y . '&id=' . $transaction_id . '&copy=consignor&embed=1';
             $path = 'transaction_pdf/' . $m . '_' . $y . '_' . $transaction_id . 'transaction.pdf';
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

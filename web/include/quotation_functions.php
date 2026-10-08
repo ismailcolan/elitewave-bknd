@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '/vehicle_type_helpers.php';
+require_once __DIR__ . '/quotation_multi_mode.php';
+require_once __DIR__ . '/quotation_consignor_multi_dest.php';
 
 function ensure_rate_quotation_tables($conn)
 {
@@ -119,13 +121,25 @@ function quotation_status_label($code)
 	return $opts[$code] ?? $code;
 }
 
-function quotation_quote_type_options()
+function quotation_standard_quote_type_options()
 {
 	return array(
 		'door_to_door' => 'Door-to-Door',
 		'port_to_door' => 'Port-to-Door',
 		'ftl_contract' => 'FTL Contract',
 	);
+}
+
+function quotation_quote_type_options()
+{
+	return quotation_standard_quote_type_options()
+		+ quotation_multi_mode_quote_types()
+		+ quotation_consignor_multi_dest_quote_types();
+}
+
+function quotation_extended_quote_type_codes()
+{
+	return array_keys(quotation_multi_mode_quote_types() + quotation_consignor_multi_dest_quote_types());
 }
 
 function quotation_loading_type_options()
@@ -462,6 +476,16 @@ function quotation_is_editable($status)
 	return in_array($status, array('draft', 'rejected'), true);
 }
 
+function quotation_form_editable($status)
+{
+	return !in_array($status, array('converted', 'cancelled'), true);
+}
+
+function quotation_letter_intro_text()
+{
+	return 'Thank you for considering EliteWave360 Logistics for your transportation requirements. Please find below our quotation for your kind consideration.';
+}
+
 function quotation_vehicle_snapshot($conn, $vehicle_type_id)
 {
 	$vehicle_type_id = (int) $vehicle_type_id;
@@ -518,8 +542,11 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 		return quotation_workflow($conn, $existing, $action, $payload, $user_id);
 	}
 
-	if ($existing && !quotation_is_editable($current_status)) {
+	if ($existing && !quotation_form_editable($current_status)) {
 		return array('ok' => false, 'message' => 'This quotation cannot be edited in status: ' . quotation_status_label($current_status));
+	}
+	if ($action === 'submit' && !quotation_is_editable($current_status)) {
+		return array('ok' => false, 'message' => 'Submit for approval is only available for draft or rejected quotations.');
 	}
 
 	$quote_date = trim((string) ($payload['quote_date'] ?? date('d-m-Y')));
@@ -565,32 +592,104 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 	if ($attn === '') {
 		return array('ok' => false, 'message' => 'Kind Attn. is required.');
 	}
-	if ($origin_city_id <= 0) {
-		return array('ok' => false, 'message' => 'Please select origin city.');
+	$is_multi_mode = quotation_is_multi_mode_quote_type($quote_type);
+	$is_consignor_md = quotation_is_consignor_multi_dest_quote_type($quote_type);
+
+	if (!$is_multi_mode && !$is_consignor_md) {
+		if ($origin_city_id <= 0) {
+			return array('ok' => false, 'message' => 'Please select origin city.');
+		}
+		if ($destination_city_id <= 0) {
+			return array('ok' => false, 'message' => 'Please select destination city.');
+		}
 	}
-	if ($destination_city_id <= 0) {
-		return array('ok' => false, 'message' => 'Please select destination city.');
-	}
-	if ($destination === '') {
+
+	if (!$is_consignor_md && $destination === '') {
 		return array('ok' => false, 'message' => 'Consignee / delivery party name is required.');
 	}
-	if ($mode_of_transportation <= 0) {
+
+	if (!$is_multi_mode && !$is_consignor_md && $mode_of_transportation <= 0) {
 		return array('ok' => false, 'message' => 'Please select mode of transport.');
 	}
 
-	$origin = quotation_city_name($conn, $origin_city_id);
-	$dest_city = quotation_city_name($conn, $destination_city_id);
-	if ($unloading === '') {
-		$unloading = $dest_city;
+	if ($is_multi_mode || $is_consignor_md) {
+		$origin_city_id = 0;
+		$destination_city_id = 0;
+		$origin = '';
+		$unloading = '';
+		$loading_type = '';
+		if ($is_consignor_md) {
+			$destination = trim($destination) !== '' ? $destination : 'Multiple destinations';
+		}
+	} else {
+		$origin = quotation_city_name($conn, $origin_city_id);
+		$dest_city = quotation_city_name($conn, $destination_city_id);
+		if ($unloading === '') {
+			$unloading = $dest_city;
+		}
 	}
 
-	$parsed = quotation_parse_lines_from_post($payload);
-	if (empty($parsed['ok'])) {
-		return $parsed;
+	$mode_rows = array();
+	$dest_rows = array();
+	if ($is_consignor_md) {
+		$parsed_md = quotation_parse_destination_rows_from_post($conn, $payload);
+		if (empty($parsed_md['ok'])) {
+			return $parsed_md;
+		}
+		$dest_rows = $parsed_md['rows'];
+		$taxable_md = quotation_destination_rows_taxable_total($dest_rows);
+		$gst_amt_md = round($taxable_md * (float) $gst_rate / 100, 2);
+		$totals = array(
+			'taxable_value' => $taxable_md,
+			'gst_amount' => $gst_amt_md,
+			'total_amount' => round($taxable_md + $gst_amt_md, 2),
+		);
+		$lines = array(
+			array('charge_label' => 'Multi-destination charges (consignor)', 'amount' => $taxable_md, 'is_taxable' => 1, 'remarks' => ''),
+		);
+		$veh = array(
+			'vehicle_label' => '',
+			'dim_length' => null,
+			'dim_width' => null,
+			'dim_height' => null,
+			'dimension_uom' => 'FT',
+			'dim_display' => '',
+		);
+		$mode_of_transportation = 0;
+	} elseif ($is_multi_mode) {
+		$parsed_mm = quotation_parse_mode_rows_from_post($conn, $payload);
+		if (empty($parsed_mm['ok'])) {
+			return $parsed_mm;
+		}
+		$mode_rows = $parsed_mm['rows'];
+		$taxable_mm = quotation_multi_mode_taxable_total($mode_rows);
+		$gst_amt_mm = round($taxable_mm * (float) $gst_rate / 100, 2);
+		$totals = array(
+			'taxable_value' => $taxable_mm,
+			'gst_amount' => $gst_amt_mm,
+			'total_amount' => round($taxable_mm + $gst_amt_mm, 2),
+		);
+		$lines = array(
+			array('charge_label' => 'Mode-wise charges (all modes)', 'amount' => $taxable_mm, 'is_taxable' => 1, 'remarks' => ''),
+		);
+		$veh = array(
+			'vehicle_label' => '',
+			'dim_length' => null,
+			'dim_width' => null,
+			'dim_height' => null,
+			'dimension_uom' => 'FT',
+			'dim_display' => '',
+		);
+		$mode_of_transportation = 0;
+	} else {
+		$parsed = quotation_parse_lines_from_post($payload);
+		if (empty($parsed['ok'])) {
+			return $parsed;
+		}
+		$lines = $parsed['lines'];
+		$totals = quotation_compute_from_lines($lines, $gst_rate);
+		$veh = quotation_vehicle_snapshot($conn, $vehicle_type_id);
 	}
-	$lines = $parsed['lines'];
-	$totals = quotation_compute_from_lines($lines, $gst_rate);
-	$veh = quotation_vehicle_snapshot($conn, $vehicle_type_id);
 
 	$now = date('d-m-Y');
 	$user_id = (int) $user_id;
@@ -674,6 +773,21 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 		$rem = $esc($line['remarks']);
 		mysqli_query($conn, "INSERT INTO rate_quotation_lines (quotation_id, sort_no, charge_label, amount, is_taxable, remarks)
 			VALUES ('$quotation_id', '$sort', '$label', '$amt', '$tax', '$rem')");
+	}
+
+	if ($is_consignor_md) {
+		quotation_save_destination_rows($conn, $quotation_id, $dest_rows);
+		quotation_ensure_mode_rows_table($conn);
+		mysqli_query($conn, "DELETE FROM rate_quotation_mode_rows WHERE quotation_id='$quotation_id'");
+	} elseif ($is_multi_mode) {
+		quotation_save_mode_rows($conn, $quotation_id, $mode_rows);
+		quotation_ensure_destination_rows_table($conn);
+		mysqli_query($conn, "DELETE FROM rate_quotation_destination_rows WHERE quotation_id='$quotation_id'");
+	} else {
+		quotation_ensure_mode_rows_table($conn);
+		mysqli_query($conn, "DELETE FROM rate_quotation_mode_rows WHERE quotation_id='$quotation_id'");
+		quotation_ensure_destination_rows_table($conn);
+		mysqli_query($conn, "DELETE FROM rate_quotation_destination_rows WHERE quotation_id='$quotation_id'");
 	}
 
 	if ($action === 'submit') {
@@ -805,20 +919,50 @@ function quotation_delete($conn, $quotation_id)
 		return array('ok' => false, 'message' => 'Only draft, rejected or cancelled quotations can be deleted.');
 	}
 	mysqli_query($conn, "DELETE FROM rate_quotation_lines WHERE quotation_id='$quotation_id'");
+	quotation_ensure_mode_rows_table($conn);
+	mysqli_query($conn, "DELETE FROM rate_quotation_mode_rows WHERE quotation_id='$quotation_id'");
+	quotation_ensure_destination_rows_table($conn);
+	mysqli_query($conn, "DELETE FROM rate_quotation_destination_rows WHERE quotation_id='$quotation_id'");
 	mysqli_query($conn, "DELETE FROM rate_quotation_approval_log WHERE quotation_id='$quotation_id'");
 	mysqli_query($conn, "DELETE FROM rate_quotation_master WHERE quotation_id='$quotation_id' LIMIT 1");
 	return array('ok' => true, 'message' => 'Deleted.');
 }
 
-function quotation_list_rows($conn, $status_filter = '')
+function quotation_list_rows($conn, $status_filter = '', $scope = 'all')
 {
 	ensure_rate_quotation_tables($conn);
 	$sql = "SELECT q.*, c.client_company_name
 		FROM rate_quotation_master q
 		LEFT JOIN client c ON c.client_id = q.party_id";
+	$where = array();
 	if ($status_filter !== '' && $status_filter !== 'all') {
 		$sf = mysqli_real_escape_string($conn, $status_filter);
-		$sql .= " WHERE q.status='$sf'";
+		$where[] = "q.status='$sf'";
+	}
+	$mm_codes = array_keys(quotation_multi_mode_quote_types());
+	$cmd_codes = array_keys(quotation_consignor_multi_dest_quote_types());
+	$extended = quotation_extended_quote_type_codes();
+	if ($scope === 'standard' && $extended !== array()) {
+		$in = array();
+		foreach ($extended as $code) {
+			$in[] = "'" . mysqli_real_escape_string($conn, $code) . "'";
+		}
+		$where[] = 'q.quote_type NOT IN (' . implode(',', $in) . ')';
+	} elseif ($scope === 'multi_mode' && $mm_codes !== array()) {
+		$in = array();
+		foreach ($mm_codes as $code) {
+			$in[] = "'" . mysqli_real_escape_string($conn, $code) . "'";
+		}
+		$where[] = 'q.quote_type IN (' . implode(',', $in) . ')';
+	} elseif ($scope === 'consignor_multi_dest' && $cmd_codes !== array()) {
+		$in = array();
+		foreach ($cmd_codes as $code) {
+			$in[] = "'" . mysqli_real_escape_string($conn, $code) . "'";
+		}
+		$where[] = 'q.quote_type IN (' . implode(',', $in) . ')';
+	}
+	if ($where !== array()) {
+		$sql .= ' WHERE ' . implode(' AND ', $where);
 	}
 	$sql .= ' ORDER BY q.quotation_id DESC LIMIT 500';
 	$rows = array();

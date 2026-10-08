@@ -130,6 +130,16 @@ if ($cmd === 'save') {
 	));
 }
 
+if ($cmd === 'view') {
+	$gcn_expense_id = (int) ($_REQUEST['gcn_expense_id'] ?? 0);
+	$view = expense_gcn_fetch_view($conn, $gcn_expense_id);
+	if (empty($view['ok'])) {
+		expense_gcn_json_out(array('status' => 1, 'message' => $view['message'] ?? 'Could not load record.'));
+	}
+	unset($view['ok']);
+	expense_gcn_json_out(array('status' => 0, 'data' => $view));
+}
+
 if ($cmd === 'delete') {
 	$gcn_expense_id = (int) ($_REQUEST['gcn_expense_id'] ?? 0);
 	$result = expense_gcn_delete($conn, $gcn_expense_id);

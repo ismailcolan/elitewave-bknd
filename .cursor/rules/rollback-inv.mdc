@@ -1,0 +1,31 @@
+---
+description: Revert single-GCN invoice PDF layout (charge summary + table columns). User says "rollback-inv" to undo.
+globs: web/gst_invoice_page.php,web/include/gst_invoice_pdf_layout.php
+alwaysApply: false
+---
+
+# rollback-inv — single GCN invoice PDF revert
+
+When the user asks to **rollback-inv** (or **revert rollback-inv** / undo this layout), restore the **pre–charge-summary-column** behavior for **single GCN only** (`gst_invoice_page.php`). Do **not** change grouped billing PDF (`tax_invoice_pdf_builder.php`).
+
+## What this layout changed
+
+1. **`web/gst_invoice_page.php`**
+   - GCN line table **stops at Supp.Inv.No.** (no Freight / DC / Total columns).
+   - Consignor / Ship To use **6.5pt** and narrower column widths.
+   - Single-row `padding-bottom` **18px** (was 140px before rollback-inv; before that layout it was 140px).
+   - Charge summary called with **`true`** (4th arg): all amounts in summary block.
+   - Search comments **`ROLLBACK-INV`** in this file.
+
+2. **`web/include/gst_invoice_pdf_layout.php`**
+   - `gst_invoice_pdf_charge_summary_*` functions accept optional **`$single_gcn_invoice`** (default `false`).
+   - When **`true`**: summary includes **Freight Charges** and **Doc.Charges**; compact padding/font.
+   - When **`false`**: legacy behavior (extras only, no freight/doc in summary) for any non–single-GCN caller.
+
+## Revert steps
+
+1. In **`gst_invoice_page.php`**: restore Freight, DC, Total columns in header, data rows, and footer row; restore prior column width row; set `single_row_style` padding back to **`padding-bottom:140px;`** if that was desired pre-change; call `gst_invoice_pdf_render_charge_summary_table($row, $taxable_value_stored, $table_footer_total)` **without** 4th argument (or `false`).
+2. In **`gst_invoice_pdf_layout.php`**: optionally remove `$single_gcn_invoice` branches if no longer needed, or leave defaults so grouped/other callers unchanged.
+3. Remove or update **`ROLLBACK-INV`** comments after revert.
+
+Confirm with user after regenerating a sample GST and Other single-GCN PDF.

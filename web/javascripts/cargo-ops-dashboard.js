@@ -124,12 +124,14 @@
     };
   }
 
-  function pieLegend(id, items, money) {
+  function pieLegend(id, items, money, truncateNames) {
     var total = items.reduce(function (a, d) { return a + Number(d.y || 0); }, 0);
     var html = items.map(function (d) {
       var pct = total ? Math.round((Number(d.y || 0) / total) * 100) : 0;
       var val = money ? formatINR(d.y) : formatCount(d.y);
-      return '<span><i style="background:' + d.color + '"></i>' + d.name
+      var label = truncateNames ? truncateLabel(d.name, truncateNames) : d.name;
+      var title = d.name !== label ? ' title="' + String(d.name).replace(/"/g, '&quot;') + '"' : '';
+      return '<span' + title + '><i style="background:' + d.color + '"></i>' + label
         + ' <b>' + val + '</b> · ' + pct + '%</span>';
     }).join('');
     var node = document.getElementById(id);
@@ -140,7 +142,7 @@
     destroyChart(el);
     var node = document.getElementById(el);
     if (node) node.innerHTML = '<div class="cld-loading">' + msg + '</div>';
-    var legendId = { cldDonut: 'cldDonutLegend', cldColChart: 'cldColLegend', cldExpChart: 'cldExpLegend' }[el];
+    var legendId = { cldDonut: 'cldDonutLegend', cldMonChart: 'cldMonLegend', cldColChart: 'cldColLegend', cldExpChart: 'cldExpLegend' }[el];
     if (legendId) {
       var lg = document.getElementById(legendId);
       if (lg) lg.innerHTML = '';
@@ -167,18 +169,116 @@
     }));
   }
 
+  function seriesLegend(id, items) {
+    var html = items.map(function (d) {
+      return '<span><i style="background:' + d.color + '"></i>' + d.name + '</span>';
+    }).join('');
+    var node = document.getElementById(id);
+    if (node) node.innerHTML = html || '';
+  }
+
+  function truncateLabel(text, max) {
+    text = String(text || '');
+    max = max || 26;
+    if (text.length <= max) return text;
+    return text.slice(0, max - 1) + '\u2026';
+  }
+
+  function expenseBarRows(scope) {
+    var br = scope.expenseBreakdown || {};
+    var entries = Object.keys(br).map(function (k) {
+      return { name: k, y: Number(br[k] || 0) };
+    }).filter(function (d) { return d.y > 0; });
+    if (!entries.length && Number(scope.expenseAmount || 0) > 0) {
+      entries = [{ name: 'Expenses', y: Number(scope.expenseAmount) }];
+    }
+    entries.sort(function (a, b) { return b.y - a.y; });
+    var maxRows = 5;
+    if (entries.length <= maxRows) {
+      return entries;
+    }
+    var top = entries.slice(0, maxRows);
+    var other = entries.slice(maxRows).reduce(function (sum, d) { return sum + d.y; }, 0);
+    var out = top.slice();
+    if (other > 0) {
+      out.push({ name: 'Other', y: other });
+    }
+    out.sort(function (a, b) { return b.y - a.y; });
+    return out;
+  }
+
+  function drawSliceDonut(opts) {
+    if (typeof Highcharts === 'undefined') return;
+    var el = opts.el;
+    var all = opts.allItems || [];
+    var data = all.filter(function (d) { return Number(d.y || 0) > 0; });
+    var chartTotal = data.reduce(function (a, d) { return a + Number(d.y || 0); }, 0);
+    if (opts.legendId != null && opts.moneyLegend != null) {
+      pieLegend(opts.legendId, all, opts.moneyLegend, opts.legendTruncate);
+    } else if (opts.legendId != null && opts.moneyLegend === false) {
+      pieLegend(opts.legendId, all, false);
+    }
+    if (!chartTotal) {
+      emptyChart(el, opts.emptyMsg || 'No data in this period.');
+      if (opts.legendId != null && opts.moneyLegend != null) {
+        pieLegend(opts.legendId, all, opts.moneyLegend, opts.legendTruncate);
+      }
+      return;
+    }
+    var node = document.getElementById(el);
+    if (node) node.innerHTML = '';
+    destroyChart(el);
+    var tooltip = opts.tooltipMoney
+      ? {
+        pointFormatter: function () {
+          return '<b>' + this.name + '</b><br/>' + formatINR(this.y) + ' (' + Math.round(this.percentage) + '%)';
+        }
+      }
+      : { pointFormat: '{point.y} ({point.percentage:.0f}%)' };
+    state.charts[el] = Highcharts.chart(el, $.extend(true, hcBase(), {
+      chart: { type: 'pie', height: opts.height || 196, spacing: [0, 0, 4, 0] },
+      legend: { enabled: false },
+      title: {
+        text: opts.centerHtml || '',
+        useHTML: true,
+        align: 'center',
+        verticalAlign: 'middle',
+        y: 8,
+        style: { fontSize: '17px', fontWeight: '800', color: COLOR.navy }
+      },
+      tooltip: tooltip,
+      plotOptions: {
+        pie: {
+          innerSize: '68%',
+          size: '76%',
+          dataLabels: { enabled: false },
+          borderWidth: 0,
+          states: { hover: { halo: { size: 6 } } }
+        }
+      },
+      series: [{ name: opts.seriesName || 'Total', data: data }]
+    }));
+  }
+
   function drawMoney(rows) {
     var el = 'cldMonChart';
     if (typeof Highcharts === 'undefined') return;
+    var seriesMeta = [
+      { name: 'Revenue', color: COLOR.navy },
+      { name: 'Collected', color: COLOR.green },
+      { name: 'Expense', color: COLOR.teal }
+    ];
+    seriesLegend('cldMonLegend', seriesMeta);
     if (!rows.length) { emptyChart(el, 'No money movement in this period.'); return; }
     var node = document.getElementById(el);
     if (node) node.innerHTML = '';
     destroyChart(el);
     state.charts[el] = Highcharts.chart(el, $.extend(true, hcBase(), {
-      chart: { type: 'column', height: 230 },
+      chart: { type: 'column', height: 196, spacing: [6, 4, 4, 4] },
+      legend: { enabled: false },
       xAxis: { categories: rows.map(function (r) { return r.name; }), lineColor: COLOR.grid, tickLength: 0, labels: { style: { fontSize: '11px', color: COLOR.muted } } },
       yAxis: { min: 0, title: { text: '' }, gridLineColor: COLOR.grid, labels: { formatter: function () { return axisMoney(this.value); }, style: { color: COLOR.muted, fontSize: '11px' } } },
-      plotOptions: { column: { borderRadius: 3, pointPadding: 0.12, groupPadding: 0.1, borderWidth: 0 } },
+      plotOptions: { column: { borderRadius: 3, pointPadding: 0.08, groupPadding: 0.14, borderWidth: 0 } },
       series: [
         { name: 'Revenue', data: rows.map(function (r) { return Number(r.invoiceAmount || 0); }), color: COLOR.navy },
         { name: 'Collected', data: rows.map(function (r) { return Number(r.paymentAmount || 0); }), color: COLOR.green },
@@ -188,85 +288,63 @@
   }
 
   function drawDonut(scope) {
-    var el = 'cldDonut';
-    if (typeof Highcharts === 'undefined') return;
     var all = [
       { name: 'Delivered', y: Number(scope.delivered || 0), color: COLOR.green },
       { name: 'In transit', y: Number(scope.inTransit || 0), color: COLOR.teal },
       { name: 'Pending pickup', y: Number(scope.pending || 0), color: COLOR.orange },
       { name: 'Delayed', y: Number(scope.delayed || 0), color: COLOR.accent }
     ];
-    var data = all.filter(function (d) { return d.y > 0; });
-    var total = data.reduce(function (a, d) { return a + d.y; }, 0);
-    pieLegend('cldDonutLegend', all, false);
-    if (!total) { emptyChart(el, 'No consignments in this period.'); pieLegend('cldDonutLegend', all, false); return; }
-    var node = document.getElementById(el);
-    if (node) node.innerHTML = '';
-    destroyChart(el);
-    state.charts[el] = Highcharts.chart(el, $.extend(true, hcBase(), {
-      chart: { type: 'pie', height: 220, spacingBottom: 8 },
-      legend: { enabled: false },
-      title: {
-        text: formatCount(total) + '<br/><span style="font-size:11px;color:#6B7A8D;font-weight:400">GCNs</span>',
-        useHTML: true, align: 'center', verticalAlign: 'middle', y: 12,
-        style: { fontSize: '20px', fontWeight: '800', color: COLOR.navy }
-      },
-      tooltip: { pointFormat: '{point.y} ({point.percentage:.0f}%)' },
-      plotOptions: { pie: { innerSize: '68%', size: '78%', dataLabels: { enabled: false }, borderWidth: 0 } },
-      series: [{ name: 'Status', data: data }]
-    }));
+    var total = all.reduce(function (a, d) { return a + Number(d.y || 0); }, 0);
+    drawSliceDonut({
+      el: 'cldDonut',
+      legendId: 'cldDonutLegend',
+      allItems: all,
+      moneyLegend: false,
+      emptyMsg: 'No consignments in this period.',
+      seriesName: 'Status',
+      height: 220,
+      centerHtml: formatCount(total) + '<br/><span style="font-size:11px;color:#6B7A8D;font-weight:400">GCNs</span>'
+    });
   }
 
   function drawCol(scope) {
-    var el = 'cldColChart';
-    if (typeof Highcharts === 'undefined') return;
     var collected = Math.max(0, Number(scope.paymentAmount || 0));
-    var outstanding = Math.max(0, Number(scope.invoiceAmount || 0) - collected);
+    var billed = Math.max(0, Number(scope.invoiceAmount || 0));
+    var outstanding = Math.max(0, billed - collected);
     var all = [
       { name: 'Collected', y: collected, color: COLOR.green },
       { name: 'Outstanding', y: outstanding, color: COLOR.accent }
     ];
-    pieLegend('cldColLegend', all, true);
-    if (collected + outstanding <= 0) { emptyChart(el, 'No invoices in this period.'); pieLegend('cldColLegend', all, true); return; }
-    var node = document.getElementById(el);
-    if (node) node.innerHTML = '';
-    destroyChart(el);
-    state.charts[el] = Highcharts.chart(el, $.extend(true, hcBase(), {
-      chart: { type: 'pie', height: 180, spacingBottom: 8 },
-      legend: { enabled: false },
-      title: { text: '' },
-      tooltip: { pointFormat: '{point.y:,.0f}' },
-      plotOptions: { pie: { innerSize: '62%', size: '78%', dataLabels: { enabled: false }, borderWidth: 0 } },
-      series: [{
-        name: 'Amount',
-        data: all.filter(function (d) { return d.y > 0; })
-      }]
-    }));
+    drawSliceDonut({
+      el: 'cldColChart',
+      legendId: 'cldColLegend',
+      allItems: all,
+      moneyLegend: true,
+      tooltipMoney: true,
+      emptyMsg: 'No invoices in this period.',
+      seriesName: 'Invoice',
+      centerHtml: formatINR(billed) + '<br/><span style="font-size:11px;color:#6B7A8D;font-weight:400">billed</span>'
+    });
   }
 
   function drawExp(scope) {
-    var el = 'cldExpChart';
-    if (typeof Highcharts === 'undefined') return;
-    var br = scope.expenseBreakdown || {};
-    var entries = Object.keys(br).map(function (k) { return { name: k, y: Number(br[k] || 0) }; }).filter(function (d) { return d.y > 0; });
-    if (!entries.length && Number(scope.expenseAmount || 0) > 0) {
-      entries = [{ name: 'Expenses', y: Number(scope.expenseAmount) }];
-    }
+    var raw = expenseBarRows(scope);
     var palette = [COLOR.navy, COLOR.teal, COLOR.orange, COLOR.accent, COLOR.navy2, COLOR.muted];
-    entries.forEach(function (e, i) { e.color = palette[i % palette.length]; });
-    pieLegend('cldExpLegend', entries, true);
-    if (!entries.length) { emptyChart(el, 'No expenses in this period.'); return; }
-    var node = document.getElementById(el);
-    if (node) node.innerHTML = '';
-    destroyChart(el);
-    state.charts[el] = Highcharts.chart(el, $.extend(true, hcBase(), {
-      chart: { type: 'pie', height: 180, spacingBottom: 8 },
-      legend: { enabled: false },
-      title: { text: '' },
-      tooltip: { pointFormat: '{point.percentage:.0f}% · {point.y:,.0f}' },
-      plotOptions: { pie: { innerSize: '62%', size: '78%', dataLabels: { enabled: false }, borderWidth: 0 } },
-      series: [{ name: 'Expense', data: entries }]
-    }));
+    var all = raw.map(function (e, i) {
+      return { name: e.name, y: e.y, color: palette[i % palette.length] };
+    });
+    var total = all.reduce(function (a, d) { return a + Number(d.y || 0); }, 0);
+    drawSliceDonut({
+      el: 'cldExpChart',
+      legendId: 'cldExpLegend',
+      allItems: all,
+      moneyLegend: true,
+      tooltipMoney: true,
+      legendTruncate: 34,
+      emptyMsg: 'No expenses in this period.',
+      seriesName: 'Expense',
+      centerHtml: formatINR(total) + '<br/><span style="font-size:11px;color:#6B7A8D;font-weight:400">expense</span>'
+    });
   }
 
   function renderFlow(scope) {

@@ -79,6 +79,9 @@ div#dataTable1_length {
                             <div class="ew-card-toolbar">
                                 <h2>City List</h2>
                                 <div class="ew-toolbar-right">
+                                    <a href="city_export.php" class="ew-btn-v2 ew-btn-v2-outline" title="Download Excel copy">
+                                        Export Excel <i class="fa fa-download"></i>
+                                    </a>
                                     <button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreateCity">
                                         Create <i class="fa fa-plus"></i>
                                     </button>
@@ -93,7 +96,7 @@ div#dataTable1_length {
                                     <th class="table-title" style="width:10%">State</th>
                            <th class="table-title" style="width:20%">Railway Station</th>
 <th class="table-title" style="width:10%">Airport</th>
-<th class="table-title" style="width:10%">Un/Loading Point</th>
+<th class="table-title" style="width:10%">Loading/Unloading Point</th>
 <th class="table-title" style="width:10%">Warehouse</th>
 <th class="table-title" style="width:10%">Port</th>
 
@@ -337,7 +340,9 @@ div#dataTable1_length {
                     $('#form_name').val('add_city');
                     $('#edit_id').val('');
                     $('#city_name').val('');
-                    $('#city_code').val('');
+                    $.getJSON('fetch_details.php', { cmd: 'get_city_next_code' }, function(data) {
+                        $('#city_code').val(data && data.city_code ? data.city_code : '');
+                    });
                     $('#state_name').val('');
                     $('#city').val('');
                     $('#railway_station').val('');
@@ -472,7 +477,7 @@ $("#port").val('');
                         </div>
                         <div class="form-group">
                             <label class="control-label">City Code <span style="color:red;">*</span> :</label>
-                            <input type="text" id="city_code" Placeholder="Ex:GEC001" name="city_code" class="form-control" disabled />
+                            <input type="text" id="city_code" Placeholder="Ex:EW001" name="city_code" class="form-control" disabled />
                         </div>
                         <div class="form-group">
                             <label class="control-label">City Name <span style="color:red;">*</span> :</label>

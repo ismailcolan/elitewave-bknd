@@ -3,9 +3,12 @@ require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/gst_tax_functions.php');
 require_once('include/billing_functions.php');
+require_once('include/gcn_gst_invoice_helpers.php');
 require_once('include/quotation_functions.php');
 require_once('include/vehicle_type_helpers.php');
+require_once('include/cfs_master_helpers.php');
 ew_vehicle_type_ensure_schema($conn);
+ew_cfs_master_ensure_schema($conn);
 $booking_vehicle_type_dims = ew_vehicle_type_booking_dims_lookup($conn);
 $booking_vehicle_type_dims_json = json_encode($booking_vehicle_type_dims, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS);
 if ($booking_vehicle_type_dims_json === false) {
@@ -101,10 +104,29 @@ if ($booking_clients_json === false) {
 			background-color: #f1f5f9 !important;
 		}
 
-		#grn_details.billing-only-edit .payment-charges-table input {
+		#grn_details.billing-only-edit .payment-charges-table input,
+		#grn_details.billing-only-edit .billing-generate-invoice-option input {
 			pointer-events: auto !important;
 			background-color: #fff !important;
 			opacity: 1 !important;
+		}
+
+		#grn_details.billing-only-edit .billing-gst-invoice-actions {
+			pointer-events: auto !important;
+			opacity: 1 !important;
+		}
+
+		.billing-gst-invoice-actions {
+			margin: 8px 0 0 22px;
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.billing-gst-invoice-actions .ew-btn-v2 {
+			padding: 4px 12px;
+			font-size: 12px;
 		}
 
 		#grn_details.billing-only-edit #frieght_amount[readonly] {
@@ -179,6 +201,21 @@ if ($booking_clients_json === false) {
 		#vehicle_type_dims_display[disabled] {
 			background: #f4f6f9;
 			cursor: default;
+		}
+
+		.ew-cfs-location-row {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			align-items: stretch;
+		}
+		.ew-cfs-kind-select {
+			flex: 0 0 132px;
+			max-width: 160px;
+		}
+		.ew-cfs-location-row .ew-cfs-value-field {
+			flex: 1 1 180px;
+			min-width: 0;
 		}
 		.invoice_exist {
 			border: 1px solid #e71717 !important;
@@ -1129,34 +1166,16 @@ if ($booking_clients_json === false) {
 														?>
 													</select>
 										</div>
-										<div class="ew-field" id="ftl_menu" style="display:none;">
-											<label class="control-label">FTL Type <span class="req-star">*</span></label>
-													<select class="dropp form-control" role="menu" aria-labelledby="menu1" id="dropp">
-														<option value="" selected="true" disabled="disabled">Select Truck Type...</option>
-														<option value="Single Axle Vehicle: 07MT" <?php if ('Single Axle Vehicle: 07MT' == $row['ftl_type']) echo 'selected'; ?>>Single Axle Vehicle: 07MT</option>
-														<option value="Multi Axle Vehicle : 10MT/14MT/17MT" <?php if ('Multi Axle Vehicle : 10MT/14MT/17MT' == $row['ftl_type']) echo 'selected'; ?>>Multi Axle Vehicle : 10MT/14MT/17MT</option>
-														<option value="22ft Vehicle : 07MT" <?php if ('22ft Vehicle : 07MT' == $row['ftl_type']) echo 'selected'; ?>> 22ft Vehicle : 07MT</option>
-														<option value="18ft Vehicle : 06MT" <?php if ('18ft Vehicle : 06MT' == $row['ftl_type']) echo 'selected'; ?>>18ft Vehicle : 06MT</option>
-														<option value="Eicher 19 Vehicle : 7MT/8MT/9MT" <?php if ('Eicher 19 Vehicle : 7MT/8MT/9MT' == $row['ftl_type']) echo 'selected'; ?>>Eicher 19 Vehicle : 7MT/8MT/9MT</option>
-														<option value="Eicher 17 Vehicle : 5MT" <?php if ('Eicher 17 Vehicle : 5MT' == $row['ftl_type']) echo 'selected'; ?>>Eicher 17 Vehicle : 5MT</option>
-														<option value="Eicher 19 Vechicle:4MT" <?php if ('Eicher 19 Vechicle:4MT' == $row['ftl_type']) echo 'selected'; ?>>Eicher 19 Vechicle:4MT</option>
-
-													</select>
-										</div>
-										<div class="ew-field" id="train_type" style="display:none;">
-											<label class="control-label">Train Type <span class="req-star">*</span></label>
-													<select name="train_name" class="train_type form-control" role="menu" aria-labelledby="menu1" id="train_type_sel">
-														<option value="" selected="true" disabled="disabled">Select Train Type...</option>
-														<option value="1" <?php if ('1' == $row['train_type']) echo 'selected'; ?>>Rajdhani Express</option>
-														<option value="2" <?php if ('2' == $row['train_type']) echo 'selected'; ?>>Others</option>
-													</select>
-										</div>
-										<div class="ew-field" id="other_train_field">
-												<?php if ($row['other_train_name'] != '') { ?>
-													<label class="control-label">Other Train Name</label>
-													<input type="text" name="other_train_name" id="other_train_name" class="form-control" placeholder="Enter Train Name" value="<?php echo $row['other_train_name']; ?>">
-												<?php } ?>
-										</div>
+										<?php /* FTL Type & Train Type dropdowns temporarily disabled — values kept for save */ ?>
+										<input type="hidden" name="train_name" id="train_name_hidden" value="<?php echo htmlspecialchars($row['train_type'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+										<?php if (!empty($row['other_train_name'])) { ?>
+										<input type="hidden" name="other_train_name" value="<?php echo htmlspecialchars($row['other_train_name'], ENT_QUOTES, 'UTF-8'); ?>">
+										<?php } ?>
+										<?php /*
+										<div class="ew-field" id="ftl_menu" style="display:none;">...</div>
+										<div class="ew-field" id="train_type" style="display:none;">...</div>
+										<div class="ew-field" id="other_train_field">...</div>
+										*/ ?>
 									</div>
 								</div>
 
@@ -1301,7 +1320,7 @@ if ($booking_clients_json === false) {
 																<select name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control pkg-row-select"<?php echo ($i === 1) ? ' required' : ''; ?>>
 																	<option value="">Select Package Type</option>
 																	<?php foreach ($pkg_list as $pkg_r) { ?>
-																		<option value="<?php echo (int) $pkg_r['package_id']; ?>" <?php if (($invoice_row['type_of_pkge'] ?? '') == $pkg_r['package_id']) echo 'selected'; ?>><?php echo htmlspecialchars($pkg_r['package_code']); ?></option>
+																		<option value="<?php echo (int) $pkg_r['package_id']; ?>" <?php if (ew_package_type_matches_stored($invoice_row['type_of_pkge'] ?? '', $pkg_r['package_id'], $pkg_r['package_code'])) echo 'selected'; ?>><?php echo htmlspecialchars($pkg_r['package_code']); ?></option>
 																	<?php } ?>
 																</select>
 															</td>
@@ -1356,9 +1375,9 @@ if ($booking_clients_json === false) {
 													<label class="control-label">Description Of Goods</label>
 													<textarea name="description_of_goods" id="description_of_goods" class="form-control" rows="2"><?php echo $row['description_of_goods']; ?></textarea>
 												</div>
-												<div class="ew-field">
+												<div class="ew-field span-2">
 													<label class="control-label">CFS / Port / Factory / Warehouse</label>
-													<input type="text" name="cfs" id="cfs" value="<?php echo $row['cfs']; ?>" class="form-control">
+													<?php echo ew_booking_cfs_controls_html($conn, $row['cfs'] ?? ''); ?>
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Part Number / Article Name / Article Number</label>
@@ -1483,7 +1502,11 @@ if ($booking_clients_json === false) {
 														<td>
 															Freight Charges
 															<label class="freight-manual-toggle">
-																<input type="checkbox" id="freight_manual_amount" name="freight_manual_amount" value="1">
+																<input type="checkbox" id="freight_manual_amount" name="freight_manual_amount" value="1"<?php
+																if ($form_name === 'edit_consignment_details' && (float) ($row['frieght_amount'] ?? 0) > 0) {
+																	echo ' checked';
+																}
+																?>>
 																<span>Enter amount manually</span>
 															</label>
 														</td>
@@ -1554,7 +1577,7 @@ if ($booking_clients_json === false) {
 											<input type="hidden" name="doc_rate" id="doc_rate" value="0">
 											<input type="hidden" name="cartage_rate" id="cartage_rate" value="0">
 											<input type="hidden" name="other_rate" id="other_rate" value="0">
-											<input type="hidden" name="other_amount" id="other_amount" value="<?php echo htmlspecialchars($row['other_charge_amount'] ?? '0'); ?>">
+											<input type="hidden" name="other_amount" id="other_amount" value="0">
 
 											<div class="gst-config-block<?php echo !empty($billing_only_edit) ? ' gst-locked' : ''; ?>">
 												<div class="form-group">
@@ -1646,6 +1669,103 @@ if ($booking_clients_json === false) {
 												<label for="amount_in_words">Amount In Words</label>
 												<textarea name="amount_in_words" id="amount_in_words" rows="2" readonly class="form-control"><?php echo $row['total_words']; ?></textarea>
 											</div>
+											<?php if (!empty($billing_only_edit)) {
+												$existing_gst_inv = trim((string) ($row['invoice_no'] ?? ''));
+												$has_gst_inv = ($existing_gst_inv !== '' && strcasecmp($existing_gst_inv, 'NULL') !== 0);
+												$billing_inv_mode_default = '';
+												if ($has_gst_inv) {
+													$billing_inv_mode_default = (stripos($existing_gst_inv, 'HROTH') === 0) ? 'other' : 'gst';
+													$gst_inv_hint = 'Refreshes PDF for invoice ' . htmlspecialchars($existing_gst_inv, ENT_QUOTES, 'UTF-8') . '.';
+												} else {
+													$gst_inv_hint = 'Assigns a new invoice number and PDF using the amounts above.';
+												}
+												$gst_inv_q = array(
+													'month' => $m,
+													'year' => $y,
+													'id' => (int) $transaction_id,
+												);
+												if ($has_gst_inv) {
+													$gst_inv_q['invoice_no'] = $existing_gst_inv;
+												}
+												$other_inv_q = $gst_inv_q;
+												$other_inv_q['invoice_doc'] = 'other';
+												if ($billing_inv_mode_default === 'other') {
+													$gst_inv_open_url = 'gst_invoice_page.php?' . http_build_query($other_inv_q);
+												} else {
+													$gst_inv_open_url = 'gst_invoice_page.php?' . http_build_query($gst_inv_q);
+												}
+												$gst_inv_download_q = $gst_inv_q;
+												$gst_inv_download_q['download'] = '1';
+												$other_inv_download_q = $other_inv_q;
+												$other_inv_download_q['download'] = '1';
+												$gst_inv_download_url = 'gst_invoice_page.php?' . http_build_query($gst_inv_download_q);
+												$other_inv_download_url = 'gst_invoice_page.php?' . http_build_query($other_inv_download_q);
+												$proforma_gst_q = array(
+													'month' => $m,
+													'year' => $y,
+													'id' => (int) $transaction_id,
+													'proforma' => '1',
+												);
+												$proforma_other_q = $proforma_gst_q;
+												$proforma_other_q['invoice_doc'] = 'other';
+												$proforma_gst_download_q = $proforma_gst_q;
+												$proforma_gst_download_q['download'] = '1';
+												$proforma_other_download_q = $proforma_other_q;
+												$proforma_other_download_q['download'] = '1';
+												$proforma_gst_preview_url = 'gst_invoice_page.php?' . http_build_query($proforma_gst_q);
+												$proforma_other_preview_url = 'gst_invoice_page.php?' . http_build_query($proforma_other_q);
+												$proforma_gst_download_url = 'gst_invoice_page.php?' . http_build_query($proforma_gst_download_q);
+												$proforma_other_download_url = 'gst_invoice_page.php?' . http_build_query($proforma_other_download_q);
+												$gcn_includes_gst = gcn_booking_includes_gst($row);
+												$billing_inv_hroth_existing = $has_gst_inv && stripos($existing_gst_inv, 'HROTH') === 0;
+												$billing_inv_show_mode_choice = !$gcn_includes_gst || $billing_inv_hroth_existing;
+												if ($gcn_includes_gst && !$billing_inv_show_mode_choice && $billing_inv_mode_default === '') {
+													$billing_inv_mode_default = 'gst';
+												}
+											?>
+											<div class="form-group billing-generate-invoice-option" style="margin-top:12px;"
+												data-gst-preview-url="<?php echo htmlspecialchars('gst_invoice_page.php?' . http_build_query($gst_inv_q), ENT_QUOTES, 'UTF-8'); ?>"
+												data-gst-download-url="<?php echo htmlspecialchars($gst_inv_download_url, ENT_QUOTES, 'UTF-8'); ?>"
+												data-other-preview-url="<?php echo htmlspecialchars('gst_invoice_page.php?' . http_build_query($other_inv_q), ENT_QUOTES, 'UTF-8'); ?>"
+												data-other-download-url="<?php echo htmlspecialchars($other_inv_download_url, ENT_QUOTES, 'UTF-8'); ?>"
+												data-proforma-gst-preview-url="<?php echo htmlspecialchars($proforma_gst_preview_url, ENT_QUOTES, 'UTF-8'); ?>"
+												data-proforma-gst-download-url="<?php echo htmlspecialchars($proforma_gst_download_url, ENT_QUOTES, 'UTF-8'); ?>"
+												data-proforma-other-preview-url="<?php echo htmlspecialchars($proforma_other_preview_url, ENT_QUOTES, 'UTF-8'); ?>"
+												data-proforma-other-download-url="<?php echo htmlspecialchars($proforma_other_download_url, ENT_QUOTES, 'UTF-8'); ?>"
+												data-show-invoice-mode-choice="<?php echo $billing_inv_show_mode_choice ? '1' : '0'; ?>"
+												data-has-hroth-invoice="<?php echo $billing_inv_hroth_existing ? '1' : '0'; ?>">
+												<div class="billing-invoice-mode-options" style="display:flex;flex-direction:column;gap:8px;">
+													<label class="radio-inline billing-invoice-mode-gst" style="font-weight:normal;margin:0;">
+														<input type="radio" name="billing_invoice_mode" value="gst"<?php echo $billing_inv_mode_default === 'gst' ? ' checked' : ''; ?>>
+														<strong>Generate GST invoice</strong>
+													</label>
+													<label class="radio-inline billing-invoice-mode-other" style="font-weight:normal;margin:0;<?php echo $billing_inv_show_mode_choice ? '' : 'display:none;'; ?>">
+														<input type="radio" name="billing_invoice_mode" value="other"<?php echo $billing_inv_mode_default === 'other' ? ' checked' : ''; ?>>
+														<strong>Other</strong>
+													</label>
+													<label class="radio-inline billing-invoice-mode-proforma-gst" style="font-weight:normal;margin:0;<?php echo ($gcn_includes_gst && !$billing_inv_hroth_existing) ? '' : 'display:none;'; ?>">
+														<input type="radio" name="billing_invoice_mode" value="proforma_gst">
+														<strong>Proforma tax invoice</strong>
+													</label>
+													<label class="radio-inline billing-invoice-mode-proforma-other" style="font-weight:normal;margin:0;<?php echo (!$gcn_includes_gst || $billing_inv_hroth_existing) ? '' : 'display:none;'; ?>">
+														<input type="radio" name="billing_invoice_mode" value="proforma_other">
+														<strong>Proforma invoice</strong>
+													</label>
+												</div>
+												<p class="help-block billing-invoice-mode-help" style="margin:8px 0 0 0;"><?php echo $gst_inv_hint; ?>
+													<?php if ($billing_inv_show_mode_choice) { ?>
+														Leave both options unselected to save payment only.
+													<?php } else { ?>
+														Leave unselected to save payment only.
+													<?php } ?>
+												</p>
+												<div id="billing_gst_invoice_actions_wrap" class="billing-gst-invoice-actions" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;">
+													<a class="ew-btn-v2 ew-btn-v2-outline billing-gst-invoice-preview-link" href="<?php echo htmlspecialchars($gst_inv_open_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><i class="fa fa-external-link"></i> Preview invoice</a>
+													<a class="ew-btn-v2 ew-btn-v2-primary billing-gst-invoice-download-link" href="<?php echo htmlspecialchars($billing_inv_mode_default === 'other' ? $other_inv_download_url : $gst_inv_download_url, ENT_QUOTES, 'UTF-8'); ?>"><i class="fa fa-download"></i> Download PDF</a>
+												</div>
+												<p class="help-block text-muted billing-gst-invoice-actions-hint" style="margin:8px 0 0 0;font-size:12px;">Select an option above to preview or download<?php echo $has_gst_inv ? '' : ' (save once to assign invoice number for Generate GST invoice / Other)'; ?>. Proforma does not assign an invoice number.</p>
+											</div>
+											<?php } ?>
 									</div>
 								</div>
 								</div>
@@ -1870,6 +1990,7 @@ if ($booking_clients_json === false) {
 				cartage_amount: 1,
 				rajdhani_charges: 1,
 				freight_manual_amount: 1,
+				billing_invoice_mode: 1,
 				total: 1,
 				amount_in_words: 1
 			};
@@ -1910,9 +2031,234 @@ if ($booking_clients_json === false) {
 
 			$('#gst_tax_id, #gst_type').prop('disabled', true);
 			$('.gst-config-block').addClass('gst-locked');
+			$('input[name=billing_invoice_mode]').prop('disabled', false);
+			syncBillingInvoiceModeChoice();
 			$('.upload-dropzone, #add_more, .remove-image, #signature, .jSignature, .pkg-row-btn').css('pointer-events', 'none');
 			$('.pkg-row-btn').prop('disabled', true);
 		}
+
+		function billingInvoiceModeSelected() {
+			return $('input[name=billing_invoice_mode]:checked').val() || '';
+		}
+
+		function gcnBookingIncludesGst() {
+			var $box = $('.billing-generate-invoice-option');
+			if (!$box.length) {
+				return false;
+			}
+			if (String($box.data('hasHrothInvoice')) === '1') {
+				return false;
+			}
+			var gstType = String($('#gst_type').val() || '').toLowerCase();
+			if (gstType === 'exempt' || gstType === 'non_gst') {
+				return false;
+			}
+			var profile = typeof getSelectedGstProfile === 'function' ? getSelectedGstProfile() : null;
+			if (profile && String(profile.tax_code).toUpperCase() === 'GST0') {
+				return false;
+			}
+			var gstAmt = typeof parseAmount === 'function' ? parseAmount($('#gst_amount').val()) : parseFloat($('#gst_amount').val()) || 0;
+			if (gstAmt > 0.001) {
+				return true;
+			}
+			var comp = 0;
+			['#disp_cgst_amount', '#disp_sgst_amount', '#disp_igst_amount'].forEach(function(sel) {
+				comp += typeof parseAmount === 'function' ? parseAmount($(sel).text()) : parseFloat(String($(sel).text()).replace(/,/g, '')) || 0;
+			});
+			if (comp > 0.001) {
+				return true;
+			}
+			if ($('#gst_tax_id').val() && profile && String(profile.tax_code).toUpperCase() !== 'GST0') {
+				return true;
+			}
+
+			return false;
+		}
+
+		function syncBillingInvoiceModeChoice() {
+			var $box = $('.billing-generate-invoice-option');
+			if (!$box.length) {
+				return;
+			}
+			var showChoice = String($box.data('hasHrothInvoice')) === '1' || !gcnBookingIncludesGst();
+			$box.data('showInvoiceModeChoice', showChoice ? 1 : 0);
+			var $other = $('.billing-invoice-mode-other');
+			var $proformaGst = $('.billing-invoice-mode-proforma-gst');
+			var $proformaOther = $('.billing-invoice-mode-proforma-other');
+			var $gstRadio = $('input[name=billing_invoice_mode][value=gst]');
+			var $otherRadio = $('input[name=billing_invoice_mode][value=other]');
+			var $proformaGstRadio = $('input[name=billing_invoice_mode][value=proforma_gst]');
+			var $proformaOtherRadio = $('input[name=billing_invoice_mode][value=proforma_other]');
+			var includesGst = gcnBookingIncludesGst();
+			if (showChoice) {
+				$other.show();
+			} else {
+				$other.hide();
+				if ($otherRadio.prop('checked')) {
+					$otherRadio.prop('checked', false);
+				}
+			}
+			if (includesGst) {
+				$proformaGst.show();
+				$proformaOther.hide();
+				if ($proformaOtherRadio.prop('checked')) {
+					$proformaOtherRadio.prop('checked', false);
+				}
+			} else {
+				$proformaGst.hide();
+				$proformaOther.show();
+				if ($proformaGstRadio.prop('checked')) {
+					$proformaGstRadio.prop('checked', false);
+				}
+			}
+			syncBillingGstInvoiceActions();
+		}
+
+		function syncBillingInvoicePreviewLinks() {
+			var $box = $('.billing-generate-invoice-option');
+			if (!$box.length) {
+				return;
+			}
+			var mode = billingInvoiceModeSelected();
+			var preview = $box.data('gstPreviewUrl');
+			var download = $box.data('gstDownloadUrl');
+			if (mode === 'other') {
+				preview = $box.data('otherPreviewUrl');
+				download = $box.data('otherDownloadUrl');
+			} else if (mode === 'proforma_gst') {
+				preview = $box.data('proformaGstPreviewUrl');
+				download = $box.data('proformaGstDownloadUrl');
+			} else if (mode === 'proforma_other') {
+				preview = $box.data('proformaOtherPreviewUrl');
+				download = $box.data('proformaOtherDownloadUrl');
+			}
+			if (mode && preview) {
+				$('.billing-gst-invoice-preview-link').attr('href', preview);
+			}
+			if (mode && download) {
+				$('.billing-gst-invoice-download-link').attr('href', download);
+			}
+		}
+
+		function syncBillingGstInvoiceActions() {
+			var $wrap = $('#billing_gst_invoice_actions_wrap');
+			var $hint = $('.billing-gst-invoice-actions-hint');
+			if (!$wrap.length) {
+				return;
+			}
+			var mode = billingInvoiceModeSelected();
+			if (mode === 'gst' || mode === 'other' || mode === 'proforma_gst' || mode === 'proforma_other') {
+				syncBillingInvoicePreviewLinks();
+				$wrap.css('display', 'flex');
+				$hint.hide();
+			} else {
+				$wrap.hide();
+				$hint.show();
+			}
+		}
+
+		$(document).on('change', 'input[name=billing_invoice_mode]', syncBillingGstInvoiceActions);
+
+		var billingPreviewDraftTimer = null;
+		var billingPreviewDraftXHR = null;
+
+		function buildBillingDraftFormData() {
+			if (typeof calculateGstBreakup === 'function') {
+				calculateGstBreakup();
+			}
+			$('#grn_details').find('input:disabled, select:disabled, textarea:disabled').prop('disabled', false);
+			var formData = new FormData(document.getElementById('grn_details'));
+			formData.set('billing_preview_draft', '1');
+			formData.delete('billing_invoice_mode');
+			if (typeof applyBillingOnlyEditMode === 'function') {
+				applyBillingOnlyEditMode();
+			}
+			return formData;
+		}
+
+		function saveBillingPreviewDraft(callback) {
+			if ($('#billing_only_edit').val() !== '1') {
+				if (callback) {
+					callback(false);
+				}
+				return;
+			}
+			if (billingPreviewDraftXHR && billingPreviewDraftXHR.readyState !== 4) {
+				billingPreviewDraftXHR.abort();
+			}
+			billingPreviewDraftXHR = $.ajax({
+				url: 'save_details.php',
+				type: 'post',
+				dataType: 'json',
+				data: buildBillingDraftFormData(),
+				processData: false,
+				contentType: false,
+				success: function(result) {
+					billingPreviewDraftXHR = null;
+					var ok = result && String(result.result) === '1';
+					if (ok) {
+						var ts = Date.now();
+						$('.billing-gst-invoice-preview-link, .billing-gst-invoice-download-link').each(function() {
+							var href = $(this).attr('href') || '';
+							href = href.replace(/([?&])_t=\d+/g, '$1').replace(/[?&]$/, '');
+							var sep = href.indexOf('?') >= 0 ? '&' : '?';
+							$(this).attr('href', href + sep + '_t=' + ts);
+						});
+					}
+					if (callback) {
+						callback(ok);
+					}
+				},
+				error: function() {
+					billingPreviewDraftXHR = null;
+					if (callback) {
+						callback(false);
+					}
+				}
+			});
+		}
+
+		function scheduleBillingPreviewDraftSave() {
+			if ($('#billing_only_edit').val() !== '1') {
+				return;
+			}
+			var mode = billingInvoiceModeSelected();
+			if (mode !== 'gst' && mode !== 'other' && mode !== 'proforma_gst' && mode !== 'proforma_other') {
+				return;
+			}
+			clearTimeout(billingPreviewDraftTimer);
+			billingPreviewDraftTimer = setTimeout(function() {
+				saveBillingPreviewDraft();
+			}, 450);
+		}
+
+		$(document).on('input change', '#grn_details.billing-only-edit .payment-charges-table input, #grn_details.billing-only-edit #frieght_rate, #grn_details.billing-only-edit #freight_manual_amount', function() {
+			scheduleBillingPreviewDraftSave();
+		});
+
+		$(document).on('click', '.billing-gst-invoice-preview-link', function(e) {
+			e.preventDefault();
+			var url = $(this).attr('href');
+			saveBillingPreviewDraft(function(ok) {
+				if (ok) {
+					window.open(url, '_blank', 'noopener,noreferrer');
+				} else {
+					ewFormToast('Could not sync payment amounts for preview.', 'error', 5000);
+				}
+			});
+		});
+
+		$(document).on('click', '.billing-gst-invoice-download-link', function(e) {
+			e.preventDefault();
+			var url = $(this).attr('href');
+			saveBillingPreviewDraft(function(ok) {
+				if (ok) {
+					window.location.href = url;
+				} else {
+					ewFormToast('Could not sync payment amounts for download.', 'error', 5000);
+				}
+			});
+		});
 
 		var company_grn_mode = '<?php echo $comp_grn_mode; ?>';
 		var gstProfiles = <?php echo $gst_profiles_json ?: '[]'; ?>;
@@ -2246,6 +2592,20 @@ if ($booking_clients_json === false) {
 			}
 		}
 
+		/** All booking parties except the chosen consignor (when no customer mapping exists). */
+		function bookingConsigneeOptions(consignorId) {
+			var out = [];
+			if (!bookingClients || !bookingClients.length) {
+				return out;
+			}
+			$.each(bookingClients, function(i, c) {
+				if (String(c.id) !== String(consignorId)) {
+					out.push(c);
+				}
+			});
+			return out;
+		}
+
 		function loadMappedConsignees(consignorId, selected, done) {
 			if (!consignorId) {
 				fillConsigneeNameSelect([], '', true);
@@ -2261,17 +2621,20 @@ if ($booking_clients_json === false) {
 			}, function(rows) {
 				rows = rows || [];
 				var hasMapped = rows.length > 0;
-				fillConsigneeNameSelect(rows, hasMapped ? (selected || '') : '', !hasMapped);
-				if (!hasMapped) {
-					if (selected) {
-						var label = $('#consignee_name option[value="' + selected + '"]').text() || '';
-						if (label) {
-							fillConsigneeNameSelect([{ id: selected, name: label }], selected, false);
-						}
-						$('#consignee').val(String(selected));
+				if (hasMapped) {
+					fillConsigneeNameSelect(rows, selected || '', false);
+				} else if (selected) {
+					var label = $('#consignee_name option[value="' + selected + '"]').text() || '';
+					if (label) {
+						fillConsigneeNameSelect([{ id: selected, name: label }], selected, false);
 					} else {
-						$('#consignee').val('');
+						var fallback = bookingConsigneeOptions(consignorId);
+						fillConsigneeNameSelect(fallback, selected, false);
 					}
+					$('#consignee').val(String(selected));
+				} else {
+					fillConsigneeNameSelect(bookingConsigneeOptions(consignorId), '', false);
+					$('#consignee').val('');
 				}
 				if (typeof done === 'function') {
 					done();
@@ -2388,6 +2751,41 @@ if ($booking_clients_json === false) {
 		}
 
 		$(document).on('change', '#vehicle_type', syncVehicleTypeDimsDisplay);
+
+		function syncCfsBookingField() {
+			if (!$('#cfs_location_wrap').length) {
+				return;
+			}
+			var kind = $('#cfs_kind').val();
+			var val = '';
+			if (kind === 'cfs') {
+				val = $.trim($('#cfs_master_select').val() || '');
+			} else {
+				val = $.trim($('#cfs_text_input').val() || '');
+			}
+			$('#cfs').val(val);
+		}
+
+		function applyCfsKindUi() {
+			if (!$('#cfs_location_wrap').length) {
+				return;
+			}
+			var kind = $('#cfs_kind').val();
+			if (kind === 'cfs') {
+				$('#cfs_master_select').show().prop('disabled', false);
+				$('#cfs_text_input').hide().prop('disabled', true);
+			} else {
+				$('#cfs_master_select').hide().prop('disabled', true);
+				$('#cfs_text_input').show().prop('disabled', false);
+			}
+			syncCfsBookingField();
+		}
+
+		$(document).on('change', '#cfs_kind', function() {
+			applyCfsKindUi();
+		});
+		$(document).on('change input', '#cfs_master_select, #cfs_text_input', syncCfsBookingField);
+		applyCfsKindUi();
 
 		function restoreEditConsignmentBranches() {
 			if ($('#form_name').val() !== 'edit_consignment_details') {
@@ -2530,85 +2928,36 @@ if ($booking_clients_json === false) {
 		$(document).on('change', '#consignee_branch', function() {
 			applyConsigneeBranch($(this).val());
 		});
-		//Auto Calculation Part
-		var ftl_flag = '<?php echo $ftl_type; ?>';
-		if (ftl_flag != '') {
-			$("#ftl_menu").show();
+		//Auto Calculation Part — FTL / Train Type UI disabled; Rajdhani row follows transport mode only
+		function ewSyncRajdhaniRowForTransport() {
+			var transport_type = $('#mode_of_trasport :selected').val();
+			if (transport_type == '2') {
+				$("#rajdhani_ex").show();
+			} else {
+				$("#rajdhani_ex").hide();
+			}
 		}
-
-		//Train Type Selected
-		var train_type_sel = $('#train_type_sel :selected').val();
-		if (train_type_sel) {
-			$("#rajdhani_ex").show();
-		} else {
-
-			$("#rajdhani_ex").hide();
+		ewSyncRajdhaniRowForTransport();
+		if ($('#form_name').val() === 'edit_consignment_details') {
+			var savedFreightOnLoad = parseFloat($('#frieght_amount').val()) || 0;
+			if (savedFreightOnLoad > 0) {
+				$('#freight_manual_amount').prop('checked', true);
+				syncFreightManualMode();
+			}
 		}
-
 		sum_amount();
 
-		//Show FTL Dropdown 
-
 		$(document).on('change', '#mode_of_trasport', function() {
-			//alert("change");
-			var transport_type = $('#mode_of_trasport :selected').val();
-			$('#train_type_sel').prop('selectedIndex', 0);
-
-			//alert(transport_type);
-			if (transport_type == '7') {
-				$("#ftl_menu").show();
-				$("#train_type").hide();
-				$('#other_train_field').empty();
-			} else if (transport_type == '2') {
-				$("#train_type").show();
-				$("#ftl_menu").hide();
-
-			} else {
-				$("#ftl_menu").hide();
-				$("#train_type").hide();
-				$("#rajdhani_ex").hide();
-				$('#other_train_field').empty();
-			}
+			ewSyncRajdhaniRowForTransport();
 			syncTransportRequiredFields();
-			// $('#truck_type').val(sel_ids);
-			// $('#select-payment-mode').addClass('show')
-
-		});
-		//End
-
-		//FTL Type Dropdown
-
-		$(document).on('change', '#dropp', function() {
-			//alert("change");
-			var sel_ids = $('#dropp :selected').text();
-			///alert(sel_ids);
-
-			$('#truck_type').val(sel_ids);
-			$('#select-payment-mode').addClass('show')
-
+			load_payment_info();
 		});
 
-
-
-		//Show Train type in  Dropdown 
-		$(document).on('change', '#train_type_sel', function() {
-
-			var transport_type = $('#train_type_sel :selected').val();
-			//  alert(transport_type);
-			//  alert(get_train_type);
-			if (transport_type == '1') {
-
-				$("#rajdhani_ex").show();
-				$('#other_train_field').empty();
-			} else {
-
-				$("#rajdhani_ex").hide();
-				$('#other_train_field').html('<label class="control-label">Other Train Name</label><input type="text" name="other_train_name" id="other_train_name" class="form-control" placeholder="Enter Train Name">');
-			}
-		});
-
-
-		//End
+		/* FTL Type & Train Type dropdown logic disabled
+		var ftl_flag = ...
+		$(document).on('change', '#dropp', ...
+		$(document).on('change', '#train_type_sel', ...
+		*/
 
 		function handleSelectChange(event) {
 			sum_amount();
@@ -2705,13 +3054,9 @@ if ($booking_clients_json === false) {
 			//Rajdhani Value Add + Remove
 
 			var transport_type_gst = $('#mode_of_trasport :selected').val();
-			var trainType = $("#train_type_sel :selected").val();
 			var r_ch = $("#rajdhani_charges").val();
-
-			if (transport_type_gst != 2 && trainType != 1 || transport_type_gst != 2) {
+			if (transport_type_gst != '2') {
 				r_ch = 0;
-				$("#rajdhani_charges").val(r_ch);
-			} else {
 				$("#rajdhani_charges").val(r_ch);
 			}
 			//console.log('Rajdhani',r_ch);
@@ -2724,6 +3069,10 @@ if ($booking_clients_json === false) {
 			if (!isNaN(totals_pay)) {
 				$("#total").val(formatMoney(totals_pay));
 				get_total();
+			}
+			scheduleBillingPreviewDraftSave();
+			if ($('#billing_only_edit').val() === '1' && typeof syncBillingInvoiceModeChoice === 'function') {
+				syncBillingInvoiceModeChoice();
 			}
 		}
 
@@ -2852,6 +3201,13 @@ if ($booking_clients_json === false) {
 
 		//Payment Fetch Client Charges Start
 		function load_payment_info() {
+			var lockedFreightVal = null;
+			if ($('#form_name').val() === 'edit_consignment_details') {
+				var savedFreight = parseFloat($('#frieght_amount').val()) || 0;
+				if (savedFreight > 0) {
+					lockedFreightVal = $('#frieght_amount').val();
+				}
+			}
 			if ($('#destination').val() != "" && $('#destination').val() != null) {
 				var consignor_and_consinee_des = $('#destination').val();
 				var consignor_id = $('#consignor').val();
@@ -2875,7 +3231,8 @@ if ($booking_clients_json === false) {
 							$("#mamul_charge").val(formatMoney(pay_inv_data.mamul_chrgs));
 							$("#vehicle_halting_charge").val(formatMoney(pay_inv_data.vehicle_halting_charge));
 							$("#vehicle_loading_unloading").val(formatMoney(pay_inv_data.vehicle_loading_unloading));
-							$("#other_amount").val(formatMoney(pay_inv_data.other_chrgs));
+							// Local/other pickup is entered as cartage_amount; do not auto-fill hidden other_amount (avoids double GST).
+							$("#other_amount").val('0');
 
 							if ($("#mode_of_trasport").val() != "") {
 								if ($("#mode_of_trasport").val() == 1) { // air
@@ -2903,6 +3260,12 @@ if ($booking_clients_json === false) {
 							}
 							calculate_charge_weight();
 							sum_amount();
+							if (lockedFreightVal !== null) {
+								$('#freight_manual_amount').prop('checked', true);
+								syncFreightManualMode();
+								$('#frieght_amount').val(lockedFreightVal);
+								sum_amount();
+							}
 
 						} else {
 							ewToast("Consignor Does Not Have That Destination", 'warning');
@@ -3072,17 +3435,7 @@ if ($booking_clients_json === false) {
 		}
 
 		function syncTransportRequiredFields() {
-			var mode = $('#mode_of_trasport :selected').val();
-			var $ftl = $('#dropp');
-			var $train = $('#train_type_sel');
-			$ftl.removeAttr('required').removeClass('error');
-			$train.removeAttr('required').removeClass('error');
-			$('label.error[for="dropp"], label.error[for="train_type_sel"]').remove();
-			if (mode === '7') {
-				$ftl.attr('required', 'required');
-			} else if (mode === '2') {
-				$train.attr('required', 'required');
-			}
+			// FTL Type / Train Type required validation disabled while dropdowns are hidden
 		}
 
 		function syncPackageRowRequired() {
@@ -3206,35 +3559,7 @@ if ($booking_clients_json === false) {
 			}
 			console.log("Test OLd1,", load_party_inv);
 
-			//Show FTL Dropdown 
-			$(document).on('change', '#mode_of_trasport', function() {
-				// /alert("change");
-				var transport_type = $('#mode_of_trasport :selected').val();
-				//alert(transport_type);
-				if (transport_type == '7') {
-					$("#ftl_menu").show();
-				} else {
-					$("#ftl_menu").hide();
-				}
-				syncTransportRequiredFields();
-				//Payment AutoFetch Function
-				load_payment_info()
-				// $('#truck_type').val(sel_ids);
-				// $('#select-payment-mode').addClass('show')
-
-			});
-			//End
-			//FTL Type 
-			$(document).on('change', '#dropp', function() {
-				//alert("change");
-				var sel_ids = $('#dropp :selected').text();
-				//alert(sel_ids);
-
-				$('#truck_type').val(sel_ids);
-				$('#select-payment-mode').addClass('show')
-
-			});
-			//End
+			/* FTL / Train Type handlers disabled — see ewSyncRajdhaniRowForTransport above */
 
 			$('.grn_no_popup').hide();
 
@@ -3989,6 +4314,16 @@ $("input[name='file_receipt[]']").each(function () {
 						ewFormToast('Please enter payment / billing amounts.', 'error', 5000);
 						isFormValid = false;
 					}
+					var billingMode = billingInvoiceModeSelected();
+					if (isFormValid && (freightVal > 0 || totalVal > 0) && billingMode === '') {
+						if (!window.confirm('Freight/payment amounts are entered but no invoice option is selected.\n\nSave payment only without creating an invoice?')) {
+							isFormValid = false;
+						}
+					}
+					if (isFormValid && (billingMode === 'gst' || billingMode === 'other') && freightVal <= 0 && totalVal <= 0) {
+						ewFormToast('Enter freight or total before generating an invoice.', 'error', 5000);
+						isFormValid = false;
+					}
 				} else {
 					syncTransportRequiredFields();
 					syncPackageRowRequired();
@@ -3998,6 +4333,7 @@ $("input[name='file_receipt[]']").each(function () {
 				if (isFormValid && chck_key == true && get_consigner_valll !== "" && get_consignee_valll !== "") {
 
 					// Re-enable after validation so destination/origin/GST values are posted
+					syncCfsBookingField();
 					$('#grn_details').find('input:disabled, select:disabled, textarea:disabled').prop('disabled', false);
 					var formData = new FormData(document.getElementById("grn_details"));
 					formData.set('consignor_branch', $('#consignor_branch').val() || '');
@@ -4054,7 +4390,18 @@ $("input[name='file_receipt[]']").each(function () {
 									showBookingSuccessModal(result['data'], result['tracking_code'] || '');
 								} else {
 									$(".form-data-saving").hide();
-									ewFormToast('Saved Successfully', 'success', 5000);
+									var saveMsg = result['message'] || 'Saved Successfully';
+									var toastType = 'success';
+									if (result['invoice_error']) {
+										saveMsg = 'Payment saved, but invoice failed: ' + result['invoice_error'];
+										toastType = 'warning';
+									} else if (result['invoice_warning']) {
+										saveMsg = result['invoice_warning'];
+										toastType = 'warning';
+									} else if (result['invoice_no']) {
+										saveMsg = (result['message'] || 'Payment saved.') + ' Use Open / Download on the form next time, or the invoice icon in the list.';
+									}
+									ewFormToast(saveMsg, toastType, 6000);
 									setTimeout(function() {
 										window.location.href = "transaction_list.php";
 									}, 1200);
@@ -4071,7 +4418,12 @@ $("input[name='file_receipt[]']").each(function () {
 							}
 							if (result) {
 								$(".form-data-saving").hide();
-								ewFormToast('Booking Failed', 'error', 5000);
+								$('#save').prop('disabled', false);
+								var failMsg = 'Booking Failed';
+								if (result['sql_error']) {
+									failMsg = result['sql_error'];
+								}
+								ewFormToast(failMsg, 'error', 6000);
 								return true;
 							}
 							return false;
@@ -4229,7 +4581,7 @@ $("input[name='file_receipt[]']").each(function () {
 							<span class="grn-booked-value" id="show_grn_no"></span>
 						</div>
 						<div class="grn-booked-row" id="show_tracking_code_wrap" style="display:none;">
-							<span class="grn-booked-label">Transaction Code</span>
+							<span class="grn-booked-label">Tracking code</span>
 							<span class="grn-booked-value" id="show_tracking_code"></span>
 						</div>
 					</div>

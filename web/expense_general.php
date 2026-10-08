@@ -46,7 +46,6 @@ $bank_rows = ew_company_bank_options($conn);
 			}
 		}
 
-		.ew-form-grid--general .type-add-wrap .btn-add-inline,
 		.ew-form-grid--general .bank-link-wrap .btn-add-inline {
 			height: 34px;
 			padding: 0 12px;
@@ -189,7 +188,7 @@ $bank_rows = ew_company_bank_options($conn);
 										<input type="text" id="expense_date" name="expense_date" class="form-control ew-date-field" value="<?php echo htmlspecialchars($c_date); ?>" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
 									</div>
 									<div class="ew-field">
-										<label class="control-label">Vendor <span style="color:red;">*</span> :</label>
+										<label class="control-label">Vendor :</label>
 										<div class="egen-select-wrap">
 											<select id="vendor_id" name="vendor_id" class="form-control egen-select"></select>
 										</div>
@@ -198,11 +197,8 @@ $bank_rows = ew_company_bank_options($conn);
 
 									<div class="ew-field">
 										<label class="control-label">Expense Type <span style="color:red;">*</span> :</label>
-										<div class="type-add-wrap">
-											<div class="egen-select-wrap">
-												<select id="category_id" name="category_id" class="form-control egen-select"></select>
-											</div>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-add-inline" id="btn_add_expense_type" title="Add expense type">+ Add</button>
+										<div class="egen-select-wrap">
+											<select id="category_id" name="category_id" class="form-control egen-select"></select>
 										</div>
 									</div>
 									<div class="ew-field">
@@ -288,28 +284,6 @@ $bank_rows = ew_company_bank_options($conn);
 			</div>
 		</div>
 		<?php require_once('include/footer.php'); ?>
-	</div>
-
-	<div class="modal fade" id="modal_add_expense_type" tabindex="-1" role="dialog">
-		<div class="modal-dialog" role="document">
-			<div class="modal-content">
-				<div class="modal-header">
-					<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-					<h4 class="modal-title">Add Expense Type</h4>
-				</div>
-				<div class="modal-body">
-					<div class="form-group">
-						<label>Expense Type Name</label>
-						<input type="text" class="form-control" id="quick_expense_type_name" maxlength="150" autocomplete="off" placeholder="e.g. Office Rent">
-					</div>
-					<div id="expense_type_msg" class="text-danger" style="display:none;"></div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-					<button type="button" class="btn btn-primary" id="quick_expense_type_save">Save &amp; Select</button>
-				</div>
-			</div>
-		</div>
 	</div>
 
 	<script type="text/javascript">
@@ -619,33 +593,6 @@ $bank_rows = ew_company_bank_options($conn);
 			$('#payment_mode').on('change', function() {
 				syncSelectTitle($(this));
 				togglePaymentBankRequirement();
-			});
-
-			$('#btn_add_expense_type').on('click', function() {
-				$('#quick_expense_type_name').val('');
-				$('#expense_type_msg').hide().text('');
-				$('#modal_add_expense_type').modal('show');
-			});
-			$('#quick_expense_type_save').on('click', function() {
-				var name = $.trim($('#quick_expense_type_name').val());
-				if (!name) {
-					$('#expense_type_msg').text('Enter expense type name.').show();
-					return;
-				}
-				$.post('expense_general_data.php', { cmd: 'add_expense_type', type_name: name }, function(r) {
-					if (!r || r.status !== 0) {
-						$('#expense_type_msg').text(r && r.message ? r.message : 'Could not add expense type.').show();
-						return;
-					}
-					categoryOptions = r.categories || categoryOptions;
-					buildCategorySelect(r.category_id || '');
-					applyCategoryDefaultAmount();
-					if (!gstManual) recalcAmounts(true);
-					$('#modal_add_expense_type').modal('hide');
-					recalcAmounts(true);
-				}, 'json').fail(function() {
-					$('#expense_type_msg').text('Network error. Please try again.').show();
-				});
 			});
 
 			$('#btn_reset').on('click', function() {

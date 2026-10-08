@@ -223,6 +223,11 @@ th.table-title.sorting_disabled {
                     }
                     return true;
                 });
+                function ewSetLoadingPointSelect(n, val) {
+                    var v = (val != null && val !== '' && val !== '0') ? String(val) : '';
+                    $('#loading_point' + n).val(v);
+                }
+
                 //button Save
                 $(document).on('click', '#save', function() {
                     var data = $('#train_form').serialize();
@@ -354,74 +359,12 @@ th.table-title.sorting_disabled {
                     });
                 });
 
-                //Autocomplete
-                $("#loading_point1_id").autocomplete({
-                    source: 'city_autocomplete.php',
-                    minLength: 0,
-                    select: function(event, ui) {
-                        $("#loading_point1").val(ui.item.id);
-
-                    },
-                    change: function(e, u) {
-                        if (u.item == null) {
-                            $('#loading_point1').val("");
-                            return false;
-                        }
-                    }
-                });
-                $("#loading_point2_id").autocomplete({
-
-                    source: 'city_autocomplete.php',
-                    minLength: 0,
-                    select: function(event, ui) {
-                        $("#loading_point2").val(ui.item.id);
-
-                    },
-                    change: function(e, u) {
-                        if (u.item == null) {
-                            $('#loading_point2').val("");
-                            return false;
-                        }
-                    }
-                });
-                $("#loading_point3_id").autocomplete({
-
-                    source: 'city_autocomplete.php',
-                    minLength: 0,
-                    select: function(event, ui) {
-                        $("#loading_point3").val(ui.item.id);
-
-                    },
-                    change: function(e, u) {
-                        if (u.item == null) {
-                            $('#loading_point3').val("");
-                            return false;
-                        }
-                    }
-                });
-                $("#loading_point4_id").autocomplete({
-
-                    source: 'city_autocomplete.php',
-                    minLength: 0,
-                    select: function(event, ui) {
-                        $("#loading_point4").val(ui.item.id);
-
-                    },
-                    change: function(e, u) {
-                        if (u.item == null) {
-                            $('#loading_point4').val("");
-                            return false;
-                        }
-                    }
-                });
-
                 $('#openCreateFlight').on('click', function() {
                     $('#form_name').val('add_flight');
                     $('#edit_id').val('');
                     $('#flight_name').val('');
                     $('#flight_number').val('');
                     $('#loading_point1, #loading_point2, #loading_point3, #loading_point4').val('');
-                    $('#loading_point1_id, #loading_point2_id, #loading_point3_id, #loading_point4_id').val('');
                     $('#journey_hours').val('');
                     $('#flightModalTitle').text('Create Flight');
                     ewV2OpenModal('flightModal');
@@ -447,14 +390,10 @@ th.table-title.sorting_disabled {
                             $("#edit_id").val(result['flight_id']);
                             $("#flight_name").val(result['flight_name']);
                             $("#flight_number").val(result['flight_number']);
-                            $("#loading_point1").val(result['loading_point1']);
-                            $("#loading_point2").val(result['loading_point2']);
-                            $("#loading_point3").val(result['loading_point3']);
-                            $("#loading_point4").val(result['loading_point4']);
-                            $("#loading_point1_id").val(result['city_name1']);
-                            $("#loading_point2_id").val(result['city_name2']);
-                            $("#loading_point3_id").val(result['city_name3']);
-                            $("#loading_point4_id").val(result['city_name4']);
+                            ewSetLoadingPointSelect(1, result['loading_point1']);
+                            ewSetLoadingPointSelect(2, result['loading_point2']);
+                            ewSetLoadingPointSelect(3, result['loading_point3']);
+                            ewSetLoadingPointSelect(4, result['loading_point4']);
                             $("#journey_hours").val(result['journey_hours']);
                             $('#flightModalTitle').text('Edit Flight');
                             ewV2OpenModal('flightModal');
@@ -473,7 +412,6 @@ th.table-title.sorting_disabled {
                     $('#flight_name').val('');
                     $('#flight_number').val('');
                     $('#loading_point1, #loading_point2, #loading_point3, #loading_point4').val('');
-                    $('#loading_point1_id, #loading_point2_id, #loading_point3_id, #loading_point4_id').val('');
                     $('#journey_hours').val('');
                     ewV2CloseModal('flightModal');
                 });
@@ -547,26 +485,12 @@ th.table-title.sorting_disabled {
                             <label class="control-label">Flight Number:</label>
                             <input type="text" name="flight_number" id="flight_number" class="form-control" />
                         </div>
-                        <div class="form-group">
-                            <label class="control-label">Loading Point 1 <span style="color:red;">*</span> :</label>
-                            <input type="text" name="loading_point1_id" id="loading_point1_id" class="form-control" required />
-                            <input type="hidden" name="loading_point1" id="loading_point1" class="form-control" />
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label">Loading Point 2 <span style="color:red;">*</span> :</label>
-                            <input type="text" name="loading_point2_id" id="loading_point2_id" class="form-control" required />
-                            <input type="hidden" name="loading_point2" id="loading_point2" class="form-control" />
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label">Loading Point 3:</label>
-                            <input type="text" name="loading_point3_id" id="loading_point3_id" class="form-control" />
-                            <input type="hidden" name="loading_point3" id="loading_point3" class="form-control" />
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label">Loading Point 4:</label>
-                            <input type="text" name="loading_point4_id" id="loading_point4_id" class="form-control" />
-                            <input type="hidden" name="loading_point4" id="loading_point4" class="form-control" />
-                        </div>
+                        <?php
+                        echo ew_transport_loading_point_field_html($conn, 1);
+                        echo ew_transport_loading_point_field_html($conn, 2);
+                        echo ew_transport_loading_point_field_html($conn, 3);
+                        echo ew_transport_loading_point_field_html($conn, 4);
+                        ?>
                         <div class="form-group">
                             <label class="control-label">Journey Hours:</label>
                             <input type="text" name="journey_hours" id="journey_hours" class="form-control" />

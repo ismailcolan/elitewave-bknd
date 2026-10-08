@@ -6,7 +6,7 @@ require_once('include/vendor_master_helpers.php');
 ew_vendor_ensure_table($conn);
 
 $data = array();
-$query = 'SELECT * FROM vendor_master ORDER BY vendor_name';
+$query = 'SELECT * FROM vendor_master ORDER BY vendor_code_id ASC, vendor_id ASC';
 $result = mysqli_query($conn, $query);
 if ($result) {
 	while ($row1 = mysqli_fetch_array($result)) {
@@ -77,24 +77,26 @@ if ($result) {
 										<th class="table-title" style="width:12%">Vendor Code</th>
 										<th class="table-title" style="width:20%">Vendor Name</th>
 										<th class="table-title" style="width:15%">Vendor Type</th>
-										<th class="table-title" style="width:15%">Contact Person</th>
-										<th class="table-title" style="width:12%">Contact No</th>
+										<th class="table-title" style="width:14%">Contact Person</th>
+										<th class="table-title" style="width:14%">GSTIN / UIN</th>
 										<th class="table-title" style="width:10%">Status</th>
 										<th class="table-title" style="width:11%">Action</th>
 									</tr>
 								</thead>
 								<tbody>
 									<?php
-									$i = 1;
 									foreach ($data as $row) {
 									?>
 										<tr>
-											<td class="text-center"><?php echo $i; ?></td>
+											<td class="text-center ew-vendor-serial"></td>
 											<td><?php echo htmlspecialchars($row['vendor_code']); ?></td>
 											<td><?php echo htmlspecialchars($row['vendor_name']); ?></td>
 											<td><?php echo htmlspecialchars(ew_vendor_type_label($conn, $row['vendor_type'])); ?></td>
 											<td><?php echo htmlspecialchars($row['contact_person']); ?></td>
-											<td><?php echo htmlspecialchars($row['contact_no']); ?></td>
+											<td><?php
+												$gst_disp = trim((string) ($row['gstin'] ?? ''));
+												echo $gst_disp !== '' ? htmlspecialchars($gst_disp) : '—';
+											?></td>
 											<td><?php echo ((int) $row['status'] === 0) ? 'Active' : 'Inactive'; ?></td>
 											<td class="actions center-content">
 												<div class="action-buttons">
@@ -108,7 +110,6 @@ if ($result) {
 											</td>
 										</tr>
 									<?php
-										$i++;
 									}
 									?>
 								</tbody>
@@ -123,7 +124,40 @@ if ($result) {
 	</div>
 
 	<script type="text/javascript">
+		function ewRenumberVendorListSerial(oSettings) {
+			var start = 0;
+			if (oSettings && typeof oSettings._iDisplayStart !== 'undefined') {
+				start = oSettings._iDisplayStart;
+			}
+			$('#dataTable1 tbody tr:visible').each(function(idx) {
+				$(this).find('td.ew-vendor-serial').text(start + idx + 1);
+			});
+		}
+
 		$(document).ready(function() {
+			var $vendorTable = $('#dataTable1');
+			if ($vendorTable.length && $.fn.dataTable && $.fn.dataTable.fnIsDataTable && $.fn.dataTable.fnIsDataTable($vendorTable[0])) {
+				$vendorTable.dataTable().fnDestroy();
+			}
+			$vendorTable.dataTable({
+				sPaginationType: 'full_numbers',
+				aaSorting: [[1, 'asc']],
+				oSearch: {
+					sSearch: '',
+					bSmart: false,
+					bRegex: false,
+					bCaseInsensitive: true
+				},
+				aoColumnDefs: [{
+					bSortable: false,
+					aTargets: [0, -1]
+				}],
+				fnDrawCallback: function(oSettings) {
+					ewRenumberVendorListSerial(oSettings);
+				}
+			});
+			ewRenumberVendorListSerial($vendorTable.dataTable().fnSettings());
+
 			$(document).on('click', '.btn-active', function() {
 					$('.form-data-saving').show();
 					var status1 = '';

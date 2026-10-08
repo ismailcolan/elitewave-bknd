@@ -17,6 +17,7 @@ extract($row);
 // ─── Copy label ───────────────────────────────────────────────────────────────
 if (isset($_GET['copy'])) {
     switch ($_GET['copy']) {
+        case 'original':  $copy = 'ORIGINAL COPY';   break;
         case 'consignor': $copy = 'CONSIGNER COPY';  break;
         case 'consignee': $copy = 'CONSIGNEE COPY'; break;
         case 'pod':       $copy = 'POD COPY';        break;
@@ -24,7 +25,7 @@ if (isset($_GET['copy'])) {
         default:          $copy = 'ORIGINAL COPY';
     }
 } else {
-    $copy = 'CONSIGNER COPY';
+    $copy = 'ORIGINAL COPY';
 }
 
 // ─── Cancelled-watermark class ────────────────────────────────────────────────
@@ -414,6 +415,11 @@ PAN : '.$company_row['pan_no'].'
 </table>
 
 ';
+$ew_org_dest_icon = __DIR__ . '/images/org&dest.png';
+$ew_org_dest_icon_html = is_file($ew_org_dest_icon)
+	? '<img src="' . $ew_org_dest_icon . '" style="width:22px;height:auto;vertical-align:middle;" alt="" />'
+	: '<span style="font-size:24pt;">&#8597;</span>';
+
 /// ══════════════════════════════════════════════════════════════════════════════
 // SECTION 2 – ORIGIN / DESTINATION / MODE / GCN
 // FIX: Each row has explicit height to keep this block at ~36mm regardless
@@ -489,7 +495,7 @@ $html .= '
 
         <br><br>
 
-        <span style="font-size:24pt;">&#8597;</span>
+        '.$ew_org_dest_icon_html.'
 
         <br><br>
 
@@ -508,7 +514,7 @@ $html .= '
     <td align="right"
         style="font-size:9pt;font-weight:bold;padding-right:3px;">
 
-        PNR No.
+        Tracking code
 
     </td>
 
@@ -611,7 +617,7 @@ $html .= '
 <td width="50%" valign="top"
 style="padding:4px 5px;height:24mm;font-size:8.5pt;line-height:14px;">
 
-<span style="font-size:9pt;">Consignor Address</span><br>
+<span style="font-size:9pt;">Consignor</span><br>
 
 <b>'.get_client_name($conn,$consigner).'</b><br>
 
@@ -626,7 +632,7 @@ style="padding:4px 5px;height:24mm;font-size:8.5pt;line-height:14px;">
 <td width="50%" valign="top"
 style="padding:4px 5px;height:24mm;font-size:8.5pt;line-height:14px;">
 
-<span style="font-size:9pt;">Bill To</span><br>
+<span style="font-size:9pt;">Consignee</span><br>
 
 <b>'.$bill_to_name_display.'</b><br>
 

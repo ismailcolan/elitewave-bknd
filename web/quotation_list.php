@@ -11,7 +11,7 @@ $filter = isset($_GET['status']) ? trim($_GET['status']) : 'all';
 if ($filter !== 'all' && !isset($status_opts[$filter])) {
 	$filter = 'all';
 }
-$rows = quotation_list_rows($conn, $filter);
+$rows = quotation_list_rows($conn, $filter, 'standard');
 ?>
 <!DOCTYPE html>
 <html>
@@ -49,7 +49,7 @@ $rows = quotation_list_rows($conn, $filter);
 			<div class="col-md-12">
 				<div class="ew-page-v2 ew-page-v2--wide-table">
 					<div class="ew-page-head">
-						<div class="ew-page-head-left"><h1 class="ew-page-title">Rate Quotation</h1></div>
+						<div class="ew-page-head-left"><h1 class="ew-page-title">Quotation/Proforma Invoice</h1></div>
 					</div>
 					<div class="ew-card ew-erp-list">
 						<div class="ew-card-toolbar">

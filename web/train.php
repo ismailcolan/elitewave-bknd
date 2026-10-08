@@ -94,9 +94,11 @@ th.table-title.sorting_disabled {
 							<thead>
 								<th class="table-title" style="width:10%">S.No</th>
 								<th class="table-title" style="width:10%">Train Name</th>
-								<th class="table-title" style="width:15%">Loading Point1</th>
-								<th class="table-title" style="width:15%">Loading Point2</th>
-								<th class="table-title" style="width:15%">Action</th>              
+								<th class="table-title" style="width:12%">Loading Point1</th>
+								<th class="table-title" style="width:12%">Loading Point2</th>
+								<th class="table-title" style="width:12%">Loading Point3</th>
+								<th class="table-title" style="width:12%">Loading Point4</th>
+								<th class="table-title" style="width:12%">Action</th>              
 							</thead>
 							<tbody>
 							<?php 
@@ -107,14 +109,18 @@ th.table-title.sorting_disabled {
 								{
 									$city_name1 = get_city_name($conn,$row['loading_point1']);
 									$city_name2 = get_city_name($conn,$row['loading_point2']);
+									$city_name3 = get_city_name($conn,$row['loading_point3']);
+									$city_name4 = get_city_name($conn,$row['loading_point4']);
 									
 							?>
 								<tr>
 									<td class="text-center"><?php echo $i; ?></td>
 									<td><?php echo $row['train_name']; ?></td>
 									
-									<td><?php echo $city_name1; ?></td>
-									<td><?php echo $city_name2; ?></td>
+									<td><?php echo $city_name1 !== '' ? htmlspecialchars($city_name1) : '—'; ?></td>
+									<td><?php echo $city_name2 !== '' ? htmlspecialchars($city_name2) : '—'; ?></td>
+									<td><?php echo $city_name3 !== '' ? htmlspecialchars($city_name3) : '—'; ?></td>
+									<td><?php echo $city_name4 !== '' ? htmlspecialchars($city_name4) : '—'; ?></td>
 									
 									<td class="actions center-content ">
 										<div class="action-buttons">
@@ -219,6 +225,11 @@ th.table-title.sorting_disabled {
 				}
 				return true;
 			});
+		function ewSetLoadingPointSelect(n, val) {
+			var v = (val != null && val !== '' && val !== '0') ? String(val) : '';
+			$('#loading_point' + n).val(v);
+		}
+
 		//button Save
 			$(document).on('click','#save',function(){
 				var data = $('#train_form').serialize();
@@ -353,74 +364,12 @@ th.table-title.sorting_disabled {
 				});
 			});
 			
-			//Autocomplete
-					//Autocomplete
-			$("#loading_point1_id").autocomplete({
-					source:'city_autocomplete.php',
-					minLength:0,
-					select: function(event, ui) {
-						$("#loading_point1").val(ui.item.id);
-						
-					},
-					change: function (e, u) {
-						if (u.item == null) {
-							$('#loading_point1').val("");
-							return false;
-						}
-					}
-				});
-				$("#loading_point2_id").autocomplete({
-					
-					source:'city_autocomplete.php',
-					minLength:0,
-					select: function(event, ui) {
-						$("#loading_point2").val(ui.item.id);
-						
-					},
-					change: function (e, u) {
-						if (u.item == null) {
-							$('#loading_point2').val("");
-							return false;
-						}
-					}
-				});
-				$("#loading_point3_id").autocomplete({
-					
-					source:'city_autocomplete.php',
-					minLength:0,
-					select: function(event, ui) {
-						$("#loading_point3").val(ui.item.id);
-						
-					},
-					change: function (e, u) {
-						if (u.item == null) {
-							$('#loading_point3').val("");
-							return false;
-						}
-					}
-				});
-				$("#loading_point4_id").autocomplete({
-					
-					source:'city_autocomplete.php',
-					minLength:0,
-					select: function(event, ui) {
-						$("#loading_point4").val(ui.item.id);
-						
-					},
-					change: function (e, u) {
-						if (u.item == null) {
-							$('#loading_point4').val("");
-							return false;
-						}
-					}
-				});
 			$('#openCreateTrain').on('click', function(){
 				$('#form_name').val('add_train');
 				$('#edit_id').val('');
 				$('#train_name').val('');
 				$('#train_number').val('');
 				$('#loading_point1, #loading_point2, #loading_point3, #loading_point4').val('');
-				$('#loading_point1_id, #loading_point2_id, #loading_point3_id, #loading_point4_id').val('');
 				$('#journey_hours').val('');
 				$('#trainModalTitle').text('Create Train');
 				ewV2OpenModal('trainModal');
@@ -443,14 +392,10 @@ th.table-title.sorting_disabled {
 						$("#edit_id").val(result['train_id']);
 						$("#train_name").val(result['train_name']);
 						$("#train_number").val(result['train_number']);
-						$("#loading_point1").val(result['loading_point1']);
-						$("#loading_point2").val(result['loading_point2']);
-						$("#loading_point3").val(result['loading_point3']);
-						$("#loading_point4").val(result['loading_point4']);
-                                                 $("#loading_point1_id").val(result['city_name1']);
-						$("#loading_point2_id").val(result['city_name2']);
-						$("#loading_point3_id").val(result['city_name3']);
-						$("#loading_point4_id").val(result['city_name4']);
+						ewSetLoadingPointSelect(1, result['loading_point1']);
+						ewSetLoadingPointSelect(2, result['loading_point2']);
+						ewSetLoadingPointSelect(3, result['loading_point3']);
+						ewSetLoadingPointSelect(4, result['loading_point4']);
 						$("#journey_hours").val(result['journey_hours']);
 						$('#trainModalTitle').text('Edit Train');
 						ewV2OpenModal('trainModal');
@@ -469,7 +414,6 @@ th.table-title.sorting_disabled {
 				$('#train_name').val('');
 				$('#train_number').val('');
 				$('#loading_point1, #loading_point2, #loading_point3, #loading_point4').val('');
-				$('#loading_point1_id, #loading_point2_id, #loading_point3_id, #loading_point4_id').val('');
 				$('#journey_hours').val('');
 				ewV2CloseModal('trainModal');
 			});
@@ -543,26 +487,12 @@ th.table-title.sorting_disabled {
 				  <label class="control-label">Train Number:</label>
 				  <input type="text" name="train_number" id="train_number" class="form-control" />
 				</div>
-				<div class="form-group">
-				  <label class="control-label">Loading Point 1 <span style="color:red;">*</span> :</label>
-				  <input type="text" name="loading_point1_id" id="loading_point1_id" class="form-control" required/>
-				  <input type="hidden" name="loading_point1" id="loading_point1" class="form-control" />
-				</div>
-				<div class="form-group">
-				  <label class="control-label">Loading Point 2 <span style="color:red;">*</span> :</label>
-				  <input type="text" name="loading_point2_id" id="loading_point2_id" class="form-control" required/>
-				  <input type="hidden" name="loading_point2" id="loading_point2" class="form-control" />
-				</div>
-				<div class="form-group">
-				  <label class="control-label">Loading Point 3:</label>
-				  <input type="text" name="loading_point3_id" id="loading_point3_id" class="form-control" />
-				  <input type="hidden" name="loading_point3" id="loading_point3" class="form-control" />
-				</div>
-				<div class="form-group">
-				  <label class="control-label">Loading Point 4:</label>
-				  <input type="text" name="loading_point4_id" id="loading_point4_id" class="form-control" />
-				  <input type="hidden" name="loading_point4" id="loading_point4" class="form-control" />
-				</div>
+				<?php
+				echo ew_transport_loading_point_field_html($conn, 1);
+				echo ew_transport_loading_point_field_html($conn, 2);
+				echo ew_transport_loading_point_field_html($conn, 3);
+				echo ew_transport_loading_point_field_html($conn, 4);
+				?>
 				<div class="form-group">
 				  <label class="control-label">Journey Hours :</label>
 				  <input type="text" name="journey_hours" id="journey_hours" class="form-control" />

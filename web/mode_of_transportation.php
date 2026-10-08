@@ -325,6 +325,7 @@ th.table-title.sorting_disabled {
                 $('#openCreateMode').on('click', function() {
                     $('#form_name').val('add_mode_of_transportation');
                     $('#edit_id').val('');
+                    $('#mode_group').val('');
                     $('#mode_type').val('');
                     $('#delivery').val('');
                     $('#sac_code').val('');
@@ -351,6 +352,7 @@ th.table-title.sorting_disabled {
                             $(".form-data-saving").hide();
                             $("#form_name").val("edit_mode");
                             $("#edit_id").val(result['mode_id']);
+                            $("#mode_group").val(result['mode_group'] || '');
                             $("#mode_type").val(result['mode_type']);
                             $('#delivery').val(result['max_hrs_delivery']);
                         $('#sac_code').val(result['sac_code']);
@@ -368,6 +370,7 @@ th.table-title.sorting_disabled {
                 $(document).on('click', '.btn-reset', function(ev) {
                     $('#form_name').val('add_mode_of_transportation');
                     $('#edit_id').val('');
+                    $('#mode_group').val('');
                     $('#mode_type').val('');
                     $('#delivery').val('');
                     $('#sac_code').val('');
@@ -436,16 +439,17 @@ th.table-title.sorting_disabled {
                             <div class="message" style="text-align:center"></div>
                         </div>
                         <div class="form-group">
-                            <label class="control-label">Mode Type <span style="color:red;">*</span> :</label>
-                            <select class="form-control" name="mode_type" id="mode_type" required>
-                                <option value="">Select Mode Type</option>
-                                <option value="Premium Air Cargo">Premium Air Cargo</option>
-                                <option value="Premium Train Cargo">Premium Train Cargo</option>
-                                <option value="Express Delivery">Express Delivery</option>
-                                <option value="Road Freight">Road Freight</option>
-                                <option value="Full Truck Load">Full Truck Load</option>
-                                <option value="Part Load">Part Load</option>
+                            <label class="control-label">Mode Group <span style="color:red;">*</span> :</label>
+                            <select class="form-control" name="mode_group" id="mode_group" required>
+                                <option value="">Select Mode Group</option>
+                                <?php foreach (ew_mode_group_options() as $groupLabel) { ?>
+                                <option value="<?php echo htmlspecialchars($groupLabel, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($groupLabel); ?></option>
+                                <?php } ?>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Mode Type <span style="color:red;">*</span> :</label>
+                            <input type="text" name="mode_type" id="mode_type" class="form-control" required autocomplete="off" placeholder="e.g. Full Truck Load, Part Load, Express Delivery" />
                         </div>
                         <div class="form-group">
                             <label class="control-label">Delivery <span style="color:red;">*</span> :</label>

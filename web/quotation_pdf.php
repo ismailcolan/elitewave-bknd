@@ -5,6 +5,7 @@ require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/quotation_functions.php');
 require_once('include/quotation_pdf_builder.php');
+require_once('include/ew_pdf_browser_view.php');
 
 $id = (int) ($_GET['id'] ?? 0);
 if ($id <= 0) {
@@ -17,6 +18,8 @@ if (!$row) {
 if (!in_array($row['status'], array('approved', 'sent', 'customer_confirmed', 'converted'), true)) {
 	die('PDF is available after approval.');
 }
+
+ew_pdf_maybe_browser_shell('Quotation — ' . ($row['quote_no'] ?? ''));
 
 require_once __DIR__ . '/vendor/autoload.php';
 $mpdf = quotation_mpdf_create();

@@ -329,9 +329,6 @@ function expense_general_save($conn, $payload, $user_id)
 	if ($expense_date === '') {
 		return array('ok' => false, 'message' => 'Please enter expense date.');
 	}
-	if ($vendor_id <= 0) {
-		return array('ok' => false, 'message' => 'Please select vendor.');
-	}
 	if ($category_id <= 0) {
 		return array('ok' => false, 'message' => 'Please select expense type.');
 	}

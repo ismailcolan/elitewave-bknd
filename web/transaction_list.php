@@ -338,15 +338,16 @@ $logged_id = $_SESSION['user_id'];
 }
 .trans_list_table col.col-sno { width: 42px; }
 .trans_list_table col.col-gcn { width: 88px; }
-.trans_list_table col.col-pnr { width: 108px; }
+.trans_list_table col.col-pnr { width: 140px; }
 .trans_list_table col.col-date { width: 88px; }
 .trans_list_table col.col-pkgs { width: 48px; }
 .trans_list_table col.col-consignor { width: 130px; }
 .trans_list_table col.col-consignee { width: 130px; }
 .trans_list_table col.col-dest { width: 90px; }
+.trans_list_table col.col-mode { width: 110px; }
 .trans_list_table col.col-status { width: 100px; }
-.trans_list_table col.col-pod { width: 44px; }
-.trans_list_table col.col-actions { width: 240px; }
+.trans_list_table col.col-actions { width: 200px; }
+.trans_list_table .txn-mode { font-size: 12px; font-weight: 600; color: #334155; }
 .trans_list_table thead th {
     padding: 11px 8px !important;
     white-space: nowrap;
@@ -411,25 +412,7 @@ $logged_id = $_SESSION['user_id'];
 .txn-dest-empty {
     color: #CBD5E1;
 }
-.txn-status-badge {
-    display: inline-block;
-    min-width: 72px;
-    max-width: 100%;
-    padding: 5px 9px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1.3;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.txn-status-booked { background: #DBEAFE; color: #1D4ED8; }
-.txn-status-transit { background: #FEF3C7; color: #B45309; }
-.txn-status-delivered { background: #DCFCE7; color: #15803D; }
-.txn-status-cancelled { background: #FEE2E2; color: #B91C1C; }
-.txn-status-default { background: #F1F5F9; color: #475569; }
+/* Status badge colors: stylesheets/ew-design-system.css (.txn-status-*) */
 .txn-party-name {
     font-weight: 500;
 }
@@ -652,22 +635,22 @@ $logged_id = $_SESSION['user_id'];
                                     <col class="col-consignor">
                                     <col class="col-consignee">
                                     <col class="col-dest">
+                                    <col class="col-mode">
                                     <col class="col-status">
-                                    <col class="col-pod">
                                     <col class="col-actions">
                                 </colgroup>
                                 <thead>
                                     <tr>
                                     <th>S.No</th>
                                     <th>GCN No</th>
-                                    <th>PNR</th>
+                                    <th>Tracking code</th>
                                     <th>GCN Date</th>
                                     <th>Pkgs</th>
                                     <th>Consignor</th>
                                     <th>Consignee</th>
                                     <th>Destination</th>
+                                    <th>Mode</th>
                                     <th>Status</th>
-                                    <th>POD</th>
                                     <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -717,7 +700,7 @@ FROM transaction_' . $m1 . '_' . $dt[2] . " t
 LEFT JOIN transaction_log l
 ON t.transaction_id = l.transaction_id
 WHERE t.grn_date LIKE '%$my'
-AND t.invoice_no != ''
+AND TRIM(COALESCE(t.grn_no, '')) != ''
 ORDER BY t.grn_date DESC, t.grn_no DESC
 ";
                                     } else {
@@ -732,7 +715,7 @@ WHERE
     OR t.consignee='" . $_SESSION['company_id'] . "'
 )
 AND t.grn_date LIKE '%$my'
-AND t.invoice_no != ''
+AND TRIM(COALESCE(t.grn_no, '')) != ''
 ORDER BY t.grn_date DESC, t.grn_no DESC
 ";
                                     }
@@ -763,52 +746,11 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                 $dest = get_city_name($conn, $row['destination']);
                                                 echo $dest !== '' ? '<span class="txn-dest">' . htmlspecialchars($dest) . '</span>' : '<span class="txn-dest-empty">—</span>';
                                             ?></td>
-                                            <td><?php echo transaction_list_status_badge($booking, $status); ?></td>
-
-                                            <!--- POD Verification -->
-                                            <td class="txn-pod-cell">
-                                                <?php
-                                                $imagesd1 = array();
-                                                $filtered_array = array();
-                                                $grn_no = $row['grn_no'];
-                                                if ($grn_no != '') {
-                                                    $screens = $grn_no;
-                                                    $ext = '.jpg';
-                                                    $search = $screens . $ext;
-                                                    $image_data = array();
-                                                    $images = "select screens from pod_files where screens LIKE '%$screens%' ";
-                                                    $res = mysqli_query($conn, $images);
-                                                    while ($pod_row = mysqli_fetch_assoc($res)) {
-                                                        $imagesd1[] = explode('@@', $pod_row['screens']);
-                                                    }
-                                                    foreach ($imagesd1 as $key => $value1) {
-                                                        foreach ($value1 as $key2 => $value2) {
-                                                            $filtered_array[] = $value2;
-                                                        }
-                                                    }
-                                                    $filter_img = preg_grep('/^' . $screens . '.*/', $filtered_array);
-                                                    $array_unique = array_unique($filter_img);
-                                                    $count = count($array_unique);
-                                                    // $count = 1;
-                                                }
-                                                if ($count == 1) {
-                                                    ?>
-                                                    <a title="POD Uploaded" class="table-actions btn-edit" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-check-circle"></i></a>
-                                                <?php
-                                                } else if ($count == 2) {
-                                                    ?>
-                                                    <a style="color:green;" title="POD Uploaded" class="table-actions btn-edit" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-check-circle"></i></a>
-
-                                                <?php
-                                                } else {
-                                                    ?>
-                                                    <a title="POD Not Uploaded" class="table-actions btn-edit" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-times-circle-o"></i></a>
-
-                                                <?php
-                                                }
-                                                ?>
-                                            </td>
-                                            <!--- End POD Verification -->
+                                            <td><?php echo transaction_list_mode_cell($conn, $row); ?></td>
+                                            <td><?php
+                                                $badge_opts = ew_transaction_badge_opts_for_row($conn, $row, (int) ($pkg_r['pkge'] ?? 0));
+                                                echo transaction_list_status_badge($booking, $status, $badge_opts);
+                                            ?></td>
 
                                             <td class="actions center-content col-actions">
                                                 <div class="action-buttons txn-action-group">
@@ -818,7 +760,6 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                         <?php echo transaction_list_track_action_html($row); ?>
                                                         <a class="table-actions disable_action" href="javascript:void(0);" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-print"></i></a>
                                                         <a class="table-actions disable_action " href="javascript:void(0);" data-status="<?php echo $row['status'] ?>" title="Invoice" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-file"></i></a>
-                                                        <a class="table-actions send_invoices disable_action " href="javascript:void(0);" title="Send Invoice" id="send_invoices" data-month="<?php echo $m1; ?>" data-year="<?php echo $y; ?>" data-id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-envelope"></i></a>
                                                         <a title="Cancel" class="table-actions btn-edit disable_action" href="javascript:void(0);" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-ban"></i></a>
                                                         <a title="E-way Attachments" href="javascript:void(0);" class="table-actions btn-eway disable_action" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-paperclip"></i></a>
                                                         <?php
@@ -867,14 +808,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                         <?php echo transaction_list_track_action_html($row); ?>
                                                         <!-- <a class="table-actions " target="BLANK" href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-print"></i></a> -->
                                                         
-                                                        <span class="table-actions dropdown txn-print-dd" title="Print GR"><i class="fa fa-print"></i>
-                                                            <ul class="dropdown-menu">
-                                                                <li><a href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>&copy=consignor" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>" target="_blank">Consignor GR</a></li>
-                                                                <li><a href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>&copy=consignee" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>" target="_blank">Consignee GR</a></li>
-                                                                <li><a href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>&copy=pod" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>" target="_blank">P.O.D GR</a></li>
-                                                                <li><a href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>&copy=accounts" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>" target="_blank">Accounts GR</a></li>
-                                                            </ul>
-                                                        </span>
+                                                        <a class="table-actions" target="_blank" href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>&copy=original" data-status="<?php echo $row['status'] ?>" title="GCN Copy" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-print"></i></a>
 
                                                         <a class="table-actions " target="BLANK" href="gst_invoice_page.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>" data-status="<?php echo $row['status'] ?>" title="Invoice" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-file"></i></a>
                                                         <?php
@@ -887,13 +821,6 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                         }
                                                         if ($consignment_mode == '3') {
                                                             $pay_at_book = 1;
-                                                        }
-                                                        if ($status == 8 && $restricted == 1 && $pay_at_book != 1) {
-                                                            ?>
-                                                            <a class="table-actions send_invoice " href="#" title="Send Invoice" id="send_invoice" data-month="<?php echo $m1; ?>" data-year="<?php echo $y; ?>" data-id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-envelope"></i></a>
-                                                        <?php } else { ?>
-                                                            <a class="table-actions disable_action" href="javascript:void(0)" ><i class="fa fa-envelope"></i></a>
-                                                        <?php
                                                         }
                                                         if ($status < 6) {  // disable if consignment status is above in transit 3
                                                             ?>
@@ -916,11 +843,6 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                         }
                                                         ?>
  
-                                                    <?php } ?>
-                                                    <?php if ($count >= 1) { ?>
-                                                        <a title="View POD" href="#pod_popup" class="table-actions btn-view-pod" data-toggle="modal" data-grn="<?php echo $row['grn_no']; ?>" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-camera"></i></a>
-                                                    <?php } else { ?>
-                                                        <a title="No POD Uploaded" href="javascript:void(0);" class="table-actions no-attach"><i class="fa fa-camera"></i></a>
                                                     <?php } ?>
                                                 </div>
 

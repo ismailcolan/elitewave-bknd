@@ -97,14 +97,100 @@
 		return '—';
 	}
 
+	function isMultiModeQuoteType() {
+		if (window.QUOTATION_ALL_MODES_SCREEN) {
+			return true;
+		}
+		var t = $('#quote_type').val() || '';
+		var list = window.QUOTATION_MULTI_MODE_TYPES || [];
+		return list.indexOf(t) >= 0;
+	}
+
+	function isRoadCargoGroup(group) {
+		return String(group || '').toLowerCase() === 'road cargo';
+	}
+
+	function syncQuoteTypeUi() {
+		var multi = isMultiModeQuoteType();
+		if (!window.QUOTATION_ALL_MODES_SCREEN) {
+			$('.ew-quote-multi-mode-only').toggle(multi);
+			$('.ew-quote-standard-only').toggle(!multi);
+			if ($('#mode_of_transportation').length) {
+				$('#mode_of_transportation').prop('required', !multi);
+			}
+		}
+		if (multi) {
+			syncMultiModeVehicleFields();
+			recalcMultiModeRowTotals();
+		}
+		renderPreview();
+	}
+
+	function mmModeLabel($tr) {
+		var $sel = $tr.find('.mm-mode-select');
+		if (!$sel.length) {
+			return $.trim($tr.find('td:first strong').text()) || '—';
+		}
+		var v = $sel.val();
+		if (v === null || v === undefined || String(v) === '') {
+			return '—';
+		}
+		var txt = $.trim($sel.find('option:selected').text());
+		return txt !== '' && txt !== 'Select mode' ? txt : '—';
+	}
+
+	function syncMultiModeRowVehicle($tr) {
+		var $sel = $tr.find('.mm-mode-select');
+		var group = '';
+		if ($sel.length) {
+			group = $sel.find('option:selected').attr('data-mode-group') || '';
+		} else {
+			group = $tr.attr('data-mode-group') || '';
+		}
+		$tr.attr('data-mode-group', group);
+		var road = isRoadCargoGroup(group);
+		$tr.find('.mm-vehicle-road').toggle(road);
+		$tr.find('.mm-vehicle-text').toggle(!road);
+		if (road) {
+			$tr.find('.mm-vehicle-text').val('');
+		} else {
+			$tr.find('.mm-vehicle-road').val('');
+		}
+	}
+
+	function syncMultiModeVehicleFields() {
+		$('#multi_mode_tbody tr.mm-row').each(function() {
+			syncMultiModeRowVehicle($(this));
+		});
+	}
+
+	function recalcMultiModeRowTotals() {
+		var sum = 0;
+		$('#multi_mode_tbody tr.mm-row').each(function() {
+			var $tr = $(this);
+			var rowSum = num($tr.find('.mm-amt[name="mm_freight[]"]').val())
+				+ num($tr.find('.mm-amt[name="mm_doc[]"]').val())
+				+ num($tr.find('.mm-amt[name="mm_loading[]"]').val())
+				+ num($tr.find('.mm-amt[name="mm_others[]"]').val());
+			rowSum = Math.round(rowSum * 100) / 100;
+			$tr.find('.mm-row-total').val(rowSum > 0 ? fmt(rowSum) : '');
+			sum += rowSum;
+		});
+		return sum;
+	}
+
 	function recalcTotals() {
 		var taxable = 0;
-		$('#charges_tbody tr').each(function() {
-			var amt = num($(this).find('.charge-amt').val());
-			if ($(this).find('.charge-tax').val() === '1') {
-				taxable += amt;
-			}
-		});
+		if (isMultiModeQuoteType()) {
+			taxable = recalcMultiModeRowTotals();
+		} else {
+			$('#charges_tbody tr').each(function() {
+				var amt = num($(this).find('.charge-amt').val());
+				if ($(this).find('.charge-tax').val() === '1') {
+					taxable += amt;
+				}
+			});
+		}
 		var gstPct = num($('#gst_rate').val());
 		var gst = Math.round(taxable * gstPct / 100 * 100) / 100;
 		var total = Math.round((taxable + gst) * 100) / 100;
@@ -112,6 +198,38 @@
 		$('#gst_amount').val(fmt(gst));
 		$('#total_amount').val(fmt(total));
 		return { taxable: taxable, gst: gst, total: total, gstPct: gstPct };
+	}
+
+	function multiModePreviewTable(totals) {
+		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Mode</th><th>Vehicle</th><th>Days</th><th align="right">Total</th></tr>';
+		$('#multi_mode_tbody tr.mm-row').each(function() {
+			var $tr = $(this);
+			var mode = mmModeLabel($tr);
+			if (mode === '—') {
+				return;
+			}
+			var veh = '';
+			if (isRoadCargoGroup($tr.attr('data-mode-group'))) {
+				veh = $.trim($tr.find('.mm-vehicle-road option:selected').text());
+				if ($tr.find('.mm-vehicle-road').val() === '') {
+					veh = '—';
+				}
+			} else {
+				veh = $.trim($tr.find('.mm-vehicle-text').val()) || '—';
+			}
+			var days = $.trim($tr.find('.mm-delivery-days option:selected').text());
+			if ($tr.find('.mm-delivery-days').val() === '') {
+				days = '—';
+			}
+			var rt = $.trim($tr.find('.mm-row-total').val()) || '—';
+			if (rt !== '—') {
+				rt = '₹ ' + rt + ' /-';
+			}
+			html += '<tr><td>' + escHtml(mode) + '</td><td>' + escHtml(veh) + '</td><td>' + escHtml(days) + '</td><td align="right">' + escHtml(rt) + '</td></tr>';
+		});
+		html += '<tr><td colspan="3">GST @ ' + totals.gstPct + '%</td><td align="right">₹ ' + fmt(totals.gst) + ' /-</td></tr>';
+		html += '<tr><td colspan="3"><b>Grand total</b></td><td align="right"><b>₹ ' + fmt(totals.total) + ' /-</b></td></tr></table>';
+		return html;
 	}
 
 	function chargeAmountDisplay($row) {
@@ -189,8 +307,43 @@
 		return escHtml(label || '—');
 	}
 
-	function renderPreview() {
+	function quotationCfsHiddenField() {
+		var $h = $('#cfs_port_factory');
+		return $h.length ? $h : $('#cfs');
+	}
+
+	function syncQuotationCfsField() {
+		if (!$('#cfs_location_wrap').length) {
+			return;
+		}
+		var kind = $('#cfs_kind').val();
+		var val = '';
+		if (kind === 'cfs') {
+			val = $.trim($('#cfs_master_select').val() || '');
+		} else {
+			val = $.trim($('#cfs_text_input').val() || '');
+		}
+		quotationCfsHiddenField().val(val);
+	}
+
+	function applyQuotationCfsKindUi() {
+		if (!$('#cfs_location_wrap').length) {
+			return;
+		}
+		var kind = $('#cfs_kind').val();
+		if (kind === 'cfs') {
+			$('#cfs_master_select').show().prop('disabled', false);
+			$('#cfs_text_input').hide().prop('disabled', true);
+		} else {
+			$('#cfs_master_select').hide().prop('disabled', true);
+			$('#cfs_text_input').show().prop('disabled', false);
+		}
+		syncQuotationCfsField();
+	}
+
+	function buildPreviewHtml() {
 		var totals = recalcTotals();
+		var multi = isMultiModeQuoteType();
 		var delivery = escHtml($('#delivery_address').val()).replace(/\n/g, '<br>');
 		var dims = vehicleDims();
 		var subject = $.trim($('#subject').val());
@@ -200,24 +353,22 @@
 		}
 		var route = escHtml(cityLabel($('#origin_city_id'))) + ' → ' + escHtml($('#destination_name').val() || cityLabel($('#destination_city_id')));
 
-		var html = '<h4>DOOR-TO-DOOR RATE QUOTATION</h4>'
+		var qtText = $.trim($('#quote_type option:selected').text());
+		var title = multi && qtText ? qtText.toUpperCase() : 'DOOR-TO-DOOR RATE QUOTATION';
+		var html = '<h4>' + title + '</h4>'
 			+ '<div class="meta"><b>To:</b> ' + escHtml(partyLabel()) + '<br><b>Kind Attn.:</b> ' + escHtml($('#attn_name').val() || '—') + '</div>';
 
 		if (subject !== '') {
 			html += '<div class="meta" style="margin-top:8px;"><b>Subject:</b> ' + escHtml(subject) + '</div>';
 		}
 
-		html += '<p style="margin:10px 0 6px;">Dear Sir / Madam,<br><span style="font-weight:normal;">Thank you for the opportunity to serve you. Below is our quotation for your requirement.</span></p>';
+		var intro = (window.QUOTATION_LETTER_INTRO || 'Thank you for considering EliteWave360 Logistics for your transportation requirements. Please find below our quotation for your kind consideration.');
+		html += '<p style="margin:10px 0 6px;">Dear Sir / Madam,<br><span style="font-weight:normal;">' + escHtml(intro) + '</span></p>';
 
-		var logistics = previewKvOptional('CFS / Port / Factory / Warehouse', 'cfs_port_factory');
-		logistics += previewKvOptional('Part Number / Article Name / Article Number', 'part_number');
+		var logistics = '';
 		var qaLbl = selectPreviewLabel('quotation_approval');
 		if (qaLbl !== '') {
 			logistics += '<div class="pv-kv"><b>Quotation approval:</b> ' + escHtml(qaLbl) + '</div>';
-		}
-		var fpbLbl = selectPreviewLabel('freight_paid_by');
-		if (fpbLbl !== '') {
-			logistics += '<div class="pv-kv"><b>Freight paid by:</b> ' + escHtml(fpbLbl) + '</div>';
 		}
 		logistics += '<div class="pv-kv"><b>Payment terms:</b> ' + paymentTermsPreviewLabel() + '</div>';
 		var insNo = insuranceNumberFromCharges();
@@ -228,19 +379,51 @@
 			html += '<div class="pv-section">Logistics reference</div>' + logistics;
 		}
 
-		html += '<div class="pv-section">Shipment details</div>'
-			+ '<div class="pv-kv"><b>Route:</b> ' + route + (unload !== '—' ? ' (Unloading at ' + escHtml(unload) + ')' : '') + '</div>'
-			+ '<div class="pv-kv"><b>Mode of transport:</b> ' + escHtml(modeOfTransportLabel()) + '</div>'
-			+ '<div class="pv-kv"><b>Loading / Unloading:</b> ' + escHtml(loadingLabel()) + ' / ' + escHtml(unload) + '</div>'
-			+ '<div class="pv-kv"><b>Vehicle:</b> ' + escHtml(vehicleLabel()) + (dims !== '—' ? ' · ' + escHtml(dims) : '') + '</div>'
-			+ '<div class="pv-kv"><b>Delivery address:</b><br>' + (delivery || '—') + '</div>';
+		html += '<div class="pv-section">Shipment details</div>';
+		if (window.QUOTATION_ALL_MODES_SCREEN) {
+			html += '<div class="pv-kv"><b>Consignee / delivery party:</b> ' + escHtml($('#destination_name').val() || '—') + '</div>'
+				+ '<div class="pv-kv"><b>Delivery address:</b><br>' + (delivery || '—') + '</div>';
+		} else {
+			html += '<div class="pv-kv"><b>Route:</b> ' + route + (unload !== '—' ? ' (Unloading at ' + escHtml(unload) + ')' : '') + '</div>';
+			if (!multi) {
+				html += '<div class="pv-kv"><b>Mode of transport:</b> ' + escHtml(modeOfTransportLabel()) + '</div>'
+					+ '<div class="pv-kv"><b>Loading / Unloading:</b> ' + escHtml(loadingLabel()) + ' / ' + escHtml(unload) + '</div>'
+					+ '<div class="pv-kv"><b>Vehicle:</b> ' + escHtml(vehicleLabel()) + (dims !== '—' ? ' · ' + escHtml(dims) : '') + '</div>';
+			} else {
+				html += '<div class="pv-kv"><b>Loading / Unloading:</b> ' + escHtml(loadingLabel()) + ' / ' + escHtml(unload) + '</div>';
+			}
+			html += '<div class="pv-kv"><b>Delivery address:</b><br>' + (delivery || '—') + '</div>';
+			var cfsVal = $.trim(quotationCfsHiddenField().val() || '');
+			var partVal = $.trim($('#part_number').val() || '');
+			if (cfsVal !== '') {
+				html += '<div class="pv-kv"><b>CFS / Port / Factory / Warehouse:</b> ' + escHtml(cfsVal) + '</div>';
+			}
+			if (partVal !== '') {
+				html += '<div class="pv-kv"><b>Part number / article:</b> ' + escHtml(partVal) + '</div>';
+			}
+		}
 
-		html += '<div class="pv-section">Commercial summary</div>'
-			+ '<table class="charges">' + chargePreviewRows(totals) + '</table>'
-			+ '<div class="pv-section" style="margin-top:14px;">Terms &amp; conditions (PDF page 2)</div>'
+		html += '<div class="pv-section">' + (multi ? 'Mode-wise charges' : 'Commercial summary') + '</div>';
+		html += multi ? multiModePreviewTable(totals) : ('<table class="charges">' + chargePreviewRows(totals) + '</table>');
+		html += '<div class="pv-section" style="margin-top:14px;">Terms &amp; conditions (PDF page 2)</div>'
 			+ '<p class="pv-kv" style="font-size:12px;color:#444;">Shipment protection, MSDS, carrying capacity, and full terms on page 2 — followed by Thanks &amp; Regards.</p>';
 
-		$('#letter_preview').html(html);
+		return html;
+	}
+
+	function renderPreview() {
+		if (window.QUOTATION_PREVIEW_IN_MODAL) {
+			recalcTotals();
+			return;
+		}
+		$('#letter_preview').html(buildPreviewHtml());
+	}
+
+	function openQuotationPreviewModal() {
+		$('#quotationPreviewModalBody').html(buildPreviewHtml());
+		if (typeof ewV2OpenModal === 'function') {
+			ewV2OpenModal('quotationPreviewModal');
+		}
 	}
 
 	function updateVehicleDims() {
@@ -294,15 +477,74 @@
 			syncCustomerModeUi(true);
 		});
 
-		$('#destination_city_id').on('change', function() {
-			var city = cityLabel($('#destination_city_id'));
-			if (city !== '—' && $.trim($('#unloading_at').val()) === '') {
-				$('#unloading_at').val(city);
-			}
+		if ($('#destination_city_id').length) {
+			$('#destination_city_id').on('change', function() {
+				var city = cityLabel($('#destination_city_id'));
+				if (city !== '—' && $.trim($('#unloading_at').val()) === '') {
+					$('#unloading_at').val(city);
+				}
+				renderPreview();
+			});
+		}
+
+		$(document).on('change', '.mm-mode-select', function() {
+			syncMultiModeRowVehicle($(this).closest('tr.mm-row'));
 			renderPreview();
 		});
 
-		$(document).on('input change', '.pv-bind, .pv-bind-select, .pv-bind-city, .charge-amt, .charge-tax, .charge-label, .charge-remarks, #gst_rate, #party_id, #party_name, #vehicle_type_id, #cfs_port_factory, #part_number, #quotation_approval, #freight_paid_by, #payment_terms', function() {
+		function cloneEmptyModeRow() {
+			var $tpl = $('#mm_row_template tr.mm-row').first();
+			if (!$tpl.length) {
+				return null;
+			}
+			return $tpl.clone();
+		}
+
+		$(document).on('click', '.btn-mm-add-row', function(e) {
+			e.preventDefault();
+			var $clone = cloneEmptyModeRow();
+			if (!$clone || !$clone.length) {
+				return;
+			}
+			$clone.find('select').val('');
+			$clone.find('input').not('.mm-row-total').val('');
+			$clone.find('.mm-row-total').val('');
+			$clone.attr('data-mode-group', '');
+			var $after = $(this).closest('tr.mm-row');
+			$after.after($clone);
+			syncMultiModeRowVehicle($clone);
+			renderPreview();
+		});
+
+		$(document).on('click', '.btn-mm-remove-row', function(e) {
+			e.preventDefault();
+			var $tbody = $('#multi_mode_tbody');
+			if ($tbody.find('tr.mm-row').length <= 1) {
+				if (typeof ewToast === 'function') {
+					ewToast('At least one mode row is required.', 'warning');
+				} else {
+					alert('At least one mode row is required.');
+				}
+				return;
+			}
+			$(this).closest('tr.mm-row').remove();
+			renderPreview();
+		});
+
+		$(document).on('change', '#cfs_kind', function() {
+			applyQuotationCfsKindUi();
+			renderPreview();
+		});
+		$(document).on('change input', '#cfs_master_select, #cfs_text_input', function() {
+			syncQuotationCfsField();
+			renderPreview();
+		});
+
+		$(document).on('input change', '.pv-bind, .pv-bind-select, .pv-bind-city, .charge-amt, .charge-tax, .charge-label, .charge-remarks, .mm-amt, .mm-delivery-days, .mm-vehicle-road, .mm-vehicle-text, #gst_rate, #party_id, #party_name, #vehicle_type_id, #quotation_approval, #payment_terms, #quote_type, #part_number', function() {
+			if ($(this).is('#quote_type')) {
+				syncQuoteTypeUi();
+				return;
+			}
 			renderPreview();
 		});
 
@@ -317,6 +559,10 @@
 				+ '</tr>';
 			$('#charges_tbody').append(row);
 			renderPreview();
+		});
+
+		$('#btn_quotation_preview').on('click', function() {
+			openQuotationPreviewModal();
 		});
 
 		$('.btn-quotation-action').on('click', function() {
@@ -337,7 +583,8 @@
 					if (typeof ewToast === 'function') {
 						ewToast(data.message || 'Saved.', 'success');
 					}
-					window.location.href = 'quotation.php?id=' + data.quotation_id;
+					var base = window.QUOTATION_RETURN_PAGE || 'quotation.php';
+					window.location.href = base + '?id=' + data.quotation_id;
 					return;
 				}
 				$('#response .message').text(data.message || 'Save failed.');
@@ -458,7 +705,9 @@
 					fillCustomerContactFromMaster($(this).val());
 				});
 			}
-			$('#origin_city_id, #destination_city_id').select2({ width: '100%', placeholder: 'Select city' });
+			if ($('#origin_city_id, #destination_city_id').length) {
+				$('#origin_city_id, #destination_city_id').select2({ width: '100%', placeholder: 'Select city' });
+			}
 		} else {
 			$('#party_id').on('change', function() {
 				fillCustomerContactFromMaster($(this).val());
@@ -466,6 +715,8 @@
 		}
 
 		syncCustomerModeUi(false);
+		syncQuoteTypeUi();
+		applyQuotationCfsKindUi();
 		updateVehicleDims();
 	});
 })(jQuery);

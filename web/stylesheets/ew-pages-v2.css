@@ -843,22 +843,24 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 }
 
 .ew-v2-modal-foot .btn-default-outline {
-  background: transparent !important;
+  /* background: transparent !important;
   border: none !important;
   color: var(--ew-text-muted, #6B7A8D) !important;
   box-shadow: none !important;
-  min-width: 72px;
+  min-width: 72px; */
+  background: #fff;
+    border: 1px solid #f4f4f4 !important;
+    color: #334155;
 }
 
 .ew-v2-modal-foot .btn-default-outline:hover,
 .ew-v2-modal-foot .btn-default-outline:focus {
-  background: transparent !important;
-  color: var(--ew-text, #1A2332) !important;
-  border: none !important;
+  background: #6B7A8D !important;
+  color: #fff !important;
+  /* border: none !important; */
 }
 
 .ew-v2-modal-foot .btn-primary {
-  min-width: 96px;
   background: var(--ew-navy, #0A1E3D) !important;
   border-color: var(--ew-navy, #0A1E3D) !important;
   border-radius: 8px;
@@ -2395,9 +2397,7 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 }
 .ew-delete-modal__cancel,
 .ew-delete-modal__confirm {
-  height: 40px;
-  min-width: 96px;
-  padding: 0 18px;
+  padding: 3px 18px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;

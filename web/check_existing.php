@@ -362,7 +362,18 @@ if($cmd == "chk_sub_topic"){
 
 
 if($cmd == "chk_grn_no"){
-	$grn_no = "LA/".$_REQUEST['grn_no'];
+	$grn_input = trim((string) ($_REQUEST['grn_no'] ?? ''));
+	if (strpos($grn_input, '/') !== false) {
+		$grn_no = $grn_input;
+	} else {
+		$prefix = 'LA/';
+		$cq = mysqli_query($conn, 'SELECT company_code FROM company WHERE status=0 LIMIT 1');
+		if ($cq && ($cr = mysqli_fetch_assoc($cq)) && trim((string) ($cr['company_code'] ?? '')) !== '') {
+			$code = trim((string) $cr['company_code']);
+			$prefix = (substr($code, -1) === '/') ? $code : ($code . '/');
+		}
+		$grn_no = $prefix . $grn_input;
+	}
 	$edit_id = $_REQUEST['grn_id'];
 	$count=0;
 	if($edit_id != '')

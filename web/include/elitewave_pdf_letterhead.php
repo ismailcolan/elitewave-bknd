@@ -22,6 +22,42 @@ function elitewave_letterhead_company_ids($conn)
 	return array('gstin' => $gstin, 'pan' => $pan);
 }
 
+/**
+ * Single split bar (letterhead style): navy + red.
+ * @param bool $red_on_left false = blue ~70% left + red ~30% right; true = red left + blue right.
+ */
+function elitewave_pdf_brand_bar_html($margin_bottom = '8px', $red_on_left = false)
+{
+	$navy = EW_LH_NAVY;
+	$red = EW_LH_ACCENT;
+	$mb = htmlspecialchars(trim((string) $margin_bottom), ENT_QUOTES, 'UTF-8');
+	if ($red_on_left) {
+		$left_w = '30%';
+		$left_bg = $red;
+		$right_w = '70%';
+		$right_bg = $navy;
+	} else {
+		$left_w = '70%';
+		$left_bg = $navy;
+		$right_w = '30%';
+		$right_bg = $red;
+	}
+
+	return '
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 ' . $mb . ';height:3px;border-collapse:collapse;">
+<tr>
+	<td style="width:' . $left_w . ';background:' . $left_bg . ';padding:0;font-size:1px;line-height:3px;border:0;">&nbsp;</td>
+	<td style="width:' . $right_w . ';background:' . $right_bg . ';padding:0;font-size:1px;line-height:3px;border:0;">&nbsp;</td>
+</tr>
+</table>';
+}
+
+/** @param bool $red_on_left See elitewave_pdf_brand_bar_html(). */
+function elitewave_pdf_accent_double_rule_html($margin_bottom = '8px', $red_on_left = false)
+{
+	return elitewave_pdf_brand_bar_html($margin_bottom, $red_on_left);
+}
+
 function elitewave_pdf_letterhead_css()
 {
 	return '
@@ -40,29 +76,35 @@ body{ font-family:freesans; font-size:10.5pt; color:' . EW_LH_TEXT . '; line-hei
  * @param string $document_title Main title (e.g. Rate Quotation)
  * @param string $document_sub   Optional subtitle
  */
-function elitewave_pdf_letterhead_open($conn, $document_title, $document_sub = '', $open_content = true)
+function elitewave_pdf_letterhead_open($conn, $document_title, $document_sub = '', $open_content = true, $compact = false)
 {
 	$ids = elitewave_letterhead_company_ids($conn);
 	$gst = htmlspecialchars($ids['gstin'], ENT_QUOTES, 'UTF-8');
 	$pan = htmlspecialchars($ids['pan'], ENT_QUOTES, 'UTF-8');
 	$title = htmlspecialchars($document_title, ENT_QUOTES, 'UTF-8');
 	$sub = htmlspecialchars($document_sub, ENT_QUOTES, 'UTF-8');
+	$logo_w = $compact ? 148 : 178;
+	$addr_fs = $compact ? '8pt' : '9pt';
+	$title_fs = $compact ? '11pt' : '12pt';
+	$sub_mb = $compact ? '3px' : '5px';
+	$hdr_mb = $compact ? '2px' : '4px';
+	$rule_mb = $compact ? '4px' : '8px';
 
 	$html = elitewave_pdf_letterhead_css();
 	$html .= '
 <div style="padding:0 4px 0 4px;">';
 	if ($sub !== '') {
 		$html .= '
-<p class="ew-doc-subtitle" style="text-align:center;margin:0 0 5px;">' . $sub . '</p>';
+<p class="ew-doc-subtitle" style="text-align:center;margin:0 0 ' . $sub_mb . ';">' . $sub . '</p>';
 	}
 	$html .= '
-<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 4px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 ' . $hdr_mb . ';">
 <tr>
 	<td width="36%" style="vertical-align:top;padding:0 10px 0 0;border:0;">
-		<img src="images/elite-nav.png" alt="EliteWave360" style="width:178px;height:auto;display:block;">
+		<img src="images/elite-nav.png" alt="EliteWave360" style="width:' . $logo_w . 'px;height:auto;display:block;">
 	</td>
 	<td width="64%" style="vertical-align:middle;text-align:left;border:0;padding:2px 0 0 0;">
-		<div style="text-align:left;font-size:9pt;color:#000;font-weight:bold;line-height:1.3;">
+		<div style="text-align:left;font-size:' . $addr_fs . ';color:#000;font-weight:bold;line-height:1.25;">
 			No.10/35, M.V.Badran Street, Anaikar Complex, 2nd Floor,
 			Naval Hospital Road, Periamet, Chennai – 600003<br>
 			<span style="color:' . EW_LH_NAVY . ';">+91 9840859711</span> · +91 9952918211 ·
@@ -77,14 +119,14 @@ function elitewave_pdf_letterhead_open($conn, $document_title, $document_sub = '
 		. ($gst !== '' ? 'GSTIN ' . $gst : '&nbsp;')
 		. '</td>
 	<td width="34%" style="border:0;padding:0 4px;text-align:center;vertical-align:middle;">
-		<span class="ew-doc-title" style="font-size:12pt;line-height:1.1;">' . $title . '</span>
+		<span class="ew-doc-title" style="font-size:' . $title_fs . ';line-height:1.1;">' . $title . '</span>
 	</td>
 	<td width="33%" style="border:0;padding:0;text-align:right;vertical-align:middle;font-size:8.5pt;color:#000;font-weight:bold;white-space:nowrap;">'
 		. ($pan !== '' ? 'PAN ' . $pan : '&nbsp;')
 		. '</td>
 </tr>
 </table>
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;height:3px;border-collapse:collapse;">
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 ' . $rule_mb . ';height:3px;border-collapse:collapse;">
 <tr>
 	<td style="width:70%;background:' . EW_LH_NAVY . ';padding:0;font-size:1px;line-height:3px;border:0;">&nbsp;</td>
 	<td style="width:30%;background:' . EW_LH_ACCENT . ';padding:0;font-size:1px;line-height:3px;border:0;">&nbsp;</td>

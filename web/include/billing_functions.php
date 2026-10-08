@@ -417,45 +417,118 @@ function billing_should_exclude_gcn($conn, $trans_table, $transaction_id, $total
     return billing_gcn_on_invoice($conn, $trans_table, $transaction_id, $exclude_invoice_id);
 }
 
-function billing_preview_invoice_number($conn, $invoice_date)
+function billing_fy_suffix_from_date($invoice_date)
 {
-    $parts = explode('-', $invoice_date);
+    $parts = explode('-', trim((string) $invoice_date));
     if (count($parts) !== 3) {
-        $invoice_date = date('d-m-Y');
-        $parts = explode('-', $invoice_date);
+        $parts = explode('-', date('d-m-Y'));
     }
     $year = (int) $parts[2];
     $p_y = substr((string) ($year - 1), -2);
     $c_y = substr((string) $year, -2);
-    $year_insert = $p_y . '-' . $c_y;
 
-    $invoice_table = invoice_table_function($conn, $invoice_date);
-    $q = mysqli_query($conn, "SELECT invoice_no, gst_text, gst_year FROM `$invoice_table` WHERE inv_type='GST' LIMIT 1");
-    $seq = 1;
-    $gst_text = 'HRGST';
-    if ($q && ($row = mysqli_fetch_assoc($q))) {
-        $seq = (int) $row['invoice_no'] + 1;
-        $gst_text = $row['gst_text'] ?: 'HRGST';
-        $year_insert = $row['gst_year'] ?: $year_insert;
-    }
-    return $gst_text . '/' . sprintf('%05d', $seq) . '/' . $year_insert;
+    return $p_y . '-' . $c_y;
 }
 
-function billing_allocate_invoice_number($conn, $invoice_date, $created_by)
+function billing_format_trans_invoice_no($gst_text, $seq, $fy_suffix)
 {
-    $parts = explode('-', $invoice_date);
-    if (count($parts) !== 3) {
-        $invoice_date = date('d-m-Y');
-        $parts = explode('-', $invoice_date);
-    }
-    $year = (int) $parts[2];
-    $p_y = substr((string) ($year - 1), -2);
-    $c_y = substr((string) $year, -2);
-    $year_insert = $p_y . '-' . $c_y;
-    $created_at = date('Y-m-d H:i:s');
-    $created_by = (int) $created_by;
+    return strtoupper(trim((string) $gst_text)) . '/' . sprintf('%05d', (int) $seq) . '/' . $fy_suffix;
+}
 
-    $invoice_table = invoice_table_function($conn, $invoice_date);
+function billing_parse_trans_invoice_seq($invoice_no, $gst_text, $fy_suffix)
+{
+    $invoice_no = trim((string) $invoice_no);
+    $gst_text = strtoupper(trim((string) $gst_text));
+    $fy_suffix = trim((string) $fy_suffix);
+    if ($invoice_no === '' || $gst_text === '' || $fy_suffix === '') {
+        return 0;
+    }
+    $pattern = '#^' . preg_quote($gst_text, '#') . '/(\d+)/' . preg_quote($fy_suffix, '#') . '$#i';
+    if (!preg_match($pattern, $invoice_no, $m)) {
+        return 0;
+    }
+
+    return (int) $m[1];
+}
+
+function billing_max_trans_invoice_seq_in_masters($conn, $gst_text, $fy_suffix)
+{
+    $gst_text = strtoupper(trim((string) $gst_text));
+    $esc_prefix = mysqli_real_escape_string($conn, $gst_text . '/');
+    $max = 0;
+    $q = mysqli_query($conn, "SELECT invoice_no FROM billing_invoice_master
+        WHERE invoice_no LIKE '$esc_prefix%'
+          AND status != 'cancelled'");
+    if ($q) {
+        while ($row = mysqli_fetch_assoc($q)) {
+            $seq = billing_parse_trans_invoice_seq($row['invoice_no'] ?? '', $gst_text, $fy_suffix);
+            if ($seq > $max) {
+                $max = $seq;
+            }
+        }
+    }
+
+    if ($gst_text === 'HRPRO') {
+        $pq = @mysqli_query($conn, "SELECT proforma_no FROM billing_proforma_master
+            WHERE proforma_no LIKE '$esc_prefix%' AND status != 'cancelled'");
+        if ($pq) {
+            while ($row = mysqli_fetch_assoc($pq)) {
+                $seq = billing_parse_trans_invoice_seq($row['proforma_no'] ?? '', $gst_text, $fy_suffix);
+                if ($seq > $max) {
+                    $max = $seq;
+                }
+            }
+        }
+    }
+
+    return $max;
+}
+
+function billing_max_trans_invoice_seq_in_bookings($conn, $gst_text, $fy_suffix)
+{
+    $gst_text = strtoupper(trim((string) $gst_text));
+    $esc_prefix = mysqli_real_escape_string($conn, $gst_text . '/');
+    $max = 0;
+    $tables_q = mysqli_query($conn, 'SELECT table_name FROM transaction_tbls ORDER BY table_name DESC');
+    if (!$tables_q) {
+        return $max;
+    }
+    while ($tbl = mysqli_fetch_assoc($tables_q)) {
+        $trans_table = 'transaction_' . preg_replace('/[^a-zA-Z0-9_]/', '', $tbl['table_name']);
+        $chk = @mysqli_query($conn, "SHOW COLUMNS FROM `$trans_table` LIKE 'invoice_no'");
+        if (!$chk || mysqli_num_rows($chk) === 0) {
+            continue;
+        }
+        $sql = "SELECT invoice_no FROM `$trans_table`
+            WHERE invoice_no IS NOT NULL AND invoice_no != '' AND invoice_no LIKE '$esc_prefix%'";
+        $q = @mysqli_query($conn, $sql);
+        if (!$q) {
+            continue;
+        }
+        while ($row = mysqli_fetch_assoc($q)) {
+            $seq = billing_parse_trans_invoice_seq($row['invoice_no'] ?? '', $gst_text, $fy_suffix);
+            if ($seq > $max) {
+                $max = $seq;
+            }
+        }
+    }
+
+    return $max;
+}
+
+function billing_max_trans_invoice_seq_used($conn, $gst_text, $fy_suffix)
+{
+    return max(
+        billing_max_trans_invoice_seq_in_masters($conn, $gst_text, $fy_suffix),
+        billing_max_trans_invoice_seq_in_bookings($conn, $gst_text, $fy_suffix)
+    );
+}
+
+function billing_ensure_trans_invoice_sequence_rows($conn, $invoice_table, $fy_suffix, $created_by, $created_at)
+{
+    $fy_suffix = mysqli_real_escape_string($conn, $fy_suffix);
+    $created_by = (int) $created_by;
+    $created_at = mysqli_real_escape_string($conn, $created_at);
     $chk = mysqli_query($conn, "SELECT COUNT(*) AS c FROM `$invoice_table`");
     $count = 0;
     if ($chk && ($r = mysqli_fetch_assoc($chk))) {
@@ -464,23 +537,130 @@ function billing_allocate_invoice_number($conn, $invoice_date, $created_by)
     if ($count === 0) {
         mysqli_query($conn, "INSERT INTO `$invoice_table`
             (`invoice_no`,`gst_text`,`gst_year`,`inv_type`,`created_at`,`created_by`)
-            VALUES ('0','HRGST','$year_insert','GST','$created_at','$created_by'),
-                   ('0','HRGTA','$year_insert','GTA','$created_at','$created_by')");
+            VALUES ('0','HRGST','$fy_suffix','GST','$created_at','$created_by'),
+                   ('0','HRGTA','$fy_suffix','GTA','$created_at','$created_by'),
+                   ('0','HROTH','$fy_suffix','OTHER','$created_at','$created_by'),
+                   ('0','HRPRO','$fy_suffix','PROFORMA','$created_at','$created_by')");
+        return;
     }
+    foreach (array('OTHER' => 'HROTH', 'PROFORMA' => 'HRPRO') as $inv_type => $gst_text) {
+        $type_esc = mysqli_real_escape_string($conn, $inv_type);
+        $text_esc = mysqli_real_escape_string($conn, $gst_text);
+        $exists = mysqli_query($conn, "SELECT 1 FROM `$invoice_table` WHERE inv_type='$type_esc' LIMIT 1");
+        if ($exists && mysqli_num_rows($exists) === 0) {
+            mysqli_query($conn, "INSERT INTO `$invoice_table`
+                (`invoice_no`,`gst_text`,`gst_year`,`inv_type`,`created_at`,`created_by`)
+                VALUES ('0','$text_esc','$fy_suffix','$type_esc','$created_at','$created_by')");
+        }
+    }
+}
 
-    $q = mysqli_query($conn, "SELECT * FROM `$invoice_table` WHERE inv_type='GST' LIMIT 1 FOR UPDATE");
-    $row = mysqli_fetch_assoc($q);
+/**
+ * Next grouped / GCN invoice number (HRGST, HRGTA, HROTH) without duplicate vs masters + bookings.
+ *
+ * @param bool $commit When true, increments year sequence row (use on save).
+ */
+function billing_next_trans_invoice_number($conn, $invoice_date, $created_by, $inv_type = 'GST', $commit = false)
+{
+    $inv_type = strtoupper(trim((string) $inv_type));
+    if ($inv_type === '') {
+        $inv_type = 'GST';
+    }
+    $fy_suffix = billing_fy_suffix_from_date($invoice_date);
+    $created_at = date('Y-m-d H:i:s');
+    $created_by = (int) $created_by;
+
+    if (!function_exists('invoice_table_function')) {
+        require_once __DIR__ . '/function.php';
+    }
+    $invoice_table = invoice_table_function($conn, $invoice_date);
+    billing_ensure_trans_invoice_sequence_rows($conn, $invoice_table, $fy_suffix, $created_by, $created_at);
+
+    $type_esc = mysqli_real_escape_string($conn, $inv_type);
+    $lock_sql = $commit
+        ? "SELECT * FROM `$invoice_table` WHERE inv_type='$type_esc' LIMIT 1 FOR UPDATE"
+        : "SELECT * FROM `$invoice_table` WHERE inv_type='$type_esc' LIMIT 1";
+    if ($commit) {
+        mysqli_begin_transaction($conn);
+    }
+    $q = mysqli_query($conn, $lock_sql);
+    $row = $q ? mysqli_fetch_assoc($q) : null;
     if (!$row) {
+        if ($commit) {
+            mysqli_rollback($conn);
+        }
+
         return '';
     }
-    $inv_seq = (int) $row['invoice_no'] + 1;
-    $inv_text = $row['gst_text'] ?: 'HRGST';
-    $inv_year = $row['gst_year'] ?: $year_insert;
-    $invoice_no = $inv_text . '/' . sprintf('%05d', $inv_seq) . '/' . $inv_year;
 
-    mysqli_query($conn, "UPDATE `$invoice_table` SET invoice_no='$inv_seq', updated_by='$created_by', updated_at='$created_at' WHERE inv_type='GST'");
+    $gst_text = strtoupper(trim((string) ($row['gst_text'] ?? 'HRGST')));
+    if ($gst_text === '') {
+        if ($inv_type === 'OTHER') {
+            $gst_text = 'HROTH';
+        } elseif ($inv_type === 'GTA') {
+            $gst_text = 'HRGTA';
+        } elseif ($inv_type === 'PROFORMA') {
+            $gst_text = 'HRPRO';
+        } else {
+            $gst_text = 'HRGST';
+        }
+    }
+    $fy_suffix = trim((string) ($row['gst_year'] ?? $fy_suffix));
+    if ($fy_suffix === '') {
+        $fy_suffix = billing_fy_suffix_from_date($invoice_date);
+    }
+
+    $counter_seq = (int) ($row['invoice_no'] ?? 0);
+    $used_max = billing_max_trans_invoice_seq_used($conn, $gst_text, $fy_suffix);
+    $next_seq = max($counter_seq, $used_max) + 1;
+    $invoice_no = billing_format_trans_invoice_no($gst_text, $next_seq, $fy_suffix);
+
+    if ($commit) {
+        $upd = mysqli_query($conn, "UPDATE `$invoice_table` SET invoice_no='$next_seq', updated_by='$created_by', updated_at='$created_at' WHERE inv_type='$type_esc'");
+        if (!$upd) {
+            mysqli_rollback($conn);
+
+            return '';
+        }
+        mysqli_commit($conn);
+    }
 
     return $invoice_no;
+}
+
+function billing_invoice_number_exists($conn, $invoice_no, $exclude_billing_invoice_id = 0)
+{
+    $invoice_no = trim((string) $invoice_no);
+    if ($invoice_no === '') {
+        return false;
+    }
+    $esc = mysqli_real_escape_string($conn, $invoice_no);
+    $exclude = (int) $exclude_billing_invoice_id;
+    $sql = "SELECT billing_invoice_id FROM billing_invoice_master
+        WHERE invoice_no='$esc' AND status != 'cancelled'";
+    if ($exclude > 0) {
+        $sql .= " AND billing_invoice_id!='$exclude'";
+    }
+    $sql .= ' LIMIT 1';
+    $q = mysqli_query($conn, $sql);
+
+    return ($q && mysqli_num_rows($q) > 0);
+}
+
+function billing_preview_invoice_number($conn, $invoice_date)
+{
+    return billing_next_trans_invoice_number($conn, $invoice_date, 0, 'GST', false);
+}
+
+function billing_allocate_invoice_number($conn, $invoice_date, $created_by)
+{
+    return billing_next_trans_invoice_number($conn, $invoice_date, $created_by, 'GST', true);
+}
+
+/** Used by single-GCN GST / GTA / Other PDF generation (same sequence tables). */
+function billing_allocate_trans_invoice_number($conn, $invoice_date, $created_by, $inv_type)
+{
+    return billing_next_trans_invoice_number($conn, $invoice_date, $created_by, $inv_type, true);
 }
 
 function billing_parse_trans_key($key)
@@ -665,6 +845,7 @@ function billing_extra_charges_from_row($row)
 
     return round(
         (float) ($row['doc_amount'] ?? 0)
+        + (float) ($row['cartage_amount'] ?? 0)
         + (float) ($row['other_charge_amount'] ?? 0)
         + (float) ($row['mamul_charge'] ?? 0)
         + (float) ($row['vehicle_halting_charge'] ?? 0)
@@ -698,7 +879,7 @@ function billing_amounts_from_booking_row($row, $line_agg = null)
     );
 }
 
-function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing_type = '', $exclude_invoice_id = 0)
+function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing_type = '', $exclude_invoice_id = 0, $exclude_proforma_id = -1)
 {
     $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
     $transaction_id = (int) $transaction_id;
@@ -711,7 +892,14 @@ function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing
         return null;
     }
 
-    if (billing_should_exclude_gcn($conn, $trans_table, $transaction_id, 0, $exclude_invoice_id)) {
+    if ($exclude_proforma_id >= 0) {
+        if (!function_exists('billing_proforma_blocks_gcn_selection')) {
+            require_once __DIR__ . '/billing_proforma_functions.php';
+        }
+        if (billing_proforma_blocks_gcn_selection($conn, $trans_table, $transaction_id, $exclude_proforma_id)) {
+            return null;
+        }
+    } elseif (billing_should_exclude_gcn($conn, $trans_table, $transaction_id, 0, $exclude_invoice_id)) {
         return null;
     }
 
@@ -888,24 +1076,21 @@ function billing_save_invoice($conn, $payload, $user_id)
     $total_words = gst_tax_report_amount_in_words((float) $totals['grand_total']);
 
     $invoice_no = '';
-    if ($status === 'final') {
-        if ($edit_id > 0) {
-            $existing = billing_get_invoice($conn, $edit_id);
-            if ($existing && !empty($existing['master']['invoice_no']) && $existing['master']['status'] === 'final') {
-                $invoice_no = $existing['master']['invoice_no'];
-            }
+    $existing = $edit_id > 0 ? billing_get_invoice($conn, $edit_id) : null;
+    if ($existing && !empty($existing['master']['invoice_no'])) {
+        $invoice_no = trim((string) $existing['master']['invoice_no']);
+        if ($existing['master']['status'] === 'final' && $status === 'draft') {
+            return array('status' => 1, 'message' => 'Final invoice cannot be moved back to draft.');
         }
-        if ($invoice_no === '') {
-            $invoice_no = billing_allocate_invoice_number($conn, $invoice_date, $user_id);
-        }
-        if ($invoice_no === '') {
-            return array('status' => 1, 'message' => 'Could not generate invoice number.');
-        }
-    } elseif ($edit_id > 0) {
-        $existing = billing_get_invoice($conn, $edit_id);
-        if ($existing && !empty($existing['master']['invoice_no'])) {
-            $invoice_no = $existing['master']['invoice_no'];
-        }
+    }
+    if ($invoice_no === '' && ($status === 'final' || $status === 'draft')) {
+        $invoice_no = billing_allocate_invoice_number($conn, $invoice_date, $user_id);
+    }
+    if ($invoice_no === '' && $status === 'final') {
+        return array('status' => 1, 'message' => 'Could not generate invoice number.');
+    }
+    if ($invoice_no !== '' && billing_invoice_number_exists($conn, $invoice_no, $edit_id)) {
+        return array('status' => 1, 'message' => 'Invoice number already exists. Refresh the page and try again.');
     }
 
     $esc_date = mysqli_real_escape_string($conn, $invoice_date);

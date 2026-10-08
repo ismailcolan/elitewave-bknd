@@ -99,9 +99,9 @@
 	<script src="javascripts/dropzone.js" type="text/javascript"></script>
 	<script src="javascripts/jquery.nestable.js" type="text/javascript"></script>
 	<script src="javascripts/main.js?v=20260918phrasesearch" type="text/javascript"></script>
-	<script src="javascripts/ew-list-layout.js?v=20260918searchfix" type="text/javascript"></script>
+	<script src="javascripts/ew-list-layout.js?v=20261001dbbackup" type="text/javascript"></script>
 	<script src="javascripts/ew-table-drag-scroll.js?v=20260909fix" type="text/javascript"></script>
-	<script src="javascripts/ew-pages-v2.js?v=20260921modalclose" type="text/javascript"></script>
+	<script src="javascripts/ew-pages-v2.js?v=20260930revertmodalfoot" type="text/javascript"></script>
 	<script src="javascripts/respond.js" type="text/javascript"></script>
 	<script src="javascripts/highcharts.js" type="text/javascript"></script>
 	<script src="javascripts/jSignature.js" type="text/javascript"></script>

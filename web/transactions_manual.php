@@ -5,7 +5,9 @@ require_once('include/gst_tax_functions.php');
 require_once('include/billing_functions.php');
 require_once('include/quotation_functions.php');
 require_once('include/vehicle_type_helpers.php');
+require_once('include/cfs_master_helpers.php');
 ew_vehicle_type_ensure_schema($conn);
+ew_cfs_master_ensure_schema($conn);
 $booking_vehicle_type_dims = ew_vehicle_type_booking_dims_lookup($conn);
 $booking_vehicle_type_dims_json = json_encode($booking_vehicle_type_dims, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS);
 if ($booking_vehicle_type_dims_json === false) {
@@ -122,6 +124,21 @@ if ($booking_clients_json === false) {
 			width: 100%;
 			flex-wrap: wrap;
 			/* justify-content: end; */
+		}
+
+		.ew-cfs-location-row {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			align-items: stretch;
+		}
+		.ew-cfs-kind-select {
+			flex: 0 0 132px;
+			max-width: 160px;
+		}
+		.ew-cfs-location-row .ew-cfs-value-field {
+			flex: 1 1 180px;
+			min-width: 0;
 		}
 
 		.volumetric_width {
@@ -895,33 +912,16 @@ if ($booking_clients_json === false) {
 														<option value="8" <?php if ($row['status'] == 8) echo "selected"; ?>>Consignment Delivered Successfully</option>
 													</select>
 										</div>
-										<div class="ew-field" id="ftl_menu" style="display:none;">
-											<label class="control-label">FTL Type <span class="req-star">*</span></label>
-													<select class="dropp form-control" role="menu" aria-labelledby="menu1" id="dropp">
-														<option value="" selected="true" disabled="disabled">Select Truck Type...</option>
-														<option value="Single Axle Vehicle: 07MT" <?php if ("Single Axle Vehicle: 07MT" == $row['ftl_type']) echo "selected"; ?>>Single Axle Vehicle: 07MT</option>
-														<option value="Multi Axle Vehicle : 10MT/14MT/17MT" <?php if ("Multi Axle Vehicle : 10MT/14MT/17MT" == $row['ftl_type']) echo "selected"; ?>>Multi Axle Vehicle : 10MT/14MT/17MT</option>
-														<option value="22ft Vehicle : 07MT" <?php if ("22ft Vehicle : 07MT" == $row['ftl_type']) echo "selected"; ?>> 22ft Vehicle : 07MT</option>
-														<option value="18ft Vehicle : 06MT" <?php if ("18ft Vehicle : 06MT" == $row['ftl_type']) echo "selected"; ?>>18ft Vehicle : 06MT</option>
-														<option value="Eicher 19 Vehicle : 7MT/8MT/9MT" <?php if ("Eicher 19 Vehicle : 7MT/8MT/9MT" == $row['ftl_type']) echo "selected"; ?>>Eicher 19 Vehicle : 7MT/8MT/9MT</option>
-														<option value="Eicher 17 Vehicle : 5MT" <?php if ("Eicher 17 Vehicle : 5MT" == $row['ftl_type']) echo "selected"; ?>>Eicher 17 Vehicle : 5MT</option>
-														<option value="Eicher 19 Vechicle:4MT" <?php if ("Eicher 19 Vechicle:4MT" == $row['ftl_type']) echo "selected"; ?>>Eicher 19 Vechicle:4MT</option>
-													</select>
-										</div>
-										<div class="ew-field" id="train_type" style="display:none;">
-											<label class="control-label">Train Type <span class="req-star">*</span></label>
-													<select name="train_name" class="train_type form-control" role="menu" aria-labelledby="menu1" id="train_type_sel">
-														<option value="" selected="true" disabled="disabled">Select Train Type...</option>
-														<option value="1" <?php if ("1" == $row['train_type']) echo "selected"; ?>>Rajdhani Express</option>
-														<option value="2" <?php if ("2" == $row['train_type']) echo "selected"; ?>>Others</option>
-													</select>
-										</div>
-										<div class="ew-field" id="other_train_field">
-												<?php if (!empty($row['other_train_name'])) { ?>
-													<label class="control-label">Other Train Name</label>
-													<input type="text" name="other_train_name" id="other_train_name" class="form-control" placeholder="Enter Train Name" value="<?php echo htmlspecialchars($row['other_train_name']); ?>">
-												<?php } ?>
-										</div>
+										<?php /* FTL Type & Train Type dropdowns temporarily disabled — values kept for save */ ?>
+										<input type="hidden" name="train_name" id="train_name_hidden" value="<?php echo htmlspecialchars($row['train_type'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+										<?php if (!empty($row['other_train_name'])) { ?>
+										<input type="hidden" name="other_train_name" value="<?php echo htmlspecialchars($row['other_train_name'], ENT_QUOTES, 'UTF-8'); ?>">
+										<?php } ?>
+										<?php /*
+										<div class="ew-field" id="ftl_menu" style="display:none;">...</div>
+										<div class="ew-field" id="train_type" style="display:none;">...</div>
+										<div class="ew-field" id="other_train_field">...</div>
+										*/ ?>
 									</div>
 								</div>
 
@@ -1097,7 +1097,7 @@ if ($booking_clients_json === false) {
 																<select name="type_of_pkg[]" id="type_of_pkg<?php echo $i; ?>" class="form-control pkg-row-select"<?php echo ($i === 1) ? ' required' : ''; ?>>
 																	<option value="">Select Package Type</option>
 																	<?php foreach ($pkg_list as $pkg_r) { ?>
-																		<option value="<?php echo (int) $pkg_r['package_id']; ?>" <?php if (($invoice_row['type_of_pkge'] ?? '') == $pkg_r['package_id']) echo 'selected'; ?>><?php echo htmlspecialchars($pkg_r['package_code']); ?></option>
+																		<option value="<?php echo (int) $pkg_r['package_id']; ?>" <?php if (ew_package_type_matches_stored($invoice_row['type_of_pkge'] ?? '', $pkg_r['package_id'], $pkg_r['package_code'])) echo 'selected'; ?>><?php echo htmlspecialchars($pkg_r['package_code']); ?></option>
 																	<?php } ?>
 																</select>
 															</td>
@@ -1152,9 +1152,9 @@ if ($booking_clients_json === false) {
 													<label class="control-label">Description Of Goods</label>
 													<textarea name="description_of_goods" id="description_of_goods" class="form-control" rows="2"><?php echo htmlspecialchars($row['description_of_goods'] ?? ''); ?></textarea>
 												</div>
-												<div class="ew-field">
+												<div class="ew-field span-2">
 													<label class="control-label">CFS / Port / Factory / Warehouse</label>
-													<input type="text" name="cfs" id="cfs" value="<?php echo htmlspecialchars($row['cfs'] ?? ''); ?>" class="form-control">
+													<?php echo ew_booking_cfs_controls_html($conn, $row['cfs'] ?? ''); ?>
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Part Number / Article Name / Article Number</label>
@@ -1722,6 +1722,19 @@ if ($booking_clients_json === false) {
 			}
 		}
 
+		function bookingConsigneeOptions(consignorId) {
+			var out = [];
+			if (!bookingClients || !bookingClients.length) {
+				return out;
+			}
+			$.each(bookingClients, function(i, c) {
+				if (String(c.id) !== String(consignorId)) {
+					out.push(c);
+				}
+			});
+			return out;
+		}
+
 		function loadMappedConsignees(consignorId, selected) {
 			if (!consignorId) {
 				fillConsigneeNameSelect([], '', true);
@@ -1734,8 +1747,18 @@ if ($booking_clients_json === false) {
 			}, function(rows) {
 				rows = rows || [];
 				var hasMapped = rows.length > 0;
-				fillConsigneeNameSelect(rows, hasMapped ? (selected || '') : '', !hasMapped);
-				if (!hasMapped) {
+				if (hasMapped) {
+					fillConsigneeNameSelect(rows, selected || '', false);
+				} else if (selected) {
+					var label = $('#consignee_name option[value="' + selected + '"]').text() || '';
+					if (label) {
+						fillConsigneeNameSelect([{ id: selected, name: label }], selected, false);
+					} else {
+						fillConsigneeNameSelect(bookingConsigneeOptions(consignorId), selected, false);
+					}
+					$('#consignee').val(String(selected));
+				} else {
+					fillConsigneeNameSelect(bookingConsigneeOptions(consignorId), '', false);
 					$('#consignee').val('');
 				}
 			});
@@ -1941,82 +1964,28 @@ if ($booking_clients_json === false) {
 			});
 		}
 
-		//Auto Calculation Part
-		var ftl_flag = '<?php echo $ftl_type; ?>';
-		if (ftl_flag != '') {
-			$("#ftl_menu").show();
+		//Auto Calculation Part — FTL / Train Type UI disabled; Rajdhani row follows transport mode only
+		function ewSyncRajdhaniRowForTransport() {
+			var transport_type = $('#mode_of_trasport :selected').val();
+			if (transport_type == '2') {
+				$("#rajdhani_ex").show();
+			} else {
+				$("#rajdhani_ex").hide();
+			}
 		}
-
+		ewSyncRajdhaniRowForTransport();
 		refreshGstCalculation();
 
-		//Train Type Selected
-		var train_type_sel = $('#train_type_sel :selected').val();
-		if (train_type_sel) {
-			$("#rajdhani_ex").show();
-		} else {
-
-			$("#rajdhani_ex").hide();
-		}
-
-
-		//Show FTL Dropdown 
-
 		$(document).on('change', '#mode_of_trasport', function() {
-			//alert("change");
-			var transport_type = $('#mode_of_trasport :selected').val();
-			$('#train_type_sel').prop('selectedIndex', 0);
-
-			//alert(transport_type);
-			if (transport_type == '7') {
-				$("#ftl_menu").show();
-				$("#train_type").hide();
-				// $('#other_train_field').empty(); // other train name
-			} else if (transport_type == '2') {
-				$("#train_type").show();
-				$("#ftl_menu").hide();
-
-			} else {
-				$("#ftl_menu").hide();
-				$("#train_type").hide();
-				$("#rajdhani_ex").hide();
-				// $('#other_train_field').empty(); // other train name
-			}
-
-
-			// $('#truck_type').val(sel_ids);
-			// $('#select-payment-mode').addClass('show')
-
-		});
-		//End
-
-		//FTL Type Dropdown
-
-		$(document).on('change', '#dropp', function() {
-			//alert("change");
-			var sel_ids = $('#dropp :selected').text();
-			///alert(sel_ids);
-
-			$('#truck_type').val(sel_ids);
-			$('#select-payment-mode').addClass('show')
-
+			ewSyncRajdhaniRowForTransport();
+			load_payment_info();
 		});
 
-
-
-		//Show Train type in  Dropdown 
-		$(document).on('change', '#train_type_sel', function() {
-
-			var transport_type = $('#train_type_sel :selected').val();
-			//  alert(transport_type);
-			//  alert(get_train_type);
-			if (transport_type == '1') {
-				$("#rajdhani_ex").show();
-				$('#other_train_field').empty();
-			} else {
-				$("#rajdhani_ex").hide();
-				$('#other_train_field').html('<label class="control-label">Other Train Name</label><input type="text" name="other_train_name" id="other_train_name" class="form-control" placeholder="Enter Train Name" value="<?php echo htmlspecialchars($row['other_train_name'] ?? ''); ?>">');
-			}
-		});
+		/* FTL Type & Train Type dropdown logic disabled
+		var ftl_flag = ...
+		$(document).on('change', '#dropp', ...
+		$(document).on('change', '#train_type_sel', ...
+		*/
 
 
 		function handleSelectChange(event) {
@@ -2120,9 +2089,8 @@ if ($booking_clients_json === false) {
 		//Sum Amount
 		function sum_amount() {
 			var transport_type_gst = $('#mode_of_trasport :selected').val();
-			var trainType = $("#train_type_sel :selected").val();
 			var r_ch = $("#rajdhani_charges").val();
-			if (transport_type_gst != 2 && trainType != 1 || transport_type_gst != 2) {
+			if (transport_type_gst != '2') {
 				r_ch = 0;
 				$("#rajdhani_charges").val(r_ch);
 			}
@@ -2326,7 +2294,7 @@ if ($booking_clients_json === false) {
 							$("#crane_forklift_chrg").val(parseFloat(pay_inv_data.crane_fork_lift_chrgs).toFixed(2));
 							$("#doc_amount").val(parseFloat(pay_inv_data.doc_chrgs).toFixed(2));
 							$("#labour_amount").val(parseFloat(pay_inv_data.labour_charges).toFixed(2));
-							$("#other_amount").val(parseFloat(pay_inv_data.other_chrgs).toFixed(2));
+							$("#other_amount").val('0');
 
 							if ($("#mode_of_trasport").val() != "") {
 								if ($("#mode_of_trasport").val() == 1) { // air
@@ -2381,6 +2349,41 @@ if ($booking_clients_json === false) {
 		}
 
 		$(document).on('change', '#vehicle_type', syncVehicleTypeDimsDisplay);
+
+		function syncCfsBookingField() {
+			if (!$('#cfs_location_wrap').length) {
+				return;
+			}
+			var kind = $('#cfs_kind').val();
+			var val = '';
+			if (kind === 'cfs') {
+				val = $.trim($('#cfs_master_select').val() || '');
+			} else {
+				val = $.trim($('#cfs_text_input').val() || '');
+			}
+			$('#cfs').val(val);
+		}
+
+		function applyCfsKindUi() {
+			if (!$('#cfs_location_wrap').length) {
+				return;
+			}
+			var kind = $('#cfs_kind').val();
+			if (kind === 'cfs') {
+				$('#cfs_master_select').show().prop('disabled', false);
+				$('#cfs_text_input').hide().prop('disabled', true);
+			} else {
+				$('#cfs_master_select').hide().prop('disabled', true);
+				$('#cfs_text_input').show().prop('disabled', false);
+			}
+			syncCfsBookingField();
+		}
+
+		$(document).on('change', '#cfs_kind', function() {
+			applyCfsKindUi();
+		});
+		$(document).on('change input', '#cfs_master_select, #cfs_text_input', syncCfsBookingField);
+		applyCfsKindUi();
 
 		$(function() {
 			syncVehicleTypeDimsDisplay();
@@ -2560,34 +2563,7 @@ if ($booking_clients_json === false) {
 			}
 			console.log("Test OLd1,", load_party_inv);
 
-			//Show FTL Dropdown 
-			$(document).on('change', '#mode_of_trasport', function() {
-				// /alert("change");
-				var transport_type = $('#mode_of_trasport :selected').val();
-				//alert(transport_type);
-				if (transport_type == '7') {
-					$("#ftl_menu").show();
-				} else {
-					$("#ftl_menu").hide();
-				}
-				//Payment AutoFetch Function
-				load_payment_info()
-				// $('#truck_type').val(sel_ids);
-				// $('#select-payment-mode').addClass('show')
-
-			});
-			//End
-			//FTL Type 
-			$(document).on('change', '#dropp', function() {
-				//alert("change");
-				var sel_ids = $('#dropp :selected').text();
-				//alert(sel_ids);
-
-				$('#truck_type').val(sel_ids);
-				$('#select-payment-mode').addClass('show')
-
-			});
-			//End
+			/* FTL / Train Type handlers disabled — see ewSyncRajdhaniRowForTransport above */
 
 			$('.grn_no_popup').hide();
 
@@ -3388,6 +3364,7 @@ if ($booking_clients_json === false) {
 
 				var edit_id = $('#edit_id').val();
 				var id = attachment_id;
+				syncCfsBookingField();
 				var formData = new FormData(document.getElementById("grn_details"));
 				formData.append('del_id', id);
 				formData.append('length', length);
@@ -3655,7 +3632,7 @@ if ($booking_clients_json === false) {
 							<span class="grn-booked-value" id="show_grn_no"></span>
 						</div>
 						<div class="grn-booked-row" id="show_tracking_code_wrap" style="display:none;">
-							<span class="grn-booked-label">Transaction Code</span>
+							<span class="grn-booked-label">Tracking code</span>
 							<span class="grn-booked-value" id="show_tracking_code"></span>
 						</div>
 					</div>

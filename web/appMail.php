@@ -339,25 +339,45 @@ $mail->Debugoutput = 'html';
 /**
  * Elite Wave branded HTML mail to customer with optional PDF attachment (quotations, etc.).
  */
-function sendAppMailWithAttachment($to_name, $to_mail, $subject, $msg, $attachment_path = '', $attachment_name = '')
+function sendAppMailWithAttachment($to_name, $to_mail, $subject, $msg, $attachment_path = '', $attachment_name = '', $smtp_opts = null)
 {
 	$to_mail = trim((string) $to_mail);
 	if ($to_mail === '' || !filter_var($to_mail, FILTER_VALIDATE_EMAIL)) {
 		return array('ok' => false, 'error' => 'Invalid or missing recipient email.');
 	}
 
+	$mail_defaults = array(
+		'host' => 'smtpout.secureserver.net',
+		'port' => 587,
+		'secure' => 'tls',
+		'username' => 'info@elitewave360.in',
+		'password' => 'EliteWave@360#',
+		'from' => 'info@elitewave360.in',
+		'from_name' => 'Elite Wave 360',
+		'cc' => array(
+			array('info@elitewave360.in', 'Elite Wave 360'),
+		),
+	);
+	$mail_cfg = is_array($smtp_opts) ? array_merge($mail_defaults, $smtp_opts) : $mail_defaults;
+
 	$mail = new PHPMailer;
 	$mail->isSMTP();
-	$mail->Host = 'smtpout.secureserver.net';
+	$mail->Host = $mail_cfg['host'];
 	$mail->SMTPAuth = true;
-	$mail->Username = 'info@elitewave360.in';
-	$mail->Password = 'EliteWave@360#';
-	$mail->SMTPSecure = 'tls';
-	$mail->Port = 587;
-	$mail->From = 'info@elitewave360.in';
-	$mail->FromName = 'Elite Wave 360';
+	$mail->Username = $mail_cfg['username'];
+	$mail->Password = $mail_cfg['password'];
+	$mail->SMTPSecure = $mail_cfg['secure'];
+	$mail->Port = (int) $mail_cfg['port'];
+	$mail->From = $mail_cfg['from'];
+	$mail->FromName = $mail_cfg['from_name'];
 	$mail->addAddress($to_mail, $to_name);
-	$mail->addCC('info@elitewave360.in', 'Elite Wave 360');
+	foreach ($mail_cfg['cc'] as $cc_row) {
+		if (!is_array($cc_row) || empty($cc_row[0])) {
+			continue;
+		}
+		$cc_name = isset($cc_row[1]) ? $cc_row[1] : '';
+		$mail->addCC($cc_row[0], $cc_name);
+	}
 
 	if ($attachment_path !== '' && is_file($attachment_path)) {
 		if ($attachment_name !== '') {

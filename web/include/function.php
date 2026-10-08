@@ -22,36 +22,37 @@ function get_trans_status($val)
 		return 'Consignment Delivered Successfully';
 }
 
-function transaction_list_status_badge($booking, $status)
+/**
+ * Delivery context for list/status badges (partial vs full delivered).
+ */
+function ew_transaction_badge_opts_for_row($conn, $row, $total_packages = 0)
 {
-	if ((string) $booking === '1') {
-		return '<span class="txn-status-badge txn-status-cancelled" title="Consignment Cancelled">Cancelled</span>';
-	}
-	$status = (int) $status;
-	$full_label = get_trans_status($status);
-	if ($full_label === null || $full_label === '') {
-		$full_label = 'Unknown';
-	}
-	$short_map = array(
-		1 => 'Booked',
-		2 => 'Picked Up',
-		3 => 'In Transit',
-		4 => 'In Transit',
-		5 => 'In Transit',
-		6 => 'At Destination',
-		7 => 'Out for Delivery',
-		8 => 'Delivered',
+	$opts = array(
+		'delivery_type' => '',
+		'delivered_packages' => 0,
+		'total_packages' => (int) $total_packages,
 	);
-	$short_label = isset($short_map[$status]) ? $short_map[$status] : $full_label;
-	$class = 'txn-status-default';
-	if ($status === 1) {
-		$class = 'txn-status-booked';
-	} elseif ($status === 8) {
-		$class = 'txn-status-delivered';
-	} elseif ($status >= 2 && $status <= 7) {
-		$class = 'txn-status-transit';
+	$grn_no = isset($row['grn_no']) ? (string) $row['grn_no'] : '';
+	if ($grn_no === '') {
+		return $opts;
 	}
-	return '<span class="txn-status-badge ' . $class . '" title="' . htmlspecialchars($full_label) . '">' . htmlspecialchars($short_label) . '</span>';
+	$delivery_q = mysqli_query(
+		$conn,
+		"SELECT delivery_type, delivered_packages FROM transaction_status_log WHERE grn_no='"
+		. mysqli_real_escape_string($conn, $grn_no)
+		. "' AND to_status='8' ORDER BY sheet_id DESC LIMIT 1"
+	);
+	if ($delivery_q && ($delivery_r = mysqli_fetch_assoc($delivery_q))) {
+		$opts['delivery_type'] = !empty($delivery_r['delivery_type']) ? (string) $delivery_r['delivery_type'] : '';
+		$opts['delivered_packages'] = !empty($delivery_r['delivered_packages']) ? (int) $delivery_r['delivered_packages'] : 0;
+	}
+	return $opts;
+}
+
+/** List of Consignments — same labels/colors as Transaction Status (Transit-1, Transit-2, …). */
+function transaction_list_status_badge($booking, $status, $opts = array())
+{
+	return transaction_status_badge($booking, $status, $opts);
 }
 
 /**
@@ -208,10 +209,100 @@ function get_statename($conn, $id)
 
 function get_city_name($conn, $id)
 {
+	$id = (int) $id;
+	if ($id <= 0) {
+		return '';
+	}
 	$query = "select * from city where city_id='$id'";
 	$result = mysqli_query($conn, $query);
 	$row = mysqli_fetch_array($result);
-	return $row['city_name'];
+	return $row['city_name'] ?? '';
+}
+
+function ew_city_dropdown_options_html($conn)
+{
+	$html = '';
+	$q = mysqli_query($conn, 'SELECT city_id, city_name FROM city WHERE status=0 ORDER BY city_name ASC');
+	if ($q) {
+		while ($row = mysqli_fetch_assoc($q)) {
+			$id = (int) ($row['city_id'] ?? 0);
+			if ($id <= 0) {
+				continue;
+			}
+			$name = htmlspecialchars((string) ($row['city_name'] ?? ''), ENT_QUOTES, 'UTF-8');
+			$html .= '<option value="' . $id . '">' . $name . '</option>';
+		}
+	}
+	return $html;
+}
+
+function ew_transport_loading_point_field_html($conn, $point_no)
+{
+	$point_no = (int) $point_no;
+	if ($point_no < 1 || $point_no > 4) {
+		return '';
+	}
+	static $options = null;
+	if ($options === null) {
+		$options = ew_city_dropdown_options_html($conn);
+	}
+	$label = 'Loading Point ' . $point_no . ' :';
+
+	return '<div class="form-group">'
+		. '<label class="control-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</label>'
+		. '<select name="loading_point' . $point_no . '" id="loading_point' . $point_no . '" class="form-control">'
+		. '<option value="">Select city</option>' . $options
+		. '</select></div>';
+}
+
+/** Train/flight loading point from POST (city id dropdown or legacy label fields). */
+function ew_loading_point_from_post($conn, $post, $point_no)
+{
+	$point_no = (int) $point_no;
+	$key = 'loading_point' . $point_no;
+	$raw = trim((string) ($post[$key] ?? ''));
+	if ($raw !== '' && ctype_digit($raw) && (int) $raw > 0) {
+		return (int) $raw;
+	}
+	return ew_resolve_loading_point_city_id($conn, '', $post[$key . '_id'] ?? '');
+}
+
+/** Train/flight loading point: city_id from hidden field or by matching city name label. */
+function ew_resolve_loading_point_city_id($conn, $city_id_raw, $city_label_raw)
+{
+	$city_id_raw = trim((string) $city_id_raw);
+	if ($city_id_raw !== '' && ctype_digit($city_id_raw) && (int) $city_id_raw > 0) {
+		return (int) $city_id_raw;
+	}
+	$label = trim((string) $city_label_raw);
+	if ($label === '') {
+		return null;
+	}
+	$esc = mysqli_real_escape_string($conn, $label);
+	$q = mysqli_query($conn, "SELECT city_id FROM city WHERE status=0 AND city_name='$esc' LIMIT 1");
+	if ($q && ($row = mysqli_fetch_assoc($q)) && (int) ($row['city_id'] ?? 0) > 0) {
+		return (int) $row['city_id'];
+	}
+	$q = mysqli_query($conn, "SELECT city_id FROM city WHERE status=0 AND LOWER(city_name)=LOWER('$esc') LIMIT 1");
+	if ($q && ($row = mysqli_fetch_assoc($q)) && (int) ($row['city_id'] ?? 0) > 0) {
+		return (int) $row['city_id'];
+	}
+	$q = mysqli_query(
+		$conn,
+		"SELECT city_id FROM city WHERE status=0 AND city_name LIKE '$esc%' ORDER BY CHAR_LENGTH(city_name) ASC, city_name ASC LIMIT 1"
+	);
+	if ($q && ($row = mysqli_fetch_assoc($q)) && (int) ($row['city_id'] ?? 0) > 0) {
+		return (int) $row['city_id'];
+	}
+	return null;
+}
+
+function ew_sql_nullable_int($value)
+{
+	if ($value === null || $value === '') {
+		return 'NULL';
+	}
+	return "'" . (int) $value . "'";
 }
 
 function ew_client_branch_ensure_schema($conn)
@@ -250,6 +341,40 @@ function ew_transaction_ensure_party_branch_columns($conn, $table_name)
 	$chk = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE 'bill_to_branch_id'");
 	if ($chk && mysqli_num_rows($chk) === 0) {
 		mysqli_query($conn, "ALTER TABLE `$table_name` ADD COLUMN `bill_to_branch_id` INT NOT NULL DEFAULT 0 AFTER `consignee_branch_id`");
+	}
+}
+
+/**
+ * Quarter tables cloned from `transaction` can miss columns/defaults added on live partitions.
+ * Align so add_new_consignment INSERT succeeds (Oct–Dec / Q4 bookings).
+ */
+function ew_transaction_ensure_booking_schema($conn, $table_name)
+{
+	$table_name = preg_replace('/[^a-z0-9_]/i', '', (string) $table_name);
+	if ($table_name === '' || strpos($table_name, 'transaction_') !== 0) {
+		return;
+	}
+	static $done = array();
+	if (!empty($done[$table_name])) {
+		return;
+	}
+	$done[$table_name] = true;
+
+	$chk = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE 'booking_time'");
+	if ($chk && mysqli_num_rows($chk) === 0) {
+		mysqli_query($conn, "ALTER TABLE `$table_name` ADD COLUMN `booking_time` VARCHAR(20) NULL DEFAULT NULL AFTER `grn_date`");
+	}
+
+	$alters = array(
+		'active_status' => 'MODIFY `active_status` INT(11) NULL DEFAULT 0',
+		'booking_status' => 'MODIFY `booking_status` VARCHAR(100) NULL DEFAULT NULL',
+		'frq_sent_status' => 'MODIFY `frq_sent_status` VARCHAR(100) NULL DEFAULT NULL',
+	);
+	foreach ($alters as $col => $sqlPart) {
+		$c = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE '$col'");
+		if ($c && mysqli_num_rows($c) > 0) {
+			mysqli_query($conn, "ALTER TABLE `$table_name` $sqlPart");
+		}
 	}
 }
 
@@ -529,6 +654,18 @@ function get_mode($conn, $id)
 	return $row['mode_type'];
 }
 
+/** @return array<int, string> */
+function ew_mode_group_options()
+{
+	return array(
+		'Premium Train Cargo',
+		'Premium Air Cargo',
+		'Ocean Cargo',
+		'Warehousing',
+		'Road Cargo',
+	);
+}
+
 function get_locality_name($conn, $id)
 {
 	$query = "select * from tv_localities where locality_id='$id'";
@@ -736,6 +873,20 @@ function ew_sql_not_cancelled_booking($column = 'booking_status')
 	return "($column IS NULL OR $column = '' OR $column = '0' OR $column != '1')";
 }
 
+/** Whether a stored type_of_pkge value matches a package master row (id or code label). */
+function ew_package_type_matches_stored($stored, $package_id, $package_code)
+{
+	$stored = trim((string) $stored);
+	if ($stored === '') {
+		return false;
+	}
+	$package_id = (int) $package_id;
+	if ($stored === (string) $package_id || (ctype_digit($stored) && (int) $stored === $package_id)) {
+		return true;
+	}
+	return strcasecmp($stored, trim((string) $package_code)) === 0;
+}
+
 /** Package code segment used in QR PNG filenames (from package master). */
 function ew_qr_package_code_for_file($conn, $package_id)
 {
@@ -812,11 +963,14 @@ function get_trans_table_name($conn, $date)
 			$db_creation = mysqli_query($conn, 'create table ' . $table_name[$i] . ' like ' . $table_main[$i]);
 			//	echo $i;
 			if ($i == 0) {
+				ew_transaction_ensure_booking_schema($conn, $table_name[$i]);
 				$val1 = mysqli_query($conn, 'SELECT * FROM transaction_tbls where table_name="' . $trans_tbl . '"');
 				$count1 = mysqli_num_rows($val1);
 				if ($count1 == 0)
 					$db_name_store = mysqli_query($conn, "insert into transaction_tbls(table_name,created_at) values ('$trans_tbl','$dates')");
 			}
+		} elseif ($i == 0) {
+			ew_transaction_ensure_booking_schema($conn, $table_name[$i]);
 		}
 	}
 	return $table_name;
@@ -1050,7 +1204,7 @@ function dec_name($name = '')
 }
 
 // Atomically gets the next GRN sequence number and increments the counter.
-// Use this ONLY at the moment of actually saving a booking.
+// Call immediately before INSERT; use rollback_last_grn_id() if that INSERT fails.
 function get_next_grn_id($conn, $seq_key)
 {
 	$seq_key = mysqli_real_escape_string($conn, $seq_key);
@@ -1059,6 +1213,48 @@ function get_next_grn_id($conn, $seq_key)
 	$r = mysqli_query($conn, "SELECT last_grn_id FROM grn_sequence WHERE seq_key='$seq_key'");
 	$row = mysqli_fetch_assoc($r);
 	return (int) $row['last_grn_id'];
+}
+
+// Undo one get_next_grn_id when booking INSERT did not succeed.
+function rollback_last_grn_id($conn, $seq_key)
+{
+	$seq_key = mysqli_real_escape_string($conn, $seq_key);
+	mysqli_query($conn, "UPDATE grn_sequence SET last_grn_id = GREATEST(last_grn_id - 1, 0) WHERE seq_key='$seq_key'");
+}
+
+function ew_grn_seq_key_for_booking($comp_grn_mode, $client_id)
+{
+	return ($comp_grn_mode === 'company') ? 'COMPANY' : (string) $client_id;
+}
+
+function ew_grn_no_from_id($billing_code, $id, $comp_grn_mode)
+{
+	$billing_code = strtoupper(trim($billing_code));
+	$id = (int) $id;
+	if ($comp_grn_mode === 'company') {
+		return $billing_code . sprintf('%04d', $id);
+	}
+	return $billing_code . sprintf('%05d', $id);
+}
+
+function ew_grn_numeric_id_from_no($grn_no)
+{
+	if (preg_match('/(\d+)\s*$/', trim($grn_no), $m)) {
+		return (int) $m[1];
+	}
+	return 0;
+}
+
+// After a successful manual booking, keep sequence at least as high as the GCN used.
+function sync_grn_sequence_min_id($conn, $seq_key, $used_id)
+{
+	$used_id = (int) $used_id;
+	if ($used_id <= 0) {
+		return;
+	}
+	$seq_key = mysqli_real_escape_string($conn, $seq_key);
+	mysqli_query($conn, "INSERT INTO grn_sequence (seq_key, last_grn_id) VALUES ('$seq_key', $used_id)
+		ON DUPLICATE KEY UPDATE last_grn_id = GREATEST(last_grn_id, $used_id)");
 }
 
 // Read-only preview of what the next GRN number WILL be, without incrementing.
@@ -1100,122 +1296,16 @@ function get_tracking_message($conn, $row)
     $consignee = get_client_name($conn, $row['consignee']);
 
     $mode = get_mode($conn, $row['mode_of_transportation']);
+    $mode_id = (int) ($row['mode_of_transportation'] ?? 0);
 
-    //=============================
-    // Origin City Details
-    //=============================
-    $originCity = mysqli_fetch_assoc(
-        mysqli_query(
-            $conn,
-            "SELECT * FROM city WHERE city_id='".$row['origin']."'"
-        )
-    );
+    if (!function_exists('city_transport_loading_hub_for_booking')) {
+        require_once __DIR__ . '/city_transport_endpoint_helpers.php';
+    }
 
-    //=============================
-    // Destination City Details
-    //=============================
-    $destinationCity = mysqli_fetch_assoc(
-        mysqli_query(
-            $conn,
-            "SELECT * FROM city WHERE city_id='".$row['destination']."'"
-        )
-    );
-
-//=============================
-// Loading Hub (Based on Transport Mode)
-//=============================
-
-$modeLower = strtolower($mode);
-
-if (strpos($modeLower, 'air') !== false) {
-
-    $loadingHub = !empty($originCity['airport'])
-        ? $originCity['airport']
-        : $origin;
-
-}
-elseif (strpos($modeLower, 'train') !== false) {
-
-    $loadingHub = !empty($originCity['railway_station'])
-        ? $originCity['railway_station']
-        : $origin;
-
-}
-elseif (
-    strpos($modeLower, 'road') !== false ||
-    strpos($modeLower, 'surface') !== false ||
-    strpos($modeLower, 'truck') !== false
-) {
-
-    $loadingHub = !empty($originCity['warehouse'])
-        ? $originCity['warehouse']
-        : $origin;
-
-}
-elseif (
-    strpos($modeLower, 'sea') !== false ||
-    strpos($modeLower, 'port') !== false
-) {
-
-    $loadingHub = !empty($originCity['port'])
-        ? $originCity['port']
-        : $origin;
-
-}
-else {
-
-    $loadingHub = !empty($originCity['unloading_point'])
-        ? $originCity['unloading_point']
-        : $origin;
-
-}
-
- //=============================
-// Destination Hub (Based on Transport Mode)
-//=============================
-
-if (strpos($modeLower, 'air') !== false) {
-
-    $destinationHub = !empty($destinationCity['airport'])
-        ? $destinationCity['airport']
-        : $destination;
-
-}
-elseif (strpos($modeLower, 'train') !== false) {
-
-    $destinationHub = !empty($destinationCity['railway_station'])
-        ? $destinationCity['railway_station']
-        : $destination;
-
-}
-elseif (
-    strpos($modeLower, 'road') !== false ||
-    strpos($modeLower, 'surface') !== false ||
-    strpos($modeLower, 'truck') !== false
-) {
-
-    $destinationHub = !empty($destinationCity['warehouse'])
-        ? $destinationCity['warehouse']
-        : $destination;
-
-}
-elseif (
-    strpos($modeLower, 'sea') !== false ||
-    strpos($modeLower, 'port') !== false
-) {
-
-    $destinationHub = !empty($destinationCity['port'])
-        ? $destinationCity['port']
-        : $destination;
-
-}
-else {
-
-    $destinationHub = !empty($destinationCity['unloading_point'])
-        ? $destinationCity['unloading_point']
-        : $destination;
-
-}
+    $loadingLoc = city_transport_endpoint_tracking_location($conn, (int) $row['origin'], $mode_id);
+    $destLoc = city_transport_endpoint_tracking_location($conn, (int) $row['destination'], $mode_id);
+    $loadingHub = $loadingLoc['label'] !== '' ? $loadingLoc['label'] : $origin;
+    $destinationHub = $destLoc['label'] !== '' ? $destLoc['label'] : $destination;
 
 $data = array(
 
@@ -1233,7 +1323,11 @@ $data = array(
 
     "loadingHub" => $loadingHub,
 
-    "destinationHub" => $destinationHub
+    "destinationHub" => $destinationHub,
+
+    "loadingSuffix" => $loadingLoc['suffix_html'],
+
+    "destinationSuffix" => $destLoc['suffix_html'],
 
 );
 
@@ -1336,6 +1430,157 @@ function ew_normalize_input_date($value)
 		return '';
 	}
 	return date('d-m-Y', $ts);
+}
+
+/** Convert UI date (dd-mm-yyyy or dd/mm/yyyy) to MySQL DATE (yyyy-mm-dd). */
+function ew_parse_input_date_to_mysql($value)
+{
+	$value = trim(str_replace('/', '-', (string) $value));
+	if ($value === '' || $value === '0000-00-00') {
+		return '';
+	}
+	if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+		return $value;
+	}
+	if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $value)) {
+		$dt = DateTime::createFromFormat('d-m-Y', $value);
+		if ($dt instanceof DateTime) {
+			return $dt->format('Y-m-d');
+		}
+	}
+	$ts = strtotime($value);
+	if ($ts !== false && $ts > 0) {
+		return date('Y-m-d', $ts);
+	}
+	return '';
+}
+
+/**
+ * Replace all package/invoice lines for a booking inside a DB transaction (rollback on failure).
+ *
+ * @param array $rows Each row: no_of_pkge, type_of_pkge, party_invoice_no, party_invoice_date (Y-m-d or ''),
+ *                    said_contents, qty, gross_weight, charged_weight
+ */
+function ew_replace_transaction_invoice_rows($conn, $invoice_table, $transaction_id, $rows, $meta, &$error_out = '')
+{
+	$invoice_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $invoice_table);
+	$transaction_id = (int) $transaction_id;
+	if ($invoice_table === '' || $transaction_id <= 0) {
+		$error_out = 'Invalid invoice table or transaction.';
+		return false;
+	}
+
+	$created_at = mysqli_real_escape_string($conn, (string) ($meta['created_at'] ?? date('d-m-Y')));
+	$created_by = (int) ($meta['created_by'] ?? 0);
+
+	mysqli_begin_transaction($conn);
+	if (!mysqli_query($conn, "DELETE FROM `$invoice_table` WHERE transaction_id='$transaction_id'")) {
+		$error_out = mysqli_error($conn);
+		mysqli_rollback($conn);
+		return false;
+	}
+
+	foreach ($rows as $row) {
+		$no_of_pkge = mysqli_real_escape_string($conn, (string) ($row['no_of_pkge'] ?? ''));
+		$type_of_pkge = mysqli_real_escape_string($conn, (string) ($row['type_of_pkge'] ?? ''));
+		$party_invoice_no = mysqli_real_escape_string($conn, (string) ($row['party_invoice_no'] ?? ''));
+		$said_contents = mysqli_real_escape_string($conn, (string) ($row['said_contents'] ?? ''));
+		$qty = mysqli_real_escape_string($conn, (string) ($row['qty'] ?? ''));
+		$gross_weight = mysqli_real_escape_string($conn, (string) ($row['gross_weight'] ?? ''));
+		$charged_weight = mysqli_real_escape_string($conn, (string) ($row['charged_weight'] ?? ''));
+
+		$party_date_raw = trim((string) ($row['party_invoice_date'] ?? ''));
+		if ($party_date_raw !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $party_date_raw)) {
+			$party_date_raw = ew_parse_input_date_to_mysql($party_date_raw);
+		}
+		$party_inv_date_sql = ($party_date_raw !== '')
+			? "'" . mysqli_real_escape_string($conn, $party_date_raw) . "'"
+			: 'NULL';
+
+		$sql = "INSERT INTO `$invoice_table`
+			(transaction_id, no_of_pkge, type_of_pkge, party_invoice_no, party_invoice_date, said_contents, qty, gross_weight, charged_weight, created_at, created_by, status)
+			VALUES ('$transaction_id', '$no_of_pkge', '$type_of_pkge', '$party_invoice_no', $party_inv_date_sql, '$said_contents', '$qty', '$gross_weight', '$charged_weight', '$created_at', '$created_by', '0')";
+		if (!mysqli_query($conn, $sql)) {
+			$error_out = mysqli_error($conn);
+			mysqli_rollback($conn);
+			return false;
+		}
+	}
+
+	mysqli_commit($conn);
+	return true;
+}
+
+/** Standard auto-code prefix (replaces legacy GE / GEC). */
+function ew_entity_code_prefix()
+{
+	return 'EW';
+}
+
+function ew_format_entity_code($number, $pad = 3)
+{
+	return ew_entity_code_prefix() . sprintf('%0' . max(1, (int) $pad) . 'd', (int) $number);
+}
+
+/**
+ * Next city code from city_code_id sequence (e.g. EW001).
+ *
+ * @return array{city_code_id:int,city_code:string}
+ */
+function ew_city_next_code($conn)
+{
+	$row = mysqli_fetch_array(mysqli_query($conn, 'SELECT MAX(city_code_id) AS code_id FROM city'));
+	$id = (int) ($row['code_id'] ?? 0) + 1;
+
+	return array(
+		'city_code_id' => $id,
+		'city_code' => ew_format_entity_code($id, 3),
+	);
+}
+
+/**
+ * Next branch code from max numeric suffix on GE/GEC/EW codes (e.g. EW1011).
+ */
+function ew_branch_next_code($conn)
+{
+	$max = 1000;
+	$res = mysqli_query($conn, 'SELECT branch_code FROM branch');
+	if ($res) {
+		while ($row = mysqli_fetch_assoc($res)) {
+			$code = strtoupper(trim((string) ($row['branch_code'] ?? '')));
+			if (preg_match('/^(?:GE|GEC|EW)(\d+)$/', $code, $m)) {
+				$n = (int) $m[1];
+				if ($n > $max) {
+					$max = $n;
+				}
+			}
+		}
+	}
+
+	return ew_format_entity_code($max + 1, 4);
+}
+
+/** Normalize stored codes GE/GEC### → EW### (same numeric part). */
+function ew_normalize_legacy_entity_code($code)
+{
+	$code = strtoupper(trim((string) $code));
+	if ($code === '') {
+		return '';
+	}
+	if (preg_match('/^(?:GE|GEC|EW)(\d+)$/', $code, $m)) {
+		$num = (int) $m[1];
+		$pad = strlen($m[1]);
+		if ($pad < 3) {
+			$pad = 3;
+		}
+		if ($num >= 1000) {
+			$pad = max(4, $pad);
+		}
+
+		return ew_format_entity_code($num, $pad);
+	}
+
+	return $code;
 }
 
 function ew_eway_attachment_web_root()

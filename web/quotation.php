@@ -5,7 +5,8 @@ require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/quotation_functions.php');
 require_once('include/vehicle_type_helpers.php');
-
+require_once('include/cfs_master_helpers.php');
+ew_cfs_master_ensure_schema($conn);
 ensure_rate_quotation_tables($conn);
 ew_vehicle_type_ensure_schema($conn);
 
@@ -26,6 +27,14 @@ if ($id > 0) {
 	$master = quotation_get($conn, $id);
 	if (!$master) {
 		header('Location: quotation_list.php');
+		exit;
+	}
+	if (quotation_is_consignor_multi_dest_quote_type($master['quote_type'] ?? '')) {
+		header('Location: quotation_consignor_multi_dest.php?id=' . $id);
+		exit;
+	}
+	if (quotation_is_multi_mode_quote_type($master['quote_type'] ?? '')) {
+		header('Location: quotation_all_modes.php?id=' . $id);
 		exit;
 	}
 	$db_lines = quotation_get_lines($conn, $id);
@@ -79,6 +88,7 @@ if ($id > 0) {
 
 $status = $master['status'] ?? 'draft';
 $editable = quotation_is_editable($status);
+$form_editable = quotation_form_editable($status);
 $can_pdf = in_array($status, array('approved', 'sent', 'customer_confirmed', 'converted'), true);
 
 $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM client WHERE status=0 ORDER BY client_company_name ASC");
@@ -153,6 +163,9 @@ function ew_quotation_status_pill_class($status)
 		#charges_table input.form-control, #charges_table select.form-control { height: 34px; }
 		.ew-form-footer--quotation { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 		.quotation-readonly .form-control:not([readonly]) { pointer-events: none; background: #f8fafc; }
+		.ew-cfs-location-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+		.ew-cfs-kind-select { flex: 0 0 132px; max-width: 160px; }
+		.ew-cfs-location-row .ew-cfs-value-field { flex: 1 1 180px; min-width: 0; }
 	</style>
 </head>
 <body class="page-header-fixed bg-1">
@@ -167,7 +180,7 @@ function ew_quotation_status_pill_class($status)
 					<div class="ew-page-head">
 						<div class="ew-page-head-left">
 							<a href="quotation_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
-							<h1 class="ew-page-title"><?php echo $id > 0 ? 'Rate Quotation' : 'Create Rate Quotation'; ?></h1>
+							<h1 class="ew-page-title"><?php echo $id > 0 ? 'Quotation/Proforma Invoice' : 'Create Quotation/Proforma Invoice'; ?></h1>
 						</div>
 						<div class="ew-toolbar-right">
 							<span class="ew-status-pill <?php echo ew_quotation_status_pill_class($status); ?>"><?php echo htmlspecialchars(quotation_status_label($status)); ?></span>
@@ -186,7 +199,7 @@ function ew_quotation_status_pill_class($status)
 						<div id="response" class="alert alert-danger" style="display:none;margin:0 16px 12px;"><div class="message" style="text-align:center"></div></div>
 
 						<div class="ew-quotation-layout">
-							<div class="<?php echo $editable ? '' : 'quotation-readonly'; ?>">
+							<div class="<?php echo $form_editable ? '' : 'quotation-readonly'; ?>">
 
 								<div class="ew-card ew-invoice-details-card">
 									<h2 class="ew-card-section-title">Quotation details</h2>
@@ -198,16 +211,16 @@ function ew_quotation_status_pill_class($status)
 											</div>
 											<div class="ew-field">
 												<label>Quote date <span class="req">*</span></label>
-												<?php echo ew_date_input(array('name' => 'quote_date', 'id' => 'quote_date', 'value' => $quote_date, 'required' => true, 'readonly' => !$editable)); ?>
+												<?php echo ew_date_input(array('name' => 'quote_date', 'id' => 'quote_date', 'value' => $quote_date, 'required' => true, 'readonly' => !$form_editable)); ?>
 											</div>
 											<div class="ew-field">
 												<label>Valid till</label>
-												<?php echo ew_date_input(array('name' => 'valid_till', 'id' => 'valid_till', 'value' => $valid_till, 'readonly' => !$editable)); ?>
+												<?php echo ew_date_input(array('name' => 'valid_till', 'id' => 'valid_till', 'value' => $valid_till, 'readonly' => !$form_editable)); ?>
 											</div>
 											<div class="ew-field">
 												<label>Quote type</label>
 												<select name="quote_type" id="quote_type" class="form-control">
-													<?php foreach (quotation_quote_type_options() as $k => $lbl) {
+													<?php foreach (quotation_standard_quote_type_options() as $k => $lbl) {
 														$sel = (($master['quote_type'] ?? '') === $k) ? ' selected' : '';
 														echo '<option value="' . htmlspecialchars($k) . '"' . $sel . '>' . htmlspecialchars($lbl) . '</option>';
 													} ?>
@@ -228,8 +241,8 @@ function ew_quotation_status_pill_class($status)
 											<div class="ew-field span-4">
 												<label>Customer type</label>
 												<div class="ew-yesno-row" style="margin-top:4px;">
-													<label><input type="radio" name="customer_mode" value="new" <?php echo $customer_mode === 'new' ? 'checked' : ''; ?> <?php echo $editable ? '' : 'disabled'; ?>> New client (not in system)</label>
-													<label><input type="radio" name="customer_mode" value="existing" <?php echo $customer_mode === 'existing' ? 'checked' : ''; ?> <?php echo $editable ? '' : 'disabled'; ?>> Existing client</label>
+													<label><input type="radio" name="customer_mode" value="new" <?php echo $customer_mode === 'new' ? 'checked' : ''; ?> <?php echo $form_editable ? '' : 'disabled'; ?>> New client (not in system)</label>
+													<label><input type="radio" name="customer_mode" value="existing" <?php echo $customer_mode === 'existing' ? 'checked' : ''; ?> <?php echo $form_editable ? '' : 'disabled'; ?>> Existing client</label>
 												</div>
 											</div>
 											<div class="ew-field span-2 ew-customer-new" style="<?php echo $customer_mode === 'existing' ? 'display:none;' : ''; ?>">
@@ -238,7 +251,7 @@ function ew_quotation_status_pill_class($status)
 											</div>
 											<div class="ew-field span-2 ew-customer-existing" style="<?php echo $customer_mode === 'new' ? 'display:none;' : ''; ?>">
 												<label>To (Customer) <span class="req">*</span></label>
-												<select name="party_id" id="party_id" class="form-control" <?php echo $editable ? '' : 'disabled'; ?>>
+												<select name="party_id" id="party_id" class="form-control" <?php echo $form_editable ? '' : 'disabled'; ?>>
 													<option value="">Select customer</option>
 													<?php
 													mysqli_data_seek($clients_q, 0);
@@ -294,7 +307,7 @@ function ew_quotation_status_pill_class($status)
 											</div>
 											<div class="ew-field">
 												<label>Mode of transport <span class="req">*</span></label>
-												<select name="mode_of_transportation" id="mode_of_transportation" class="form-control pv-bind-select"<?php echo $editable ? ' required' : ''; ?>>
+												<select name="mode_of_transportation" id="mode_of_transportation" class="form-control pv-bind-select"<?php echo $form_editable ? ' required' : ''; ?>>
 													<option value="">Select mode</option>
 													<?php
 													if ($modes_q) {
@@ -331,6 +344,17 @@ function ew_quotation_status_pill_class($status)
 												<label>Delivery address</label>
 												<textarea name="delivery_address" id="delivery_address" class="form-control pv-bind" rows="3"><?php echo htmlspecialchars($master['delivery_address'] ?? ''); ?></textarea>
 											</div>
+											<div class="ew-field span-2">
+												<label>CFS / Port / Factory / Warehouse</label>
+												<?php echo ew_booking_cfs_controls_html($conn, $master['cfs_port_factory'] ?? '', array(
+													'hidden_name' => 'cfs_port_factory',
+													'hidden_id' => 'cfs_port_factory',
+												)); ?>
+											</div>
+											<div class="ew-field span-2">
+												<label>Part Number / Article Name / Article Number</label>
+												<input type="text" name="part_number" id="part_number" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['part_number'] ?? ''); ?>" autocomplete="off" />
+											</div>
 										</div>
 									</div>
 								</div>
@@ -357,7 +381,7 @@ function ew_quotation_status_pill_class($status)
 									</div>
 								</div>
 
-								<div class="ew-card ew-invoice-details-card">
+								<div class="ew-card ew-invoice-details-card" id="charges_tax_card">
 									<h2 class="ew-card-section-title">Charges &amp; tax</h2>
 									<div class="ew-form-body">
 										<div class="ew-table-wrap">
@@ -387,19 +411,11 @@ function ew_quotation_status_pill_class($status)
 												</tbody>
 											</table>
 										</div>
-										<?php if ($editable) { ?>
+										<?php if ($form_editable) { ?>
 											<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_add_charge_line" style="margin-bottom:12px;"><i class="fa fa-plus"></i> Add line</button>
 										<?php } ?>
 										<h3 class="ew-card-section-subtitle" style="margin:8px 0 10px;font-size:14px;font-weight:600;">Commercial summary fields</h3>
 										<div class="ew-form-grid ew-form-grid--invoice ew-form-grid--quotation">
-											<div class="ew-field span-2">
-												<label>CFS / Port / Factory / Warehouse</label>
-												<input type="text" name="cfs_port_factory" id="cfs_port_factory" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['cfs_port_factory'] ?? ''); ?>" />
-											</div>
-											<div class="ew-field span-2">
-												<label>Part Number / Article Name / Article Number</label>
-												<input type="text" name="part_number" id="part_number" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['part_number'] ?? ''); ?>" />
-											</div>
 											<div class="ew-field span-2">
 												<label>Quotation approval</label>
 												<select name="quotation_approval" id="quotation_approval" class="form-control pv-bind-select">
@@ -412,27 +428,6 @@ function ew_quotation_status_pill_class($status)
 													}
 													foreach ($qa_opts as $k => $lbl) {
 														$sel = ($qa === (string) $k) ? ' selected' : '';
-														echo '<option value="' . htmlspecialchars($k, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>' . htmlspecialchars($lbl) . '</option>';
-													}
-													?>
-												</select>
-											</div>
-											<div class="ew-field">
-												<label>Freight paid by</label>
-												<select name="freight_paid_by" id="freight_paid_by" class="form-control pv-bind-select">
-													<option value="">Select consignment mode</option>
-													<?php
-													$fpb = trim((string) ($master['freight_paid_by'] ?? ''));
-													$fpb_opts = quotation_consignment_mode_options($conn);
-													if ($fpb !== '' && !isset($fpb_opts[$fpb])) {
-														$legacy_lbl = quotation_freight_paid_by_label($conn, $fpb);
-														$fpb_opts = array($fpb => $legacy_lbl) + $fpb_opts;
-													}
-													foreach ($fpb_opts as $k => $lbl) {
-														if ($lbl === '') {
-															continue;
-														}
-														$sel = ($fpb === (string) $k) ? ' selected' : '';
 														echo '<option value="' . htmlspecialchars($k, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>' . htmlspecialchars($lbl) . '</option>';
 													}
 													?>
@@ -472,10 +467,7 @@ function ew_quotation_status_pill_class($status)
 													} ?>
 												</select>
 											</div>
-											<div class="ew-field">
-												<label>GST amount (₹)</label>
-												<input type="text" class="form-control" id="gst_amount" readonly />
-											</div>
+											<input type="hidden" id="gst_amount" value="" />
 											<div class="ew-field">
 												<label>Total (₹)</label>
 												<input type="text" class="form-control" id="total_amount" readonly style="font-weight:700;" />
@@ -490,9 +482,11 @@ function ew_quotation_status_pill_class($status)
 										<?php if ($editable) { ?>
 											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-action" data-action="save_draft">Save draft</button>
 											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-action" data-action="submit">Submit for approval</button>
+										<?php } elseif ($form_editable) { ?>
+											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-action" data-action="save_draft">Save changes</button>
 										<?php } ?>
 										<?php if ($status === 'pending_approval') { ?>
-											<p class="ew-field-hint" style="width:100%;margin:0 0 6px;text-align:right;">Approving sends the quotation PDF to the customer email above (copy to info@elitewave360.in).</p>
+											<p class="ew-field-hint" style="width:100%;margin:0 0 6px;text-align:right;">Approving emails the PDF from athar@elitewave360.in to the customer address above, with a copy to info@elitewave360.in.</p>
 											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-workflow" data-action="approve">Approve &amp; email PDF</button>
 											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="reject">Reject</button>
 										<?php } ?>
@@ -545,7 +539,10 @@ function ew_quotation_status_pill_class($status)
 window.QUOTATION_VEHICLE_MAP = <?php echo json_encode($vehicle_json); ?>;
 window.QUOTATION_LOADING_LABELS = <?php echo json_encode(quotation_loading_type_options()); ?>;
 window.QUOTATION_PAYMENT_LABELS = <?php echo json_encode(quotation_payment_terms_options()); ?>;
+window.QUOTATION_LETTER_INTRO = <?php echo json_encode(quotation_letter_intro_text()); ?>;
+window.QUOTATION_MULTI_MODE_TYPES = [];
+window.QUOTATION_ALL_MODES_SCREEN = false;
 </script>
-<script src="javascripts/quotation-form.js?v=20260928partqa"></script>
+<script src="javascripts/quotation-form.js?v=20261007singlecfs"></script>
 </body>
 </html>

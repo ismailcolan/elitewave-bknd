@@ -15,7 +15,7 @@ $dataPoints2 = [];
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link rel="stylesheet" type="text/css" href="fonts/font/flaticon.css" />
-<link href="stylesheets/cargo-ops-dashboard.css?v=20260914ops4" rel="stylesheet" type="text/css" />
+<link href="stylesheets/cargo-ops-dashboard.css?v=20260930donuts" rel="stylesheet" type="text/css" />
 <style>
 :root{
 --sidebar-width:260px;
@@ -929,7 +929,7 @@ $.ajax({
 </div><!-- /modal-shiftfix -->
 
 <script src="https://code.highcharts.com/highcharts.js"></script>
-<script src="javascripts/cargo-ops-dashboard.js?v=20260914ops"></script>
+<script src="javascripts/cargo-ops-dashboard.js?v=20260930donuts"></script>
 <script>
 // ── Sync main-content margin with sidebar ────────────────────────────────────
 (function(){

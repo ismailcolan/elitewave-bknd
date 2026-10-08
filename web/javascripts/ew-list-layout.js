@@ -153,7 +153,7 @@
   }
 
   function hasListTable($card) {
-    return $card.find('#dataTable1, #txn_list_table, #ts_status_table, #invoice_list_table, #receipt_list_table, #trip_list_table, #payment_report_table, #invoice_register_table, #pending_payments_table, table.dataTable').length > 0;
+    return $card.find('#dataTable1, #ew_db_backup_table, #txn_list_table, #ts_status_table, #invoice_list_table, #receipt_list_table, #trip_list_table, #payment_report_table, #invoice_register_table, #pending_payments_table, table.dataTable').length > 0;
   }
 
   function applyAll() {

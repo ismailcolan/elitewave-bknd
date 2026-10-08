@@ -16,7 +16,10 @@ $page_module_map = array(
   'package_type.php' => 'transport', 'vehicle.php' => 'transport', 'vehicle_list.php' => 'transport',
   'eway_partb.php' => 'transport',
   'vehicle_type_master.php' => 'transport', 'vehicle_type.php' => 'transport',
+  'cfs_master.php' => 'transport', 'cfs.php' => 'transport',
   'quotation_list.php' => 'transport', 'quotation.php' => 'transport', 'quotation_pdf.php' => 'transport',
+  'quotation_all_modes_list.php' => 'transport', 'quotation_all_modes.php' => 'transport',
+  'quotation_consignor_multi_dest_list.php' => 'transport', 'quotation_consignor_multi_dest.php' => 'transport',
   'train.php' => 'transport', 'flight.php' => 'transport',
   'client.php' => 'party', 'client_list.php' => 'party',
   'client_branch.php' => 'party', 'client_branch_list.php' => 'party',
@@ -30,7 +33,7 @@ $page_module_map = array(
   'expense_gcn.php' => 'expense', 'expense_gcn_list.php' => 'expense',
   'expense_general.php' => 'expense', 'expense_general_list.php' => 'expense',
   'qrcode_master.php' => 'tools', 'bulkmail.php' => 'tools', 'users.php' => 'tools', 'user_list.php' => 'tools',
-  'eway_partb_settings.php' => 'tools',
+  'eway_partb_settings.php' => 'tools', 'database_backup.php' => 'tools',
   'pod_list.php' => 'portal', 'pod_master.php' => 'portal', 'edit_pod_list.php' => 'portal',
   'user-draftconsignment.php' => 'portal', 'user-inquiry.php' => 'portal',
   'user-approval.php' => 'portal', 'user-requestpickup-list.php' => 'portal',
@@ -43,6 +46,7 @@ $page_module_map = array(
   'trip_summary_print.php' => 'consignment',
   'transaction_status.php' => 'consignment', 'transactions_manual.php' => 'consignment',
   'create_invoice.php' => 'invoice', 'invoice_list.php' => 'invoice',
+  'create_proforma_invoice.php' => 'invoice', 'proforma_invoice_list.php' => 'invoice',
   'credit_note_list.php' => 'invoice', 'create_credit_note.php' => 'invoice',
   'receipt_list.php' => 'invoice', 'create_receipt.php' => 'invoice',
   'consignment_report.php' => 'mis', 'client_arrival_report.php' => 'mis',
@@ -457,6 +461,81 @@ function ew_panel_head($title) {
     color: #fff;
   }
 
+  .panel-accordion {
+    margin: 4px 10px 8px;
+  }
+  .panel-accordion.is-filtered-out {
+    display: none !important;
+  }
+  .panel-accordion-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    background: #F1F5F9;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .panel-accordion-toggle:hover {
+    background: #E8EEF4;
+    border-color: #CBD5E1;
+  }
+  .panel-accordion.is-open .panel-accordion-toggle {
+    background: #E8EEF4;
+    border-color: #CBD5E1;
+  }
+  .panel-accordion-chevron {
+    font-size: 11px;
+    color: #64748B;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+  .panel-accordion.is-open .panel-accordion-chevron {
+    transform: rotate(180deg);
+  }
+  .panel-accordion-body {
+    display: none;
+    padding: 6px 0 2px 4px;
+  }
+  .panel-accordion.is-open .panel-accordion-body {
+    display: block;
+  }
+  .panel-link--nested {
+    padding: 8px 12px 8px 22px;
+    margin: 2px 0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    position: relative;
+  }
+  .panel-link--nested::before {
+    content: '';
+    display: block !important;
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    margin-top: -2px;
+    border-radius: 50%;
+    background: #94A3B8;
+  }
+  .panel-link--nested.active::before {
+    background: #DD111E;
+  }
+  .panel-link--nested.active {
+    box-shadow: none;
+  }
+
   .panel-badge {
     margin-left: auto;
     background: var(--ew-accent);
@@ -598,7 +677,26 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active('consignment_mode.php', $current_page); ?>" href="consignment_mode.php">Consignment Mode</a>
         <a class="panel-link<?php echo ew_menu_active('package_type.php', $current_page); ?>" href="package_type.php">Package Type</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('vehicle_type_master.php', 'vehicle_type.php'), $current_page); ?>" href="vehicle_type_master.php">Vehicle Type Master</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('quotation_list.php', 'quotation.php'), $current_page); ?>" href="quotation_list.php">Rate Quotation</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('cfs_master.php', 'cfs.php'), $current_page); ?>" href="cfs_master.php">CFS Master</a>
+        <?php
+        $ew_quotation_menu_pages = array(
+          'quotation_list.php', 'quotation.php', 'quotation_pdf.php',
+          'quotation_all_modes_list.php', 'quotation_all_modes.php',
+          'quotation_consignor_multi_dest_list.php', 'quotation_consignor_multi_dest.php',
+        );
+        $ew_quotation_accordion_open = ew_menu_active_any($ew_quotation_menu_pages, $current_page);
+        ?>
+        <div class="panel-accordion<?php echo $ew_quotation_accordion_open ? ' is-open' : ''; ?>" data-accordion-id="transport-quotation" data-accordion-label="Quotation">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $ew_quotation_accordion_open ? 'true' : 'false'; ?>" aria-controls="panel-accordion-transport-quotation">
+            <span class="panel-accordion-title">Quotation</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body" id="panel-accordion-transport-quotation">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('quotation_list.php', 'quotation.php'), $current_page); ?>" href="quotation_list.php">Quotation/Proforma Invoice</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('quotation_all_modes_list.php', 'quotation_all_modes.php'), $current_page); ?>" href="quotation_all_modes_list.php">Multi-mode Quotation/Proforma Invoice</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('quotation_consignor_multi_dest_list.php', 'quotation_consignor_multi_dest.php'), $current_page); ?>" href="quotation_consignor_multi_dest_list.php">Multi-destination Quotation/Proforma Invoice</a>
+          </div>
+        </div>
         <a class="panel-link<?php echo ew_menu_active_any(array('vehicle_list.php', 'vehicle.php'), $current_page); ?>" href="vehicle_list.php">Vehicle</a>
         <a class="panel-link<?php echo ew_menu_active('eway_partb.php', $current_page); ?>" href="eway_partb.php">E-Way Part-B</a>
         <a class="panel-link<?php echo ew_menu_active('train.php', $current_page); ?>" href="train.php">Train</a>
@@ -632,6 +730,7 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active('user_list.php', $current_page); ?>" href="user_list.php">Users</a>
         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'AD') { ?>
         <a class="panel-link<?php echo ew_menu_active('eway_partb_settings.php', $current_page); ?>" href="eway_partb_settings.php">E-Way API settings</a>
+        <a class="panel-link<?php echo ew_menu_active('database_backup.php', $current_page); ?>" href="database_backup.php">Database Backup</a>
         <?php } ?>
       </div>
     </div>
@@ -700,8 +799,9 @@ function ew_panel_head($title) {
       <?php ew_panel_head('Invoice'); ?>
       <div class="panel-scroll">
         <a class="panel-link<?php echo ew_menu_active_any(array('invoice_list.php', 'create_invoice.php'), $current_page); ?>" href="invoice_list.php">Tax Invoice</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('proforma_invoice_list.php', 'create_proforma_invoice.php'), $current_page); ?>" href="proforma_invoice_list.php">Proforma Invoice</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('credit_note_list.php', 'create_credit_note.php'), $current_page); ?>" href="credit_note_list.php">Credit Note</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('receipt_list.php', 'create_receipt.php'), $current_page); ?>" href="receipt_list.php">Receipt</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('receipt_list.php', 'create_receipt.php'), $current_page); ?>" href="receipt_list.php">Payment Receipt</a>
       </div>
     </div>
     <?php endif; ?>
@@ -812,13 +912,52 @@ function ew_panel_head($title) {
     link.innerHTML = '<span class="panel-link-text">' + labelHtml + '</span>' + badge;
   }
 
+  function setPanelAccordionOpen(accordion, open, persist) {
+    if (!accordion) return;
+    accordion.classList.toggle('is-open', open);
+    const btn = accordion.querySelector('.panel-accordion-toggle');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (persist) {
+      const id = accordion.getAttribute('data-accordion-id');
+      if (id) {
+        try { localStorage.setItem('ew_accordion_' + id, open ? '1' : '0'); } catch (e) {}
+      }
+    }
+  }
+
+  function initPanelAccordions() {
+    document.querySelectorAll('.panel-accordion').forEach(function (accordion) {
+      const id = accordion.getAttribute('data-accordion-id');
+      const hasActiveChild = !!accordion.querySelector('.panel-link.active');
+      if (hasActiveChild) {
+        setPanelAccordionOpen(accordion, true, false);
+        return;
+      }
+      if (accordion.classList.contains('is-open')) return;
+      if (!id) return;
+      try {
+        if (localStorage.getItem('ew_accordion_' + id) === '1') {
+          setPanelAccordionOpen(accordion, true, false);
+        }
+      } catch (e) {}
+    });
+
+    document.querySelectorAll('.panel-accordion-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const accordion = btn.closest('.panel-accordion');
+        if (!accordion) return;
+        setPanelAccordionOpen(accordion, !accordion.classList.contains('is-open'), true);
+      });
+    });
+  }
+
   function filterPanelScreens(input) {
     const module = input.closest('.panel-module');
     if (!module) return;
 
     const query = input.value.trim();
     const queryLower = query.toLowerCase();
-    const links = module.querySelectorAll('.panel-link');
+    const links = module.querySelectorAll('.panel-scroll > .panel-link, .panel-accordion .panel-link');
     let visible = 0;
 
     links.forEach(function (link) {
@@ -827,6 +966,24 @@ function ew_panel_head($title) {
       link.classList.toggle('is-filtered-out', !match);
       renderPanelLinkLabel(link, match ? query : '');
       if (match) visible += 1;
+    });
+
+    module.querySelectorAll('.panel-accordion').forEach(function (accordion) {
+      const groupLabel = (accordion.getAttribute('data-accordion-label') || '').toLowerCase();
+      const childLinks = accordion.querySelectorAll('.panel-link');
+      let childVisible = 0;
+      childLinks.forEach(function (link) {
+        if (!link.classList.contains('is-filtered-out')) childVisible += 1;
+      });
+      const groupMatch = queryLower && groupLabel.indexOf(queryLower) !== -1;
+      if (queryLower) {
+        accordion.classList.toggle('is-filtered-out', childVisible === 0 && !groupMatch);
+        if (childVisible > 0 || groupMatch) {
+          setPanelAccordionOpen(accordion, true, false);
+        }
+      } else {
+        accordion.classList.remove('is-filtered-out');
+      }
     });
 
     let noResults = module.querySelector('.panel-no-results');
@@ -906,6 +1063,7 @@ function ew_panel_head($title) {
 
   document.addEventListener('DOMContentLoaded', function () {
     initPanelLinkLabels();
+    initPanelAccordions();
 
     document.querySelectorAll('.rail-item[data-module]').forEach(function (btn) {
       if (btn.tagName === 'BUTTON') {

@@ -9,15 +9,23 @@ function tax_invoice_fmt_addr($det, $conn)
     return ew_format_party_address_invoice_html($det, $conn);
 }
 
-function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
+function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array())
 {
-    $data = billing_get_invoice($conn, $billing_invoice_id);
+    $is_proforma = !empty($options['proforma']);
+    if ($is_proforma) {
+        require_once __DIR__ . '/billing_proforma_functions.php';
+        $data = billing_proforma_get($conn, (int) $billing_invoice_id);
+    } else {
+        $data = billing_get_invoice($conn, $billing_invoice_id);
+    }
     if (!$data || empty($data['details'])) {
         return '';
     }
 
     $master = $data['master'];
     $details = $data['details'];
+    $doc_style = $is_proforma ? ($master['doc_style'] ?? 'gst') : 'gst';
+    $is_other_doc = ($doc_style === 'other');
 
     $company_result = mysqli_query($conn, 'SELECT * FROM company WHERE status=0 LIMIT 1');
     $company_row = mysqli_fetch_assoc($company_result);
@@ -42,7 +50,9 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
     $mobile_numbers = array_filter(array($client_contact_no, $client_contact_no2));
     $mobile_numbers_text = !empty($mobile_numbers) ? implode(' / ', $mobile_numbers) : 'Not Available';
 
-    $unique_invoice_no = $master['invoice_no'] ?: 'DRAFT';
+    $unique_invoice_no = $is_proforma
+        ? ($master['proforma_no'] ?: 'DRAFT')
+        : ($master['invoice_no'] ?: 'DRAFT');
     $invoice_date = $master['invoice_date'];
     $sac = '996812';
     $sac_text = $sac . ' - Multimodal Transport of Goods';
@@ -118,13 +128,13 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
         $sno++;
     }
 
-    $cgst_amt = (float) $master['cgst_amount'];
-    $sgst_amt = (float) $master['sgst_amount'];
-    $igst_amt = (float) $master['igst_amount'];
-    $cess_amt = (float) ($master['cess_amount'] ?? 0);
+    $cgst_amt = $is_other_doc ? 0.0 : (float) $master['cgst_amount'];
+    $sgst_amt = $is_other_doc ? 0.0 : (float) $master['sgst_amount'];
+    $igst_amt = $is_other_doc ? 0.0 : (float) $master['igst_amount'];
+    $cess_amt = $is_other_doc ? 0.0 : (float) ($master['cess_amount'] ?? 0);
     $taxable = (float) $master['taxable_value'];
-    $grand_total = (float) $master['grand_total'];
-    $is_same_state = ($cgst_amt > 0 || $sgst_amt > 0);
+    $grand_total = $is_other_doc ? $taxable : (float) $master['grand_total'];
+    $is_same_state = (!$is_other_doc && ($cgst_amt > 0 || $sgst_amt > 0));
 
     $cgst_rate = $taxable > 0 ? round(($cgst_amt / $taxable) * 100, 2) : 0;
     $sgst_rate = $taxable > 0 ? round(($sgst_amt / $taxable) * 100, 2) : 0;
@@ -140,12 +150,19 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
 
     $html = gst_invoice_pdf_css();
 
+    $header_title = 'TAX INVOICE';
+    if ($is_proforma) {
+        $header_title = $is_other_doc ? 'PROFORMA INVOICE' : 'PROFORMA TAX INVOICE';
+    } elseif ($is_other_doc) {
+        $header_title = 'INVOICE';
+    }
+
     $html .= '
 <table style="width:100%;border-collapse:collapse;border-right:1px solid #000;border-left:1px solid #000;border-top:1px solid #000;">
 <tr>
     <td style="width:20%;text-align:center;vertical-align:middle;padding-left:240px;"></td>
     <td style="width:55%;text-align:center;vertical-align:middle;">
-        <div style="font-size:14pt;font-weight:bold;line-height:18px;padding-left:700px;">TAX INVOICE</div>
+        <div style="font-size:14pt;font-weight:bold;line-height:18px;padding-left:700px;">' . htmlspecialchars($header_title) . '</div>
     </td>
     <td style="width:25%;font-weight:bold;text-align:right;vertical-align:top;font-size:9pt;padding-left:5px;">(ORIGINAL COPY)</td>
 </tr>
@@ -175,7 +192,7 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
     $html .= '
 <table cellpadding="4" cellspacing="0" width="100%" style="border-collapse:collapse;border:1px solid #000;">
 <tr>
-    <td style="width:40%;font-weight:bold;border:none;font-size:10pt;white-space:nowrap;">Invoice Number&nbsp;&nbsp;: &nbsp;' . htmlspecialchars($unique_invoice_no) . '</td>
+    <td style="width:40%;font-weight:bold;border:none;font-size:10pt;white-space:nowrap;">' . ($is_proforma ? 'Proforma No' : 'Invoice Number') . '&nbsp;&nbsp;: &nbsp;' . htmlspecialchars($unique_invoice_no) . '</td>
     <td style="width:25%;font-weight:bold;border:none;font-size:10pt;text-align:center;white-space:nowrap;">SAC CODE:&nbsp;&nbsp;' . htmlspecialchars($sac) . '</td>
     <td style="width:35%;font-weight:bold;border:none;font-size:10pt;text-align:right;white-space:nowrap;">Invoice Generated Date :&nbsp;' . htmlspecialchars($invoice_date) . '</td>
 </tr>
@@ -241,19 +258,21 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id)
 </tr>
 </table>';
 
-    $html .= gst_invoice_pdf_summary_section_html(
-        $unique_invoice_no,
-        $transport_types,
-        $is_same_state,
-        $cgst_rate,
-        $sgst_rate,
-        $igst_rate,
-        $cgst_amt,
-        $sgst_amt,
-        $igst_amt,
-        $round_off,
-        $grand_total
-    );
+    if (!$is_other_doc) {
+        $html .= gst_invoice_pdf_summary_section_html(
+            $unique_invoice_no,
+            $transport_types,
+            $is_same_state,
+            $cgst_rate,
+            $sgst_rate,
+            $igst_rate,
+            $cgst_amt,
+            $sgst_amt,
+            $igst_amt,
+            $round_off,
+            $grand_total
+        );
+    }
 
     $html .= '
 <table border="1" cellpadding="4" cellspacing="0" width="100%" style="border-collapse:collapse;margin-top:-1px;">
@@ -301,6 +320,52 @@ function tax_invoice_save_pdf($conn, $billing_invoice_id)
     $rel = 'digital_invoice/' . basename($path);
     $esc = mysqli_real_escape_string($conn, $rel);
     mysqli_query($conn, "UPDATE billing_invoice_master SET pdf_path='$esc' WHERE billing_invoice_id='" . (int) $billing_invoice_id . "'");
+
+    return $rel;
+}
+
+function proforma_invoice_save_pdf($conn, $billing_proforma_id)
+{
+    require_once __DIR__ . '/billing_proforma_functions.php';
+    require_once dirname(__DIR__) . '/vendor/autoload.php';
+
+    $html = tax_invoice_build_pdf_html($conn, $billing_proforma_id, array('proforma' => true));
+    if ($html === '') {
+        return '';
+    }
+
+    $data = billing_proforma_get($conn, $billing_proforma_id);
+    $proforma_no = $data['master']['proforma_no'] ?: ('DRAFT-' . $billing_proforma_id);
+    $doc_style = $data['master']['doc_style'] ?? 'gst';
+
+    $mpdf = new \Mpdf\Mpdf(array(
+        'mode' => 'utf-8',
+        'format' => 'A4',
+        'default_font' => 'freesans',
+        'margin_left' => 5,
+        'margin_right' => 5,
+        'margin_top' => 5,
+        'margin_bottom' => 5,
+    ));
+    $mpdf->SetWatermarkText('PROFORMA');
+    $mpdf->showWatermarkText = true;
+    $mpdf->watermarkTextAlpha = 0.12;
+    $title = ($doc_style === 'other') ? 'Proforma Invoice' : 'Proforma Tax Invoice';
+    $mpdf->SetTitle($title . ' - ' . $proforma_no);
+    $mpdf->SetAuthor('EliteWave360 Logistics');
+    $mpdf->WriteHTML($html);
+
+    $dir = dirname(__DIR__) . '/digital_invoice';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    $safe_no = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $proforma_no);
+    $path = $dir . '/proforma_' . (int) $billing_proforma_id . '_' . $safe_no . '.pdf';
+    $mpdf->Output($path, \Mpdf\Output\Destination::FILE);
+
+    $rel = 'digital_invoice/' . basename($path);
+    $esc = mysqli_real_escape_string($conn, $rel);
+    mysqli_query($conn, "UPDATE billing_proforma_master SET pdf_path='$esc' WHERE billing_proforma_id='" . (int) $billing_proforma_id . "'");
 
     return $rel;
 }
