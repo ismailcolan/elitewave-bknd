@@ -106,8 +106,16 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 		#md_dest_table input.form-control, #md_dest_table select.form-control { height: 34px; font-size: 12px; padding: 4px 6px; }
 		#md_dest_table .md-row-total { background: #f1f5f9; font-weight: 700; text-align: right; }
 		#md_dest_table .md-row-actions { width: 72px; white-space: nowrap; vertical-align: middle; }
-		#md_dest_table .md-row-actions .btn-link { padding: 2px 6px; font-size: 16px; line-height: 1; }
-		#md_dest_table .md-row-actions .btn-md-add-row { color: #021659; }
+		.md-row-action .md-row-btn {
+			display: inline-flex; align-items: center; justify-content: center;
+			width: 28px; height: 28px; border: 1px solid #cbd5e1; border-radius: 6px;
+			background: #fff; cursor: pointer; padding: 0; line-height: 1;
+		}
+		.md-row-action .md-row-btn + .md-row-btn { margin-left: 4px; }
+		.md-row-action .md-row-btn.is-add { color: #059669; border-color: #86efac; }
+		.md-row-action .md-row-btn.is-add:hover { background: #ecfdf5; }
+		.md-row-action .md-row-btn.is-remove { color: #dc2626; border-color: #fca5a5; }
+		.md-row-action .md-row-btn.is-remove:hover { background: #fef2f2; }
 		.quotation-readonly .form-control:not([readonly]) { pointer-events: none; background: #f8fafc; }
 		.ew-form-footer--quotation { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 	</style>
@@ -200,13 +208,10 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 												<tr>
 													<th style="min-width:180px;">Destination (City — State)</th>
 													<th style="min-width:120px;">Mode</th>
-													<th style="min-width:120px;">Vehicle type</th>
+													<th style="min-width:180px;">Source of transport</th>
 													<th style="min-width:110px;">Delivery days</th>
-													<th>Freight</th>
-													<th>Doc.</th>
-													<th>Others</th>
-													<th>Total</th>
-													<?php if ($form_editable) { ?><th style="width:72px;">Add</th><?php } ?>
+													<th>Freight charges</th>
+													<?php if ($form_editable) { ?><th class="text-center md-row-actions"> </th><?php } ?>
 												</tr>
 											</thead>
 											<tbody id="md_dest_tbody">
@@ -321,6 +326,6 @@ window.QUOTATION_LETTER_INTRO = <?php echo json_encode(quotation_letter_intro_te
 window.QUOTATION_PREVIEW_IN_MODAL = true;
 window.QUOTATION_RETURN_PAGE = 'quotation_consignor_multi_dest.php';
 </script>
-<script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261005mdvehicle"></script>
+<script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261008mdsource2"></script>
 </body>
 </html>

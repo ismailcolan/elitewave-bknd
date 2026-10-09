@@ -10,7 +10,7 @@ function quotation_mail_smtp_options()
 {
 	return array(
 		'username' => 'athar@elitewave360.in',
-		'password' => 'EliteWave@360##',
+		'password' => 'EliteWave@360#',
 		'from' => 'athar@elitewave360.in',
 		'from_name' => 'Mohammed Athar | EliteWave360',
 		'cc' => array(

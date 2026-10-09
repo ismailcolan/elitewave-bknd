@@ -1282,6 +1282,326 @@ function get_pod_status($conn, $grn_no)
 }
 
 
+function ew_mode_is_road_freight($conn, $mode_id)
+{
+	$mode_id = (int) $mode_id;
+	if ($mode_id <= 0) {
+		return false;
+	}
+	$has_group = false;
+	$chk = @mysqli_query($conn, "SHOW COLUMNS FROM mode_of_transportation LIKE 'mode_group'");
+	if ($chk && mysqli_num_rows($chk) > 0) {
+		$has_group = true;
+	}
+	$sql = $has_group
+		? "SELECT mode_type, mode_group FROM mode_of_transportation WHERE mode_id='$mode_id' LIMIT 1"
+		: "SELECT mode_type FROM mode_of_transportation WHERE mode_id='$mode_id' LIMIT 1";
+	$q = @mysqli_query($conn, $sql);
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	if (!$row) {
+		return false;
+	}
+	$group = strtolower(trim((string) ($row['mode_group'] ?? '')));
+	$type = strtolower(trim((string) ($row['mode_type'] ?? '')));
+	if ($group === 'road cargo') {
+		return true;
+	}
+	if (strpos($type, 'road') !== false || strpos($type, 'truck') !== false || strpos($type, 'part load') !== false
+		|| strpos($type, 'ftl') !== false || strpos($type, 'surface') !== false || strpos($type, 'express') !== false) {
+		return true;
+	}
+	return false;
+}
+
+function ew_mode_is_air_freight($conn, $mode_id)
+{
+	$mode_id = (int) $mode_id;
+	if ($mode_id <= 0 || ew_mode_is_road_freight($conn, $mode_id)) {
+		return false;
+	}
+	$has_group = false;
+	$chk = @mysqli_query($conn, "SHOW COLUMNS FROM mode_of_transportation LIKE 'mode_group'");
+	if ($chk && mysqli_num_rows($chk) > 0) {
+		$has_group = true;
+	}
+	$sql = $has_group
+		? "SELECT mode_type, mode_group FROM mode_of_transportation WHERE mode_id='$mode_id' LIMIT 1"
+		: "SELECT mode_type FROM mode_of_transportation WHERE mode_id='$mode_id' LIMIT 1";
+	$q = @mysqli_query($conn, $sql);
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	if (!$row) {
+		return false;
+	}
+	$group = strtolower(trim((string) ($row['mode_group'] ?? '')));
+	$type = strtolower(trim((string) ($row['mode_type'] ?? '')));
+	if (strpos($group, 'air') !== false || strpos($group, 'flight') !== false) {
+		return true;
+	}
+	if (strpos($type, 'air') !== false || strpos($type, 'flight') !== false) {
+		return true;
+	}
+	return false;
+}
+
+/** @return string flight, train, or empty */
+function ew_mode_offload_kind($conn, $mode_id)
+{
+	$mode_id = (int) $mode_id;
+	if ($mode_id <= 0 || ew_mode_is_road_freight($conn, $mode_id)) {
+		return '';
+	}
+	if (ew_mode_is_air_freight($conn, $mode_id)) {
+		return 'flight';
+	}
+	$has_group = false;
+	$chk = @mysqli_query($conn, "SHOW COLUMNS FROM mode_of_transportation LIKE 'mode_group'");
+	if ($chk && mysqli_num_rows($chk) > 0) {
+		$has_group = true;
+	}
+	$sql = $has_group
+		? "SELECT mode_type, mode_group FROM mode_of_transportation WHERE mode_id='$mode_id' LIMIT 1"
+		: "SELECT mode_type FROM mode_of_transportation WHERE mode_id='$mode_id' LIMIT 1";
+	$q = @mysqli_query($conn, $sql);
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	if (!$row) {
+		return '';
+	}
+	$group = strtolower(trim((string) ($row['mode_group'] ?? '')));
+	$type = strtolower(trim((string) ($row['mode_type'] ?? '')));
+	if (strpos($group, 'train') !== false || strpos($type, 'train') !== false || strpos($type, 'rail') !== false) {
+		return 'train';
+	}
+	return '';
+}
+
+function ew_road_transit_hours_ensure($conn)
+{
+	mysqli_query($conn, "CREATE TABLE IF NOT EXISTS consignment_road_transit_hours (
+		grn_no VARCHAR(40) NOT NULL,
+		total_hours DECIMAL(10,2) NOT NULL DEFAULT 0,
+		updated_at DATETIME NULL,
+		PRIMARY KEY (grn_no)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function ew_road_transit_hours_get($conn, $grn_no)
+{
+	ew_road_transit_hours_ensure($conn);
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	if ($grn_no === '') {
+		return 0.0;
+	}
+	$q = mysqli_query($conn, "SELECT total_hours FROM consignment_road_transit_hours WHERE grn_no='$grn_no' LIMIT 1");
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	return $row ? (float) $row['total_hours'] : 0.0;
+}
+
+function ew_road_transit_hours_save($conn, $grn_no, $hours)
+{
+	ew_road_transit_hours_ensure($conn);
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	$hours = round((float) $hours, 2);
+	$now = date('Y-m-d H:i:s');
+	mysqli_query($conn, "INSERT INTO consignment_road_transit_hours (grn_no, total_hours, updated_at)
+		VALUES ('$grn_no', '$hours', '$now')
+		ON DUPLICATE KEY UPDATE total_hours='$hours', updated_at='$now'");
+}
+
+function ew_road_breakdown_ensure($conn)
+{
+	mysqli_query($conn, "CREATE TABLE IF NOT EXISTS consignment_road_breakdown (
+		id INT NOT NULL AUTO_INCREMENT,
+		grn_no VARCHAR(40) NOT NULL,
+		is_open TINYINT NOT NULL DEFAULT 1,
+		reason VARCHAR(255) NOT NULL DEFAULT '',
+		status_at INT NOT NULL DEFAULT 0,
+		delay_hours DECIMAL(10,2) NOT NULL DEFAULT 0,
+		created_at DATETIME NULL,
+		resumed_at DATETIME NULL,
+		PRIMARY KEY (id),
+		KEY grn_no (grn_no)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function ew_road_breakdown_is_open($conn, $grn_no)
+{
+	ew_road_breakdown_ensure($conn);
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	if ($grn_no === '') {
+		return false;
+	}
+	$q = mysqli_query($conn, "SELECT id FROM consignment_road_breakdown WHERE grn_no='$grn_no' AND is_open=1 LIMIT 1");
+	return $q && mysqli_num_rows($q) > 0;
+}
+
+/** Delay hours already resumed, for messages at this status and later. */
+function ew_road_breakdown_for_message($conn, $grn_no, $status)
+{
+	ew_road_breakdown_ensure($conn);
+	$out = array('open' => false, 'reason' => '', 'delay' => 0.0, 'resume_delay' => 0.0, 'events' => array());
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	$status = (int) $status;
+	if ($grn_no === '') {
+		return $out;
+	}
+	$q = mysqli_query($conn, "SELECT is_open, reason, status_at, delay_hours FROM consignment_road_breakdown WHERE grn_no='$grn_no' ORDER BY id ASC");
+	if (!$q) {
+		return $out;
+	}
+	while ($row = mysqli_fetch_assoc($q)) {
+		$at = (int) ($row['status_at'] ?? 0);
+		$is_open = (int) ($row['is_open'] ?? 0) === 1;
+		if ($at === $status) {
+			$out['events'][] = array(
+				'open' => $is_open,
+				'reason' => (string) ($row['reason'] ?? ''),
+			);
+		}
+		if ($is_open && $at === $status) {
+			$out['open'] = true;
+			$out['reason'] = (string) ($row['reason'] ?? '');
+		}
+		if (!$is_open && $at <= $status) {
+			$hours = (float) ($row['delay_hours'] ?? 0);
+			$out['delay'] += $hours;
+			if ($at === $status) {
+				$out['resume_delay'] += $hours;
+			}
+		}
+	}
+	return $out;
+}
+
+function ew_road_breakdown_open($conn, $grn_no, $status, $reason)
+{
+	ew_road_breakdown_ensure($conn);
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	$reason = mysqli_real_escape_string($conn, substr(trim((string) $reason), 0, 200));
+	$status = (int) $status;
+	$now = date('Y-m-d H:i:s');
+	return mysqli_query($conn, "INSERT INTO consignment_road_breakdown (grn_no, is_open, reason, status_at, delay_hours, created_at)
+		VALUES ('$grn_no', 1, '$reason', '$status', 0, '$now')");
+}
+
+function ew_road_breakdown_resume($conn, $grn_no, $delay_hours)
+{
+	ew_road_breakdown_ensure($conn);
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	$delay_hours = round((float) $delay_hours, 2);
+	$now = date('Y-m-d H:i:s');
+	$q = mysqli_query($conn, "SELECT id FROM consignment_road_breakdown WHERE grn_no='$grn_no' AND is_open=1 ORDER BY id DESC LIMIT 1");
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	if (!$row) {
+		return false;
+	}
+	$id = (int) $row['id'];
+	return mysqli_query($conn, "UPDATE consignment_road_breakdown
+		SET is_open=0, delay_hours='$delay_hours', resumed_at='$now'
+		WHERE id='$id'");
+}
+
+function ew_air_offload_ensure($conn)
+{
+	mysqli_query($conn, "CREATE TABLE IF NOT EXISTS consignment_air_offload (
+		id INT NOT NULL AUTO_INCREMENT,
+		grn_no VARCHAR(40) NOT NULL,
+		is_open TINYINT NOT NULL DEFAULT 1,
+		reason VARCHAR(255) NOT NULL DEFAULT '',
+		status_at INT NOT NULL DEFAULT 0,
+		created_at DATETIME NULL,
+		cleared_at DATETIME NULL,
+		PRIMARY KEY (id),
+		KEY grn_no (grn_no)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function ew_air_offload_is_open($conn, $grn_no)
+{
+	ew_air_offload_ensure($conn);
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	if ($grn_no === '') {
+		return false;
+	}
+	$q = mysqli_query($conn, "SELECT id FROM consignment_air_offload WHERE grn_no='$grn_no' AND is_open=1 LIMIT 1");
+	return $q && mysqli_num_rows($q) > 0;
+}
+
+function ew_air_offload_for_message($conn, $grn_no, $status)
+{
+	ew_air_offload_ensure($conn);
+	$out = array('open' => false, 'reason' => '', 'cleared' => false, 'events' => array());
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	$status = (int) $status;
+	if ($grn_no === '') {
+		return $out;
+	}
+	$q = mysqli_query($conn, "SELECT is_open, reason, status_at FROM consignment_air_offload WHERE grn_no='$grn_no' ORDER BY id ASC");
+	if (!$q) {
+		return $out;
+	}
+	while ($row = mysqli_fetch_assoc($q)) {
+		$at = (int) ($row['status_at'] ?? 0);
+		if ($at !== $status) {
+			continue;
+		}
+		$is_open = (int) ($row['is_open'] ?? 0) === 1;
+		$out['events'][] = array(
+			'open' => $is_open,
+			'reason' => (string) ($row['reason'] ?? ''),
+		);
+		if ($is_open) {
+			$out['open'] = true;
+			$out['reason'] = (string) ($row['reason'] ?? '');
+			$out['cleared'] = false;
+		} elseif (!$out['open']) {
+			$out['cleared'] = true;
+			if ($out['reason'] === '') {
+				$out['reason'] = (string) ($row['reason'] ?? '');
+			}
+		}
+	}
+	return $out;
+}
+
+function ew_air_offload_open($conn, $grn_no, $status, $reason)
+{
+	ew_air_offload_ensure($conn);
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	$reason = mysqli_real_escape_string($conn, substr(trim((string) $reason), 0, 200));
+	$status = (int) $status;
+	$now = date('Y-m-d H:i:s');
+	return mysqli_query($conn, "INSERT INTO consignment_air_offload (grn_no, is_open, reason, status_at, created_at)
+		VALUES ('$grn_no', 1, '$reason', '$status', '$now')");
+}
+
+function ew_air_offload_clear($conn, $grn_no)
+{
+	ew_air_offload_ensure($conn);
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	$now = date('Y-m-d H:i:s');
+	$q = mysqli_query($conn, "SELECT id FROM consignment_air_offload WHERE grn_no='$grn_no' AND is_open=1 ORDER BY id DESC LIMIT 1");
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	if (!$row) {
+		return false;
+	}
+	$id = (int) $row['id'];
+	return mysqli_query($conn, "UPDATE consignment_air_offload SET is_open=0, cleared_at='$now' WHERE id='$id'");
+}
+
+function ew_road_refresh_status_remarks($conn, $grn_no, $status, $remarks)
+{
+	$grn_no = mysqli_real_escape_string($conn, trim((string) $grn_no));
+	$status = (int) $status;
+	$remarks = mysqli_real_escape_string($conn, (string) $remarks);
+	$q = mysqli_query($conn, "SELECT sheet_id FROM transaction_status_log WHERE grn_no='$grn_no' AND to_status='$status' ORDER BY sheet_id DESC LIMIT 1");
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	if (!$row) {
+		return;
+	}
+	$sheet_id = (int) $row['sheet_id'];
+	mysqli_query($conn, "UPDATE transaction_status SET remarks='$remarks' WHERE sheet_id='$sheet_id'");
+}
+
 // status of consignment
 function get_tracking_message($conn, $row)
 {
@@ -1330,6 +1650,31 @@ $data = array(
     "destinationSuffix" => $destLoc['suffix_html'],
 
 );
+
+	if (ew_mode_is_road_freight($conn, $mode_id)) {
+		$override = isset($row['road_transit_hours_override']) ? trim((string) $row['road_transit_hours_override']) : '';
+		$total_hours = ($override !== '' && is_numeric($override))
+			? (float) $override
+			: ew_road_transit_hours_get($conn, $grn);
+		$data['totalHours'] = $total_hours;
+		$breakdown = ew_road_breakdown_for_message($conn, $grn, $status);
+		$data['breakdownOpen'] = $breakdown['open'];
+		$data['breakdownReason'] = $breakdown['reason'];
+		$data['breakdownDelay'] = $breakdown['delay'];
+		$data['breakdownResumeDelay'] = $breakdown['resume_delay'];
+		$data['breakdownEvents'] = $breakdown['events'];
+		return tracking_template_road($status, $data);
+	}
+
+	$offload_kind = ew_mode_offload_kind($conn, $mode_id);
+	if ($offload_kind !== '') {
+		$offload = ew_air_offload_for_message($conn, $grn, $status);
+		$data['offloadOpen'] = $offload['open'];
+		$data['offloadReason'] = $offload['reason'];
+		$data['offloadCleared'] = $offload['cleared'];
+		$data['offloadCarrier'] = $offload_kind;
+		$data['offloadEvents'] = $offload['events'];
+	}
 
 return tracking_template($status, $data);
 }

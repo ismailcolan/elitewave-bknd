@@ -359,6 +359,28 @@ if($r = mysqli_fetch_assoc($q)){
             if (!function_exists('ew_tracking_timeline_sort')) {
                 require_once __DIR__ . '/tracking_templates.php';
             }
+            $hold_carrier = function_exists('ew_mode_offload_kind')
+                ? ew_mode_offload_kind($conn, $grnr['mode_of_transportation'] ?? 0)
+                : '';
+            foreach (ew_tracking_hold_timeline($conn, $grn_no, $hold_carrier) as $hold_item) {
+                $tracking_history[] = array(
+                    'status' => $hold_item['title'],
+                    'status_name' => $hold_item['title'],
+                    'status_id' => (int) $hold_item['status_id'],
+                    'details' => $hold_item['remarks'],
+                    'date' => $hold_item['date'],
+                    'time' => $hold_item['time'],
+                    'ts' => (int) $hold_item['ts'],
+                    'sheet_id' => 0,
+                    'origin' => '',
+                    'destination' => '',
+                    'is_partial' => false,
+                    'is_full' => false,
+                    'delivered_packages' => null,
+                    'pending_packages' => null,
+                    'total_packages' => $total_packages,
+                );
+            }
             ew_tracking_timeline_sort($tracking_history);
 
             $status_log = array();

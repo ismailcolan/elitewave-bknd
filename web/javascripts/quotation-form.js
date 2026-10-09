@@ -106,8 +106,34 @@
 		return list.indexOf(t) >= 0;
 	}
 
-	function isRoadCargoGroup(group) {
-		return String(group || '').toLowerCase() === 'road cargo';
+	function sourceKind(group) {
+		var g = String(group || '').toLowerCase();
+		if (g === 'road cargo') {
+			return 'road';
+		}
+		if (g.indexOf('train') !== -1) {
+			return 'train';
+		}
+		if (g.indexOf('air') !== -1 || g.indexOf('flight') !== -1) {
+			return 'flight';
+		}
+		return '';
+	}
+
+	function sourceLabel($tr, prefix) {
+		var kind = sourceKind($tr.attr('data-mode-group'));
+		if (!kind) {
+			return '—';
+		}
+		var $sel = $tr.find('.' + prefix + '-source-' + kind);
+		if (!$sel.length || !$sel.val()) {
+			return '—';
+		}
+		var txt = $.trim($sel.find('option:selected').text());
+		if (txt === '' || txt.indexOf('Select ') === 0) {
+			return '—';
+		}
+		return txt;
 	}
 
 	function syncQuoteTypeUi() {
@@ -148,14 +174,15 @@
 			group = $tr.attr('data-mode-group') || '';
 		}
 		$tr.attr('data-mode-group', group);
-		var road = isRoadCargoGroup(group);
-		$tr.find('.mm-vehicle-road').toggle(road);
-		$tr.find('.mm-vehicle-text').toggle(!road);
-		if (road) {
-			$tr.find('.mm-vehicle-text').val('');
-		} else {
-			$tr.find('.mm-vehicle-road').val('');
-		}
+		var kind = sourceKind(group);
+		$tr.find('.mm-source').each(function() {
+			var show = kind !== '' && $(this).hasClass('mm-source-' + kind);
+			$(this).toggle(show);
+			if (!show) {
+				$(this).val('');
+			}
+		});
+		$tr.find('.mm-source-empty').toggle(kind === '');
 	}
 
 	function syncMultiModeVehicleFields() {
@@ -168,12 +195,8 @@
 		var sum = 0;
 		$('#multi_mode_tbody tr.mm-row').each(function() {
 			var $tr = $(this);
-			var rowSum = num($tr.find('.mm-amt[name="mm_freight[]"]').val())
-				+ num($tr.find('.mm-amt[name="mm_doc[]"]').val())
-				+ num($tr.find('.mm-amt[name="mm_loading[]"]').val())
-				+ num($tr.find('.mm-amt[name="mm_others[]"]').val());
+			var rowSum = num($tr.find('.mm-amt[name="mm_freight[]"]').val());
 			rowSum = Math.round(rowSum * 100) / 100;
-			$tr.find('.mm-row-total').val(rowSum > 0 ? fmt(rowSum) : '');
 			sum += rowSum;
 		});
 		return sum;
@@ -201,30 +224,20 @@
 	}
 
 	function multiModePreviewTable(totals) {
-		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Mode</th><th>Vehicle</th><th>Days</th><th align="right">Total</th></tr>';
+		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Mode</th><th>Source of transport</th><th>Days</th><th align="right">Freight</th></tr>';
 		$('#multi_mode_tbody tr.mm-row').each(function() {
 			var $tr = $(this);
 			var mode = mmModeLabel($tr);
 			if (mode === '—') {
 				return;
 			}
-			var veh = '';
-			if (isRoadCargoGroup($tr.attr('data-mode-group'))) {
-				veh = $.trim($tr.find('.mm-vehicle-road option:selected').text());
-				if ($tr.find('.mm-vehicle-road').val() === '') {
-					veh = '—';
-				}
-			} else {
-				veh = $.trim($tr.find('.mm-vehicle-text').val()) || '—';
-			}
+			var veh = sourceLabel($tr, 'mm');
 			var days = $.trim($tr.find('.mm-delivery-days option:selected').text());
 			if ($tr.find('.mm-delivery-days').val() === '') {
 				days = '—';
 			}
-			var rt = $.trim($tr.find('.mm-row-total').val()) || '—';
-			if (rt !== '—') {
-				rt = '₹ ' + rt + ' /-';
-			}
+			var freightRaw = $.trim($tr.find('.mm-amt[name="mm_freight[]"]').val());
+			var rt = freightRaw === '' ? '—' : ('₹ ' + fmt(num(freightRaw)) + ' /-');
 			html += '<tr><td>' + escHtml(mode) + '</td><td>' + escHtml(veh) + '</td><td>' + escHtml(days) + '</td><td align="right">' + escHtml(rt) + '</td></tr>';
 		});
 		html += '<tr><td colspan="3">GST @ ' + totals.gstPct + '%</td><td align="right">₹ ' + fmt(totals.gst) + ' /-</td></tr>';
@@ -507,8 +520,7 @@
 				return;
 			}
 			$clone.find('select').val('');
-			$clone.find('input').not('.mm-row-total').val('');
-			$clone.find('.mm-row-total').val('');
+			$clone.find('input').val('');
 			$clone.attr('data-mode-group', '');
 			var $after = $(this).closest('tr.mm-row');
 			$after.after($clone);
@@ -540,7 +552,7 @@
 			renderPreview();
 		});
 
-		$(document).on('input change', '.pv-bind, .pv-bind-select, .pv-bind-city, .charge-amt, .charge-tax, .charge-label, .charge-remarks, .mm-amt, .mm-delivery-days, .mm-vehicle-road, .mm-vehicle-text, #gst_rate, #party_id, #party_name, #vehicle_type_id, #quotation_approval, #payment_terms, #quote_type, #part_number', function() {
+		$(document).on('input change', '.pv-bind, .pv-bind-select, .pv-bind-city, .charge-amt, .charge-tax, .charge-label, .charge-remarks, .mm-amt, .mm-delivery-days, .mm-source, #gst_rate, #party_id, #party_name, #vehicle_type_id, #quotation_approval, #payment_terms, #quote_type, #part_number', function() {
 			if ($(this).is('#quote_type')) {
 				syncQuoteTypeUi();
 				return;

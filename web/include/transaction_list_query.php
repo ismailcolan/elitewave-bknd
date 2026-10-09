@@ -320,6 +320,47 @@ function transaction_status_step_button($status_row, $booking, $step, $class, $t
 		. ' title="' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '">' . $label . '</button>';
 }
 
+function transaction_status_breakdown_button($conn, $row, $trans_name)
+{
+	$status = (int) ($row['status'] ?? 0);
+	if ($status < 2 || $status >= 8 || !ew_mode_is_road_freight($conn, $row['mode_of_transportation'] ?? 0)) {
+		return '';
+	}
+	if (ew_road_transit_hours_get($conn, $row['grn_no'] ?? '') <= 0) {
+		return '';
+	}
+	$open = ew_road_breakdown_is_open($conn, $row['grn_no'] ?? '');
+	$action = $open ? 'resume' : 'open';
+	$label = $open ? 'Resume' : 'Breakdown';
+	$class = $open ? 'road-breakdown-btn is-resume' : 'road-breakdown-btn';
+
+	return '<button type="button" class="' . $class . '" data-breakdown-action="' . $action . '"'
+		. ' data-tabid="' . htmlspecialchars($trans_name, ENT_QUOTES, 'UTF-8') . '"'
+		. ' data-grnid="' . htmlspecialchars((string) $row['grn_id'], ENT_QUOTES, 'UTF-8') . '"'
+		. ' data-grnno="' . htmlspecialchars((string) $row['grn_no'], ENT_QUOTES, 'UTF-8') . '"'
+		. ' data-consignment="' . (int) $row['transaction_id'] . '"'
+		. ' title="' . ($open ? 'Vehicle is moving again' : 'Vehicle breakdown') . '">' . $label . '</button>';
+}
+
+function transaction_status_offload_button($conn, $row, $trans_name)
+{
+	$status = (int) ($row['status'] ?? 0);
+	if ($status < 2 || $status >= 8 || ew_mode_offload_kind($conn, $row['mode_of_transportation'] ?? 0) === '') {
+		return '';
+	}
+	$open = ew_air_offload_is_open($conn, $row['grn_no'] ?? '');
+	$action = $open ? 'clear' : 'open';
+	$label = $open ? 'Onload' : 'Offload';
+	$class = $open ? 'air-offload-btn is-next' : 'air-offload-btn';
+
+	return '<button type="button" class="' . $class . '" data-offload-action="' . $action . '"'
+		. ' data-tabid="' . htmlspecialchars($trans_name, ENT_QUOTES, 'UTF-8') . '"'
+		. ' data-grnid="' . htmlspecialchars((string) $row['grn_id'], ENT_QUOTES, 'UTF-8') . '"'
+		. ' data-grnno="' . htmlspecialchars((string) $row['grn_no'], ENT_QUOTES, 'UTF-8') . '"'
+		. ' data-consignment="' . (int) $row['transaction_id'] . '"'
+		. ' title="' . ($open ? 'Load on the next train or flight' : 'Offloaded from the train or flight') . '">' . $label . '</button>';
+}
+
 function transaction_status_list_render_row($conn, $row, $i)
 {
 	$m1 = (int) ($row['list_qtr'] ?? 0);
@@ -345,8 +386,9 @@ function transaction_status_list_render_row($conn, $row, $i)
 		<td data-label="Consignor">' . htmlspecialchars(get_client_name($conn, $row['consigner'])) . '</td>
 		<td data-label="Consignee">' . htmlspecialchars(get_client_name($conn, $row['consignee'])) . '</td>
 		<td data-label="Destination">' . htmlspecialchars(get_city_name($conn, $row['destination'])) . '</td>
+		<td data-label="Mode">' . htmlspecialchars((string) get_mode($conn, $row['mode_of_transportation'] ?? 0)) . '</td>
 		<td data-label="Status">' . transaction_status_badge($booking, $status, $badge_opts) . '</td>
-		<td class="col-steps actions center-content" data-label="Change Status"><div>';
+		<td class="col-steps actions center-content" data-label="Change Status" data-road="' . (ew_mode_is_road_freight($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0') . '" data-breakdown-open="' . (ew_road_breakdown_is_open($conn, $row['grn_no'] ?? '') ? '1' : '0') . '" data-offload-open="' . (ew_air_offload_is_open($conn, $row['grn_no'] ?? '') ? '1' : '0') . '"><div>';
 	$out .= '<button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>';
 	$out .= transaction_status_step_button($status, $booking, 2, 'picked-up', 'Consignment Picked Up', $trans_name, $row);
 	$out .= transaction_status_step_button($status, $booking, 3, 'transit-1', 'In Transit-1', $trans_name, $row);
@@ -364,8 +406,10 @@ function transaction_status_list_render_row($conn, $row, $i)
 		$out .= transaction_status_step_button($status, $booking, 8, 'delivered' . ($delivery_type === 'partial' ? ' partial-delivery-button' : ''), 'Delivered Successfully', $trans_name, $row, $deliver_extra);
 	}
 
+	$out .= transaction_status_breakdown_button($conn, $row, $trans_name);
+	$out .= transaction_status_offload_button($conn, $row, $trans_name);
 	$out .= '</div>
-		<button type="button" class="btn btn-primary mobile-update-status" data-status="' . (int) $status . '" data-tabid="' . htmlspecialchars($trans_name, ENT_QUOTES, 'UTF-8') . '" data-grnid="' . htmlspecialchars((string) $row['grn_id'], ENT_QUOTES, 'UTF-8') . '" data-grnno="' . htmlspecialchars((string) $row['grn_no'], ENT_QUOTES, 'UTF-8') . '" data-consignment="' . (int) $row['transaction_id'] . '">Update Status</button>
+		<button type="button" class="btn btn-primary mobile-update-status" data-breakdown-open="' . (ew_road_breakdown_is_open($conn, $row['grn_no'] ?? '') ? '1' : '0') . '" data-offload-open="' . (ew_air_offload_is_open($conn, $row['grn_no'] ?? '') ? '1' : '0') . '" data-status="' . (int) $status . '" data-tabid="' . htmlspecialchars($trans_name, ENT_QUOTES, 'UTF-8') . '" data-grnid="' . htmlspecialchars((string) $row['grn_id'], ENT_QUOTES, 'UTF-8') . '" data-grnno="' . htmlspecialchars((string) $row['grn_no'], ENT_QUOTES, 'UTF-8') . '" data-consignment="' . (int) $row['transaction_id'] . '">Update Status</button>
 		</td></tr>';
 	return $out;
 }

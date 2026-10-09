@@ -67,7 +67,7 @@ $logged_id = $_SESSION['user_id'];
         }
         .trans_list_table {
             width: 100% !important;
-            min-width: 980px;
+            min-width: 1200px;
             margin: 0 !important;
             border-collapse: collapse !important;
             table-layout: fixed !important;
@@ -79,8 +79,9 @@ $logged_id = $_SESSION['user_id'];
         .trans_list_table col.col-consignor { width: 120px; }
         .trans_list_table col.col-consignee { width: 120px; }
         .trans_list_table col.col-dest { width: 90px; }
+        .trans_list_table col.col-mode { width: 120px; }
         .trans_list_table col.col-status { width: 110px; }
-        .trans_list_table col.col-steps { width: 280px; }
+        .trans_list_table col.col-steps { width: 380px; }
         .trans_list_table thead th {
             padding: 11px 8px !important;
             white-space: nowrap;
@@ -144,6 +145,42 @@ $logged_id = $_SESSION['user_id'];
             align-items: center;
             justify-content: center;
             gap: 2px;
+        }
+        .road-breakdown-btn {
+            flex: 0 0 auto;
+            height: 30px;
+            margin: 0;
+            padding: 0 8px;
+            border: 1px solid #b91c1c;
+            border-radius: 4px;
+            background: #fff;
+            color: #b91c1c;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 28px;
+            white-space: nowrap;
+        }
+        .road-breakdown-btn.is-resume {
+            border-color: #15803d;
+            color: #15803d;
+        }
+        .air-offload-btn {
+            flex: 0 0 auto;
+            height: 30px;
+            margin: 0;
+            padding: 0 8px;
+            border: 1px solid #021659;
+            border-radius: 4px;
+            background: #fff;
+            color: #021659;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 28px;
+            white-space: nowrap;
+        }
+        .air-offload-btn.is-next {
+            border-color: #15803d;
+            color: #15803d;
         }
         .booked { background-color: #8dafbf; color: #fff; }
         .picked-up { background-color: #77aec9; color: #fff; }
@@ -391,6 +428,7 @@ $logged_id = $_SESSION['user_id'];
                                     <col class="col-consignor">
                                     <col class="col-consignee">
                                     <col class="col-dest">
+                                    <col class="col-mode">
                                     <col class="col-status">
                                     <col class="col-steps">
                                 </colgroup>
@@ -403,6 +441,7 @@ $logged_id = $_SESSION['user_id'];
                                     <th>Consignor</th>
                                     <th>Consignee</th>
                                     <th>Destination</th>
+                                    <th>Mode</th>
                                     <th>Status</th>
                                     <th>Change Status</th>
                                     </tr>
@@ -499,13 +538,14 @@ if ($delivery_type == 'partial') {
                                                 <td data-label="Consignor"><?php echo htmlspecialchars(get_client_name($conn, $row['consigner'])); ?></td>
                                                 <td data-label="Consignee"><?php echo htmlspecialchars(get_client_name($conn, $row['consignee'])); ?></td>
                                                 <td data-label="Destination"><?php echo htmlspecialchars(get_city_name($conn, $row['destination'])); ?></td>
+                                                <td data-label="Mode"><?php echo htmlspecialchars((string) get_mode($conn, $row['mode_of_transportation'] ?? 0)); ?></td>
                                                 <td data-label="Status"><?php echo transaction_status_badge($booking, $status, array(
                                                     'delivery_type' => $delivery_type,
                                                     'delivered_packages' => $delivered_packages,
                                                     'total_packages' => $total_packages,
                                                 )); ?></td>
 
-                                                <td class="col-steps actions center-content" data-label="Change Status">
+                                                <td class="col-steps actions center-content" data-label="Change Status" data-road="<?php echo ew_mode_is_road_freight($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0'; ?>" data-breakdown-open="<?php echo ew_road_breakdown_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>" data-offload-open="<?php echo ew_air_offload_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>">
                                                     <div>
                                                         <button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>
                                                         <button class="border picked-up <?php if ($row['status'] >= 2) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 2) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="2" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 2) { echo 'data-remarks="' . get_cong_remarks($conn, 2, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="Consignment Picked Up"><?php if ($row['status'] >= 2) { echo "<i class='fa fa-check'></i>"; } else { echo '2'; } ?></button>
@@ -527,11 +567,15 @@ if ($delivery_type == 'partial') {
                                                         ?>
                                                         <button class="<?php echo $delivered_classes; ?>" <?php echo $delivered_attrs; ?> data-status="8" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" data-consignment="<?php echo $row['transaction_id']; ?>" data-total-packages="<?php echo $total_packages; ?>" data-delivered-packages="<?php echo $delivered_packages; ?>" data-delivery-type="<?php echo $delivery_type; ?>" title="Change Delivery Status"><?php if ($row['status'] >= 8) { echo "<i class='fa fa-check'></i>"; } else { echo '8'; } ?></button>
                                                         <?php } ?>
+                                                        <?php echo transaction_status_breakdown_button($conn, $row, $trans_name); ?>
+                                                        <?php echo transaction_status_offload_button($conn, $row, $trans_name); ?>
                                                     </div>
                                                     
                                                     <button
         type="button"
         class="btn btn-primary mobile-update-status"
+        data-breakdown-open="<?php echo ew_road_breakdown_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>"
+        data-offload-open="<?php echo ew_air_offload_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>"
         data-status="<?php echo $row['status']; ?>"
         data-tabid="<?php echo $trans_name; ?>"
         data-grnid="<?php echo $row['grn_id']; ?>"
@@ -605,10 +649,10 @@ if ($delivery_type == 'partial') {
                 bDestroy: true,
                 oSearch: { sSearch: '', bSmart: false, bRegex: false, bCaseInsensitive: true },
                 aoColumnDefs: [
-                    { bSortable: false, aTargets: [8] },
+                    { bSortable: false, aTargets: [9] },
                     { sType: 'numeric', aTargets: [0] },
                     { sClass: 'text-center', aTargets: [0, 3] },
-                    { sClass: 'col-steps', aTargets: [8] }
+                    { sClass: 'col-steps', aTargets: [9] }
                 ],
                 oLanguage: {
                     sEmptyTable: 'No bookings found.',
@@ -843,6 +887,17 @@ if ($delivery_type == 'partial') {
                 if ($('#status_change_consignment').valid() != true) {
                     return;
                 }
+                if ($('#road_transit_hours_group').is(':visible')) {
+                    var transitHours = parseFloat($.trim($('#road_transit_hours').val()));
+                    if (!transitHours || transitHours <= 0) {
+                        if (typeof ewToast === 'function') {
+                            ewToast('Enter the transit hours from pickup to delivery.', 'warning');
+                        } else {
+                            alert('Enter the transit hours from pickup to delivery.');
+                        }
+                        return;
+                    }
+                }
                 var $saveBtn = $(this);
                 function proceedStatusSave() {
                         $saveBtn.attr('disabled', true);
@@ -909,7 +964,21 @@ if (parseInt($("#status").val()) === 8) {
                             type: "POST",
                             data: $.param(data),
                             success: function(result) {
-                                if (result != 0) {
+                                var statusResult = $.trim(result);
+                                if (statusResult === 'breakdown' || statusResult === 'offload') {
+                                    hidePageLoaders();
+                                    $('#save_status_change').attr('disabled', false);
+                                    var holdMessage = statusResult === 'offload'
+                                        ? 'Mark Onload before changing the status.'
+                                        : 'Resume the vehicle before changing the status.';
+                                    if (typeof ewToast === 'function') {
+                                        ewToast(holdMessage, 'warning');
+                                    } else {
+                                        alert(holdMessage);
+                                    }
+                                    return;
+                                }
+                                if (statusResult != 0) {
                                     refreshStatusTableAfterSave('Status updated successfully.');
                                 } else {
                                     hidePageLoaders();
@@ -948,7 +1017,216 @@ if (parseInt($("#status").val()) === 8) {
         $(window).load(hidePageLoaders);
         setTimeout(hidePageLoaders, 2000);
 
+       function statusRowIsRoad($el) {
+           var flag = $el.attr('data-road');
+           if (flag === undefined) {
+               var $wrap = $el.closest('[data-road]');
+               flag = $wrap.length ? $wrap.attr('data-road') : '0';
+           }
+           return String(flag) === '1';
+       }
+
+       function syncRoadTransitHoursField(status, isRoad) {
+           var show = parseInt(status, 10) === 2 && isRoad;
+           $('#road_transit_hours_group').toggle(show);
+           $('#road_transit_hours').prop('disabled', !show);
+           if (!show) {
+               $('#road_transit_hours').val('');
+           }
+       }
+
+       function loadStatusTrackingMessage() {
+           var tableName = $('#table_names').val() || '';
+           var table = tableName.split('_');
+           if (!table[1] || !table[2]) {
+               return;
+           }
+           var payload = {
+               transaction_id: $('#transaction_id').val(),
+               month: table[1],
+               year: table[2],
+               status: $('#status').val()
+           };
+           if ($('#road_transit_hours_group').is(':visible')) {
+               payload.transit_hours = $.trim($('#road_transit_hours').val());
+           }
+           $.ajax({
+               url: 'fetch_details.php?cmd=get_tracking_message',
+               type: 'POST',
+               data: payload,
+               success: function(msg) {
+                   $('#status_remarks').html(msg);
+                   $('#remarks_text').val($('<div>').html(msg).text());
+               }
+           });
+       }
+
+       $(document).on('input', '#road_transit_hours', function() {
+           this.value = this.value.replace(/[^0-9.]/g, '');
+           loadStatusTrackingMessage();
+       });
+
+       function holdFlagOpen($el, attr) {
+           var flag = $el.attr(attr);
+           if (flag === undefined) {
+               var $wrap = $el.closest('[' + attr + ']');
+               flag = $wrap.length ? $wrap.attr(attr) : '0';
+           }
+           return String(flag) === '1';
+       }
+
+       function roadBreakdownIsOpen($el) {
+           return holdFlagOpen($el, 'data-breakdown-open');
+       }
+
+       function airOffloadIsOpen($el) {
+           return holdFlagOpen($el, 'data-offload-open');
+       }
+
+       function statusHoldMessage($el) {
+           if (airOffloadIsOpen($el)) {
+               return 'Mark Onload before changing the status.';
+           }
+           if (roadBreakdownIsOpen($el)) {
+               return 'Resume the vehicle before changing the status.';
+           }
+           return '';
+       }
+
+       $(document).on('click', '.road-breakdown-btn', function() {
+           var action = $(this).attr('data-breakdown-action') || 'open';
+           $('#breakdown_action').val(action);
+           $('#breakdown_grn_no').val($(this).attr('data-grnno') || '');
+           $('#breakdown_table_names').val($(this).attr('data-tabid') || '');
+           $('#breakdown_reason').val('');
+           if (action === 'resume') {
+               $('#roadBreakdownTitle').text('Resume');
+               $('#breakdown_reason_group').hide();
+               $('#breakdown_resume_note').show();
+           } else {
+               $('#roadBreakdownTitle').text('Vehicle breakdown');
+               $('#breakdown_reason_group').show();
+               $('#breakdown_resume_note').hide();
+           }
+           if (typeof ewV2OpenModal === 'function') {
+               ewV2OpenModal('road_breakdown_modal');
+           } else {
+               $('#road_breakdown_modal').addClass('open');
+           }
+       });
+
+       $(document).on('click', '#save_road_breakdown', function() {
+           var action = $('#breakdown_action').val();
+           if (action === 'open' && $.trim($('#breakdown_reason').val()) === '') {
+               if (typeof ewToast === 'function') {
+                   ewToast('Enter the breakdown reason.', 'warning');
+               } else {
+                   alert('Enter the breakdown reason.');
+               }
+               return;
+           }
+           var $btn = $(this);
+           $btn.prop('disabled', true);
+           $.ajax({
+               url: 'save_details.php',
+               type: 'POST',
+               data: {
+                   form_name: 'road_consignment_breakdown',
+                   breakdown_action: action,
+                   grn_no: $('#breakdown_grn_no').val(),
+                   table_names: $('#breakdown_table_names').val(),
+                   breakdown_reason: $('#breakdown_reason').val()
+               },
+               success: function(result) {
+                   if ($.trim(result) == 1) {
+                       if (typeof ewV2CloseModal === 'function') {
+                           ewV2CloseModal('road_breakdown_modal');
+                       } else {
+                           $('#road_breakdown_modal').removeClass('open');
+                       }
+                       refreshStatusTableAfterSave(action === 'resume' ? 'Vehicle resumed.' : 'Breakdown saved. Reach time is paused.');
+                   } else if (typeof ewToast === 'function') {
+                       ewToast('Could not save the breakdown.', 'error');
+                   }
+               },
+               complete: function() {
+                   $btn.prop('disabled', false);
+               }
+           });
+       });
+
+       $(document).on('click', '.air-offload-btn', function() {
+           var action = $(this).attr('data-offload-action') || 'open';
+           $('#offload_action').val(action);
+           $('#offload_grn_no').val($(this).attr('data-grnno') || '');
+           $('#offload_table_names').val($(this).attr('data-tabid') || '');
+           $('#offload_reason').val('');
+           if (action === 'clear') {
+               $('#airOffloadTitle').text('Onload');
+               $('#offload_reason_group').hide();
+               $('#offload_next_note').show();
+           } else {
+               $('#airOffloadTitle').text('Offload');
+               $('#offload_reason_group').show();
+               $('#offload_next_note').hide();
+           }
+           if (typeof ewV2OpenModal === 'function') {
+               ewV2OpenModal('air_offload_modal');
+           } else {
+               $('#air_offload_modal').addClass('open');
+           }
+       });
+
+       $(document).on('click', '#save_air_offload', function() {
+           var action = $('#offload_action').val();
+           if (action === 'open' && $.trim($('#offload_reason').val()) === '') {
+               if (typeof ewToast === 'function') {
+                   ewToast('Enter the offload reason.', 'warning');
+               } else {
+                   alert('Enter the offload reason.');
+               }
+               return;
+           }
+           var $btn = $(this);
+           $btn.prop('disabled', true);
+           $.ajax({
+               url: 'save_details.php',
+               type: 'POST',
+               data: {
+                   form_name: 'air_consignment_offload',
+                   offload_action: action,
+                   grn_no: $('#offload_grn_no').val(),
+                   table_names: $('#offload_table_names').val(),
+                   offload_reason: $('#offload_reason').val()
+               },
+               success: function(result) {
+                   if ($.trim(result) == 1) {
+                       if (typeof ewV2CloseModal === 'function') {
+                           ewV2CloseModal('air_offload_modal');
+                       } else {
+                           $('#air_offload_modal').removeClass('open');
+                       }
+                       refreshStatusTableAfterSave(action === 'clear' ? 'Onload saved. The consignment is moving again.' : 'Offload saved. The consignment is waiting for the next train or flight.');
+                   } else if (typeof ewToast === 'function') {
+                       ewToast('Could not save the offload.', 'error');
+                   }
+               },
+               complete: function() {
+                   $btn.prop('disabled', false);
+               }
+           });
+       });
+
        $(document).on('click','#status_popup', function(){
+    var holdMessage = statusHoldMessage($(this));
+    if (holdMessage) {
+        if (typeof ewToast === 'function') {
+            ewToast(holdMessage, 'warning');
+        } else {
+            alert(holdMessage);
+        }
+        return;
+    }
 
     unlockStatusDatePicker();
 
@@ -967,6 +1245,9 @@ if (parseInt($("#status").val()) === 8) {
     $("#grn_id").val(grn_id);
     $("#grn_no").val(grn_no);
     $("#status").val(status);
+    var pickedRoad = statusRowIsRoad($(this));
+    $('#status_popup_modal').attr('data-road', pickedRoad ? '1' : '0');
+    syncRoadTransitHoursField(status, pickedRoad);
 
     // =====================================
 // Delivery status handling for Status 8
@@ -1089,36 +1370,7 @@ else {
     $("#delivered_packages").val('');
 }
 
-    //==========================
-    // Get Tracking Message
-    //==========================
-
-    var table = tabid.split("_");
-
-    $.ajax({
-
-       url: "fetch_details.php?cmd=get_tracking_message",
-
-        type:"POST",
-
-        data:{
-            transaction_id:transaction_id,
-            month:table[1],
-            year:table[2],
-            status:status
-        },
-
-       success:function(msg){
-
-    $("#status_remarks").html(msg);
-
-    $("#remarks_text").val(
-        $("<div>").html(msg).text()
-    );
-
-}
-
-    });
+    loadStatusTrackingMessage();
 
 });
 
@@ -1146,6 +1398,15 @@ else {
     8: "Delivered Successfully"
 };
 $(document).on('click','.mobile-update-status',function(){
+    var holdMessage = statusHoldMessage($(this));
+    if (holdMessage) {
+        if (typeof ewToast === 'function') {
+            ewToast(holdMessage, 'warning');
+        } else {
+            alert(holdMessage);
+        }
+        return;
+    }
 
     setStatusModalDateTime();
 
@@ -1157,32 +1418,6 @@ $(document).on('click','.mobile-update-status',function(){
     $("#table_names").val($(this).data('tabid'));
     $("#grn_id").val($(this).data('grnid'));
     $("#grn_no").val($(this).data('grnno'));
-var table = $(this).data('tabid').split("_");
-
-$.ajax({
-
-    url: "fetch_details.php?cmd=get_tracking_message",
-
-    type:"POST",
-
-    data:{
-        transaction_id:$("#transaction_id").val(),
-        month:table[1],
-        year:table[2],
-        status:$("#mobile_status_select").val()
-    },
-
-   success:function(msg){
-
-    $("#status_remarks").html(msg);
-
-    $("#remarks_text").val(
-        $("<div>").html(msg).text()
-    );
-
-}
-
-});
 
     let html='';
 
@@ -1193,39 +1428,17 @@ $.ajax({
     }
 
     $("#mobile_status_select").html(html);
+    $("#status").val($("#mobile_status_select").val());
+    var mobileRoad = statusRowIsRoad($(this));
+    $('#status_popup_modal').attr('data-road', mobileRoad ? '1' : '0');
+    syncRoadTransitHoursField($("#status").val(), mobileRoad);
+    loadStatusTrackingMessage();
 
 });
 $(document).on("change","#mobile_status_select",function(){
-
-    var table = $("#table_names").val().split("_");
-
-    $.ajax({
-
-       url: "fetch_details.php?cmd=get_tracking_message",
-
-        type:"POST",
-
-        data:{
-            transaction_id:$("#transaction_id").val(),
-            month:table[1],
-            year:table[2],
-            status:$(this).val()
-        },
-
-       success:function(msg){
-
-    $("#status_remarks").html(msg);
-
-    $("#remarks_text").val(
-        $("<div>").html(msg).text()
-    );
-
-    $("#status").val($("#mobile_status_select").val());
-
-}
-
-    });
-
+    $("#status").val($(this).val());
+    syncRoadTransitHoursField($(this).val(), $('#status_popup_modal').attr('data-road') === '1');
+    loadStatusTrackingMessage();
 });
     </script>
     <div class="alert" id="alert-container" style="display:none;">
@@ -1258,6 +1471,12 @@ $(document).on("change","#mobile_status_select",function(){
                         </div>
 
                         <div id="status_remarks" class="ts-modal-remarks-panel"></div>
+
+                        <div class="form-group" id="road_transit_hours_group" style="display:none;">
+                            <label>Transit hours (pickup to delivery) <span class="req-star">*</span></label>
+                            <input type="text" class="form-control" id="road_transit_hours" name="road_transit_hours" placeholder="Example: 72" autocomplete="off" inputmode="decimal">
+                            <p class="ew-field-hint" style="margin:6px 0 0;">These hours are divided by 6 and rounded to the nearest hour. Transit-1 subtracts one part, then each next status subtracts the same part through Out for Delivery. Example: 73 hours rounds to a 12-hour step, so Transit-1 shows 61.</p>
+                        </div>
 
                         <div id="delivery_options" style="display:none;">
                             <div class="form-group">
@@ -1325,6 +1544,53 @@ $(document).on("change","#mobile_status_select",function(){
             </div>
             <div class="ew-v2-modal-foot">
                 <button class="btn btn-primary" type="button" data-ew-v2-close>OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ew-v2-modal-backdrop" id="road_breakdown_modal">
+        <div class="ew-v2-modal" role="dialog" aria-labelledby="roadBreakdownTitle" aria-modal="true">
+            <div class="ew-v2-modal-head">
+                <h3 id="roadBreakdownTitle">Vehicle breakdown</h3>
+                <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+            </div>
+            <div class="ew-v2-modal-body">
+                <input type="hidden" id="breakdown_action" value="open">
+                <input type="hidden" id="breakdown_grn_no" value="">
+                <input type="hidden" id="breakdown_table_names" value="">
+                <div class="form-group" id="breakdown_reason_group">
+                    <label>Reason <span class="req-star">*</span></label>
+                    <input type="text" class="form-control" id="breakdown_reason" maxlength="200" placeholder="Example: tyre puncture" autocomplete="off">
+                </div>
+                <p class="ew-field-hint" id="breakdown_resume_note" style="display:none;margin:0;">The vehicle is moving again and can go to the next status.</p>
+            </div>
+            <div class="ew-v2-modal-foot">
+                <button class="btn btn-default-outline" type="button" data-ew-v2-close>Cancel</button>
+                <button class="btn btn-primary" type="button" id="save_road_breakdown">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ew-v2-modal-backdrop" id="air_offload_modal">
+        <div class="ew-v2-modal" role="dialog" aria-labelledby="airOffloadTitle" aria-modal="true">
+            <div class="ew-v2-modal-head">
+                <h3 id="airOffloadTitle">Offload</h3>
+                <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+            </div>
+            <div class="ew-v2-modal-body">
+                <input type="hidden" id="offload_action" value="open">
+                <input type="hidden" id="offload_grn_no" value="">
+                <input type="hidden" id="offload_table_names" value="">
+                <div class="form-group" id="offload_reason_group">
+                    <label>Reason <span class="req-star">*</span></label>
+                    <input type="text" class="form-control" id="offload_reason" maxlength="200" placeholder="Example: space not available" autocomplete="off">
+                    <p class="ew-field-hint" style="margin:6px 0 0;">The train or flight leaves without this consignment. It stays on the current status until Onload.</p>
+                </div>
+                <p class="ew-field-hint" id="offload_next_note" style="display:none;margin:0;">This consignment is onloaded on the next train or flight and can move to the next status.</p>
+            </div>
+            <div class="ew-v2-modal-foot">
+                <button class="btn btn-default-outline" type="button" data-ew-v2-close>Cancel</button>
+                <button class="btn btn-primary" type="button" id="save_air_offload">Save</button>
             </div>
         </div>
     </div>

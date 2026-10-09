@@ -23,11 +23,14 @@ function quotation_pdf_page1_compact_css()
 {
 	return '
 <style>
-.ew-quote-p1{ font-size:9pt; line-height:1.32; min-height:248mm; }
-.ew-quote-p1 .ew-quote-section-title{ margin:8px 0 0; font-size:10pt; }
+.ew-quote-p1{ font-size:9pt; line-height:1.28; }
+.ew-quote-p1 .ew-quote-section-title{ margin:4px 0 0; font-size:10pt; }
 .ew-quote-p1 .ew-doc-label{ font-size:9pt; margin-bottom:1px; }
 .ew-quote-p1 .ew-doc-value{ font-size:9pt; }
 .ew-quote-p1 .ew-doc-secondary{ font-size:8.5pt; }
+.ew-quote-p1 .ew-shipment-block{ page-break-inside:avoid; }
+.ew-quote-p1 table.ew-quote-info-table{ page-break-inside:avoid; }
+.ew-quote-p1 .ew-quote-addr{ font-size:8pt; line-height:1.12; word-wrap:break-word; }
 </style>';
 }
 
@@ -63,7 +66,7 @@ function quotation_pdf_info_row($label, $value, $is_last_row, $label_width = '32
 
 function quotation_pdf_info_table_style()
 {
-	return 'border-collapse:collapse;margin-bottom:8px;border:2px solid ' . EW_QUOTE_PDF_NAVY . ';';
+	return 'border-collapse:collapse;margin-bottom:6px;border:2px solid ' . EW_QUOTE_PDF_NAVY . ';page-break-inside:avoid;';
 }
 
 /** Commercial summary row: navy description column, white amount column (matches logistics tables). */
@@ -121,7 +124,7 @@ function quotation_pdf_meta_cell($label, $value)
 </td>';
 }
 
-/** Keep long delivery addresses from pushing totals to the next PDF page. */
+/** Full delivery address for PDF (no truncation). */
 function quotation_pdf_delivery_for_pdf($text)
 {
 	$text = trim(str_replace(array("\r\n", "\r"), "\n", (string) $text));
@@ -131,15 +134,16 @@ function quotation_pdf_delivery_for_pdf($text)
 	$lines = array_values(array_filter(array_map('trim', explode("\n", $text)), function ($l) {
 		return $l !== '';
 	}));
-	$max_lines = 5;
-	if (count($lines) > $max_lines) {
-		$lines = array_slice($lines, 0, $max_lines);
+	if ($lines === array()) {
+		return '—';
 	}
-	$last = count($lines) - 1;
-	if ($last >= 0 && strlen($lines[$last]) > 80) {
-		$lines[$last] = substr($lines[$last], 0, 77) . '...';
-	}
-	return nl2br(htmlspecialchars(implode("\n", $lines), ENT_QUOTES, 'UTF-8'));
+
+	return '<span class="ew-quote-addr">' . nl2br(htmlspecialchars(implode("\n", $lines), ENT_QUOTES, 'UTF-8')) . '</span>';
+}
+
+function quotation_pdf_addr_value_style()
+{
+	return 'line-height:1.12;font-size:8pt;word-wrap:break-word;padding:3px 8px;';
 }
 
 function quotation_pdf_consignor_multi_dest_table_html($conn, $quotation_id)
@@ -158,12 +162,9 @@ function quotation_pdf_consignor_multi_dest_table_html($conn, $quotation_id)
 	$body = '<tr>'
 		. '<th style="' . $th . '">Destination</th>'
 		. '<th style="' . $th . '">Mode</th>'
-		. '<th style="' . $th . '">Vehicle</th>'
+		. '<th style="' . $th . '">Source of transport</th>'
 		. '<th style="' . $th . '">Days</th>'
 		. '<th style="' . $th . 'text-align:right;">Freight</th>'
-		. '<th style="' . $th . 'text-align:right;">Doc.</th>'
-		. '<th style="' . $th . 'text-align:right;">Others</th>'
-		. '<th style="' . $th . 'text-align:right;">Total</th>'
 		. '</tr>';
 	foreach ($rows as $r) {
 		$body .= '<tr>'
@@ -172,9 +173,6 @@ function quotation_pdf_consignor_multi_dest_table_html($conn, $quotation_id)
 			. '<td style="' . $td . '">' . htmlspecialchars($r['vehicle_display'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['delivery_days_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['freight_charges'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
-			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['doc_charges'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
-			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['others'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
-			. '<td style="' . $tdr . 'font-weight:bold;">' . htmlspecialchars($fmt($r['row_total'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
 			. '</tr>';
 	}
 	return quotation_pdf_section_heading('Destination-wise quotation (consignor)', false)
@@ -186,14 +184,46 @@ function quotation_pdf_all_modes_shipment_html($q, $delivery)
 	$consignee = htmlspecialchars($q['destination_name'] ?? '—', ENT_QUOTES, 'UTF-8');
 
 	return '
-<table width="100%" cellpadding="0" cellspacing="0" style="' . quotation_pdf_info_table_style() . '">'
+<table width="100%" cellpadding="0" cellspacing="0" class="ew-quote-info-table" style="' . quotation_pdf_info_table_style() . '">'
 		. quotation_pdf_info_row('Consignee / delivery party', $consignee, false, '28%')
-		. quotation_pdf_info_row('Delivery address', $delivery, true, '28%', 'line-height:1.3;font-size:8.5pt;word-wrap:break-word;')
+		. quotation_pdf_info_row('Delivery address', $delivery, true, '28%', quotation_pdf_addr_value_style())
 		. '
 </table>';
 }
 
-function quotation_pdf_shipment_details_html($q, $loading, $dims, $delivery, $mode_label = '')
+function quotation_pdf_info_table_from_rows(array $rows, $label_width = '22%')
+{
+	$body = '';
+	$last = count($rows) - 1;
+	foreach ($rows as $i => $row) {
+		$extra = isset($row[2]) ? $row[2] : '';
+		$body .= quotation_pdf_info_row($row[0], $row[1], ($i === $last), $label_width, $extra);
+	}
+
+	return '
+<table width="100%" cellpadding="0" cellspacing="0" class="ew-quote-info-table" style="' . quotation_pdf_info_table_style() . '">'
+		. $body
+		. '
+</table>';
+}
+
+function quotation_pdf_shipment_details_table_html($q, $loading, $dims, $delivery, $mode_label = '')
+{
+	return quotation_pdf_info_table_from_rows(
+		quotation_pdf_shipment_detail_rows($q, $loading, $dims, $delivery, $mode_label),
+		'22%'
+	);
+}
+
+function quotation_pdf_other_details_html($conn, $label_width = '22%')
+{
+	return quotation_pdf_section_heading('Other details', false)
+		. '<div class="ew-shipment-block">'
+		. quotation_pdf_info_table_from_rows(quotation_pdf_transport_detail_rows($conn), $label_width)
+		. '</div>';
+}
+
+function quotation_pdf_shipment_detail_rows($q, $loading, $dims, $delivery, $mode_label = '')
 {
 	$origin = htmlspecialchars($q['origin_text'] ?? '—', ENT_QUOTES, 'UTF-8');
 	$dest = htmlspecialchars($q['destination_name'] ?? '—', ENT_QUOTES, 'UTF-8');
@@ -221,19 +251,62 @@ function quotation_pdf_shipment_details_html($q, $loading, $dims, $delivery, $mo
 	if ($part !== '') {
 		$detail_rows[] = array('Part number / article', htmlspecialchars($part, ENT_QUOTES, 'UTF-8'), '');
 	}
-	$detail_rows[] = array('Delivery address', $delivery, 'line-height:1.3;font-size:8.5pt;word-wrap:break-word;');
+	$detail_rows[] = array('Delivery address', $delivery, quotation_pdf_addr_value_style());
 
-	$rows_html = '';
-	$last = count($detail_rows) - 1;
-	foreach ($detail_rows as $i => $row) {
-		$rows_html .= quotation_pdf_info_row($row[0], $row[1], ($i === $last), '22%', $row[2]);
+	return $detail_rows;
+}
+
+function quotation_pdf_transport_detail_rows($conn)
+{
+	$ids = function_exists('elitewave_letterhead_company_ids')
+		? elitewave_letterhead_company_ids($conn)
+		: array('gstin' => '', 'pan' => '');
+	$gst = trim((string) ($ids['gstin'] ?? ''));
+	if (!function_exists('ew_company_bank_options')) {
+		require_once __DIR__ . '/company_bank_helpers.php';
 	}
+	$bank_text = '—';
+	$accounts = ew_company_bank_options($conn);
+	if ($accounts !== array()) {
+		$bank = $accounts[0];
+		$parts = array();
+		$name = trim((string) ($bank['bank_name'] ?? ''));
+		$ac = trim((string) ($bank['account_number'] ?? ''));
+		$ifsc = trim((string) ($bank['ifsc'] ?? ''));
+		$branch = trim((string) ($bank['bank_branch'] ?? ''));
+		if ($name !== '') {
+			$parts[] = $name;
+		}
+		if ($ac !== '') {
+			$parts[] = 'A/c ' . $ac;
+		}
+		if ($ifsc !== '') {
+			$parts[] = 'IFSC ' . $ifsc;
+		}
+		if ($branch !== '') {
+			$parts[] = $branch;
+		}
+		if ($parts !== array()) {
+			$bank_text = htmlspecialchars(implode(', ', $parts), ENT_QUOTES, 'UTF-8');
+		}
+	}
+	$gst_h = $gst !== '' ? htmlspecialchars($gst, ENT_QUOTES, 'UTF-8') : '—';
+	$bank_style = quotation_pdf_addr_value_style();
 
-	$html = '
-<table width="100%" cellpadding="0" cellspacing="0" style="' . quotation_pdf_info_table_style() . '">'
-		. $rows_html
-		. '
-</table>';
+	return array(
+		array('Transporter ID', $gst_h, ''),
+		array('Bank details', $bank_text, $bank_style),
+	);
+}
+
+function quotation_pdf_transport_rows_html($conn, $label_width = '22%')
+{
+	$rows = quotation_pdf_transport_detail_rows($conn);
+	$html = '';
+	$last = count($rows) - 1;
+	foreach ($rows as $i => $row) {
+		$html .= quotation_pdf_info_row($row[0], $row[1], ($i === $last), $label_width, $row[2]);
+	}
 
 	return $html;
 }
@@ -330,13 +403,9 @@ function quotation_pdf_multi_mode_table_html($conn, $quotation_id)
 	};
 	$body = '<tr>'
 		. '<th style="' . $th . '">Mode</th>'
-		. '<th style="' . $th . '">Vehicle</th>'
+		. '<th style="' . $th . '">Source of transport</th>'
 		. '<th style="' . $th . '">Days</th>'
 		. '<th style="' . $th . 'text-align:right;">Freight</th>'
-		. '<th style="' . $th . 'text-align:right;">Doc.</th>'
-		. '<th style="' . $th . 'text-align:right;">L/U</th>'
-		. '<th style="' . $th . 'text-align:right;">Others</th>'
-		. '<th style="' . $th . 'text-align:right;">Total</th>'
 		. '</tr>';
 	foreach ($rows as $r) {
 		$body .= '<tr>'
@@ -344,10 +413,6 @@ function quotation_pdf_multi_mode_table_html($conn, $quotation_id)
 			. '<td style="' . $td . '">' . htmlspecialchars($r['vehicle_display'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['delivery_days_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['freight_charges'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
-			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['doc_charges'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
-			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['loading_unloading_charges'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
-			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['others'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
-			. '<td style="' . $tdr . 'font-weight:bold;">' . htmlspecialchars($fmt($r['row_total'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
 			. '</tr>';
 	}
 	return quotation_pdf_section_heading('Mode-wise quotation (all modes)', false)
@@ -419,14 +484,8 @@ function quotation_build_pdf_pages($conn, $quotation_id)
 
 	if ($is_consignor_md) {
 		$html .= quotation_pdf_consignor_multi_dest_table_html($conn, $quotation_id);
-		$taxable_disp = quotation_format_money_display($q['taxable_value'] ?? 0);
-		$cmd_rows = quotation_pdf_commercial_amount_row('Combined destination charges', 'Rs. ' . $taxable_disp . ' /-', false);
-		$html .= quotation_pdf_commercial_summary_html($cmd_rows, $gst_pct, $gst_amt, $total);
 	} elseif ($is_multi) {
 		$html .= quotation_pdf_multi_mode_table_html($conn, $quotation_id);
-		$taxable_disp = quotation_format_money_display($q['taxable_value'] ?? 0);
-		$mm_rows = quotation_pdf_commercial_amount_row('Combined mode charges', 'Rs. ' . $taxable_disp . ' /-', false);
-		$html .= quotation_pdf_commercial_summary_html($mm_rows, $gst_pct, $gst_amt, $total);
 	} else {
 		$html .= quotation_pdf_commercial_summary_html($charge_rows, $gst_pct, $gst_amt, $total);
 	}
@@ -434,15 +493,22 @@ function quotation_build_pdf_pages($conn, $quotation_id)
 	if ($is_consignor_md) {
 		$consignor_h = htmlspecialchars(trim((string) ($party ?? '')), ENT_QUOTES, 'UTF-8');
 		$html .= quotation_pdf_section_heading('Consignor details', false)
-			. '<table width="100%" cellpadding="0" cellspacing="0" style="' . quotation_pdf_info_table_style() . '">'
+			. '<table width="100%" cellpadding="0" cellspacing="0" class="ew-quote-info-table" style="' . quotation_pdf_info_table_style() . '">'
 			. quotation_pdf_info_row('Consignor', $consignor_h !== '' ? $consignor_h : '—', true, '28%')
 			. '</table>';
+		$html .= quotation_pdf_other_details_html($conn, '28%');
 	} elseif (!$is_multi) {
 		$html .= quotation_pdf_section_heading('Shipment details', false)
-			. quotation_pdf_shipment_details_html($q, $loading, $dims, $delivery, $mode_label);
+			. '<div class="ew-shipment-block">'
+			. quotation_pdf_shipment_details_table_html($q, $loading, $dims, $delivery, $mode_label)
+			. '</div>';
+		$html .= quotation_pdf_other_details_html($conn, '22%');
 	} else {
 		$html .= quotation_pdf_section_heading('Shipment details', false)
-			. quotation_pdf_all_modes_shipment_html($q, $delivery);
+			. '<div class="ew-shipment-block">'
+			. quotation_pdf_all_modes_shipment_html($q, $delivery)
+			. '</div>';
+		$html .= quotation_pdf_other_details_html($conn, '28%');
 	}
 
 	$html .= '</div>';
@@ -469,7 +535,7 @@ function quotation_mpdf_write_quotation($mpdf, $conn, $quotation_id)
 		return false;
 	}
 	quotation_mpdf_write_html($mpdf, $pages['page1']);
-	$mpdf->AddPage();
+	$mpdf->AddPage('', '', '', '', '', 10, 10, 8, 8);
 	quotation_mpdf_write_html($mpdf, $pages['page2_terms']);
 	quotation_mpdf_write_page2_closing_at_bottom($mpdf);
 	return true;

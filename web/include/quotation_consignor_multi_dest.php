@@ -16,9 +16,9 @@ function quotation_is_consignor_multi_dest_quote_type($quote_type)
 	return isset(quotation_consignor_multi_dest_quote_types()[$quote_type]);
 }
 
-function quotation_destination_row_total($freight, $doc, $others)
+function quotation_destination_row_total($freight, $doc = 0, $others = 0)
 {
-	return round((float) $freight + (float) $doc + (float) $others, 2);
+	return round((float) $freight, 2);
 }
 
 function quotation_ensure_destination_rows_table($conn)
@@ -152,7 +152,8 @@ function quotation_parse_destination_rows_from_post($conn, $payload)
 	}
 	$modes = $payload['md_mode_id'] ?? array();
 	$vehicles = $payload['md_vehicle_type_id'] ?? array();
-	$vehicle_texts = $payload['md_vehicle_text'] ?? array();
+	$train_ids = $payload['md_train_id'] ?? array();
+	$flight_ids = $payload['md_flight_id'] ?? array();
 	$days = $payload['md_delivery_days'] ?? array();
 	$mode_catalog = quotation_mode_transport_catalog($conn);
 	$mode_groups = array();
@@ -160,8 +161,6 @@ function quotation_parse_destination_rows_from_post($conn, $payload)
 		$mode_groups[(int) $m['mode_id']] = trim((string) ($m['mode_group'] ?? ''));
 	}
 	$freight = $payload['md_freight'] ?? array();
-	$doc = $payload['md_doc'] ?? array();
-	$others = $payload['md_others'] ?? array();
 
 	$rows = array();
 	$n = count($cities);
@@ -169,9 +168,7 @@ function quotation_parse_destination_rows_from_post($conn, $payload)
 		$city_id = (int) ($cities[$i] ?? 0);
 		$mode_id = (int) ($modes[$i] ?? 0);
 		$f = quotation_parse_money_field($freight[$i] ?? 0);
-		$d = quotation_parse_money_field($doc[$i] ?? 0);
-		$o = quotation_parse_money_field($others[$i] ?? 0);
-		$row_total = quotation_destination_row_total($f, $d, $o);
+		$row_total = quotation_destination_row_total($f);
 		if ($city_id <= 0 && $mode_id <= 0 && $row_total <= 0) {
 			continue;
 		}
@@ -182,9 +179,18 @@ function quotation_parse_destination_rows_from_post($conn, $payload)
 			return array('ok' => false, 'message' => 'Select mode of transport for each destination row.');
 		}
 		$mode_group = $mode_groups[$mode_id] ?? '';
-		$is_road = quotation_mode_is_road_cargo_group($mode_group);
-		$vt_id = $is_road ? (int) ($vehicles[$i] ?? 0) : 0;
-		$vtxt = $is_road ? '' : trim((string) ($vehicle_texts[$i] ?? ''));
+		$kind = quotation_mode_source_kind($mode_group);
+		$vt_id = 0;
+		$vtxt = '';
+		if ($kind === 'road') {
+			$vt_id = (int) ($vehicles[$i] ?? 0);
+		} elseif ($kind === 'train') {
+			$tid = (int) ($train_ids[$i] ?? 0);
+			$vtxt = $tid > 0 ? ('train:' . $tid) : '';
+		} elseif ($kind === 'flight') {
+			$fid = (int) ($flight_ids[$i] ?? 0);
+			$vtxt = $fid > 0 ? ('flight:' . $fid) : '';
+		}
 		$rows[] = array(
 			'destination_city_id' => $city_id,
 			'mode_id' => $mode_id,
@@ -192,8 +198,8 @@ function quotation_parse_destination_rows_from_post($conn, $payload)
 			'vehicle_text' => $vtxt,
 			'delivery_days' => trim((string) ($days[$i] ?? '')),
 			'freight_charges' => $f,
-			'doc_charges' => $d,
-			'others' => $o,
+			'doc_charges' => 0,
+			'others' => 0,
 			'row_total' => $row_total,
 		);
 	}
@@ -208,7 +214,7 @@ function quotation_parse_destination_rows_from_post($conn, $payload)
 		}
 	}
 	if (!$has_charge) {
-		return array('ok' => false, 'message' => 'Enter freight, doc, or other charges for at least one destination.');
+		return array('ok' => false, 'message' => 'Enter freight charges for at least one destination.');
 	}
 	return array('ok' => true, 'rows' => $rows);
 }
@@ -317,12 +323,9 @@ function quotation_consignor_multi_dest_email_table_html($conn, $quotation_id)
 		. '<tr>'
 		. '<th style="' . $th . '">Destination</th>'
 		. '<th style="' . $th . '">Mode</th>'
-		. '<th style="' . $th . '">Vehicle</th>'
+		. '<th style="' . $th . '">Source of transport</th>'
 		. '<th style="' . $th . '">Days</th>'
 		. '<th style="' . $th . 'text-align:right;">Freight</th>'
-		. '<th style="' . $th . 'text-align:right;">Doc.</th>'
-		. '<th style="' . $th . 'text-align:right;">Others</th>'
-		. '<th style="' . $th . 'text-align:right;">Total</th>'
 		. '</tr>';
 	foreach ($rows as $r) {
 		$fmt = function ($n) {
@@ -334,16 +337,13 @@ function quotation_consignor_multi_dest_email_table_html($conn, $quotation_id)
 			. '<td style="' . $td . '">' . htmlspecialchars($r['vehicle_display'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['delivery_days_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . 'text-align:right;">' . $fmt($r['freight_charges'] ?? 0) . '</td>'
-			. '<td style="' . $td . 'text-align:right;">' . $fmt($r['doc_charges'] ?? 0) . '</td>'
-			. '<td style="' . $td . 'text-align:right;">' . $fmt($r['others'] ?? 0) . '</td>'
-			. '<td style="' . $td . 'text-align:right;font-weight:bold;">' . $fmt($r['row_total'] ?? 0) . '</td>'
 			. '</tr>';
 	}
 	$html .= '</table>';
 	return $html;
 }
 
-function quotation_render_destination_row_html($conn, $row, $city_catalog, $modes, $vehicle_types, $delivery_days_opts, $form_editable)
+function quotation_render_destination_row_html($conn, $row, $city_catalog, $modes, $vehicle_types, $delivery_days_opts, $form_editable, $trains = array(), $flights = array())
 {
 	$city_id = (int) ($row['destination_city_id'] ?? 0);
 	$mode_id = (int) ($row['mode_id'] ?? 0);
@@ -356,9 +356,12 @@ function quotation_render_destination_row_html($conn, $row, $city_catalog, $mode
 			}
 		}
 	}
-	$is_road = quotation_mode_is_road_cargo_group($mode_group);
-	$vt_id = (int) ($row['vehicle_type_id'] ?? 0);
-	$vehicle_text = trim((string) ($row['vehicle_text'] ?? ''));
+	if ($trains === array()) {
+		$trains = quotation_active_trains($conn);
+	}
+	if ($flights === array()) {
+		$flights = quotation_active_flights($conn);
+	}
 	ob_start();
 	?>
 	<tr class="md-row" data-mode-group="<?php echo htmlspecialchars($mode_group, ENT_QUOTES, 'UTF-8'); ?>">
@@ -382,14 +385,7 @@ function quotation_render_destination_row_html($conn, $row, $city_catalog, $mode
 			</select>
 		</td>
 		<td class="md-vehicle-cell">
-			<select name="md_vehicle_type_id[]" class="form-control md-vehicle md-vehicle-road" style="<?php echo $is_road ? '' : 'display:none;'; ?>" <?php echo $form_editable ? '' : 'disabled'; ?>>
-				<option value="">Vehicle</option>
-				<?php foreach ($vehicle_types as $vt) {
-					$sel = ($vt_id === (int) $vt['vehicle_type_id']) ? ' selected' : '';
-					echo '<option value="' . (int) $vt['vehicle_type_id'] . '"' . $sel . '>' . htmlspecialchars($vt['type_name']) . '</option>';
-				} ?>
-			</select>
-			<input type="text" name="md_vehicle_text[]" class="form-control md-vehicle-text" value="<?php echo htmlspecialchars($vehicle_text, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Vehicle / capacity" style="<?php echo $is_road ? 'display:none;' : ''; ?>" <?php echo $form_editable ? '' : 'readonly'; ?> />
+			<?php echo quotation_source_selects_html('md', $row, $vehicle_types, $trains, $flights, $form_editable, $mode_group); ?>
 		</td>
 		<td>
 			<select name="md_delivery_days[]" class="form-control md-days" <?php echo $form_editable ? '' : 'disabled'; ?>>
@@ -401,13 +397,12 @@ function quotation_render_destination_row_html($conn, $row, $city_catalog, $mode
 			</select>
 		</td>
 		<td><input type="text" name="md_freight[]" class="form-control md-amt" value="<?php echo htmlspecialchars($row['freight_charges'] ?? ''); ?>" onpaste="return ewNumericPaste(event,this);" <?php echo $form_editable ? '' : 'readonly'; ?> /></td>
-		<td><input type="text" name="md_doc[]" class="form-control md-amt" value="<?php echo htmlspecialchars($row['doc_charges'] ?? ''); ?>" onpaste="return ewNumericPaste(event,this);" <?php echo $form_editable ? '' : 'readonly'; ?> /></td>
-		<td><input type="text" name="md_others[]" class="form-control md-amt" value="<?php echo htmlspecialchars($row['others'] ?? ''); ?>" onpaste="return ewNumericPaste(event,this);" <?php echo $form_editable ? '' : 'readonly'; ?> /></td>
-		<td><input type="text" class="form-control md-row-total" readonly value="<?php echo ($row['row_total'] ?? 0) > 0 ? htmlspecialchars($row['row_total']) : ''; ?>" /></td>
 		<?php if ($form_editable) { ?>
 			<td class="md-row-actions text-center">
-				<button type="button" class="btn btn-link btn-sm btn-md-add-row" title="Add next destination"><i class="fa fa-plus"></i></button>
-				<button type="button" class="btn btn-link btn-sm text-danger btn-md-remove-row" title="Remove row"><i class="fa fa-times"></i></button>
+				<div class="md-row-action">
+					<button type="button" class="md-row-btn is-add btn-md-add-row" title="Add destination row"><i class="fa fa-plus"></i></button>
+					<button type="button" class="md-row-btn is-remove btn-md-remove-row" title="Remove row"><i class="fa fa-minus"></i></button>
+				</div>
 			</td>
 		<?php } ?>
 	</tr>

@@ -96,6 +96,8 @@ if ($customer_mode === 'existing' && trim((string) ($master['party_name'] ?? '')
 }
 
 $vehicle_types = ew_vehicle_type_list($conn, true);
+$source_trains = quotation_active_trains($conn);
+$source_flights = quotation_active_flights($conn);
 $mode_rows_form = quotation_hydrate_mode_rows_for_form($conn, $id > 0 ? $id : 0);
 $delivery_days_opts = quotation_delivery_days_options();
 $mode_catalog = quotation_mode_transport_catalog($conn);
@@ -292,19 +294,15 @@ function ew_quotation_all_modes_status_pill_class($status)
 											<thead>
 												<tr>
 													<th style="min-width:160px;">Mode</th>
-													<th style="min-width:160px;">Vehicle type</th>
+													<th style="min-width:180px;">Source of transport</th>
 													<th style="min-width:130px;">Delivery days</th>
-													<th style="width:11%">Freight charges</th>
-													<th style="width:9%">Doc. charges</th>
-													<th style="width:11%">Loading / unloading</th>
-													<th style="width:9%">Others</th>
-													<th style="width:10%">Total</th>
+													<th style="width:16%">Freight charges</th>
 													<?php if ($form_editable) { ?><th class="text-center mm-row-actions"> </th><?php } ?>
 												</tr>
 											</thead>
 											<tbody id="multi_mode_tbody">
 												<?php foreach ($mode_rows_form as $mr) {
-													echo quotation_render_mode_row_html($mr, $mode_catalog, $vehicle_types, $delivery_days_opts, $form_editable);
+													echo quotation_render_mode_row_html($mr, $mode_catalog, $vehicle_types, $delivery_days_opts, $form_editable, $source_trains, $source_flights);
 												} ?>
 											</tbody>
 										</table>
@@ -416,7 +414,7 @@ function ew_quotation_all_modes_status_pill_class($status)
 </div>
 
 <div id="mm_row_template" style="display:none;">
-	<table><tbody><?php echo quotation_render_mode_row_html($empty_mm_row, $mode_catalog, $vehicle_types, $delivery_days_opts, true); ?></tbody></table>
+	<table><tbody><?php echo quotation_render_mode_row_html($empty_mm_row, $mode_catalog, $vehicle_types, $delivery_days_opts, true, $source_trains, $source_flights); ?></tbody></table>
 </div>
 
 <div class="ew-v2-modal-backdrop" id="quotationPreviewModal">
@@ -460,6 +458,6 @@ window.QUOTATION_ALL_MODES_SCREEN = true;
 window.QUOTATION_PREVIEW_IN_MODAL = true;
 window.QUOTATION_RETURN_PAGE = 'quotation_all_modes.php';
 </script>
-<script src="javascripts/quotation-form.js?v=20261005mmrows"></script>
+<script src="javascripts/quotation-form.js?v=20261008mmsource2"></script>
 </body>
 </html>

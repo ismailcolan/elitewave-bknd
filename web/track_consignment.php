@@ -387,6 +387,11 @@ foreach ($scan_rows as $result_status) {
     );
 }
 
+$hold_carrier = function_exists('ew_mode_offload_kind')
+    ? ew_mode_offload_kind($conn, $grnr['mode_of_transportation'] ?? 0)
+    : '';
+$history_timeline = array_merge($history_timeline, ew_tracking_hold_timeline($conn, $grn_no, $hold_carrier));
+
 ew_tracking_timeline_sort($history_timeline);
 
 $total_scans = count($history_timeline);

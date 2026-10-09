@@ -7173,6 +7173,100 @@ if ($form_name == 'set_invoice_frequency') {
     }
 }
 
+if ($form_name == 'air_consignment_offload') {
+    $action = isset($_POST['offload_action']) ? trim((string) $_POST['offload_action']) : '';
+    $grn_no = trim((string) ($_POST['grn_no'] ?? ''));
+    $table_names = trim((string) ($_POST['table_names'] ?? ''));
+    if ($grn_no === '' || !preg_match('/^transaction_[0-9]+_[0-9]+$/', $table_names)) {
+        echo 0;
+        exit;
+    }
+    $grn_sql = mysqli_real_escape_string($conn, $grn_no);
+    $preview_q = mysqli_query($conn, "SELECT * FROM `$table_names` WHERE grn_no='$grn_sql' LIMIT 1");
+    $txn_preview = $preview_q ? mysqli_fetch_assoc($preview_q) : null;
+    $current_status = $txn_preview ? (int) ($txn_preview['status'] ?? 0) : 0;
+    $is_offload_status = $txn_preview && ew_mode_offload_kind($conn, $txn_preview['mode_of_transportation'] ?? 0) !== '';
+    if (!$is_offload_status || $current_status < 2 || $current_status >= 8) {
+        echo 0;
+        exit;
+    }
+    if ($action === 'open') {
+        $reason = trim((string) ($_POST['offload_reason'] ?? ''));
+        if ($reason === '' || ew_air_offload_is_open($conn, $grn_no)) {
+            echo 0;
+            exit;
+        }
+        if (!ew_air_offload_open($conn, $grn_no, $current_status, $reason)) {
+            echo 0;
+            exit;
+        }
+    } elseif ($action === 'clear') {
+        if (!ew_air_offload_is_open($conn, $grn_no) || !ew_air_offload_clear($conn, $grn_no)) {
+            echo 0;
+            exit;
+        }
+    } else {
+        echo 0;
+        exit;
+    }
+    $txn_preview['active_status'] = $current_status;
+    $generated = get_tracking_message($conn, $txn_preview);
+    if ($generated !== '') {
+        ew_road_refresh_status_remarks($conn, $grn_no, $current_status, $generated);
+    }
+    echo 1;
+    exit;
+}
+
+if ($form_name == 'road_consignment_breakdown') {
+    $action = isset($_POST['breakdown_action']) ? trim((string) $_POST['breakdown_action']) : '';
+    $grn_no = trim((string) ($_POST['grn_no'] ?? ''));
+    $table_names = trim((string) ($_POST['table_names'] ?? ''));
+    if ($grn_no === '' || !preg_match('/^transaction_[0-9]+_[0-9]+$/', $table_names)) {
+        echo 0;
+        exit;
+    }
+    $grn_sql = mysqli_real_escape_string($conn, $grn_no);
+    $preview_q = mysqli_query($conn, "SELECT * FROM `$table_names` WHERE grn_no='$grn_sql' LIMIT 1");
+    $txn_preview = $preview_q ? mysqli_fetch_assoc($preview_q) : null;
+    $current_status = $txn_preview ? (int) ($txn_preview['status'] ?? 0) : 0;
+    $is_road_status = $txn_preview && ew_mode_is_road_freight($conn, $txn_preview['mode_of_transportation'] ?? 0);
+    if (!$is_road_status || $current_status < 2 || $current_status >= 8) {
+        echo 0;
+        exit;
+    }
+    if (ew_road_transit_hours_get($conn, $grn_no) <= 0) {
+        echo 0;
+        exit;
+    }
+    if ($action === 'open') {
+        $reason = trim((string) ($_POST['breakdown_reason'] ?? ''));
+        if ($reason === '' || ew_road_breakdown_is_open($conn, $grn_no)) {
+            echo 0;
+            exit;
+        }
+        if (!ew_road_breakdown_open($conn, $grn_no, $current_status, $reason)) {
+            echo 0;
+            exit;
+        }
+    } elseif ($action === 'resume') {
+        if (!ew_road_breakdown_is_open($conn, $grn_no) || !ew_road_breakdown_resume($conn, $grn_no, 0)) {
+            echo 0;
+            exit;
+        }
+    } else {
+        echo 0;
+        exit;
+    }
+    $txn_preview['active_status'] = $current_status;
+    $generated = get_tracking_message($conn, $txn_preview);
+    if ($generated !== '') {
+        ew_road_refresh_status_remarks($conn, $grn_no, $current_status, $generated);
+    }
+    echo 1;
+    exit;
+}
+
 if ($form_name == 'status_change_consignment') {
     $c_date = date('d-m-Y H:i:s A');
     $grn_id = $_POST['grn_id'];
@@ -7196,6 +7290,39 @@ $total_packages = isset($_POST['total_packages'])
     $destination = 0;
     $mode = 0;
     $remarks = $_POST['remarks'];
+
+    $txn_preview = null;
+    $preview_q = mysqli_query($conn, "SELECT * FROM `$table_names` WHERE grn_no='" . mysqli_real_escape_string($conn, $grn_no) . "' LIMIT 1");
+    if ($preview_q) {
+        $txn_preview = mysqli_fetch_assoc($preview_q);
+    }
+    $is_road_status = $txn_preview && ew_mode_is_road_freight($conn, $txn_preview['mode_of_transportation'] ?? 0);
+    if ($is_road_status && ew_road_breakdown_is_open($conn, $grn_no)) {
+        echo 'breakdown';
+        exit;
+    }
+    $is_offload_status = $txn_preview && ew_mode_offload_kind($conn, $txn_preview['mode_of_transportation'] ?? 0) !== '';
+    if ($is_offload_status && ew_air_offload_is_open($conn, $grn_no)) {
+        echo 'offload';
+        exit;
+    }
+    if ($is_road_status && (int) $status === 2) {
+        $hours_raw = str_replace(',', '', trim((string) ($_POST['road_transit_hours'] ?? '')));
+        if (!is_numeric($hours_raw) || (float) $hours_raw <= 0) {
+            echo 0;
+            exit;
+        }
+        ew_road_transit_hours_save($conn, $grn_no, (float) $hours_raw);
+        $txn_preview['road_transit_hours_override'] = $hours_raw;
+    }
+    if ($is_road_status && !((int) $status === 8 && (isset($_POST['delivery_type']) ? $_POST['delivery_type'] : '') === 'partial')) {
+        $txn_preview['active_status'] = $status;
+        $generated = get_tracking_message($conn, $txn_preview);
+        if ($generated !== '') {
+            $remarks = $generated;
+        }
+    }
+    $remarks = mysqli_real_escape_string($conn, (string) $remarks);
 
     $status_date = $_POST['status_date'];
 $status_time = $_POST['status_time'];

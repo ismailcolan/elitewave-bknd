@@ -21,21 +21,48 @@
 		return $('input[name=customer_mode]:checked').val() === 'existing';
 	}
 
-	function isRoadCargoGroup(group) {
-		return String(group || '').toLowerCase() === 'road cargo';
+	function sourceKind(group) {
+		var g = String(group || '').toLowerCase();
+		if (g === 'road cargo') {
+			return 'road';
+		}
+		if (g.indexOf('train') !== -1) {
+			return 'train';
+		}
+		if (g.indexOf('air') !== -1 || g.indexOf('flight') !== -1) {
+			return 'flight';
+		}
+		return '';
+	}
+
+	function sourceLabel($tr) {
+		var kind = sourceKind($tr.attr('data-mode-group'));
+		if (!kind) {
+			return '—';
+		}
+		var $sel = $tr.find('.md-source-' + kind);
+		if (!$sel.length || !$sel.val()) {
+			return '—';
+		}
+		var txt = $.trim($sel.find('option:selected').text());
+		if (txt === '' || txt.indexOf('Select ') === 0) {
+			return '—';
+		}
+		return txt;
 	}
 
 	function syncMdRowVehicle($tr) {
 		var group = $tr.find('.md-mode option:selected').attr('data-mode-group') || $tr.attr('data-mode-group') || '';
 		$tr.attr('data-mode-group', group);
-		var road = isRoadCargoGroup(group);
-		$tr.find('.md-vehicle-road').toggle(road);
-		$tr.find('.md-vehicle-text').toggle(!road);
-		if (road) {
-			$tr.find('.md-vehicle-text').val('');
-		} else {
-			$tr.find('.md-vehicle-road').val('');
-		}
+		var kind = sourceKind(group);
+		$tr.find('.md-source').each(function() {
+			var show = kind !== '' && $(this).hasClass('md-source-' + kind);
+			$(this).toggle(show);
+			if (!show) {
+				$(this).val('');
+			}
+		});
+		$tr.find('.md-source-empty').toggle(kind === '');
 	}
 
 	function syncMdVehicleFields() {
@@ -56,11 +83,8 @@
 		var sum = 0;
 		$('#md_dest_tbody tr.md-row').each(function() {
 			var $tr = $(this);
-			var rowSum = num($tr.find('.md-amt[name="md_freight[]"]').val())
-				+ num($tr.find('.md-amt[name="md_doc[]"]').val())
-				+ num($tr.find('.md-amt[name="md_others[]"]').val());
+			var rowSum = num($tr.find('.md-amt[name="md_freight[]"]').val());
 			rowSum = Math.round(rowSum * 100) / 100;
-			$tr.find('.md-row-total').val(rowSum > 0 ? fmt(rowSum) : '');
 			sum += rowSum;
 		});
 		return sum;
@@ -122,19 +146,18 @@
 	}
 
 	function destPreviewTable(totals) {
-		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Destination</th><th>Mode</th><th align="right">Total</th></tr>';
+		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Destination</th><th>Mode</th><th>Source of transport</th><th align="right">Freight</th></tr>';
 		$('#md_dest_tbody tr.md-row').each(function() {
 			var $tr = $(this);
 			var dest = mdSelectLabel($tr.find('.md-city'), 'City — State');
 			var mode = mdSelectLabel($tr.find('.md-mode'), 'Mode');
-			var rt = $.trim($tr.find('.md-row-total').val()) || '—';
-			if (rt !== '—') {
-				rt = '₹ ' + rt + ' /-';
-			}
-			html += '<tr><td>' + escHtml(dest) + '</td><td>' + escHtml(mode) + '</td><td align="right">' + escHtml(rt) + '</td></tr>';
+			var src = sourceLabel($tr);
+			var freightRaw = $.trim($tr.find('.md-amt[name="md_freight[]"]').val());
+			var rt = freightRaw === '' ? '—' : ('₹ ' + fmt(num(freightRaw)) + ' /-');
+			html += '<tr><td>' + escHtml(dest) + '</td><td>' + escHtml(mode) + '</td><td>' + escHtml(src) + '</td><td align="right">' + escHtml(rt) + '</td></tr>';
 		});
-		html += '<tr><td colspan="2">GST @ ' + totals.gstPct + '%</td><td align="right">₹ ' + fmt(totals.gst) + ' /-</td></tr>';
-		html += '<tr><td colspan="2"><b>Grand total</b></td><td align="right"><b>₹ ' + fmt(totals.total) + ' /-</b></td></tr></table>';
+		html += '<tr><td colspan="3">GST @ ' + totals.gstPct + '%</td><td align="right">₹ ' + fmt(totals.gst) + ' /-</td></tr>';
+		html += '<tr><td colspan="3"><b>Grand total</b></td><td align="right"><b>₹ ' + fmt(totals.total) + ' /-</b></td></tr></table>';
 		return html;
 	}
 
@@ -215,7 +238,7 @@
 			syncCustomerModeUi(true);
 		});
 
-		$(document).on('input change', '.pv-bind, #gst_rate, #party_id, #party_name, .md-amt, .md-city, .md-mode, .md-vehicle-road, .md-vehicle-text, .md-days, #subject, #quotation_approval, #freight_paid_by, #payment_terms', function() {
+		$(document).on('input change', '.pv-bind, #gst_rate, #party_id, #party_name, .md-amt, .md-city, .md-mode, .md-source, .md-days, #subject, #quotation_approval, #freight_paid_by, #payment_terms', function() {
 			renderPreview();
 		});
 

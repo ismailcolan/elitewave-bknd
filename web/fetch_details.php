@@ -1423,6 +1423,9 @@ if ($cmd == 'get_tracking_message') {
 
         // Override the status with the newly selected status
         $row['active_status'] = $status;
+        if (isset($_POST['transit_hours']) && trim((string) $_POST['transit_hours']) !== '') {
+            $row['road_transit_hours_override'] = trim((string) $_POST['transit_hours']);
+        }
 
         echo get_tracking_message($conn, $row);
 
