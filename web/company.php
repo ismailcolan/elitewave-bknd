@@ -40,7 +40,7 @@
                     <div class="ew-page-v2">
                         <div class="ew-page-head">
                             <div class="ew-page-head-left">
-                                <h1 class="ew-page-title">Company Information</h1>
+                                <h1 class="ew-page-title">Company Details</h1>
                             </div>
                         </div>
                         <div class="ew-card">

@@ -91,6 +91,7 @@ function quotation_ensure_schema_columns($conn)
 		'payment_terms' => "ADD COLUMN payment_terms VARCHAR(40) DEFAULT NULL AFTER highload_challan",
 		'payment_terms_note' => "ADD COLUMN payment_terms_note VARCHAR(255) DEFAULT NULL AFTER payment_terms",
 		'mode_of_transportation' => "ADD COLUMN mode_of_transportation INT(11) DEFAULT NULL AFTER loading_type",
+		'customer_approval_file' => "ADD COLUMN customer_approval_file VARCHAR(255) DEFAULT NULL AFTER rejection_remarks",
 	);
 	foreach ($add as $col => $sql) {
 		$chk = mysqli_query($conn, "SHOW COLUMNS FROM rate_quotation_master LIKE '$col'");
@@ -119,6 +120,28 @@ function quotation_status_label($code)
 {
 	$opts = quotation_status_options();
 	return $opts[$code] ?? $code;
+}
+
+function quotation_list_customer_status($status, $tab = 'pending')
+{
+	$code = (string) $status;
+	if ($tab === 'approved' || in_array($code, array('customer_confirmed', 'converted'), true)) {
+		return array(
+			'class' => 'list_approved',
+			'label' => $code === 'converted' ? 'Converted' : 'Approved',
+		);
+	}
+	if (in_array($code, array('rejected', 'expired', 'cancelled'), true)) {
+		return array('class' => $code, 'label' => quotation_status_label($code));
+	}
+	return array('class' => 'list_pending', 'label' => 'Pending');
+}
+
+function quotation_list_status_chip_html($status, $tab = 'pending')
+{
+	$d = quotation_list_customer_status($status, $tab);
+	return '<span class="ew-status-chip ' . htmlspecialchars($d['class'], ENT_QUOTES, 'UTF-8') . '">'
+		. htmlspecialchars($d['label'], ENT_QUOTES, 'UTF-8') . '</span>';
 }
 
 function quotation_standard_quote_type_options()
@@ -530,6 +553,22 @@ function quotation_vehicle_snapshot($conn, $vehicle_type_id)
 	);
 }
 
+/** Vehicle type label for quotation dropdowns/PDF (name + L×W×H when set). */
+function quotation_vehicle_type_dropdown_label($conn, $vehicle_type_id, $type_name_fallback = '')
+{
+	$id = (int) $vehicle_type_id;
+	$snap = quotation_vehicle_snapshot($conn, $id);
+	$lbl = trim((string) ($snap['vehicle_label'] ?? ''));
+	if ($lbl === '') {
+		$lbl = trim((string) $type_name_fallback);
+	}
+	if ($lbl === '') {
+		return '';
+	}
+	$dim = trim((string) ($snap['dim_display'] ?? ''));
+	return $dim !== '' ? ($lbl . ' - ' . $dim) : $lbl;
+}
+
 function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 {
 	ensure_rate_quotation_tables($conn);
@@ -537,7 +576,7 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 	$existing = $quotation_id > 0 ? quotation_get($conn, $quotation_id) : null;
 	$current_status = $existing ? $existing['status'] : 'draft';
 
-	$workflow_actions = array('approve', 'reject', 'mark_sent', 'customer_confirmed', 'cancel', 'resend_email');
+	$workflow_actions = array('approve', 'reject', 'mark_sent', 'customer_confirmed', 'customer_approve', 'cancel', 'resend_email');
 	if (in_array($action, $workflow_actions, true)) {
 		return quotation_workflow($conn, $existing, $action, $payload, $user_id);
 	}
@@ -836,10 +875,16 @@ function quotation_workflow($conn, $existing, $action, $payload, $user_id)
 			$to = 'sent';
 			break;
 		case 'customer_confirmed':
-			if ($from !== 'sent') {
-				return array('ok' => false, 'message' => 'Mark as sent before customer confirmation.');
+		case 'customer_approve':
+			if (!in_array($from, array('approved', 'sent'), true)) {
+				return array('ok' => false, 'message' => 'Send the quotation to the customer before marking it approved.');
+			}
+			$file_rel = trim((string) ($payload['customer_approval_file'] ?? ''));
+			if ($file_rel === '') {
+				return array('ok' => false, 'message' => 'Upload the customer reply screenshot to approve.');
 			}
 			$to = 'customer_confirmed';
+			$remarks = $remarks !== '' ? $remarks : 'Customer approved (reply screenshot attached).';
 			break;
 		case 'cancel':
 			if (in_array($from, array('converted', 'cancelled'), true)) {
@@ -879,6 +924,12 @@ function quotation_workflow($conn, $existing, $action, $payload, $user_id)
 	$to_esc = mysqli_real_escape_string($conn, $to);
 	$rem_esc = mysqli_real_escape_string($conn, $remarks);
 	$extra = ($action === 'reject') ? ", rejection_remarks='$rem_esc'" : '';
+	if ($action === 'customer_confirmed' || $action === 'customer_approve') {
+		$file_rel = trim((string) ($payload['customer_approval_file'] ?? ''));
+		if ($file_rel !== '') {
+			$extra .= ", customer_approval_file='" . mysqli_real_escape_string($conn, $file_rel) . "'";
+		}
+	}
 	mysqli_query($conn, "UPDATE rate_quotation_master SET status='$to_esc', updated_at='$now', updated_by='$user_id' $extra WHERE quotation_id='$quotation_id' LIMIT 1");
 	quotation_log_status($conn, $quotation_id, $from, $to, $remarks, $user_id);
 
@@ -928,6 +979,280 @@ function quotation_delete($conn, $quotation_id)
 	return array('ok' => true, 'message' => 'Deleted.');
 }
 
+function quotation_list_tab($raw = null)
+{
+	$tab = strtolower(trim((string) ($raw !== null ? $raw : (isset($_GET['tab']) ? $_GET['tab'] : 'pending'))));
+	return $tab === 'approved' ? 'approved' : 'pending';
+}
+
+function quotation_list_tab_statuses($tab)
+{
+	if ($tab === 'approved') {
+		return array('customer_confirmed', 'converted');
+	}
+	return array('draft', 'pending_approval', 'approved', 'sent', 'rejected', 'expired', 'cancelled');
+}
+
+function quotation_can_customer_approve($status)
+{
+	return in_array((string) $status, array('approved', 'sent'), true);
+}
+
+function quotation_list_tab_url($page, $tab)
+{
+	return htmlspecialchars($page . '?tab=' . $tab, ENT_QUOTES, 'UTF-8');
+}
+
+function quotation_list_tabs_html($page, $tab)
+{
+	$pending_on = $tab === 'pending' ? ' is-active' : '';
+	$approved_on = $tab === 'approved' ? ' is-active' : '';
+	return '<div class="ew-quote-tabs" role="tablist">'
+		. '<a class="ew-quote-tab' . $pending_on . '" href="' . quotation_list_tab_url($page, 'pending') . '">Pending</a>'
+		. '<a class="ew-quote-tab' . $approved_on . '" href="' . quotation_list_tab_url($page, 'approved') . '">Approved</a>'
+		. '</div>';
+}
+
+function quotation_list_tab_css()
+{
+	return '
+		.ew-quote-tabs {
+			display: flex;
+			align-items: stretch;
+			justify-content: flex-start;
+			gap: 4px;
+			width: 100%;
+			margin: 0;
+			padding: 0 24px;
+			background: #fff;
+			border-bottom: 1px solid #E9ECF0;
+			box-sizing: border-box;
+		}
+		.ew-quote-tab {
+			position: relative;
+			display: inline-flex;
+			align-items: center;
+			padding: 14px 14px 12px;
+			font-size: 14px;
+			font-weight: 600;
+			line-height: 1.2;
+			color: #64748B;
+			text-decoration: none;
+			background: transparent;
+			border: 0;
+			margin-bottom: -1px;
+		}
+		.ew-quote-tab:hover {
+			color: #06416F;
+			text-decoration: none;
+		}
+		.ew-quote-tab.is-active,
+		.ew-quote-tab.is-active:hover {
+			color: #06416F;
+			background: transparent;
+		}
+		.ew-quote-tab.is-active::after {
+			content: "";
+			position: absolute;
+			left: 10px;
+			right: 10px;
+			bottom: 0;
+			height: 2px;
+			background: #06416F;
+			border-radius: 2px 2px 0 0;
+		}
+		.ew-page-v2 .ew-card > .ew-quote-tabs + .ew-card-toolbar {
+			padding-top: 16px;
+		}
+		.table-actions.btn-customer-approve { color:#166534; }
+		.ew-status-chip.list_pending { background: #fef3c7; color: #92400e; }
+		.ew-status-chip.list_approved { background: #dcfce7; color: #166534; }
+	';
+}
+
+function quotation_save_customer_approval_upload($quotation_id)
+{
+	$quotation_id = (int) $quotation_id;
+	if ($quotation_id <= 0 || empty($_FILES['approval_screenshot']) || !is_array($_FILES['approval_screenshot'])) {
+		return array('ok' => false, 'message' => 'Upload the customer reply screenshot.');
+	}
+	$f = $_FILES['approval_screenshot'];
+	if ((int) ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE || (int) ($f['error'] ?? 0) !== UPLOAD_ERR_OK) {
+		return array('ok' => false, 'message' => 'Upload the customer reply screenshot.');
+	}
+	$ext = strtolower(pathinfo((string) ($f['name'] ?? ''), PATHINFO_EXTENSION));
+	if (!in_array($ext, array('jpg', 'jpeg', 'png', 'webp', 'pdf'), true)) {
+		return array('ok' => false, 'message' => 'Screenshot must be JPG, PNG, WEBP or PDF.');
+	}
+	if ((int) ($f['size'] ?? 0) > 8 * 1024 * 1024) {
+		return array('ok' => false, 'message' => 'Screenshot must be 8 MB or smaller.');
+	}
+	$dir = dirname(__DIR__) . '/uploads/quotation_approvals';
+	if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+		return array('ok' => false, 'message' => 'Could not save the screenshot.');
+	}
+	$name = 'q' . $quotation_id . '_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+	$dest = $dir . '/' . $name;
+	if (!@move_uploaded_file($f['tmp_name'], $dest)) {
+		return array('ok' => false, 'message' => 'Could not save the screenshot.');
+	}
+	return array('ok' => true, 'path' => 'uploads/quotation_approvals/' . $name);
+}
+
+function quotation_list_approve_action_html($row)
+{
+	if (!quotation_can_customer_approve($row['status'] ?? '')) {
+		return '';
+	}
+	$id = (int) ($row['quotation_id'] ?? 0);
+	$no = htmlspecialchars((string) ($row['quote_no'] ?? ''), ENT_QUOTES, 'UTF-8');
+	return '<a title="Approve" href="javascript:void(0);" class="table-actions btn-customer-approve" data-id="' . $id . '" data-quote="' . $no . '"><i class="fa fa-check-circle"></i></a>';
+}
+
+function quotation_customer_approve_modal_html()
+{
+	return '<div class="ew-v2-modal-backdrop" id="ewCustomerApproveModal">'
+		. '<div class="ew-v2-modal">'
+		. '<div class="ew-v2-modal-head"><h3>Approve quotation</h3>'
+		. '<button type="button" class="ew-v2-modal-close" data-ew-v2-close>&times;</button></div>'
+		. '<div class="ew-v2-modal-body">'
+		. '<p style="margin:0 0 10px;color:#475569;">Upload a screenshot of the customer reply mail, then mark Approve. The quotation will move to the Approved tab.</p>'
+		. '<p id="ew_ca_quote_label" style="margin:0 0 10px;font-weight:700;"></p>'
+		. '<label class="control-label">Reply screenshot <span style="color:red">*</span></label>'
+		. '<div class="ew-upload-image" id="ew_ca_upload_wrap">'
+		. '<div class="ew-upload-image__zone" tabindex="0" role="button" aria-label="Upload reply screenshot">'
+		. '<input type="file" id="ew_ca_file" class="ew-upload-image__input" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*">'
+		. '<div class="ew-upload-image__body">'
+		. '<i class="fa fa-cloud-upload" aria-hidden="true"></i>'
+		. '<span class="ew-upload-image__hint">Drag &amp; drop or browse</span>'
+		. '<span class="ew-upload-image__meta">JPG, PNG, WEBP or PDF · max 8MB</span>'
+		. '<span class="ew-upload-image__filename" id="ew_ca_filename"></span>'
+		. '<span class="ew-btn-v2 ew-btn-v2-outline ew-upload-image__browse">Browse</span>'
+		. '</div></div>'
+		. '</div></div>'
+		. '<div class="ew-v2-modal-foot">'
+		. '<button type="button" class="btn btn-default-outline" data-ew-v2-close>Close</button>'
+		. '<button type="button" class="btn btn-primary" id="ew_ca_submit">Approve</button>'
+		. '</div></div></div>';
+}
+
+function quotation_customer_approve_script($success_url = '')
+{
+	$url = json_encode((string) $success_url);
+	return <<<JS
+<script>
+$(function() {
+	var ewCaId = 0;
+	var ewCaSuccessUrl = {$url};
+	var \$wrap = $('#ew_ca_upload_wrap');
+	var \$input = $('#ew_ca_file');
+	var \$zone = \$wrap.find('.ew-upload-image__zone');
+	var \$filename = $('#ew_ca_filename');
+	function ewCaResetUpload() {
+		\$input.val('');
+		\$filename.text('').attr('title', '');
+		\$wrap.removeClass('has-file');
+	}
+	function ewCaApplyFile(file) {
+		if (!file) {
+			ewCaResetUpload();
+			return;
+		}
+		\$filename.text(file.name).attr('title', file.name);
+		\$wrap.addClass('has-file');
+	}
+	\$zone.on('click', function(e) {
+		if ($(e.target).is('input')) return;
+		\$input.trigger('click');
+	});
+	\$zone.on('keydown', function(e) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			\$input.trigger('click');
+		}
+	});
+	\$input.on('change', function() {
+		ewCaApplyFile(this.files && this.files[0] ? this.files[0] : null);
+	});
+	\$zone.on('dragover dragenter', function(e) {
+		e.preventDefault();
+		\$zone.addClass('is-dragover');
+	});
+	\$zone.on('dragleave drop', function(e) {
+		e.preventDefault();
+		\$zone.removeClass('is-dragover');
+	});
+	\$zone.on('drop', function(e) {
+		var files = e.originalEvent.dataTransfer && e.originalEvent.dataTransfer.files;
+		if (!files || !files.length) return;
+		if (typeof DataTransfer !== 'undefined') {
+			var dt = new DataTransfer();
+			dt.items.add(files[0]);
+			\$input[0].files = dt.files;
+		}
+		ewCaApplyFile(\$input[0].files && \$input[0].files[0] ? \$input[0].files[0] : files[0]);
+	});
+	function ewCaOpen(id, quoteNo) {
+		ewCaId = parseInt(id, 10) || 0;
+		if (!ewCaId) return;
+		ewCaResetUpload();
+		$('#ew_ca_quote_label').text(quoteNo ? ('Quote ' + quoteNo) : '');
+		if (typeof ewV2OpenModal === 'function') ewV2OpenModal('ewCustomerApproveModal');
+	}
+	$(document).on('click', '.btn-customer-approve', function(e) {
+		e.preventDefault();
+		ewCaOpen($(this).data('id') || $('#quotation_id').val(), $(this).data('quote') || $('#quote_no').val());
+	});
+	$(document).on('click', '.btn-quotation-workflow[data-action="customer_confirmed"], .btn-quotation-workflow[data-action="customer_approve"]', function(e) {
+		if (!$('#ewCustomerApproveModal').length) return;
+		e.preventDefault();
+		e.stopImmediatePropagation();
+		ewCaOpen($('#quotation_id').val(), $('#quote_no').val());
+	});
+	$(document).on('click', '#ew_ca_submit', function() {
+		var fileEl = document.getElementById('ew_ca_file');
+		if (!ewCaId || !fileEl || !fileEl.files || !fileEl.files[0]) {
+			alert('Upload the customer reply screenshot.');
+			return;
+		}
+		var fd = new FormData();
+		fd.append('form_name', 'rate_quotation_workflow');
+		fd.append('quotation_id', String(ewCaId));
+		fd.append('workflow_action', 'customer_approve');
+		fd.append('approval_screenshot', fileEl.files[0]);
+		$('#ew_ca_submit').prop('disabled', true);
+		$.ajax({
+			url: 'save_details.php',
+			type: 'POST',
+			dataType: 'json',
+			data: fd,
+			processData: false,
+			contentType: false,
+			timeout: 120000,
+			success: function(data) {
+				$('#ew_ca_submit').prop('disabled', false);
+				if (data && data.ok) {
+					if (typeof ewV2CloseModal === 'function') ewV2CloseModal('ewCustomerApproveModal');
+					if (typeof ewToast === 'function') ewToast(data.message || 'Approved.', 'success');
+					setTimeout(function() {
+						if (ewCaSuccessUrl) { window.location.href = ewCaSuccessUrl; }
+						else { location.reload(); }
+					}, 600);
+					return;
+				}
+				alert((data && data.message) || 'Approve failed.');
+			},
+			error: function(xhr) {
+				$('#ew_ca_submit').prop('disabled', false);
+				alert((xhr && xhr.responseText) || 'Approve failed.');
+			}
+		});
+	});
+});
+</script>
+JS;
+}
+
 function quotation_list_rows($conn, $status_filter = '', $scope = 'all')
 {
 	ensure_rate_quotation_tables($conn);
@@ -935,7 +1260,13 @@ function quotation_list_rows($conn, $status_filter = '', $scope = 'all')
 		FROM rate_quotation_master q
 		LEFT JOIN client c ON c.client_id = q.party_id";
 	$where = array();
-	if ($status_filter !== '' && $status_filter !== 'all') {
+	if ($status_filter === 'pending' || $status_filter === 'approved') {
+		$in = array();
+		foreach (quotation_list_tab_statuses($status_filter) as $st) {
+			$in[] = "'" . mysqli_real_escape_string($conn, $st) . "'";
+		}
+		$where[] = 'q.status IN (' . implode(',', $in) . ')';
+	} elseif ($status_filter !== '' && $status_filter !== 'all') {
 		$sf = mysqli_real_escape_string($conn, $status_filter);
 		$where[] = "q.status='$sf'";
 	}

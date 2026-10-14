@@ -70,13 +70,21 @@ function ew_vehicle_type_ensure_schema($conn)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
-function ew_vehicle_type_list($conn, $active_only = false)
+function ew_vehicle_type_list($conn, $active_only = false, $scope = null)
 {
 	ew_vehicle_type_ensure_schema($conn);
 	$rows = array();
 	$sql = 'SELECT * FROM vehicle_type_master';
+	$where = array();
 	if ($active_only) {
-		$sql .= ' WHERE status=0';
+		$where[] = 'status=0';
+	}
+	if ($scope === 'domestic' || $scope === 'international') {
+		ew_geo_scope_ensure_column($conn, 'vehicle_type_master');
+		$where[] = 'geo_scope=' . ew_geo_scope_sql($conn, $scope);
+	}
+	if ($where !== array()) {
+		$sql .= ' WHERE ' . implode(' AND ', $where);
 	}
 	$sql .= ' ORDER BY type_name ASC, vehicle_type_id ASC';
 	$q = mysqli_query($conn, $sql);
@@ -462,16 +470,18 @@ function ew_vehicle_type_save($conn, $payload, $edit_key = '', $user_id = 0)
 	}
 
 	$code = mysqli_real_escape_string($conn, ew_vehicle_type_next_code($conn));
+	ew_geo_scope_ensure_column($conn, 'vehicle_type_master');
+	$geo_sql = ew_geo_scope_sql($conn, ew_geo_scope_from_request());
 	$ok = mysqli_query($conn, "INSERT INTO vehicle_type_master (
 		type_code, type_name, vehicle_category, description, body_type,
 		dim_length, dim_width, dim_height, dimension_uom,
 		capacity, capacity_uom, volume_capacity, volume_uom,
-		num_axles, num_wheels, status, created_at, created_by
+		num_axles, num_wheels, status, geo_scope, created_at, created_by
 	) VALUES (
 		'$code', '$name_esc', '$cat_esc', '$desc_esc', $body_sql,
 		$sql_len, $sql_wid, $sql_hei, '$dim_uom_esc',
 		$sql_cap, '$cap_uom_esc', $sql_vol, '$vol_uom_esc',
-		$sql_ax, $sql_wh, '$status', '$now', '$user_id'
+		$sql_ax, $sql_wh, '$status', $geo_sql, '$now', '$user_id'
 	)");
 	return array('ok' => (bool) $ok, 'message' => $ok ? 'Saved successfully.' : 'Save failed.');
 }

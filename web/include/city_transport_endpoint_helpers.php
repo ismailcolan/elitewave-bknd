@@ -51,7 +51,7 @@ function city_transport_endpoint_field_label($field)
 		case 'railway_station':
 			return 'Railway Station';
 		case 'unloading_point':
-			return 'Loading/Unloading Point';
+			return 'FTL / FCL Loading / Unloading City';
 		case 'port':
 			return 'Port';
 		case 'warehouse':

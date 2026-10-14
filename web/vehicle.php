@@ -4,7 +4,7 @@ require_once("include/function.php");
 $key = $_REQUEST['key'] ?? '';
 $is_edit = ($key != '');
 if (!$is_edit && empty($_GET['create'])) {
-	header('Location:vehicle_list.php');
+	header('Location:vehicle_list.php?scope=' . urlencode(ew_geo_scope_from_request()));
 	exit;
 }
 if ($is_edit) {
@@ -41,11 +41,11 @@ if ($is_edit) {
 			<div class="ew-page-v2">
 			  <div class="ew-page-head">
 				<div class="ew-page-head-left">
-				  <a href="vehicle_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
-				  <h1 class="ew-page-title">Vehicle</h1>
+				  <a href="vehicle_list.php?scope=<?php echo htmlspecialchars(ew_geo_scope_from_request(), ENT_QUOTES, 'UTF-8'); ?>" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+				  <h1 class="ew-page-title">Vehicles Lists</h1>
 				</div>
 				<div class="ew-toolbar-right">
-				  <a href="vehicle_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+				  <a href="vehicle_list.php?scope=<?php echo htmlspecialchars(ew_geo_scope_from_request(), ENT_QUOTES, 'UTF-8'); ?>" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
 				</div>
 			  </div>
 			  <div class="ew-card">
@@ -59,6 +59,7 @@ if ($is_edit) {
 				?> 
 					<input type="hidden" id="form_name" name="form_name" value="add_vehicle">
 					<input type="hidden" id="edit_id" name="edit_id" value="<?php echo $key; ?>">
+					<?php echo ew_geo_scope_hidden_input(); ?>
 					
 					<div id="response" class="alert alert-danger" style="display:none;">
 						<div class="message" style="text-align:center"></div>

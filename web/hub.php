@@ -76,7 +76,7 @@ div#dataTable1_length {
 			<div class="ew-page-v2 ew-page-v2--wide-table">
 			  <div class="ew-page-head">
 				<div class="ew-page-head-left">
-				  <h1 class="ew-page-title">Hub Master</h1>
+				  <h1 class="ew-page-title">EW360 Warehouse</h1>
 				</div>
 			  </div>
 			  <div class="ew-card">

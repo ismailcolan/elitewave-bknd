@@ -53,10 +53,10 @@ function quotation_pdf_terms_signatory_html()
 	$navy = quotation_pdf_terms_navy();
 	$cell = 'font-size:9.5pt;line-height:1.45;color:#000;text-align:right;vertical-align:top;padding:0;border:0;';
 
-	$sig = 'font-size:9.5pt;line-height:1.45;color:#000;text-align:right;vertical-align:top;padding:0;border:0;';
+	$sig = 'font-size:9.5pt;line-height:1.2;color:#000;text-align:right;vertical-align:top;padding:0;border:0;';
 
 	return '
-<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6px 0 4px;border:0;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:4px 0 2px;border:0;">
 <tr>
 	<td style="width:58%;border:0;padding:0;">&nbsp;</td>
 	<td style="width:42%;' . $cell . '">
@@ -65,21 +65,21 @@ function quotation_pdf_terms_signatory_html()
 			<td style="' . $sig . '">Thanks &amp; Regards,</td>
 		</tr>
 		<tr>
-			<td style="' . $sig . 'padding:3px 0 2px;text-align:right;">
-				<img src="images/elite-nav.png" alt="EliteWave360" style="width:130px;height:auto;">
+			<td style="' . $sig . 'font-weight:bold;color:' . $navy . ';">For EliteWave360 Logistics</td>
+		</tr>
+		<tr>
+			<td style="' . $sig . 'font-weight:bold;color:' . $navy . ';">Authorised Signatory</td>
+		</tr>
+		<tr>
+			<td style="' . $sig . 'color:' . $navy . ';">Athar - +91 98408 59711</td>
+		</tr>
+		<tr>
+			<td style="' . $sig . 'color:' . $navy . ';">athar@elitewave360.in</td>
+		</tr>
+		<tr>
+			<td style="' . $sig . 'padding-top:2px;text-align:right;">
+				<img src="images/elite-nav.png" alt="EliteWave360" style="width:130px;height:auto;display:block;margin-left:auto;">
 			</td>
-		</tr>
-		<tr>
-			<td style="' . $sig . 'font-weight:bold;color:' . $navy . ';padding-top:2px;">For EliteWave360 Logistics</td>
-		</tr>
-		<tr>
-			<td style="' . $sig . 'height:16mm;min-height:16mm;line-height:16mm;font-size:1pt;">&#160;</td>
-		</tr>
-		<tr>
-			<td style="' . $sig . 'font-weight:bold;">Authorised Signatory</td>
-		</tr>
-		<tr>
-			<td style="' . $sig . 'padding-top:3px;">Athar - +91 98408 59711</td>
 		</tr>
 		</table>
 	</td>

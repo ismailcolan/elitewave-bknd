@@ -1,6 +1,7 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+ew_geo_scope_ensure_column($conn, 'mode_of_transportation');
 ?>
 <!DOCTYPE html>
 <html>
@@ -60,7 +61,6 @@ th.table-title.sorting_disabled {
 }
 
     }
-
     </style>
 </head>
 
@@ -82,7 +82,7 @@ th.table-title.sorting_disabled {
                     <div class="ew-page-v2">
                         <div class="ew-page-head">
                             <div class="ew-page-head-left">
-                                <h1 class="ew-page-title">Mode Of Transport</h1>
+                                <h1 class="ew-page-title">Mode of Transport Master</h1>
                             </div>
                         </div>
                         <div class="ew-card">
@@ -435,6 +435,7 @@ th.table-title.sorting_disabled {
                     <form class="form-horizontal" id="transportation_form">
                         <input type="hidden" id="form_name" name="form_name" value="add_mode_of_transportation">
                         <input type="hidden" id="edit_id" name="edit_id" value="">
+                        <?php echo ew_geo_scope_hidden_input(); ?>
                         <div id="response" class="alert alert-danger" style="display:none;">
                             <div class="message" style="text-align:center"></div>
                         </div>

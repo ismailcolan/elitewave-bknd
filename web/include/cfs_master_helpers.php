@@ -123,13 +123,21 @@ function ew_cfs_master_sync_pdf_codes($conn)
 	}
 }
 
-function ew_cfs_master_list($conn, $active_only = true)
+function ew_cfs_master_list($conn, $active_only = true, $scope = null)
 {
 	ew_cfs_master_ensure_schema($conn);
 	$rows = array();
 	$sql = 'SELECT * FROM cfs_master';
+	$where = array();
 	if ($active_only) {
-		$sql .= ' WHERE status=0';
+		$where[] = 'status=0';
+	}
+	if ($scope === 'domestic' || $scope === 'international') {
+		ew_geo_scope_ensure_column($conn, 'cfs_master');
+		$where[] = 'geo_scope=' . ew_geo_scope_sql($conn, $scope);
+	}
+	if ($where !== array()) {
+		$sql .= ' WHERE ' . implode(' AND ', $where);
 	}
 	$sql .= ' ORDER BY sort_order ASC, cfs_code_id ASC, cfs_name ASC, cfs_id ASC';
 	$q = mysqli_query($conn, $sql);
@@ -292,10 +300,12 @@ function ew_cfs_master_insert($conn, $post, $user_id)
 	$code_esc = mysqli_real_escape_string($conn, $code);
 	$dt = date('d-m-Y');
 	$user_id = (int) $user_id;
+	ew_geo_scope_ensure_column($conn, 'cfs_master');
+	$geo_sql = ew_geo_scope_sql($conn, ew_geo_scope_from_request());
 	$ok = mysqli_query(
 		$conn,
-		"INSERT INTO cfs_master (cfs_code, cfs_code_id, cfs_name, status, sort_order, created_at, created_by)
-		VALUES ('$code_esc', '$code_id', '$name_esc', 0, '$sort_order', '$dt', '$user_id')"
+		"INSERT INTO cfs_master (cfs_code, cfs_code_id, cfs_name, status, sort_order, geo_scope, created_at, created_by)
+		VALUES ('$code_esc', '$code_id', '$name_esc', 0, '$sort_order', $geo_sql, '$dt', '$user_id')"
 	);
 	if (!$ok) {
 		return array('result' => 0, 'message' => mysqli_error($conn));

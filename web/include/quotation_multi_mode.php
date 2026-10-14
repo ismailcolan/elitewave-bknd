@@ -41,9 +41,9 @@ function quotation_delivery_days_label($code)
 	return $opts[$code] ?? ($code !== '' ? $code : '—');
 }
 
-function quotation_mode_row_total($freight, $doc = 0, $loading = 0, $others = 0)
+function quotation_mode_row_total($freight, $doc = 0, $loading = 0, $others = 0, $tempo = 0)
 {
-	return round((float) $freight, 2);
+	return round((float) $freight + (float) $tempo, 2);
 }
 
 function quotation_mode_source_kind($mode_group)
@@ -138,7 +138,7 @@ function quotation_flight_label_by_id($conn, $flight_id)
 	return $lbl !== '' ? $lbl : '—';
 }
 
-function quotation_source_selects_html($prefix, $row, $vehicle_types, $trains, $flights, $form_editable, $mode_group)
+function quotation_source_selects_html($conn, $prefix, $row, $vehicle_types, $trains, $flights, $form_editable, $mode_group)
 {
 	$prefix = ($prefix === 'md') ? 'md' : 'mm';
 	$kind = quotation_mode_source_kind($mode_group);
@@ -154,8 +154,12 @@ function quotation_source_selects_html($prefix, $row, $vehicle_types, $trains, $
 	$html .= '<select name="' . $prefix . '_vehicle_type_id[]" class="form-control ' . $prefix . '-source ' . $prefix . '-source-road" style="' . $style('road') . '"' . $dis . '>'
 		. '<option value="">Select vehicle</option>';
 	foreach ($vehicle_types as $vt) {
-		$sel = ($vt_id === (int) $vt['vehicle_type_id']) ? ' selected' : '';
-		$html .= '<option value="' . (int) $vt['vehicle_type_id'] . '"' . $sel . '>' . htmlspecialchars($vt['type_name']) . '</option>';
+		$vid = (int) $vt['vehicle_type_id'];
+		$sel = ($vt_id === $vid) ? ' selected' : '';
+		$opt_lbl = function_exists('quotation_vehicle_type_dropdown_label')
+			? quotation_vehicle_type_dropdown_label($conn, $vid, $vt['type_name'] ?? '')
+			: trim((string) ($vt['type_name'] ?? ''));
+		$html .= '<option value="' . $vid . '"' . $sel . '>' . htmlspecialchars($opt_lbl, ENT_QUOTES, 'UTF-8') . '</option>';
 	}
 	$html .= '</select>';
 	$html .= '<select name="' . $prefix . '_train_id[]" class="form-control ' . $prefix . '-source ' . $prefix . '-source-train" style="' . $style('train') . '"' . $dis . '>'
@@ -195,6 +199,10 @@ function quotation_ensure_mode_rows_table($conn)
 		PRIMARY KEY (row_id),
 		KEY idx_rq_mode_row (quotation_id)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+	$chk = @mysqli_query($conn, "SHOW COLUMNS FROM rate_quotation_mode_rows LIKE 'tempo_charges'");
+	if (!$chk || mysqli_num_rows($chk) === 0) {
+		@mysqli_query($conn, 'ALTER TABLE rate_quotation_mode_rows ADD COLUMN tempo_charges DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER freight_charges');
+	}
 }
 
 function quotation_mode_is_road_cargo_group($mode_group)
@@ -253,6 +261,7 @@ function quotation_default_mode_rows_for_form()
 			'vehicle_text' => '',
 			'delivery_days' => '',
 			'freight_charges' => '',
+			'tempo_charges' => '',
 			'doc_charges' => '',
 			'loading_unloading_charges' => '',
 			'others' => '',
@@ -283,6 +292,7 @@ function quotation_hydrate_mode_rows_for_form($conn, $quotation_id)
 				'vehicle_text' => trim((string) ($row['vehicle_text'] ?? '')),
 				'delivery_days' => trim((string) ($row['delivery_days'] ?? '')),
 				'freight_charges' => rtrim(rtrim(number_format((float) $row['freight_charges'], 2, '.', ''), '0'), '.'),
+				'tempo_charges' => rtrim(rtrim(number_format((float) ($row['tempo_charges'] ?? 0), 2, '.', ''), '0'), '.'),
 				'doc_charges' => rtrim(rtrim(number_format((float) $row['doc_charges'], 2, '.', ''), '0'), '.'),
 				'loading_unloading_charges' => rtrim(rtrim(number_format((float) $row['loading_unloading_charges'], 2, '.', ''), '0'), '.'),
 				'others' => rtrim(rtrim(number_format((float) $row['others'], 2, '.', ''), '0'), '.'),
@@ -314,6 +324,7 @@ function quotation_parse_mode_rows_from_post($conn, $payload)
 	$flight_ids = $payload['mm_flight_id'] ?? array();
 	$delivery_days = $payload['mm_delivery_days'] ?? array();
 	$freight = $payload['mm_freight'] ?? array();
+	$tempo = $payload['mm_tempo'] ?? array();
 	$mode_groups = array();
 	foreach (quotation_mode_transport_catalog($conn) as $m) {
 		$mode_groups[(int) $m['mode_id']] = trim((string) ($m['mode_group'] ?? ''));
@@ -327,6 +338,7 @@ function quotation_parse_mode_rows_from_post($conn, $payload)
 			continue;
 		}
 		$f = quotation_parse_money_field($freight[$i] ?? 0);
+		$tempo_amt = quotation_parse_money_field($tempo[$i] ?? 0);
 		$kind = quotation_mode_source_kind($mode_groups[$mode_id] ?? '');
 		$vt = 0;
 		$vtxt = '';
@@ -345,10 +357,11 @@ function quotation_parse_mode_rows_from_post($conn, $payload)
 			'vehicle_text' => $vtxt,
 			'delivery_days' => trim((string) ($delivery_days[$i] ?? '')),
 			'freight_charges' => $f,
+			'tempo_charges' => $tempo_amt,
 			'doc_charges' => 0,
 			'loading_unloading_charges' => 0,
 			'others' => 0,
-			'row_total' => quotation_mode_row_total($f),
+			'row_total' => quotation_mode_row_total($f, 0, 0, 0, $tempo_amt),
 		);
 	}
 	if ($rows === array()) {
@@ -382,12 +395,13 @@ function quotation_save_mode_rows($conn, $quotation_id, $rows)
 		$vt_sql = $vt > 0 ? "'$vt'" : 'NULL';
 		mysqli_query($conn, "INSERT INTO rate_quotation_mode_rows (
 			quotation_id, sort_no, mode_id, vehicle_type_id, vehicle_text, delivery_days,
-			freight_charges, doc_charges, loading_unloading_charges, others, row_total
+			freight_charges, tempo_charges, doc_charges, loading_unloading_charges, others, row_total
 		) VALUES (
 			'$quotation_id', '$sort', '" . (int) $row['mode_id'] . "', $vt_sql,
 			'" . $esc($row['vehicle_text'] ?? '') . "',
 			'" . $esc($row['delivery_days'] ?? '') . "',
 			'" . $esc(number_format((float) $row['freight_charges'], 2, '.', '')) . "',
+			'" . $esc(number_format((float) ($row['tempo_charges'] ?? 0), 2, '.', '')) . "',
 			'" . $esc(number_format((float) $row['doc_charges'], 2, '.', '')) . "',
 			'" . $esc(number_format((float) $row['loading_unloading_charges'], 2, '.', '')) . "',
 			'" . $esc(number_format((float) $row['others'], 2, '.', '')) . "',
@@ -409,8 +423,9 @@ function quotation_mode_row_vehicle_display($conn, $row)
 	if ($vt > 0) {
 		$snap = quotation_vehicle_snapshot($conn, $vt);
 		$lbl = trim((string) ($snap['vehicle_label'] ?? ''));
+		$dim = trim((string) ($snap['dim_display'] ?? ''));
 		if ($lbl !== '') {
-			return $lbl;
+			return $dim !== '' ? ($lbl . ' - ' . $dim) : $lbl;
 		}
 	}
 	$txt = trim((string) ($row['vehicle_text'] ?? ''));
@@ -467,6 +482,7 @@ function quotation_multi_mode_email_table_html($conn, $quotation_id)
 		. '<th style="' . $th . '">Source of transport</th>'
 		. '<th style="' . $th . '">Delivery days</th>'
 		. '<th style="' . $th . 'text-align:right;">Freight</th>'
+		. '<th style="' . $th . 'text-align:right;">Pickup &amp; Delivery</th>'
 		. '</tr>';
 	foreach ($rows as $r) {
 		$fmt = function ($n) {
@@ -477,13 +493,14 @@ function quotation_multi_mode_email_table_html($conn, $quotation_id)
 			. '<td style="' . $td . '">' . htmlspecialchars($r['vehicle_display'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['delivery_days_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . 'text-align:right;">' . $fmt($r['freight_charges'] ?? 0) . '</td>'
+			. '<td style="' . $td . 'text-align:right;">' . $fmt($r['tempo_charges'] ?? 0) . '</td>'
 			. '</tr>';
 	}
 	$html .= '</table>';
 	return $html;
 }
 
-function quotation_render_mode_row_html($row, $mode_catalog, $vehicle_types, $delivery_days_opts, $form_editable, $trains = array(), $flights = array())
+function quotation_render_mode_row_html($conn, $row, $mode_catalog, $vehicle_types, $delivery_days_opts, $form_editable, $trains = array(), $flights = array())
 {
 	$mode_id = (int) ($row['mode_id'] ?? 0);
 	$mode_group = trim((string) ($row['mode_group'] ?? ''));
@@ -502,7 +519,7 @@ function quotation_render_mode_row_html($row, $mode_catalog, $vehicle_types, $de
 			</select>
 		</td>
 		<td class="mm-vehicle-cell">
-			<?php echo quotation_source_selects_html('mm', $row, $vehicle_types, $trains, $flights, $form_editable, $mode_group); ?>
+			<?php echo quotation_source_selects_html($conn, 'mm', $row, $vehicle_types, $trains, $flights, $form_editable, $mode_group); ?>
 		</td>
 		<td>
 			<select name="mm_delivery_days[]" class="form-control mm-delivery-days" <?php echo $form_editable ? '' : 'disabled'; ?>>
@@ -514,6 +531,7 @@ function quotation_render_mode_row_html($row, $mode_catalog, $vehicle_types, $de
 			</select>
 		</td>
 		<td><input type="text" name="mm_freight[]" class="form-control mm-amt" value="<?php echo htmlspecialchars($row['freight_charges'] ?? ''); ?>" onpaste="return ewNumericPaste(event,this);" <?php echo $form_editable ? '' : 'readonly'; ?> /></td>
+		<td><input type="text" name="mm_tempo[]" class="form-control mm-amt mm-tempo" value="<?php echo htmlspecialchars($row['tempo_charges'] ?? ''); ?>" onpaste="return ewNumericPaste(event,this);" <?php echo $form_editable ? '' : 'readonly'; ?> /></td>
 		<?php if ($form_editable) { ?>
 			<td class="mm-row-actions text-center">
 				<div class="mm-row-action">

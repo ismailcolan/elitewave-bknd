@@ -457,10 +457,47 @@ $(document).ready(function(){
     });
   }
 
-  /* Fallback: always hide loading overlay — $(window).load() can be unreliable */
-  $('.loading-page').hide();
-  setTimeout(function(){ $('.loading-page').hide(); }, 1500);
-  setTimeout(function(){ $('.loading-page').hide(); }, 4000);
+  var ewSlowAjax = 0;
+  var ewSlowTimer = null;
+  function ewLoaderSkip(url) {
+    url = String(url || '');
+    return url.indexOf('sessions_check.php') !== -1 || url.indexOf('get_notification') !== -1;
+  }
+  $(document).ajaxSend(function (event, xhr, settings) {
+    if (ewLoaderSkip(settings && settings.url)) {
+      return;
+    }
+    ewSlowAjax += 1;
+    xhr._ewLoader = true;
+    if (!ewSlowTimer) {
+      ewSlowTimer = setTimeout(function () {
+        if (ewSlowAjax > 0) {
+          $('.loading-page').show();
+        }
+      }, 450);
+    }
+  });
+  $(document).ajaxComplete(function (event, xhr) {
+    if (!xhr._ewLoader) {
+      return;
+    }
+    ewSlowAjax = Math.max(0, ewSlowAjax - 1);
+    if (ewSlowAjax === 0) {
+      clearTimeout(ewSlowTimer);
+      ewSlowTimer = null;
+      $('.loading-page').hide();
+    }
+  });
+
+  /* Fallback: hide a stuck overlay once no slow request is still running */
+  function ewHideIdleLoader() {
+    if (ewSlowAjax === 0) {
+      $('.loading-page').hide();
+    }
+  }
+  ewHideIdleLoader();
+  setTimeout(ewHideIdleLoader, 1500);
+  setTimeout(ewHideIdleLoader, 4000);
 
 });
 $(window).load(function(){ $('.loading-page').hide(); });

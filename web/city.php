@@ -1,6 +1,10 @@
 <?php
 require_once("include/connect.php");
 require_once("include/function.php");
+ew_geo_scope_ensure_column($conn, 'city');
+ew_geo_scope_ensure_column($conn, 'state');
+$geo_scope = ew_geo_scope_from_request();
+$city_page_title = $geo_scope === 'international' ? 'International City Lists' : 'Indian City Lists';
 ?>
 <!DOCTYPE html>
 <html>
@@ -72,7 +76,7 @@ div#dataTable1_length {
                     <div class="ew-page-v2 ew-page-v2--wide-table">
                         <div class="ew-page-head">
                             <div class="ew-page-head-left">
-                                <h1 class="ew-page-title">City Master</h1>
+                                <h1 class="ew-page-title"><?php echo htmlspecialchars($city_page_title); ?></h1>
                             </div>
                         </div>
                         <div class="ew-card">
@@ -96,7 +100,7 @@ div#dataTable1_length {
                                     <th class="table-title" style="width:10%">State</th>
                            <th class="table-title" style="width:20%">Railway Station</th>
 <th class="table-title" style="width:10%">Airport</th>
-<th class="table-title" style="width:10%">Loading/Unloading Point</th>
+<th class="table-title" style="width:14%">FTL / FCL Loading / Unloading City</th>
 <th class="table-title" style="width:10%">Warehouse</th>
 <th class="table-title" style="width:10%">Port</th>
 
@@ -104,7 +108,7 @@ div#dataTable1_length {
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $query = "select * from city";
+                                    $query = "select * from city where " . ew_geo_scope_where($conn);
                                     $result = mysqli_query($conn, $query);
                                     $i = 1;
                                     while ($row = mysqli_fetch_array($result)) {
@@ -472,6 +476,7 @@ $("#port").val('');
                     <form class="form-horizontal" id="city_form">
                         <input type="hidden" id="form_name" name="form_name" value="add_city">
                         <input type="hidden" id="edit_id" name="edit_id" value="">
+                        <input type="hidden" id="geo_scope" name="geo_scope" value="<?php echo htmlspecialchars($geo_scope, ENT_QUOTES, 'UTF-8'); ?>">
                         <div id="response" class="alert alert-danger" style="display:none;">
                             <div class="message" style="text-align:center"></div>
                         </div>
@@ -489,7 +494,7 @@ $("#port").val('');
                             <select name="state_name" class="form-control" id="state_name" required>
                                 <option value="">Select State</option>
                                 <?php
-                                $state_query = "select * from state where status=0 order by state_name";
+                                $state_query = "select * from state where status=0 and " . ew_geo_scope_where($conn) . " order by state_name";
                                 $state_result = mysqli_query($conn, $state_query);
                                 while ($state_row = mysqli_fetch_array($state_result)) {
                                 ?>
@@ -504,7 +509,7 @@ $("#port").val('');
                             <select name="city" class="form-control" id="city">
                                 <option value="">Select City</option>
                                 <?php
-                                $city_query = "select * from city where status=0 order by city_name";
+                                $city_query = "select * from city where status=0 and " . ew_geo_scope_where($conn) . " order by city_name";
                                 $city_result = mysqli_query($conn, $city_query);
                                 while ($city_row = mysqli_fetch_array($city_result)) {
                                 ?>
@@ -523,7 +528,7 @@ $("#port").val('');
                             <input type="text" name="airport" id="airport" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label class="control-label">Un/Loading Point :</label>
+                            <label class="control-label">FTL / FCL Loading / Unloading City :</label>
                             <input type="text" name="unloading_point" id="unloading_point" class="form-control">
                         </div>
                         <div class="form-group">

@@ -3,18 +3,19 @@
  * Elite Wave skeleton loader.
  * Overlay is injected from header.php for .loading-page / .form-data-saving.
  */
+function ew_logo_loader_html()
+{
+	return '<div class="ew-logo-loader" role="status" aria-live="polite" aria-label="Loading">'
+		. '<div class="ew-logo-loader-ring">'
+		. '<img src="images/elite-loader.png?v=3" alt="EliteWave360">'
+		. '</div>'
+		. '<div class="ew-logo-loader-text">Please wait</div>'
+		. '</div>';
+}
+
 function ew_skeleton_card_inner()
 {
-	return '<div class="ew-skel-card" role="status" aria-label="Loading">'
-		. '<div class="ew-skel ew-skel-kicker"></div>'
-		. '<span class="ew-skel-line lg"></span>'
-		. '<span class="ew-skel-line md"></span>'
-		. '<span class="ew-skel-line sm"></span>'
-		. '<div class="ew-skel-rows">'
-		. '<div class="ew-skel ew-skel-tile"></div>'
-		. '<div class="ew-skel ew-skel-tile"></div>'
-		. '<div class="ew-skel ew-skel-tile"></div>'
-		. '</div></div>';
+	return ew_logo_loader_html();
 }
 
 function ew_skeleton_dashboard()

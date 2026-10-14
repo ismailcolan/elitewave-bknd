@@ -145,7 +145,7 @@ if (!$is_edit && empty($_GET['create'])) {
 									<option value="">Select mode first</option>
 								</select>
 								<div id="source_manual_wrap">
-									<input type="text" id="source_manual" class="form-control" placeholder="Enter train / vehicle / vessel name manually" style="margin-top:8px;">
+									<input type="text" id="source_manual" class="form-control" placeholder="Enter train name" style="margin-top:8px;">
 								</div>
 							</div>
 						</div>

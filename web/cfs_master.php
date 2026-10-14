@@ -24,7 +24,7 @@ $rows = ew_cfs_master_list($conn, true);
 					<div class="ew-page-v2">
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
-								<h1 class="ew-page-title">CFS Master</h1>
+								<h1 class="ew-page-title">CFS Lists</h1>
 							</div>
 						</div>
 						<div class="ew-card ew-erp-list">
@@ -87,6 +87,7 @@ $rows = ew_cfs_master_list($conn, true);
 				<form class="form-horizontal" id="cfs_form">
 					<input type="hidden" id="form_name" name="form_name" value="add_cfs_master">
 					<input type="hidden" id="edit_id" name="edit_id" value="">
+					<?php echo ew_geo_scope_hidden_input(); ?>
 					<div id="response" class="alert alert-danger" style="display:none;">
 						<div class="message" style="text-align:center"></div>
 					</div>

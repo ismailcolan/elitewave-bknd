@@ -1,6 +1,7 @@
 <?php
 require_once("include/connect.php");
-require_once("include/function.php"); 
+require_once("include/function.php");
+ew_geo_scope_ensure_column($conn, 'train'); 
 ?>
 <!DOCTYPE html>
 <html>
@@ -77,7 +78,7 @@ th.table-title.sorting_disabled {
 			<div class="ew-page-v2 ew-page-v2--wide-table">
 			  <div class="ew-page-head">
 				<div class="ew-page-head-left">
-				  <h1 class="ew-page-title">Train Master</h1>
+				  <h1 class="ew-page-title">Train Lists</h1>
 				</div>
 			  </div>
 			  <div class="ew-card">
@@ -476,6 +477,7 @@ th.table-title.sorting_disabled {
 			  <form class="form-horizontal" id="train_form">
 				<input type="hidden" id="form_name" name="form_name" value="add_train">
 				<input type="hidden" id="edit_id" name="edit_id" value="">
+				<?php echo ew_geo_scope_hidden_input(); ?>
 				<div id="response" class="alert alert-danger" style="display:none;">
 				  <div class="message" style="text-align:center"></div>
 				</div>

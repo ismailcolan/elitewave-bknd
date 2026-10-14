@@ -1,6 +1,8 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+ew_geo_scope_ensure_column($conn, 'flight');
+$geo_scope = ew_geo_scope_from_request();
 ?>
 <!DOCTYPE html>
 <html>
@@ -82,10 +84,12 @@ th.table-title.sorting_disabled {
                     <div class="ew-page-v2 ew-page-v2--wide-table">
                         <div class="ew-page-head">
                             <div class="ew-page-head-left">
-                                <h1 class="ew-page-title">Flight Master</h1>
+                                <h1 class="ew-page-title">Airlines Lists</h1>
                             </div>
                         </div>
                         <div class="ew-card">
+                            <style><?php echo ew_geo_scope_tabs_css(); ?></style>
+                            <?php echo ew_geo_scope_tabs_html('flight.php'); ?>
                             <div class="ew-card-toolbar">
                                 <h2>Flight List</h2>
                                 <div class="ew-toolbar-right">
@@ -105,7 +109,7 @@ th.table-title.sorting_disabled {
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $query = 'select * from flight';
+                                    $query = 'select * from flight where ' . ew_geo_scope_where($conn);
                                     $result = mysqli_query($conn, $query);
                                     $i = 1;
                                     while ($row = mysqli_fetch_array($result)) {
@@ -474,6 +478,7 @@ th.table-title.sorting_disabled {
                     <form class="form-horizontal" id="train_form">
                         <input type="hidden" id="form_name" name="form_name" value="add_flight">
                         <input type="hidden" id="edit_id" name="edit_id" value="">
+                        <?php echo ew_geo_scope_hidden_input(); ?>
                         <div id="response" class="alert alert-danger" style="display:none;">
                             <div class="message" style="text-align:center"></div>
                         </div>

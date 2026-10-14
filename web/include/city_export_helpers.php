@@ -17,7 +17,7 @@ function ew_city_master_export_headers()
         'Via City',
         'Railway Station',
         'Airport',
-        'Loading/Unloading Point',
+        'FTL / FCL Loading / Unloading City',
         'Warehouse',
         'Port',
         'Created At',

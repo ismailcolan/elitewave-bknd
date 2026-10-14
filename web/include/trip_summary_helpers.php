@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/billing_functions.php';
+require_once __DIR__ . '/vehicle_type_helpers.php';
 
 function trip_summary_require_access()
 {
@@ -157,28 +158,25 @@ function trip_summary_source_options($conn, $mode_id)
 				);
 			}
 		}
-	} elseif ($mode_id === 7) {
-		foreach (trip_summary_ftl_type_options() as $opt) {
-			$options[] = $opt;
-		}
-	}
-
-	if (in_array($mode_id, array(1, 2, 3, 5, 7, 8), true)) {
-		$vq = mysqli_query($conn, "SELECT vehicle_id, vehicle_number, vehicle_type FROM vehicle WHERE status=0 ORDER BY vehicle_number ASC");
-		if ($vq) {
-			while ($v = mysqli_fetch_assoc($vq)) {
-				$label = trim($v['vehicle_number'] . ($v['vehicle_type'] ? ' (' . $v['vehicle_type'] . ')' : ''));
-				$options[] = array(
-					'value' => 'vehicle:' . (int) $v['vehicle_id'],
-					'label' => $label,
-					'type' => 'vehicle',
-					'id' => (int) $v['vehicle_id'],
-				);
+	} else {
+		foreach (ew_vehicle_type_list($conn, true) as $vt) {
+			$label = trim((string) ($vt['type_name'] ?? ''));
+			if ($label === '') {
+				$label = trim((string) ($vt['type_code'] ?? '')) ?: 'Vehicle type';
 			}
+			$cap = ew_vehicle_type_format_capacity($vt);
+			if ($cap !== '—') {
+				$label .= ' (' . $cap . ')';
+			}
+			$options[] = array(
+				'value' => 'vehicle_type:' . (int) $vt['vehicle_type_id'],
+				'label' => $label,
+				'type' => 'vehicle_type',
+				'id' => (int) $vt['vehicle_type_id'],
+			);
 		}
 	}
 
-	$options[] = array('value' => 'manual:', 'label' => '— Enter manually —', 'type' => 'manual', 'id' => 0);
 	return $options;
 }
 
@@ -227,7 +225,7 @@ function trip_summary_parse_source($source_value, $source_manual = '')
 				}
 			}
 		}
-		if (in_array($type, array('train', 'flight', 'vehicle'), true) && (int) $id > 0) {
+		if (in_array($type, array('train', 'flight', 'vehicle', 'vehicle_type'), true) && (int) $id > 0) {
 			$out['source_type'] = $type;
 			$out['source_id'] = (int) $id;
 			return $out;
@@ -262,6 +260,17 @@ function trip_summary_resolve_source_label($conn, $source_type, $source_id, $sou
 		$q = mysqli_query($conn, "SELECT vehicle_number FROM vehicle WHERE vehicle_id='$source_id' LIMIT 1");
 		if ($q && ($r = mysqli_fetch_assoc($q))) {
 			return $r['vehicle_number'] ?? '';
+		}
+	}
+	if ($source_type === 'vehicle_type' && $source_id > 0) {
+		$vt = ew_vehicle_type_get($conn, $source_id);
+		if ($vt) {
+			$label = trim((string) ($vt['type_name'] ?? ''));
+			$cap = ew_vehicle_type_format_capacity($vt);
+			if ($cap !== '—') {
+				$label .= ' (' . $cap . ')';
+			}
+			return $label !== '' ? $label : (string) ($vt['type_code'] ?? '');
 		}
 	}
 	if ($source_type === 'train_preset' && $source_id === 1) {

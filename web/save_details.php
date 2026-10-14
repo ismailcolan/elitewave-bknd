@@ -231,6 +231,7 @@ if ($form_name == 'verify_login_otp') {
 }
 
 if ($form_name == 'add_branch') {
+    ew_geo_scope_ensure_column($conn, 'branch');
     $branch_code = ew_branch_next_code($conn);
     $branch_name = $_POST['branch_name'];
     $contact_person = $_POST['contact_person'];
@@ -241,6 +242,7 @@ if ($form_name == 'add_branch') {
     $state = $_POST['state'];
     $pincode = $_POST['pincode'];
     $email = $_POST['email'];
+    $geo_scope = ew_geo_scope_from_request();
 
     $query = "insert into branch(
 branch_code,
@@ -253,6 +255,7 @@ city,
 state,
 pincode,
 email,
+geo_scope,
 created_at,
 created_by,
 updated_at,
@@ -269,6 +272,7 @@ status
 '$state',
 '$pincode',
 '$email',
+" . ew_geo_scope_sql($conn, $geo_scope) . ",
 '$created_at',
 '$created_by',
 '$updated_at',
@@ -329,8 +333,10 @@ if ($form_name == 'inacv_branch') {
         echo 0;
 }
 if ($form_name == 'add_state') {
+    ew_geo_scope_ensure_column($conn, 'state');
     $state_name = $_POST['state_name'];
-    $query = "insert into state(state_name,created_at,created_by,status)values('" . $state_name . "','" . $created_at . "','" . $created_by . "','0')";
+    $geo_scope = ew_geo_scope_from_request();
+    $query = "insert into state(state_name,geo_scope,created_at,created_by,status)values('" . $state_name . "'," . ew_geo_scope_sql($conn, $geo_scope) . ",'" . $created_at . "','" . $created_by . "','0')";
     $result = mysqli_query($conn, $query);
     if ($result)
         echo 1;
@@ -380,6 +386,7 @@ if ($form_name == 'inacv_state') {
         echo 0;
 }
 if ($form_name == 'add_city') {
+    ew_geo_scope_ensure_column($conn, 'city');
     $city_next = ew_city_next_code($conn);
     $id = $city_next['city_code_id'];
     $city_code = $city_next['city_code'];
@@ -392,6 +399,7 @@ if ($form_name == 'add_city') {
     $unloading_point = $_POST['unloading_point'];
     $warehouse = $_POST['warehouse'];
     $port = $_POST['port'];
+    $geo_scope = ew_geo_scope_from_request();
 
     $query = "insert into city(
 city_code,
@@ -405,6 +413,7 @@ airport,
 unloading_point,
 warehouse,
 port,
+geo_scope,
 created_at,
 created_by,
 status) values(
@@ -419,6 +428,7 @@ status) values(
 '$unloading_point',
 '$warehouse',
 '$port',
+" . ew_geo_scope_sql($conn, $geo_scope) . ",
 '$created_at',
 '$created_by',
 '0')";
@@ -663,6 +673,8 @@ if ($form_name == 'add_train') {
     $loading_point3 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 3));
     $loading_point4 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 4));
     $journey_hours = mysqli_real_escape_string($conn, $_POST['journey_hours'] ?? '');
+    ew_geo_scope_ensure_column($conn, 'train');
+    $geo_sql = ew_geo_scope_sql($conn, ew_geo_scope_from_request());
 
     $query = "INSERT INTO train (
     train_name,
@@ -672,6 +684,7 @@ if ($form_name == 'add_train') {
     loading_point3,
     loading_point4,
     journey_hours,
+    geo_scope,
     created_at,
     created_by,
     updated_at,
@@ -685,6 +698,7 @@ if ($form_name == 'add_train') {
     $loading_point3,
     $loading_point4,
     '$journey_hours',
+    $geo_sql,
     '$created_at',
     '$created_by',
     '$updated_at',
@@ -747,6 +761,8 @@ if ($form_name == 'add_flight') {
     $loading_point3 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 3));
     $loading_point4 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 4));
     $journey_hours = mysqli_real_escape_string($conn, $_POST['journey_hours'] ?? '');
+    ew_geo_scope_ensure_column($conn, 'flight');
+    $geo_sql = ew_geo_scope_sql($conn, ew_geo_scope_from_request());
 
     $query = "INSERT INTO flight(
     flight_name,
@@ -756,6 +772,7 @@ if ($form_name == 'add_flight') {
     loading_point3,
     loading_point4,
     journey_hours,
+    geo_scope,
     created_at,
     created_by,
     updated_at,
@@ -770,6 +787,7 @@ VALUES(
     $loading_point3,
     $loading_point4,
     '$journey_hours',
+    $geo_sql,
     '$created_at',
     '$created_by',
     '$updated_at',
@@ -833,8 +851,10 @@ if ($form_name == 'add_mode_of_transportation') {
         exit;
     }
 
-    $query = "insert into mode_of_transportation(mode_type, mode_group, max_hrs_delivery, sac_code, created_at, created_by, status) values
-\t('" . $mode_type . "','" . $mode_group . "','" . $delivery . "','" . $sac_code . "','" . $created_at . "','" . $created_by . "','0')";
+    ew_geo_scope_ensure_column($conn, 'mode_of_transportation');
+    $geo_sql = ew_geo_scope_sql($conn, ew_geo_scope_from_request());
+    $query = "insert into mode_of_transportation(mode_type, mode_group, max_hrs_delivery, sac_code, geo_scope, created_at, created_by, status) values
+\t('" . $mode_type . "','" . $mode_group . "','" . $delivery . "','" . $sac_code . "'," . $geo_sql . ",'" . $created_at . "','" . $created_by . "','0')";
     $result = mysqli_query($conn, $query);
     if ($result)
         echo 1;
@@ -1211,8 +1231,10 @@ if ($form_name == 'add_consignment') {
     $consignment = $_POST['consignment'];
     $description = $_POST['description'];
     $mode_of_pay = isset($_POST['mode_type']) ? $_POST['mode_type'] : '';
-    $query = "insert into consignment_mode(consignment_mode,description,mode_of_pay,created_at,created_by,status)values
-\t\t('" . $consignment . "','" . $description . "','" . $mode_of_pay . "','" . $created_at . "','" . $created_by . "','0')";
+    ew_geo_scope_ensure_column($conn, 'consignment_mode');
+    $geo_sql = ew_geo_scope_sql($conn, ew_geo_scope_from_request());
+    $query = "insert into consignment_mode(consignment_mode,description,mode_of_pay,geo_scope,created_at,created_by,status)values
+\t\t('" . $consignment . "','" . $description . "','" . $mode_of_pay . "'," . $geo_sql . ",'" . $created_at . "','" . $created_by . "','0')";
     $result = mysqli_query($conn, $query);
     if ($result)
         echo 1;
@@ -1496,7 +1518,17 @@ if ($form_name == 'rate_quotation_workflow') {
     $qid = (int) ($_POST['quotation_id'] ?? 0);
     $existing = quotation_get($conn, $qid);
     $action = trim($_POST['workflow_action'] ?? '');
-    $result = quotation_workflow($conn, $existing, $action, $_POST, $created_by);
+    $payload = $_POST;
+    if ($action === 'customer_approve' || $action === 'customer_confirmed') {
+        $up = quotation_save_customer_approval_upload($qid);
+        if (empty($up['ok'])) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(array('ok' => false, 'message' => $up['message'] ?? 'Upload the customer reply screenshot.'));
+            exit;
+        }
+        $payload['customer_approval_file'] = $up['path'];
+    }
+    $result = quotation_workflow($conn, $existing, $action, $payload, $created_by);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($result);
     exit;
@@ -1708,8 +1740,10 @@ if ($form_name == 'add_vehicle') {
         $query = "update  vehicle set vehicle_number='" . $vehicle_number . "',vehicle_type='" . $vehicle_type . "',model='" . $model . "',fitness='" . $fitness . "',insurance='" . $insurance . "',road_tax='" . $road_tax . "',permit='" . $permit . "',emission='" . $emission . "',pollution_certificate='" . $pollution_certificate . "',finance='" . $finance . "',vehicle_status='" . $vehicle_status . "',registration='" . $registration . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where md5(vehicle_id)='" . $edit_id . "'";
         $result = mysqli_query($conn, $query);
     } else {
-        $query = "insert into vehicle(vehicle_number,vehicle_type,model,fitness,insurance,road_tax,permit,emission,pollution_certificate,finance,vehicle_status,registration,created_at,created_by,status)values
-\t\t('" . $vehicle_number . "','" . $vehicle_type . "','" . $model . "','" . $fitness . "','" . $insurance . "','" . $road_tax . "','" . $permit . "','" . $emission . "','" . $pollution_certificate . "','" . $finance . "','" . $vehicle_status . "','" . $registration . "','" . $created_at . "','" . $created_by . "','0')";
+        ew_geo_scope_ensure_column($conn, 'vehicle');
+        $geo_sql = ew_geo_scope_sql($conn, ew_geo_scope_from_request());
+        $query = "insert into vehicle(vehicle_number,vehicle_type,model,fitness,insurance,road_tax,permit,emission,pollution_certificate,finance,vehicle_status,registration,geo_scope,created_at,created_by,status)values
+\t\t('" . $vehicle_number . "','" . $vehicle_type . "','" . $model . "','" . $fitness . "','" . $insurance . "','" . $road_tax . "','" . $permit . "','" . $emission . "','" . $pollution_certificate . "','" . $finance . "','" . $vehicle_status . "','" . $registration . "'," . $geo_sql . ",'" . $created_at . "','" . $created_by . "','0')";
         $result = mysqli_query($conn, $query);
     }
     if ($result)
@@ -7190,6 +7224,10 @@ if ($form_name == 'air_consignment_offload') {
         echo 0;
         exit;
     }
+    if (ew_road_transit_hours_get($conn, $grn_no) <= 0) {
+        echo 0;
+        exit;
+    }
     if ($action === 'open') {
         $reason = trim((string) ($_POST['offload_reason'] ?? ''));
         if ($reason === '' || ew_air_offload_is_open($conn, $grn_no)) {
@@ -7297,6 +7335,7 @@ $total_packages = isset($_POST['total_packages'])
         $txn_preview = mysqli_fetch_assoc($preview_q);
     }
     $is_road_status = $txn_preview && ew_mode_is_road_freight($conn, $txn_preview['mode_of_transportation'] ?? 0);
+    $uses_transit_hours = $txn_preview && ew_mode_uses_transit_hours($conn, $txn_preview['mode_of_transportation'] ?? 0);
     if ($is_road_status && ew_road_breakdown_is_open($conn, $grn_no)) {
         echo 'breakdown';
         exit;
@@ -7306,7 +7345,7 @@ $total_packages = isset($_POST['total_packages'])
         echo 'offload';
         exit;
     }
-    if ($is_road_status && (int) $status === 2) {
+    if ($uses_transit_hours && (int) $status === 2) {
         $hours_raw = str_replace(',', '', trim((string) ($_POST['road_transit_hours'] ?? '')));
         if (!is_numeric($hours_raw) || (float) $hours_raw <= 0) {
             echo 0;
@@ -7315,7 +7354,7 @@ $total_packages = isset($_POST['total_packages'])
         ew_road_transit_hours_save($conn, $grn_no, (float) $hours_raw);
         $txn_preview['road_transit_hours_override'] = $hours_raw;
     }
-    if ($is_road_status && !((int) $status === 8 && (isset($_POST['delivery_type']) ? $_POST['delivery_type'] : '') === 'partial')) {
+    if ($uses_transit_hours && !((int) $status === 8 && (isset($_POST['delivery_type']) ? $_POST['delivery_type'] : '') === 'partial')) {
         $txn_preview['active_status'] = $status;
         $generated = get_tracking_message($conn, $txn_preview);
         if ($generated !== '') {

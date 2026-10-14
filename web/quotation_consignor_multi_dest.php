@@ -78,6 +78,15 @@ if ($customer_mode === 'existing' && trim((string) ($master['party_name'] ?? '')
 }
 
 $vehicle_types = ew_vehicle_type_list($conn, true);
+$vehicle_json = array();
+foreach ($vehicle_types as $vt) {
+	$snap = quotation_vehicle_snapshot($conn, (int) $vt['vehicle_type_id']);
+	$vid = (int) $vt['vehicle_type_id'];
+	$vehicle_json[$vid] = array(
+		'label' => quotation_vehicle_type_dropdown_label($conn, $vid, $vt['type_name'] ?? ''),
+		'dim_display' => $snap['dim_display'],
+	);
+}
 $modes = quotation_mode_transport_catalog($conn);
 $city_catalog = quotation_city_state_catalog($conn);
 $dest_rows_form = quotation_hydrate_destination_rows_for_form($conn, $id > 0 ? $id : 0);
@@ -132,7 +141,7 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 					<div class="ew-page-head">
 						<div class="ew-page-head-left">
 							<a href="quotation_consignor_multi_dest_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
-							<h1 class="ew-page-title"><?php echo $id > 0 ? 'Multi-destination Quotation/Proforma Invoice' : 'Create Multi-destination Quotation/Proforma Invoice'; ?></h1>
+							<h1 class="ew-page-title"><?php echo $id > 0 ? 'Quotation/Proforma Invoice' : 'Create Quotation/Proforma Invoice'; ?></h1>
 						</div>
 						<div class="ew-toolbar-right">
 							<span class="ew-status-pill"><?php echo htmlspecialchars(quotation_status_label($status)); ?></span>
@@ -211,6 +220,7 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 													<th style="min-width:180px;">Source of transport</th>
 													<th style="min-width:110px;">Delivery days</th>
 													<th>Freight charges</th>
+													<th>Pickup &amp; Delivery</th>
 													<?php if ($form_editable) { ?><th class="text-center md-row-actions"> </th><?php } ?>
 												</tr>
 											</thead>
@@ -224,11 +234,11 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 								</div>
 
 								<div class="ew-card ew-invoice-details-card">
-									<h2 class="ew-card-section-title">Tax &amp; commercial summary</h2>
+									<h2 class="ew-card-section-title">CFS Details</h2>
 									<div class="ew-form-body">
 										<div class="ew-form-grid ew-form-grid--invoice ew-form-grid--quotation">
 											<div class="ew-field span-2"><label>CFS / Port / Factory / Warehouse</label><input type="text" name="cfs_port_factory" id="cfs_port_factory" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['cfs_port_factory'] ?? ''); ?>" /></div>
-											<div class="ew-field span-2"><label>Part Number / Article</label><input type="text" name="part_number" id="part_number" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['part_number'] ?? ''); ?>" /></div>
+											<div class="ew-field span-2"><label>Article No.</label><input type="text" name="part_number" id="part_number" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['part_number'] ?? ''); ?>" /></div>
 											<div class="ew-field span-2"><label>Quotation approval</label><select name="quotation_approval" id="quotation_approval" class="form-control pv-bind-select"><option value="">Select</option><?php foreach (quotation_quotation_approval_options() as $k => $lbl) {
 												$sel = (($master['quotation_approval'] ?? '') === $k) ? ' selected' : '';
 												echo '<option value="' . htmlspecialchars($k, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>' . htmlspecialchars($lbl) . '</option>';
@@ -243,14 +253,11 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 												echo '<option value="' . htmlspecialchars($k, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>' . htmlspecialchars($lbl) . '</option>';
 											} ?></select></div>
 										</div>
+										<input type="hidden" name="gst_rate" id="gst_rate" value="<?php echo htmlspecialchars((string) ($master['gst_rate'] ?? 18)); ?>" />
+										<input type="hidden" id="taxable_value" value="" />
+										<input type="hidden" id="gst_amount" value="" />
+										<input type="hidden" id="total_amount" value="" />
 										<div class="ew-form-grid ew-form-grid--invoice ew-form-grid--quotation" style="margin-top:12px;">
-											<div class="ew-field"><label>Taxable value (₹)</label><input type="text" class="form-control" id="taxable_value" readonly value="<?php echo htmlspecialchars($master['taxable_value'] ?? '0'); ?>" /></div>
-											<div class="ew-field"><label>GST %</label><select name="gst_rate" id="gst_rate" class="form-control"><?php foreach (array(0, 5, 12, 18, 28) as $g) {
-												$sel = ((float) ($master['gst_rate'] ?? 18) === (float) $g) ? ' selected' : '';
-												echo '<option value="' . $g . '"' . $sel . '>' . $g . '</option>';
-											} ?></select></div>
-											<div class="ew-field"><label>GST amount (₹)</label><input type="text" class="form-control" id="gst_amount" readonly /></div>
-											<div class="ew-field"><label>Total (₹)</label><input type="text" class="form-control" id="total_amount" readonly style="font-weight:700;" /></div>
 											<div class="ew-field span-4"><label>Terms &amp; notes</label><textarea name="terms_notes" id="terms_notes" class="form-control pv-bind" rows="2"><?php echo htmlspecialchars($master['terms_notes'] ?? ''); ?></textarea></div>
 										</div>
 									</div>
@@ -277,8 +284,8 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 										<?php if (in_array($status, array('sent', 'customer_confirmed'), true)) { ?>
 											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="resend_email">Resend email</button>
 										<?php } ?>
-										<?php if ($status === 'sent') { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-workflow" data-action="customer_confirmed">Customer confirmed</button>
+										<?php if (quotation_can_customer_approve($status)) { ?>
+											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-customer-approve" data-id="<?php echo (int) $id; ?>" data-quote="<?php echo htmlspecialchars($master['quote_no'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">Approve (upload reply)</button>
 										<?php } ?>
 										<?php if (!in_array($status, array('converted', 'cancelled'), true)) { ?>
 											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="cancel">Cancel</button>
@@ -323,9 +330,13 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 
 <script>
 window.QUOTATION_LETTER_INTRO = <?php echo json_encode(quotation_letter_intro_text()); ?>;
+window.QUOTATION_VEHICLE_MAP = <?php echo json_encode($vehicle_json); ?>;
+window.QUOTATION_PAYMENT_LABELS = <?php echo json_encode(quotation_payment_terms_options()); ?>;
 window.QUOTATION_PREVIEW_IN_MODAL = true;
 window.QUOTATION_RETURN_PAGE = 'quotation_consignor_multi_dest.php';
 </script>
 <script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261008mdsource2"></script>
+<?php echo quotation_customer_approve_modal_html(); ?>
+<?php echo quotation_customer_approve_script('quotation_consignor_multi_dest_list.php?tab=approved'); ?>
 </body>
 </html>

@@ -108,7 +108,7 @@ function elitewave_pdf_letterhead_open($conn, $document_title, $document_sub = '
 			No.10/35, M.V.Badran Street, Anaikar Complex, 2nd Floor,
 			Naval Hospital Road, Periamet, Chennai – 600003<br>
 			<span style="color:' . EW_LH_NAVY . ';">+91 9840859711</span> · +91 9952918211 ·
-			info@elitewave360.in · www.elitewave360.in
+			info@elitewave360.in · athar@elitewave360.in · www.elitewave360.in
 		</div>
 	</td>
 </tr>

@@ -48,7 +48,28 @@
 		if (txt === '' || txt.indexOf('Select ') === 0) {
 			return '—';
 		}
+		if (kind === 'road') {
+			var map = window.QUOTATION_VEHICLE_MAP || {};
+			var vid = $sel.val();
+			if (vid && map[vid] && map[vid].label) {
+				return map[vid].label;
+			}
+		}
 		return txt;
+	}
+
+	function selectPreviewLabel(id) {
+		var $sel = $('#' + id);
+		if (!$sel.length || !$sel.val()) {
+			return '';
+		}
+		return $.trim($sel.find('option:selected').text());
+	}
+
+	function paymentTermsPreviewLabel() {
+		var code = $('#payment_terms').val() || '';
+		var map = window.QUOTATION_PAYMENT_LABELS || {};
+		return map[code] || code || '—';
 	}
 
 	function syncMdRowVehicle($tr) {
@@ -83,7 +104,7 @@
 		var sum = 0;
 		$('#md_dest_tbody tr.md-row').each(function() {
 			var $tr = $(this);
-			var rowSum = num($tr.find('.md-amt[name="md_freight[]"]').val());
+			var rowSum = num($tr.find('.md-amt[name="md_freight[]"]').val()) + num($tr.find('.md-amt[name="md_tempo[]"]').val());
 			rowSum = Math.round(rowSum * 100) / 100;
 			sum += rowSum;
 		});
@@ -145,19 +166,21 @@
 		return txt;
 	}
 
-	function destPreviewTable(totals) {
-		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Destination</th><th>Mode</th><th>Source of transport</th><th align="right">Freight</th></tr>';
+	function destPreviewTable() {
+		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Destination</th><th>Mode</th><th>Source of transport</th><th>Days</th><th align="right">Freight</th><th align="right">Pickup &amp; Delivery</th></tr>';
 		$('#md_dest_tbody tr.md-row').each(function() {
 			var $tr = $(this);
 			var dest = mdSelectLabel($tr.find('.md-city'), 'City — State');
 			var mode = mdSelectLabel($tr.find('.md-mode'), 'Mode');
 			var src = sourceLabel($tr);
+			var days = mdSelectLabel($tr.find('.md-days'), 'Days');
 			var freightRaw = $.trim($tr.find('.md-amt[name="md_freight[]"]').val());
+			var tempoRaw = $.trim($tr.find('.md-amt[name="md_tempo[]"]').val());
 			var rt = freightRaw === '' ? '—' : ('₹ ' + fmt(num(freightRaw)) + ' /-');
-			html += '<tr><td>' + escHtml(dest) + '</td><td>' + escHtml(mode) + '</td><td>' + escHtml(src) + '</td><td align="right">' + escHtml(rt) + '</td></tr>';
+			var tempoDisp = tempoRaw === '' ? '—' : ('₹ ' + fmt(num(tempoRaw)) + ' /-');
+			html += '<tr><td>' + escHtml(dest) + '</td><td>' + escHtml(mode) + '</td><td>' + escHtml(src) + '</td><td>' + escHtml(days) + '</td><td align="right">' + escHtml(rt) + '</td><td align="right">' + escHtml(tempoDisp) + '</td></tr>';
 		});
-		html += '<tr><td colspan="3">GST @ ' + totals.gstPct + '%</td><td align="right">₹ ' + fmt(totals.gst) + ' /-</td></tr>';
-		html += '<tr><td colspan="3"><b>Grand total</b></td><td align="right"><b>₹ ' + fmt(totals.total) + ' /-</b></td></tr></table>';
+		html += '</table>';
 		return html;
 	}
 
@@ -171,7 +194,24 @@
 		}
 		var intro = window.QUOTATION_LETTER_INTRO || '';
 		html += '<p style="margin:10px 0 6px;">Dear Sir / Madam,<br><span style="font-weight:normal;">' + escHtml(intro) + '</span></p>';
-		html += '<div class="pv-section">Destination-wise charges</div>' + destPreviewTable(totals);
+		var logistics = '';
+		var qaLbl = selectPreviewLabel('quotation_approval');
+		if (qaLbl !== '') {
+			logistics += '<div class="pv-kv"><b>Quotation approval:</b> ' + escHtml(qaLbl) + '</div>';
+		}
+		logistics += '<div class="pv-kv"><b>Payment terms:</b> ' + escHtml(paymentTermsPreviewLabel()) + '</div>';
+		var fpLbl = selectPreviewLabel('freight_paid_by');
+		if (fpLbl !== '') {
+			logistics += '<div class="pv-kv"><b>Freight paid by:</b> ' + escHtml(fpLbl) + '</div>';
+		}
+		var cfsVal = $.trim($('#cfs_port_factory').val() || '');
+		var partVal = $.trim($('#part_number').val() || '');
+		logistics += '<div class="pv-kv"><b>CFS / Port / Factory / Warehouse:</b> ' + escHtml(cfsVal !== '' ? cfsVal : '—') + '</div>';
+		logistics += '<div class="pv-kv"><b>Article No.:</b> ' + escHtml(partVal !== '' ? partVal : '—') + '</div>';
+		if (logistics !== '') {
+			html += '<div class="pv-section">Logistics reference</div>' + logistics;
+		}
+		html += '<div class="pv-section">Destination-wise charges</div>' + destPreviewTable();
 		html += '<div class="pv-section" style="margin-top:14px;">Terms &amp; conditions (PDF page 2)</div>'
 			+ '<p class="pv-kv" style="font-size:12px;color:#444;">Full terms on page 2 — followed by Thanks &amp; Regards.</p>';
 		return html;
@@ -238,7 +278,7 @@
 			syncCustomerModeUi(true);
 		});
 
-		$(document).on('input change', '.pv-bind, #gst_rate, #party_id, #party_name, .md-amt, .md-city, .md-mode, .md-source, .md-days, #subject, #quotation_approval, #freight_paid_by, #payment_terms', function() {
+		$(document).on('input change', '.pv-bind, #gst_rate, #party_id, #party_name, .md-amt, .md-city, .md-mode, .md-source, .md-days, #subject, #quotation_approval, #freight_paid_by, #payment_terms, #cfs_port_factory, #part_number', function() {
 			renderPreview();
 		});
 

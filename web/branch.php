@@ -1,6 +1,11 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+ew_geo_scope_ensure_column($conn, 'branch');
+ew_geo_scope_ensure_column($conn, 'state');
+ew_geo_scope_ensure_column($conn, 'city');
+$geo_scope = ew_geo_scope_from_request();
+$branch_page_title = $geo_scope === 'international' ? 'Foreign Branches List' : 'India Branches List';
 ?>
 <!DOCTYPE html>
 <html>
@@ -57,7 +62,7 @@ th.table-title.sorting  {
                     <div class="ew-page-v2">
                         <div class="ew-page-head">
                             <div class="ew-page-head-left">
-                                <h1 class="ew-page-title">Branch Master</h1>
+                                <h1 class="ew-page-title"><?php echo htmlspecialchars($branch_page_title); ?></h1>
                             </div>
                         </div>
                         <div class="ew-card">
@@ -80,7 +85,7 @@ th.table-title.sorting  {
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $query = 'select * from branch';
+                                    $query = 'select * from branch where ' . ew_geo_scope_where($conn);
                                     $result = mysqli_query($conn, $query);
                                     $i = 1;
                                     while ($row = mysqli_fetch_array($result)) {
@@ -422,6 +427,7 @@ th.table-title.sorting  {
                 <form id="form_data">
                     <input type="hidden" id="form_name" name="form_name" value="add_branch">
                     <input type="hidden" id="edit_id" name="edit_id" value="">
+                    <input type="hidden" id="geo_scope" name="geo_scope" value="<?php echo htmlspecialchars($geo_scope, ENT_QUOTES, 'UTF-8'); ?>">
                     <div id="response" class="alert alert-danger" style="display:none;">
                         <div class="message" style="text-align:center"></div>
                     </div>
@@ -455,7 +461,7 @@ th.table-title.sorting  {
                             <select name="state" id="state" class="form-control" required>
                                 <option value="">Select State</option>
                                 <?php
-                                $state_query = 'select * from state where status=0 order by state_name';
+                                $state_query = 'select * from state where status=0 and ' . ew_geo_scope_where($conn) . ' order by state_name';
                                 $state_result = mysqli_query($conn, $state_query);
                                 while ($state_row = mysqli_fetch_array($state_result)) {
                                     ?>
@@ -468,7 +474,7 @@ th.table-title.sorting  {
                             <select name="city" id="city" class="form-control" required>
                                 <option value="">Select City</option>
                                 <?php
-                                $city_query = 'select * from city where status=0';
+                                $city_query = 'select * from city where status=0 and ' . ew_geo_scope_where($conn);
                                 $city_result = mysqli_query($conn, $city_query);
                                 while ($city_row = mysqli_fetch_array($city_result)) {
                                     ?>

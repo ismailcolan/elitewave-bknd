@@ -1,6 +1,4 @@
 <?php
-/* Dual-rail sidebar (2026-09-10).
-   Rollback: menu.php.rollback-dual-rail | menu.php.rollback-modules | menu.php.rollback */
 require_once ('include/connect.php');
 require_once ('include/function.php');
 $read_status = mysqli_query($conn, 'SELECT read_status FROM `user_registrations` WHERE read_status = 0');
@@ -10,17 +8,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
 $page_module_map = array(
   'dashboard.php' => 'dashboard',
-  'company.php' => 'setup', 'company_bank.php' => 'setup', 'branch.php' => 'setup',
+  'company.php' => 'setup', 'company_bank.php' => 'setup', 'company_bank_form.php' => 'setup',
+  'branch.php' => 'setup',
   'state.php' => 'setup', 'city.php' => 'setup', 'hub.php' => 'setup',
-  'mode_of_transportation.php' => 'transport', 'consignment_mode.php' => 'transport',
-  'package_type.php' => 'transport', 'vehicle.php' => 'transport', 'vehicle_list.php' => 'transport',
-  'eway_partb.php' => 'transport',
-  'vehicle_type_master.php' => 'transport', 'vehicle_type.php' => 'transport',
-  'cfs_master.php' => 'transport', 'cfs.php' => 'transport',
-  'quotation_list.php' => 'transport', 'quotation.php' => 'transport', 'quotation_pdf.php' => 'transport',
-  'quotation_all_modes_list.php' => 'transport', 'quotation_all_modes.php' => 'transport',
-  'quotation_consignor_multi_dest_list.php' => 'transport', 'quotation_consignor_multi_dest.php' => 'transport',
-  'train.php' => 'transport', 'flight.php' => 'transport',
+  'package_type.php' => 'setup',
+  'mode_of_transportation.php' => 'setup', 'consignment_mode.php' => 'setup',
+  'vehicle.php' => 'setup', 'vehicle_list.php' => 'setup',
+  'vehicle_type_master.php' => 'setup', 'vehicle_type.php' => 'setup',
+  'cfs_master.php' => 'setup', 'cfs.php' => 'setup',
+  'train.php' => 'setup', 'flight.php' => 'setup',
+  'quotation_list.php' => 'marketing', 'quotation.php' => 'marketing', 'quotation_pdf.php' => 'marketing',
+  'quotation_all_modes_list.php' => 'marketing', 'quotation_all_modes.php' => 'marketing',
+  'quotation_consignor_multi_dest_list.php' => 'marketing', 'quotation_consignor_multi_dest.php' => 'marketing',
   'client.php' => 'party', 'client_list.php' => 'party',
   'client_branch.php' => 'party', 'client_branch_list.php' => 'party',
   'vendor.php' => 'party', 'vendor_list.php' => 'party',
@@ -33,7 +32,7 @@ $page_module_map = array(
   'expense_gcn.php' => 'expense', 'expense_gcn_list.php' => 'expense',
   'expense_general.php' => 'expense', 'expense_general_list.php' => 'expense',
   'qrcode_master.php' => 'tools', 'bulkmail.php' => 'tools', 'users.php' => 'tools', 'user_list.php' => 'tools',
-  'eway_partb_settings.php' => 'tools', 'database_backup.php' => 'tools',
+  'database_backup.php' => 'tools',
   'pod_list.php' => 'portal', 'pod_master.php' => 'portal', 'edit_pod_list.php' => 'portal',
   'user-draftconsignment.php' => 'portal', 'user-inquiry.php' => 'portal',
   'user-approval.php' => 'portal', 'user-requestpickup-list.php' => 'portal',
@@ -52,7 +51,7 @@ $page_module_map = array(
   'consignment_report.php' => 'mis', 'client_arrival_report.php' => 'mis',
   'cargo_booking_report.php' => 'mis', 'gst_tax_report.php' => 'mis',
   'invoice_register.php' => 'mis',
-  'pending_payments.php' => 'mis',
+  'pending_payments.php' => 'invoice',
   'client_payment_transactions.php' => 'mis',
   'customer_mapping.php' => 'party',
   'customer_mapping_form.php' => 'party',
@@ -74,8 +73,37 @@ function ew_menu_active_any($pages, $current_page) {
   return in_array($current_page, $pages, true) ? ' active' : '';
 }
 
+function ew_menu_active_scope($page, $scope, $current_page) {
+  if ($page !== $current_page) {
+    return '';
+  }
+  $cur = function_exists('ew_geo_scope_from_request') ? ew_geo_scope_from_request() : 'domestic';
+  return ($cur === $scope) ? ' active' : '';
+}
+
 function ew_module_active($module, $active_module) {
   return ($module === $active_module) ? ' active' : '';
+}
+
+function ew_rail_icon($name) {
+  $inner = array(
+    'dashboard' => '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+    'bookings' => '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+    'invoicing' => '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    'marketing' => '',
+    'mis' => '<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+    'general' => '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+    'customers' => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    'billing' => '<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>',
+    'expense' => '<circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/>',
+    'tools' => '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+    'portal' => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>',
+  );
+  if ($name === 'marketing') {
+    return '<span class="rail-icon" aria-hidden="true"><svg class="rail-icon-fill" viewBox="0 0 576 512"><path fill="currentColor" d="M80 96A48 48 0 1 0 80 0a48 48 0 1 0 0 96zM64 128c-35.3 0-64 28.7-64 64V320c0 17.7 14.3 32 32 32c9.8 0 18.5-4.4 24.4-11.2L80.4 485.3c2.9 17.4 19.4 29.2 36.8 26.3s29.2-19.4 26.3-36.8L123.1 352h15.7l30 134.9c3.8 17.3 20.9 28.1 38.2 24.3s28.1-20.9 24.3-38.2l-57.3-258 116.3 53.8c.5 .3 1.1 .5 1.6 .7c8.6 3.6 18 3.1 25.9-.7c3.4-1.6 6.6-3.9 9.3-6.7c3.1-3.2 5.5-7 7.1-11.4c.1-.3 .2-.7 .3-1l2.5-7.5c5.7-17.1 18.3-30.9 34.7-38.2l8-3.5c1-.4 1.9-.8 2.9-1.2l-16.9 63.5c-5.6 21.1-.1 43.6 14.7 59.7l70.7 77.1 22 88.1c4.3 17.1 21.7 27.6 38.8 23.3s27.6-21.7 23.3-38.8l-23-92.1c-1.9-7.8-5.8-14.9-11.2-20.8l-49.5-54 19.3-65.5 9.6 23c4.4 10.6 12.5 19.3 22.8 24.5l26.7 13.3c15.8 7.9 35 1.5 42.9-14.3s1.5-35-14.3-42.9L537 232.7l-15.3-36.8C504.5 154.8 464.3 128 419.7 128c-22.8 0-45.3 4.8-66.1 14l-8 3.5c-24.4 10.9-44.6 29-58.1 51.6L157.3 136.9C144.7 131 130.9 128 117 128H64zM464 96a48 48 0 1 0 0-96 48 48 0 1 0 0 96zM349.7 335.6l-25 62.4-59.4 59.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L372.3 441c4.6-4.6 8.2-10.1 10.6-16.1l14.5-36.2-40.7-44.4c-2.5-2.7-4.8-5.6-7-8.6z"/></svg></span>';
+  }
+  $paths = isset($inner[$name]) ? $inner[$name] : $inner['dashboard'];
+  return '<span class="rail-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' . $paths . '</svg></span>';
 }
 
 function ew_panel_head($title) {
@@ -165,49 +193,30 @@ function ew_panel_head($title) {
     color: var(--ew-navy);
     text-decoration: none;
     font-family: 'Inter', sans-serif;
-    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     position: relative;
   }
   .rail-item:hover:not(.active) {
-    background: var(--rail-hover-bg);
+    background: #fff;
     color: var(--ew-navy);
     text-decoration: none;
-    box-shadow: none;
+    box-shadow: 0 6px 16px rgba(6, 65, 111, 0.16);
+    transform: translateY(-2px);
   }
   .rail-item.active,
   .rail-item.active:hover {
     background: var(--ew-navy);
     color: #fff;
-    box-shadow: 0 4px 12px rgba(6,65,111,.2);
+    box-shadow: 0 8px 18px rgba(6, 65, 111, 0.28);
+    transform: translateY(-2px);
   }
   .rail-item.active .rail-label {
     font-weight: 700;
   }
 
-  .rail-item[data-tooltip]::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    left: calc(100% + 10px);
-    top: 50%;
-    transform: translateY(-50%);
-    background: var(--ew-navy-deep);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 7px 12px;
-    border-radius: 8px;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.15s ease, visibility 0.15s ease;
-    z-index: 1100;
-    box-shadow: 0 8px 24px rgba(4,20,38,.22);
-    font-family: 'Inter', sans-serif;
-  }
+  .rail-item[data-tooltip]::after,
   .rail-item[data-tooltip]:hover::after {
-    opacity: 1;
-    visibility: visible;
+    content: none;
   }
 
   .rail-icon {
@@ -223,22 +232,34 @@ function ew_panel_head($title) {
     object-fit: contain;
     filter: brightness(0);
     opacity: 0.92;
-    transition: filter 0.15s ease, opacity 0.15s ease;
+    transition: filter 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
   }
-  .rail-icon .fa {
+  .rail-icon .fa,
+  .rail-icon svg {
     font-size: 17px;
     line-height: 1;
     color: #1A2332;
     opacity: 0.92;
     transition: color 0.15s ease, opacity 0.15s ease;
   }
+  .rail-icon svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+  }
   .rail-item:hover:not(.active) .rail-icon img {
     filter: brightness(0);
     opacity: 1;
+    transform: scale(1.12);
   }
-  .rail-item:hover:not(.active) .rail-icon .fa {
+  .rail-item:hover:not(.active) .rail-icon .fa,
+  .rail-item:hover:not(.active) .rail-icon svg {
     color: var(--ew-navy);
     opacity: 1;
+    transform: scale(1.12);
+  }
+  .rail-item:hover .rail-label {
+    font-weight: 700;
   }
   .rail-item.active .rail-icon img,
   .rail-item.active:hover .rail-icon img {
@@ -246,7 +267,9 @@ function ew_panel_head($title) {
     opacity: 1;
   }
   .rail-item.active .rail-icon .fa,
-  .rail-item.active:hover .rail-icon .fa {
+  .rail-item.active:hover .rail-icon .fa,
+  .rail-item.active .rail-icon svg,
+  .rail-item.active:hover .rail-icon svg {
     color: #fff;
     opacity: 1;
   }
@@ -587,63 +610,58 @@ function ew_panel_head($title) {
   <nav class="icon-rail" id="iconRail">
 
     <a class="rail-item<?php echo ew_module_active('dashboard', $active_module); ?>" href="dashboard.php" data-module="dashboard" data-tooltip="Dashboard" title="Dashboard">
-      <span class="rail-icon"><img src="./images/dashboard.png" alt=""></span>
+      <?php echo ew_rail_icon('dashboard'); ?>
       <span class="rail-label">Dashboard</span>
     </a>
-    <button type="button" class="rail-item<?php echo ew_module_active('consignment', $active_module); ?>" data-module="consignment" data-tooltip="Consignment" title="Consignment">
-      <span class="rail-icon"><img src="./icons/png/009-delivery-packaging-box.png" alt=""></span>
-      <span class="rail-label">Bookings</span>
-    </button>
     <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
-    <button type="button" class="rail-item<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice" data-tooltip="Invoice" title="Invoice">
-      <span class="rail-icon"><img src="./icons/png/006-commercial-delivery-symbol-of-a-list-on-clipboard-on-a-box-package.png" alt=""></span>
-      <span class="rail-label">Invoicing</span>
+    <button type="button" class="rail-item<?php echo ew_module_active('marketing', $active_module); ?>" data-module="marketing" data-tooltip="Marketing" title="Marketing">
+      <?php echo ew_rail_icon('marketing'); ?>
+      <span class="rail-label">Marketing</span>
     </button>
     <?php endif; ?>
-
+    <button type="button" class="rail-item<?php echo ew_module_active('consignment', $active_module); ?>" data-module="consignment" data-tooltip="Consignment" title="Consignment">
+      <?php echo ew_rail_icon('bookings'); ?>
+      <span class="rail-label">Bookings</span>
+    </button>
+    <?php if ($_SESSION['role'] == 'AD'): ?>
+    <button type="button" class="rail-item<?php echo ew_module_active('expense', $active_module); ?>" data-module="expense" data-tooltip="Expense" title="Expense">
+      <?php echo ew_rail_icon('expense'); ?>
+      <span class="rail-label">Expense</span>
+    </button>
+    <button type="button" class="rail-item<?php echo ew_module_active('billing', $active_module); ?>" data-module="billing" data-tooltip="Billing &amp; Tax" title="Billing &amp; Tax">
+      <?php echo ew_rail_icon('billing'); ?>
+      <span class="rail-label">Billing</span>
+    </button>
+    <?php endif; ?>
     <?php if ($_SESSION['role'] != 'DR'): ?>
     <button type="button" class="rail-item<?php echo ew_module_active('mis', $active_module); ?>" data-module="mis" data-tooltip="MIS Report" title="MIS Report">
-      <span class="rail-icon"><img src="./icons/review-topic.png" alt=""></span>
+      <?php echo ew_rail_icon('mis'); ?>
       <span class="rail-label">MIS</span>
     </button>
     <?php endif; ?>
-
-    <?php if ($_SESSION['role'] == 'AD'): ?>
-    <button type="button" class="rail-item<?php echo ew_module_active('setup', $active_module); ?>" data-module="setup" data-tooltip="Setup Masters" title="Setup Masters">
-      <span class="rail-icon"><img src="./icons/department.png" alt=""></span>
-      <span class="rail-label">Setup</span>
-    </button>
-    <button type="button" class="rail-item<?php echo ew_module_active('transport', $active_module); ?>" data-module="transport" data-tooltip="Transport Masters" title="Transport Masters">
-      <span class="rail-icon"><img src="./icons/png/003-delivery-truck-with-circular-clock.png" alt=""></span>
-      <span class="rail-label">Transport</span>
+    <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
+    <button type="button" class="rail-item<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice" data-tooltip="Invoice" title="Invoice">
+      <?php echo ew_rail_icon('invoicing'); ?>
+      <span class="rail-label">Invoicing</span>
     </button>
     <button type="button" class="rail-item<?php echo ew_module_active('party', $active_module); ?>" data-module="party" data-tooltip="Customer Masters" title="Customer Masters">
-      <span class="rail-icon"><img src="./icons/png/007-delivery-worker-giving-a-box-to-a-receiver.png" alt=""></span>
+      <?php echo ew_rail_icon('customers'); ?>
       <span class="rail-label">Customers</span>
     </button>
-    <button type="button" class="rail-item<?php echo ew_module_active('billing', $active_module); ?>" data-module="billing" data-tooltip="Billing &amp; Tax" title="Billing &amp; Tax">
-      <span class="rail-icon"><img src="./icons/002-cart.png" alt=""></span>
-      <span class="rail-label">Billing</span>
-    </button>
-    <button type="button" class="rail-item<?php echo ew_module_active('expense', $active_module); ?>" data-module="expense" data-tooltip="Expense" title="Expense">
-      <span class="rail-icon"><i class="fa fa-money" aria-hidden="true"></i></span>
-      <span class="rail-label">Expense</span>
-    </button>
-    <button type="button" class="rail-item<?php echo ew_module_active('tools', $active_module); ?>" data-module="tools" data-tooltip="Tools &amp; Users" title="Tools &amp; Users">
-      <span class="rail-icon"><i class="fa fa-wrench" aria-hidden="true"></i></span>
-      <span class="rail-label">Tools</span>
-    </button>
+    <?php endif; ?>
+    <?php if ($_SESSION['role'] == 'AD'): ?>
     <button type="button" class="rail-item<?php echo ew_module_active('portal', $active_module); ?>" data-module="portal" data-tooltip="User Portal" title="User Portal">
-      <span class="rail-icon"><img src="./icons/user-check.png" alt=""></span>
+      <?php echo ew_rail_icon('portal'); ?>
       <span class="rail-label">Portal</span>
       <?php if ($count_read > 0): ?><span class="rail-badge"><?php echo $count_read; ?></span><?php endif; ?>
     </button>
-    <?php endif; ?>
-
-    <?php if ($_SESSION['role'] == 'USER'): ?>
-    <button type="button" class="rail-item<?php echo ew_module_active('party', $active_module); ?>" data-module="party" data-tooltip="Customer Masters" title="Customer Masters">
-      <span class="rail-icon"><img src="./icons/png/007-delivery-worker-giving-a-box-to-a-receiver.png" alt=""></span>
-      <span class="rail-label">Customers</span>
+    <button type="button" class="rail-item<?php echo ew_module_active('tools', $active_module); ?>" data-module="tools" data-tooltip="Tools &amp; Users" title="Tools &amp; Users">
+      <?php echo ew_rail_icon('tools'); ?>
+      <span class="rail-label">Tools</span>
+    </button>
+    <button type="button" class="rail-item<?php echo ew_module_active('setup', $active_module); ?>" data-module="setup" data-tooltip="General" title="General">
+      <?php echo ew_rail_icon('general'); ?>
+      <span class="rail-label">General</span>
     </button>
     <?php endif; ?>
 
@@ -659,48 +677,25 @@ function ew_panel_head($title) {
 
     <?php if ($_SESSION['role'] == 'AD'): ?>
     <div class="panel-module<?php echo ew_module_active('setup', $active_module); ?>" data-module="setup">
-      <?php ew_panel_head('Setup Masters'); ?>
+      <?php ew_panel_head('General'); ?>
       <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active('company.php', $current_page); ?>" href="company.php">Company</a>
-        <a class="panel-link<?php echo ew_menu_active('company_bank.php', $current_page); ?>" href="company_bank.php">Company Bank</a>
-        <a class="panel-link<?php echo ew_menu_active('branch.php', $current_page); ?>" href="branch.php">Branch</a>
-        <a class="panel-link<?php echo ew_menu_active('state.php', $current_page); ?>" href="state.php">State</a>
-        <a class="panel-link<?php echo ew_menu_active('city.php', $current_page); ?>" href="city.php">City</a>
-        <a class="panel-link<?php echo ew_menu_active('hub.php', $current_page); ?>" href="hub.php">Hub</a>
-      </div>
-    </div>
-
-    <div class="panel-module<?php echo ew_module_active('transport', $active_module); ?>" data-module="transport">
-      <?php ew_panel_head('Transport Masters'); ?>
-      <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active('mode_of_transportation.php', $current_page); ?>" href="mode_of_transportation.php">Mode of Transport</a>
-        <a class="panel-link<?php echo ew_menu_active('consignment_mode.php', $current_page); ?>" href="consignment_mode.php">Consignment Mode</a>
-        <a class="panel-link<?php echo ew_menu_active('package_type.php', $current_page); ?>" href="package_type.php">Package Type</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('vehicle_type_master.php', 'vehicle_type.php'), $current_page); ?>" href="vehicle_type_master.php">Vehicle Type Master</a>
+        <a class="panel-link<?php echo ew_menu_active('company.php', $current_page); ?>" href="company.php">EW360 Company Information</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('company_bank.php', 'company_bank_form.php'), $current_page); ?>" href="company_bank.php">EW360 Bank Information</a>
+        <a class="panel-link<?php echo ew_menu_active_scope('branch.php', 'domestic', $current_page); ?>" href="branch.php?scope=domestic">EW360 Domestic Branches</a>
+        <a class="panel-link<?php echo ew_menu_active_scope('branch.php', 'international', $current_page); ?>" href="branch.php?scope=international">EW360 International Branches</a>
+        <a class="panel-link<?php echo ew_menu_active('hub.php', $current_page); ?>" href="hub.php">EW360 Hub Master</a>
+        <a class="panel-link<?php echo ew_menu_active_scope('state.php', 'domestic', $current_page); ?>" href="state.php?scope=domestic">Domestic State Master</a>
+        <a class="panel-link<?php echo ew_menu_active_scope('state.php', 'international', $current_page); ?>" href="state.php?scope=international">International State Master</a>
+        <a class="panel-link<?php echo ew_menu_active_scope('city.php', 'domestic', $current_page); ?>" href="city.php?scope=domestic">Domestic City Master</a>
+        <a class="panel-link<?php echo ew_menu_active_scope('city.php', 'international', $current_page); ?>" href="city.php?scope=international">International City Master</a>
+        <a class="panel-link<?php echo ew_menu_active('package_type.php', $current_page); ?>" href="package_type.php">Package Type Master</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('cfs_master.php', 'cfs.php'), $current_page); ?>" href="cfs_master.php">CFS Master</a>
-        <?php
-        $ew_quotation_menu_pages = array(
-          'quotation_list.php', 'quotation.php', 'quotation_pdf.php',
-          'quotation_all_modes_list.php', 'quotation_all_modes.php',
-          'quotation_consignor_multi_dest_list.php', 'quotation_consignor_multi_dest.php',
-        );
-        $ew_quotation_accordion_open = ew_menu_active_any($ew_quotation_menu_pages, $current_page);
-        ?>
-        <div class="panel-accordion<?php echo $ew_quotation_accordion_open ? ' is-open' : ''; ?>" data-accordion-id="transport-quotation" data-accordion-label="Quotation">
-          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $ew_quotation_accordion_open ? 'true' : 'false'; ?>" aria-controls="panel-accordion-transport-quotation">
-            <span class="panel-accordion-title">Quotation</span>
-            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
-          </button>
-          <div class="panel-accordion-body" id="panel-accordion-transport-quotation">
-            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('quotation_list.php', 'quotation.php'), $current_page); ?>" href="quotation_list.php">Quotation/Proforma Invoice</a>
-            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('quotation_all_modes_list.php', 'quotation_all_modes.php'), $current_page); ?>" href="quotation_all_modes_list.php">Multi-mode Quotation/Proforma Invoice</a>
-            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('quotation_consignor_multi_dest_list.php', 'quotation_consignor_multi_dest.php'), $current_page); ?>" href="quotation_consignor_multi_dest_list.php">Multi-destination Quotation/Proforma Invoice</a>
-          </div>
-        </div>
-        <a class="panel-link<?php echo ew_menu_active_any(array('vehicle_list.php', 'vehicle.php'), $current_page); ?>" href="vehicle_list.php">Vehicle</a>
-        <a class="panel-link<?php echo ew_menu_active('eway_partb.php', $current_page); ?>" href="eway_partb.php">E-Way Part-B</a>
-        <a class="panel-link<?php echo ew_menu_active('train.php', $current_page); ?>" href="train.php">Train</a>
-        <a class="panel-link<?php echo ew_menu_active('flight.php', $current_page); ?>" href="flight.php">Flight</a>
+        <a class="panel-link<?php echo ew_menu_active('mode_of_transportation.php', $current_page); ?>" href="mode_of_transportation.php">Mode of Transport Master</a>
+        <a class="panel-link<?php echo ew_menu_active('consignment_mode.php', $current_page); ?>" href="consignment_mode.php">Consignment Mode Master</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('vehicle_list.php', 'vehicle.php'), $current_page); ?>" href="vehicle_list.php">EW360 Vehicles</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('vehicle_type_master.php', 'vehicle_type.php'), $current_page); ?>" href="vehicle_type_master.php">Vehicle Type Master</a>
+        <a class="panel-link<?php echo ew_menu_active('train.php', $current_page); ?>" href="train.php">Train Master</a>
+        <a class="panel-link<?php echo ew_menu_active('flight.php', $current_page); ?>" href="flight.php">Airlines Master</a>
       </div>
     </div>
 
@@ -729,7 +724,6 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active('bulkmail.php', $current_page); ?>" href="bulkmail.php">Bulk Email</a>
         <a class="panel-link<?php echo ew_menu_active('user_list.php', $current_page); ?>" href="user_list.php">Users</a>
         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'AD') { ?>
-        <a class="panel-link<?php echo ew_menu_active('eway_partb_settings.php', $current_page); ?>" href="eway_partb_settings.php">E-Way API settings</a>
         <a class="panel-link<?php echo ew_menu_active('database_backup.php', $current_page); ?>" href="database_backup.php">Database Backup</a>
         <?php } ?>
       </div>
@@ -782,7 +776,7 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active('track_consignment.php', $current_page); ?>" href="track_consignment.php">Track Consignment</a>
         <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
           <a class="panel-link<?php echo ew_menu_active_any(array('status_sheet_list.php', 'status_sheet.php', 'edit_status_sheet.php'), $current_page); ?>" href="status_sheet_list.php">Consignment Status Sheet</a>
-          <a class="panel-link<?php echo ew_menu_active_any(array('trip_summary_list.php', 'trip_summary.php', 'trip_summary_print.php'), $current_page); ?>" href="trip_summary_list.php">Trip Summary Sheet</a>
+          <a class="panel-link<?php echo ew_menu_active_any(array('trip_summary_list.php', 'trip_summary.php', 'trip_summary_print.php'), $current_page); ?>" href="trip_summary_list.php">GCN Transit Update</a>
           <a class="panel-link<?php echo ew_menu_active('transaction_status.php', $current_page); ?>" href="transaction_status.php">Transaction Status</a>
         <?php endif; ?>
         <?php if ($_SESSION['role'] == 'AD'): ?>
@@ -795,13 +789,24 @@ function ew_panel_head($title) {
     </div>
 
     <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
-    <div class="panel-module<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice">
-      <?php ew_panel_head('Invoice'); ?>
+    <div class="panel-module<?php echo ew_module_active('marketing', $active_module); ?>" data-module="marketing">
+      <?php ew_panel_head('Marketing'); ?>
       <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active_any(array('invoice_list.php', 'create_invoice.php'), $current_page); ?>" href="invoice_list.php">Tax Invoice</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('quotation_list.php', 'quotation.php'), $current_page); ?>" href="quotation_list.php">Single Quotation</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('quotation_all_modes_list.php', 'quotation_all_modes.php'), $current_page); ?>" href="quotation_all_modes_list.php">Multi Mode Quotation</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('quotation_consignor_multi_dest_list.php', 'quotation_consignor_multi_dest.php'), $current_page); ?>" href="quotation_consignor_multi_dest_list.php">Multi Destination Quotation</a>
+      </div>
+    </div>
+    <div class="panel-module<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice">
+      <?php ew_panel_head('Invoicing'); ?>
+      <div class="panel-scroll">
         <a class="panel-link<?php echo ew_menu_active_any(array('proforma_invoice_list.php', 'create_proforma_invoice.php'), $current_page); ?>" href="proforma_invoice_list.php">Proforma Invoice</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('invoice_list.php', 'create_invoice.php'), $current_page); ?>" href="invoice_list.php">Tax Invoice</a>
+        <a class="panel-link<?php echo ew_menu_active('pending_payments.php', $current_page); ?>" href="pending_payments.php">Bill Wise</a>
+        <span class="panel-link" title="Screen coming soon">Ledger Statement</span>
         <a class="panel-link<?php echo ew_menu_active_any(array('credit_note_list.php', 'create_credit_note.php'), $current_page); ?>" href="credit_note_list.php">Credit Note</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('receipt_list.php', 'create_receipt.php'), $current_page); ?>" href="receipt_list.php">Payment Receipt</a>
+        <span class="panel-link" title="Screen coming soon">Payment History</span>
       </div>
     </div>
     <?php endif; ?>
@@ -818,7 +823,6 @@ function ew_panel_head($title) {
           <a class="panel-link<?php echo ew_menu_active('cargo_booking_report.php', $current_page); ?>" href="cargo_booking_report.php">Cargo Booking Report</a>
           <a class="panel-link<?php echo ew_menu_active('gst_tax_report.php', $current_page); ?>" href="gst_tax_report.php">GST Tax Report</a>
           <a class="panel-link<?php echo ew_menu_active('invoice_register.php', $current_page); ?>" href="invoice_register.php">Invoice Register</a>
-          <a class="panel-link<?php echo ew_menu_active('pending_payments.php', $current_page); ?>" href="pending_payments.php">Pending Payments</a>
           <a class="panel-link<?php echo ew_menu_active('client_payment_transactions.php', $current_page); ?>" href="client_payment_transactions.php">Payment History</a>
         <?php endif; ?>
       </div>

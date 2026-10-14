@@ -4,18 +4,21 @@ require_once('include/function.php');
 require_once('include/vehicle_type_helpers.php');
 
 ew_vehicle_type_ensure_schema($conn);
+ew_geo_scope_ensure_column($conn, 'vehicle_type_master');
+$geo_scope = ew_geo_scope_from_request();
+$geo_list_url = 'vehicle_type_master.php?scope=' . urlencode($geo_scope);
 
 $key = $_REQUEST['key'] ?? '';
 $row = ew_vehicle_type_empty_row();
 $is_edit = ($key != '');
 if (!$is_edit && empty($_GET['create'])) {
-	header('Location: vehicle_type_master.php');
+	header('Location: ' . $geo_list_url);
 	exit;
 }
 if ($is_edit) {
 	$loaded = ew_vehicle_type_get_by_key($conn, $key);
 	if (!$loaded) {
-		header('Location: vehicle_type_master.php');
+		header('Location: ' . $geo_list_url);
 		exit;
 	}
 	$row = array_merge($row, $loaded);
@@ -102,11 +105,11 @@ if ($is_edit) {
 					<div class="ew-page-v2">
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
-								<a href="vehicle_type_master.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+								<a href="<?php echo htmlspecialchars($geo_list_url, ENT_QUOTES, 'UTF-8'); ?>" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
 								<h1 class="ew-page-title"><?php echo $is_edit ? 'Edit Vehicle Type' : 'Add Vehicle Type'; ?></h1>
 							</div>
 							<div class="ew-toolbar-right">
-								<a href="vehicle_type_master.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+								<a href="<?php echo htmlspecialchars($geo_list_url, ENT_QUOTES, 'UTF-8'); ?>" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
 							</div>
 						</div>
 						<div class="ew-card">
@@ -114,6 +117,7 @@ if ($is_edit) {
 								<form id="vehicle_type_form">
 									<input type="hidden" id="form_name" name="form_name" value="add_vehicle_type">
 									<input type="hidden" id="edit_id" name="edit_id" value="<?php echo htmlspecialchars($key); ?>">
+									<?php echo ew_geo_scope_hidden_input(); ?>
 
 									<div id="response" class="alert alert-danger" style="display:none;">
 										<div class="message" style="text-align:center"></div>
@@ -204,7 +208,7 @@ if ($is_edit) {
 								</form>
 							</div>
 							<div class="ew-form-footer">
-								<a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="vehicle_type_master.php">Cancel</a>
+								<a class="ew-btn-v2 ew-btn-v2-outline btn-reset" href="<?php echo htmlspecialchars($geo_list_url, ENT_QUOTES, 'UTF-8'); ?>">Cancel</a>
 								<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save_vehicle_type"><i class="fa fa-save"></i> <?php echo $is_edit ? 'Update' : 'Submit'; ?></button>
 							</div>
 						</div>
@@ -233,7 +237,7 @@ if ($is_edit) {
 								ewToast('Saved successfully.', 'success');
 							}
 							setTimeout(function() {
-								window.location.href = 'vehicle_type_master.php';
+								window.location.href = <?php echo json_encode($geo_list_url); ?>;
 							}, 700);
 						} else {
 							$btn.prop('disabled', false);

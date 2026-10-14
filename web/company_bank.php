@@ -30,7 +30,7 @@ $list_rows = ew_company_bank_fetch_list($conn);
 					<div class="ew-page-v2">
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
-								<h1 class="ew-page-title">Company Bank Accounts</h1>
+								<h1 class="ew-page-title">Bank Details</h1>
 							</div>
 						</div>
 						<div class="ew-card">

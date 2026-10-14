@@ -1,6 +1,9 @@
 <?php
 require_once("include/connect.php");
-require_once("include/function.php"); 
+require_once("include/function.php");
+ew_geo_scope_ensure_column($conn, 'state');
+$geo_scope = ew_geo_scope_from_request();
+$state_page_title = $geo_scope === 'international' ? 'International State Lists' : 'Indian State List'; 
 ?>
 <!DOCTYPE html>
 <html>
@@ -37,7 +40,7 @@ require_once("include/function.php");
 			<div class="ew-page-v2">
 			  <div class="ew-page-head">
 				<div class="ew-page-head-left">
-				  <h1 class="ew-page-title">State Master</h1>
+				  <h1 class="ew-page-title"><?php echo htmlspecialchars($state_page_title); ?></h1>
 				</div>
 			  </div>
 			  <div class="ew-card ew-erp-list">
@@ -59,7 +62,7 @@ require_once("include/function.php");
 							</thead>
 							<tbody>
 							<?php 
-								$query = "select * from state";
+								$query = "select * from state where " . ew_geo_scope_where($conn);
 								$result = mysqli_query($conn,$query);
 									$i=1;
 								while($row = mysqli_fetch_array($result))
@@ -378,6 +381,7 @@ require_once("include/function.php");
 			  <form class="form-horizontal" id="state_form">
 				<input type="hidden" id="form_name" name="form_name" value="add_state">
 				<input type="hidden" id="edit_id" name="edit_id" value="">
+				<input type="hidden" id="geo_scope" name="geo_scope" value="<?php echo htmlspecialchars($geo_scope, ENT_QUOTES, 'UTF-8'); ?>">
 				<div id="response" class="alert alert-danger" style="display:none;">
 				  <div class="message" style="text-align:center"></div>
 				</div>

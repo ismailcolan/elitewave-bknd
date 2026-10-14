@@ -1374,6 +1374,15 @@ function ew_mode_offload_kind($conn, $mode_id)
 	return '';
 }
 
+/** Road, air, and train use transit-hour tracking messages (entered at Picked Up). */
+function ew_mode_uses_transit_hours($conn, $mode_id)
+{
+	if (ew_mode_is_road_freight($conn, $mode_id)) {
+		return true;
+	}
+	return ew_mode_offload_kind($conn, $mode_id) !== '';
+}
+
 function ew_road_transit_hours_ensure($conn)
 {
 	mysqli_query($conn, "CREATE TABLE IF NOT EXISTS consignment_road_transit_hours (
@@ -1651,29 +1660,26 @@ $data = array(
 
 );
 
-	if (ew_mode_is_road_freight($conn, $mode_id)) {
+	if (ew_mode_uses_transit_hours($conn, $mode_id)) {
 		$override = isset($row['road_transit_hours_override']) ? trim((string) $row['road_transit_hours_override']) : '';
 		$total_hours = ($override !== '' && is_numeric($override))
 			? (float) $override
 			: ew_road_transit_hours_get($conn, $grn);
 		$data['totalHours'] = $total_hours;
-		$breakdown = ew_road_breakdown_for_message($conn, $grn, $status);
-		$data['breakdownOpen'] = $breakdown['open'];
-		$data['breakdownReason'] = $breakdown['reason'];
-		$data['breakdownDelay'] = $breakdown['delay'];
-		$data['breakdownResumeDelay'] = $breakdown['resume_delay'];
-		$data['breakdownEvents'] = $breakdown['events'];
+		if (ew_mode_is_road_freight($conn, $mode_id)) {
+			$breakdown = ew_road_breakdown_for_message($conn, $grn, $status);
+			$data['breakdownOpen'] = $breakdown['open'];
+			$data['breakdownReason'] = $breakdown['reason'];
+			$data['breakdownDelay'] = $breakdown['delay'];
+			$data['breakdownResumeDelay'] = $breakdown['resume_delay'];
+			$data['breakdownEvents'] = $breakdown['events'];
+		} else {
+			$offload = ew_air_offload_for_message($conn, $grn, $status);
+			$data['breakdownOpen'] = $offload['open'];
+			$data['breakdownDelay'] = 0;
+			$data['breakdownResumeDelay'] = 0;
+		}
 		return tracking_template_road($status, $data);
-	}
-
-	$offload_kind = ew_mode_offload_kind($conn, $mode_id);
-	if ($offload_kind !== '') {
-		$offload = ew_air_offload_for_message($conn, $grn, $status);
-		$data['offloadOpen'] = $offload['open'];
-		$data['offloadReason'] = $offload['reason'];
-		$data['offloadCleared'] = $offload['cleared'];
-		$data['offloadCarrier'] = $offload_kind;
-		$data['offloadEvents'] = $offload['events'];
 	}
 
 return tracking_template($status, $data);
@@ -1972,5 +1978,7 @@ function ew_eway_attachment_icon_class($filename)
 	}
 	return 'fa-file-o';
 }
+
+require_once __DIR__ . '/ew_geo_scope.php';
 
 ?>

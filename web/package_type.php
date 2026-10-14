@@ -82,7 +82,7 @@ th.table-title.sorting_disabled {
                     <div class="ew-page-v2">
                         <div class="ew-page-head">
                             <div class="ew-page-head-left">
-                                <h1 class="ew-page-title">Package Type</h1>
+                                <h1 class="ew-page-title">Package Type Lists</h1>
                             </div>
                         </div>
                         <div class="ew-card">

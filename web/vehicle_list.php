@@ -1,6 +1,7 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+ew_geo_scope_ensure_column($conn, 'vehicle');
 ?>
 <!DOCTYPE html>
 <html>
@@ -122,7 +123,7 @@ th.table-title.sorting_disabled {
 			<div class="ew-page-v2 ew-page-v2--wide-table">
 			  <div class="ew-page-head">
 				<div class="ew-page-head-left">
-				  <h1 class="ew-page-title">Vehicle List</h1>
+				  <h1 class="ew-page-title">Vehicles Lists</h1>
 				</div>
 			  </div>
 			  <div class="ew-card ew-erp-list">

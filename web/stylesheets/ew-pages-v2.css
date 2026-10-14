@@ -220,6 +220,43 @@
   border-bottom: 1px solid var(--ew-border-light, #E9ECF0) !important;
 }
 
+/* Quotation multi-mode & multi-destination row dropdowns — left-aligned labels/options */
+.ew-page-v2 .ew-table-wrap #multi_mode_table thead th,
+.ew-page-v2 .ew-table-wrap #md_dest_table thead th {
+  text-align: left !important;
+}
+.ew-page-v2 .ew-table-wrap #multi_mode_table thead th.mm-row-actions,
+.ew-page-v2 .ew-table-wrap #md_dest_table thead th.md-row-actions {
+  text-align: center !important;
+}
+.ew-page-v2 .ew-table-wrap #multi_mode_table tbody td,
+.ew-page-v2 .ew-table-wrap #md_dest_table tbody td {
+  text-align: left !important;
+}
+.ew-page-v2 .ew-table-wrap #multi_mode_table tbody td.mm-row-actions,
+.ew-page-v2 .ew-table-wrap #md_dest_table tbody td.md-row-actions {
+  text-align: center !important;
+}
+#multi_mode_table select.form-control,
+#md_dest_table select.form-control {
+  text-align: left !important;
+  text-align-last: left !important;
+  direction: ltr;
+}
+#multi_mode_table .select2-container .select2-choice,
+#md_dest_table .select2-container .select2-choice {
+  text-align: left !important;
+}
+#multi_mode_table .select2-container .select2-choice > .select2-chosen,
+#md_dest_table .select2-container .select2-choice > .select2-chosen {
+  text-align: left !important;
+}
+#multi_mode_table .select2-container .select2-choice > .select2-chosen,
+#md_dest_table .select2-container .select2-choice > .select2-chosen,
+.select2-drop .select2-results .select2-result-label {
+  text-align: left !important;
+}
+
 .ew-page-v2 .ew-table-wrap table tbody tr:last-child td,
 .ew-page-v2 .ew-table-wrap .dataTable tbody tr:last-child td {
   border-bottom: none !important;

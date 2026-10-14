@@ -133,6 +133,13 @@
 		if (txt === '' || txt.indexOf('Select ') === 0) {
 			return '—';
 		}
+		if (kind === 'road') {
+			var map = window.QUOTATION_VEHICLE_MAP || {};
+			var vid = $sel.val();
+			if (vid && map[vid] && map[vid].label) {
+				return map[vid].label;
+			}
+		}
 		return txt;
 	}
 
@@ -195,7 +202,7 @@
 		var sum = 0;
 		$('#multi_mode_tbody tr.mm-row').each(function() {
 			var $tr = $(this);
-			var rowSum = num($tr.find('.mm-amt[name="mm_freight[]"]').val());
+			var rowSum = num($tr.find('.mm-amt[name="mm_freight[]"]').val()) + num($tr.find('.mm-amt[name="mm_tempo[]"]').val());
 			rowSum = Math.round(rowSum * 100) / 100;
 			sum += rowSum;
 		});
@@ -223,8 +230,8 @@
 		return { taxable: taxable, gst: gst, total: total, gstPct: gstPct };
 	}
 
-	function multiModePreviewTable(totals) {
-		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Mode</th><th>Source of transport</th><th>Days</th><th align="right">Freight</th></tr>';
+	function multiModePreviewTable() {
+		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Mode</th><th>Source of transport</th><th>Days</th><th align="right">Freight</th><th align="right">Pickup &amp; Delivery</th></tr>';
 		$('#multi_mode_tbody tr.mm-row').each(function() {
 			var $tr = $(this);
 			var mode = mmModeLabel($tr);
@@ -237,11 +244,12 @@
 				days = '—';
 			}
 			var freightRaw = $.trim($tr.find('.mm-amt[name="mm_freight[]"]').val());
+			var tempoRaw = $.trim($tr.find('.mm-amt[name="mm_tempo[]"]').val());
 			var rt = freightRaw === '' ? '—' : ('₹ ' + fmt(num(freightRaw)) + ' /-');
-			html += '<tr><td>' + escHtml(mode) + '</td><td>' + escHtml(veh) + '</td><td>' + escHtml(days) + '</td><td align="right">' + escHtml(rt) + '</td></tr>';
+			var tempoDisp = tempoRaw === '' ? '—' : ('₹ ' + fmt(num(tempoRaw)) + ' /-');
+			html += '<tr><td>' + escHtml(mode) + '</td><td>' + escHtml(veh) + '</td><td>' + escHtml(days) + '</td><td align="right">' + escHtml(rt) + '</td><td align="right">' + escHtml(tempoDisp) + '</td></tr>';
 		});
-		html += '<tr><td colspan="3">GST @ ' + totals.gstPct + '%</td><td align="right">₹ ' + fmt(totals.gst) + ' /-</td></tr>';
-		html += '<tr><td colspan="3"><b>Grand total</b></td><td align="right"><b>₹ ' + fmt(totals.total) + ' /-</b></td></tr></table>';
+		html += '</table>';
 		return html;
 	}
 
@@ -384,6 +392,16 @@
 			logistics += '<div class="pv-kv"><b>Quotation approval:</b> ' + escHtml(qaLbl) + '</div>';
 		}
 		logistics += '<div class="pv-kv"><b>Payment terms:</b> ' + paymentTermsPreviewLabel() + '</div>';
+		var fpLbl = selectPreviewLabel('freight_paid_by');
+		if (fpLbl !== '') {
+			logistics += '<div class="pv-kv"><b>Freight paid by:</b> ' + escHtml(fpLbl) + '</div>';
+		}
+		if (window.QUOTATION_ALL_MODES_SCREEN) {
+			var cfsVal = $.trim($('#cfs_port_factory').val() || '');
+			var partVal = $.trim($('#part_number').val() || '');
+			logistics += '<div class="pv-kv"><b>CFS / Port / Factory / Warehouse:</b> ' + escHtml(cfsVal !== '' ? cfsVal : '—') + '</div>';
+			logistics += '<div class="pv-kv"><b>Article No.:</b> ' + escHtml(partVal !== '' ? partVal : '—') + '</div>';
+		}
 		var insNo = insuranceNumberFromCharges();
 		if (insNo !== '') {
 			logistics += '<div class="pv-kv"><b>Insurance number:</b> ' + escHtml(insNo) + '</div>';
@@ -399,9 +417,8 @@
 		} else {
 			html += '<div class="pv-kv"><b>Route:</b> ' + route + (unload !== '—' ? ' (Unloading at ' + escHtml(unload) + ')' : '') + '</div>';
 			if (!multi) {
-				html += '<div class="pv-kv"><b>Mode of transport:</b> ' + escHtml(modeOfTransportLabel()) + '</div>'
-					+ '<div class="pv-kv"><b>Loading / Unloading:</b> ' + escHtml(loadingLabel()) + ' / ' + escHtml(unload) + '</div>'
-					+ '<div class="pv-kv"><b>Vehicle:</b> ' + escHtml(vehicleLabel()) + (dims !== '—' ? ' · ' + escHtml(dims) : '') + '</div>';
+				html += '<div class="pv-kv"><b>' + escHtml(modeOfTransportLabel() || 'Mode / Vehicle') + ':</b> ' + escHtml(vehicleLabel()) + (dims !== '—' ? ' · ' + escHtml(dims) : '') + '</div>'
+					+ '<div class="pv-kv"><b>Loading / Unloading:</b> ' + escHtml(loadingLabel()) + ' / ' + escHtml(unload) + '</div>';
 			} else {
 				html += '<div class="pv-kv"><b>Loading / Unloading:</b> ' + escHtml(loadingLabel()) + ' / ' + escHtml(unload) + '</div>';
 			}
@@ -417,7 +434,7 @@
 		}
 
 		html += '<div class="pv-section">' + (multi ? 'Mode-wise charges' : 'Commercial summary') + '</div>';
-		html += multi ? multiModePreviewTable(totals) : ('<table class="charges">' + chargePreviewRows(totals) + '</table>');
+		html += multi ? multiModePreviewTable() : ('<table class="charges">' + chargePreviewRows(totals) + '</table>');
 		html += '<div class="pv-section" style="margin-top:14px;">Terms &amp; conditions (PDF page 2)</div>'
 			+ '<p class="pv-kv" style="font-size:12px;color:#444;">Shipment protection, MSDS, carrying capacity, and full terms on page 2 — followed by Thanks &amp; Regards.</p>';
 
@@ -552,7 +569,7 @@
 			renderPreview();
 		});
 
-		$(document).on('input change', '.pv-bind, .pv-bind-select, .pv-bind-city, .charge-amt, .charge-tax, .charge-label, .charge-remarks, .mm-amt, .mm-delivery-days, .mm-source, #gst_rate, #party_id, #party_name, #vehicle_type_id, #quotation_approval, #payment_terms, #quote_type, #part_number', function() {
+		$(document).on('input change', '.pv-bind, .pv-bind-select, .pv-bind-city, .charge-amt, .charge-tax, .charge-label, .charge-remarks, .mm-amt, .mm-delivery-days, .mm-source, #gst_rate, #party_id, #party_name, #vehicle_type_id, #quotation_approval, #payment_terms, #freight_paid_by, #quote_type, #part_number, #cfs_port_factory', function() {
 			if ($(this).is('#quote_type')) {
 				syncQuoteTypeUi();
 				return;

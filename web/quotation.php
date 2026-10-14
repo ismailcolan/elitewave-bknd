@@ -498,8 +498,8 @@ function ew_quotation_status_pill_class($status)
 										<?php if (in_array($status, array('sent', 'customer_confirmed'), true)) { ?>
 											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="resend_email">Resend quotation email</button>
 										<?php } ?>
-										<?php if ($status === 'sent') { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-workflow" data-action="customer_confirmed">Customer confirmed</button>
+										<?php if (quotation_can_customer_approve($status)) { ?>
+											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-customer-approve" data-id="<?php echo (int) $id; ?>" data-quote="<?php echo htmlspecialchars($master['quote_no'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">Approve (upload reply)</button>
 										<?php } ?>
 										<?php if (!in_array($status, array('converted', 'cancelled'), true)) { ?>
 											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="cancel">Cancel quotation</button>
@@ -544,5 +544,7 @@ window.QUOTATION_MULTI_MODE_TYPES = [];
 window.QUOTATION_ALL_MODES_SCREEN = false;
 </script>
 <script src="javascripts/quotation-form.js?v=20261007singlecfs"></script>
+<?php echo quotation_customer_approve_modal_html(); ?>
+<?php echo quotation_customer_approve_script('quotation_list.php?tab=approved'); ?>
 </body>
 </html>

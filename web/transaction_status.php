@@ -545,7 +545,7 @@ if ($delivery_type == 'partial') {
                                                     'total_packages' => $total_packages,
                                                 )); ?></td>
 
-                                                <td class="col-steps actions center-content" data-label="Change Status" data-road="<?php echo ew_mode_is_road_freight($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0'; ?>" data-breakdown-open="<?php echo ew_road_breakdown_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>" data-offload-open="<?php echo ew_air_offload_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>">
+                                                <td class="col-steps actions center-content" data-label="Change Status" data-road="<?php echo ew_mode_is_road_freight($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0'; ?>" data-transit-hours="<?php echo ew_mode_uses_transit_hours($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0'; ?>" data-breakdown-open="<?php echo ew_road_breakdown_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>" data-offload-open="<?php echo ew_air_offload_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>">
                                                     <div>
                                                         <button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>
                                                         <button class="border picked-up <?php if ($row['status'] >= 2) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 2) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="2" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 2) { echo 'data-remarks="' . get_cong_remarks($conn, 2, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="Consignment Picked Up"><?php if ($row['status'] >= 2) { echo "<i class='fa fa-check'></i>"; } else { echo '2'; } ?></button>
@@ -1026,8 +1026,17 @@ if (parseInt($("#status").val()) === 8) {
            return String(flag) === '1';
        }
 
-       function syncRoadTransitHoursField(status, isRoad) {
-           var show = parseInt(status, 10) === 2 && isRoad;
+       function statusRowUsesTransitHours($el) {
+           var flag = $el.attr('data-transit-hours');
+           if (flag === undefined) {
+               var $wrap = $el.closest('[data-transit-hours]');
+               flag = $wrap.length ? $wrap.attr('data-transit-hours') : '0';
+           }
+           return String(flag) === '1';
+       }
+
+       function syncTransitHoursField(status, usesTransitHours) {
+           var show = parseInt(status, 10) === 2 && usesTransitHours;
            $('#road_transit_hours_group').toggle(show);
            $('#road_transit_hours').prop('disabled', !show);
            if (!show) {
@@ -1245,9 +1254,9 @@ if (parseInt($("#status").val()) === 8) {
     $("#grn_id").val(grn_id);
     $("#grn_no").val(grn_no);
     $("#status").val(status);
-    var pickedRoad = statusRowIsRoad($(this));
-    $('#status_popup_modal').attr('data-road', pickedRoad ? '1' : '0');
-    syncRoadTransitHoursField(status, pickedRoad);
+    var pickedTransitHours = statusRowUsesTransitHours($(this));
+    $('#status_popup_modal').attr('data-transit-hours', pickedTransitHours ? '1' : '0');
+    syncTransitHoursField(status, pickedTransitHours);
 
     // =====================================
 // Delivery status handling for Status 8
@@ -1429,15 +1438,15 @@ $(document).on('click','.mobile-update-status',function(){
 
     $("#mobile_status_select").html(html);
     $("#status").val($("#mobile_status_select").val());
-    var mobileRoad = statusRowIsRoad($(this));
-    $('#status_popup_modal').attr('data-road', mobileRoad ? '1' : '0');
-    syncRoadTransitHoursField($("#status").val(), mobileRoad);
+    var mobileTransitHours = statusRowUsesTransitHours($(this));
+    $('#status_popup_modal').attr('data-transit-hours', mobileTransitHours ? '1' : '0');
+    syncTransitHoursField($("#status").val(), mobileTransitHours);
     loadStatusTrackingMessage();
 
 });
 $(document).on("change","#mobile_status_select",function(){
     $("#status").val($(this).val());
-    syncRoadTransitHoursField($(this).val(), $('#status_popup_modal').attr('data-road') === '1');
+    syncTransitHoursField($(this).val(), $('#status_popup_modal').attr('data-transit-hours') === '1');
     loadStatusTrackingMessage();
 });
     </script>
