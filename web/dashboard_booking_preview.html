@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Consignment Bookings Dashboard — Preview</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="stylesheets/dashboard-suite-preview.css">
+</head>
+<body>
+	<div class="preview-banner">
+		<div><strong>HTML preview only</strong> — Consignment Bookings Dashboard (sample data, not live)</div>
+		<span>Sample data · Live PHP in a later phase</span>
+	</div>
+
+	<div class="wrap">
+		<div class="page-head">
+			<div>
+				<h1>Consignment Bookings Dashboard</h1>
+				<p>Operational view of GCN bookings, status pipeline, and revenue indicators</p>
+			</div>
+			<nav class="head-tabs" aria-label="Dashboard suite">
+				<a class="active" href="dashboard_booking_preview.html">Bookings</a>
+				<a href="dashboard_invoice_preview.html">Invoices</a>
+				<a href="dashboard_payments_preview.html">Payments</a>
+				<a href="dashboard_pl_preview.html">Expenses &amp; P&amp;L</a>
+			</nav>
+		</div>
+
+		<div class="kpi-strip cols-8">
+			<div class="kpi c1"><div class="lbl">Total Bookings</div><div class="val">1,245</div></div>
+			<div class="kpi c2"><div class="lbl">Today's Bookings</div><div class="val">86</div></div>
+			<div class="kpi c3"><div class="lbl">Pending Pickups</div><div class="val">112</div></div>
+			<div class="kpi c4"><div class="lbl">In Transit</div><div class="val">398</div></div>
+			<div class="kpi c5"><div class="lbl">At Destination</div><div class="val">205</div></div>
+			<div class="kpi c6"><div class="lbl">Out for Delivery</div><div class="val">178</div></div>
+			<div class="kpi c7"><div class="lbl">Delivered</div><div class="val">320</div></div>
+			<div class="kpi c8"><div class="lbl">Cancelled / Hold</div><div class="val">32</div></div>
+		</div>
+
+		<div class="grid-2">
+			<div class="card">
+				<div class="card-head">Booking revenue summary</div>
+				<div class="card-body">
+					<div class="revenue-grid">
+						<div class="big">
+							<div class="stat-block">
+								<div class="sl">Total booking value</div>
+								<div class="sv">₹ 56,82,450</div>
+							</div>
+							<div class="stat-block">
+								<div class="sl">Total billing value</div>
+								<div class="sv">₹ 62,77,950</div>
+							</div>
+						</div>
+						<div class="stat-row"><span class="k">Freight charges</span><span class="v">₹ 48,20,000</span></div>
+						<div class="stat-row"><span class="k">Additional charges</span><span class="v">₹ 6,03,550</span></div>
+						<div class="stat-row"><span class="k">Discounts</span><span class="v">₹ 1,24,000</span></div>
+						<div class="stat-row"><span class="k">GST (on billing)</span><span class="v">₹ 8,54,900</span></div>
+						<div class="stat-row"><span class="k">Avg. revenue / consignment</span><span class="v">₹ 4,566</span></div>
+					</div>
+				</div>
+			</div>
+			<div class="card">
+				<div class="card-head">Consignment status pipeline</div>
+				<div class="card-body">
+					<div class="pipeline">
+						<div class="pipe-step done"><div class="pipe-icon"><i class="fa fa-file-text-o"></i></div><div class="pipe-lbl">Booked</div><div class="pipe-cnt">1,245</div></div>
+						<div class="pipe-step done"><div class="pipe-icon"><i class="fa fa-hand-paper-o"></i></div><div class="pipe-lbl">Picked up</div><div class="pipe-cnt">1,098</div></div>
+						<div class="pipe-step active"><div class="pipe-icon"><i class="fa fa-building-o"></i></div><div class="pipe-lbl">Origin hub</div><div class="pipe-cnt">892</div></div>
+						<div class="pipe-step"><div class="pipe-icon"><i class="fa fa-truck"></i></div><div class="pipe-lbl">In transit</div><div class="pipe-cnt">398</div></div>
+						<div class="pipe-step"><div class="pipe-icon"><i class="fa fa-map-marker"></i></div><div class="pipe-lbl">Dest. hub</div><div class="pipe-cnt">205</div></div>
+						<div class="pipe-step"><div class="pipe-icon"><i class="fa fa-motorcycle"></i></div><div class="pipe-lbl">OFD</div><div class="pipe-cnt">178</div></div>
+						<div class="pipe-step done"><div class="pipe-icon"><i class="fa fa-check"></i></div><div class="pipe-lbl">Delivered</div><div class="pipe-cnt">320</div></div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="grid-3">
+			<div class="card">
+				<div class="card-head">Service mode (bookings)</div>
+				<div class="card-body">
+					<div class="donut-wrap">
+						<div class="donut d1" aria-hidden="true"></div>
+						<ul class="legend">
+							<li><span class="left"><span class="dot" style="background:#2563eb"></span> Air cargo</span><strong>35%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#0891b2"></span> Surface / FTL</span><strong>32%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#7c3aed"></span> Express</span><strong>18%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#ea580c"></span> Other</span><strong>15%</strong></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+			<div class="card" style="grid-column: span 2;">
+				<div class="card-head">Bookings trend (last 30 days)</div>
+				<div class="card-body">
+					<div class="chart-placeholder">
+						Bar + line chart area<br>
+						<small style="font-weight:500;margin-top:6px;display:block;">Live version: daily booking count + booking value (Highcharts / existing ops stack)</small>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="grid-2">
+			<div class="card">
+				<div class="card-head">Top routes (by bookings)</div>
+				<div class="card-body" style="padding:0;">
+					<table class="dash-tbl">
+						<thead><tr><th>Route</th><th class="num">Bookings</th><th class="num">Revenue (₹)</th></tr></thead>
+						<tbody>
+							<tr><td>Chennai → New Delhi</td><td class="num">142</td><td class="num">18,42,500</td></tr>
+							<tr><td>Ranipet → Bangalore</td><td class="num">98</td><td class="num">9,15,200</td></tr>
+							<tr><td>Mumbai → Hyderabad</td><td class="num">76</td><td class="num">7,88,400</td></tr>
+							<tr><td>Coimbatore → Chennai</td><td class="num">64</td><td class="num">4,22,100</td></tr>
+							<tr><td>Delhi → Jaipur</td><td class="num">51</td><td class="num">3,96,800</td></tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="card">
+				<div class="card-head">Recent bookings</div>
+				<div class="card-body" style="padding:0; max-height:280px; overflow:auto;">
+					<table class="dash-tbl">
+						<thead>
+							<tr>
+								<th>GCN</th>
+								<th>Date</th>
+								<th>Route</th>
+								<th>Status</th>
+								<th class="num">Value</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr><td>EW360/0217</td><td>02-10-2026</td><td>Chennai → New Delhi</td><td><span class="badge transit">In transit</span></td><td class="num">1,19,500</td></tr>
+							<tr><td>EW360/0209</td><td>21-09-2026</td><td>Ranipet → Bangalore</td><td><span class="badge delivered">Delivered</span></td><td class="num">250</td></tr>
+							<tr><td>EW360/0198</td><td>15-09-2026</td><td>Mumbai → Pune</td><td><span class="badge pending">Pending pickup</span></td><td class="num">12,400</td></tr>
+							<tr><td>EW360/0185</td><td>08-09-2026</td><td>Hyderabad → Chennai</td><td><span class="badge transit">In transit</span></td><td class="num">45,800</td></tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

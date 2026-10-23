@@ -259,6 +259,24 @@ if ($cmd == 'get_branch_next_code') {
 	echo json_encode(array('branch_code' => ew_branch_next_code($conn)));
 	exit;
 }
+if ($cmd == 'get_country_details') {
+	$tbl_id = (int) ($_REQUEST['tbl_id'] ?? 0);
+	ew_country_ensure_table($conn);
+	$row = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM country WHERE country_id='$tbl_id' LIMIT 1"));
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode($row ?: array());
+	exit;
+}
+if ($cmd == 'get_country_next_code') {
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode(array('country_code' => ew_country_next_code($conn)));
+	exit;
+}
+if ($cmd == 'get_state_next_code') {
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode(array('state_code' => ew_state_next_code($conn)));
+	exit;
+}
 if ($cmd == 'get_state_details') {
 	$tbl_id = $_REQUEST['tbl_id'];
 

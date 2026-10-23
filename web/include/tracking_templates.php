@@ -165,17 +165,179 @@ function tracking_offload_event_notes($events, $carrier)
 }
 
 /**
+ * Air and train cargo — same hour steps as road; messages include selected flight/train name.
+ */
+function tracking_template_air_train($status, $data)
+{
+    extract($data);
+
+    $grn = '<strong style="color:#000;">' . $grn . '</strong>';
+    $destination = '<strong style="color:#000;">' . $destination . '</strong>';
+    $mode = '<strong style="color:#000;">' . $mode . '</strong>';
+    $carrierKind = isset($carrierKind) ? (string) $carrierKind : '';
+    $carrierLabel = isset($carrierLabel) ? trim((string) $carrierLabel) : '';
+    $carrier = $carrierLabel !== ''
+        ? '<strong style="color:#000;">' . htmlspecialchars($carrierLabel, ENT_QUOTES, 'UTF-8') . '</strong>'
+        : '';
+    $showPlaces = !empty($nameEndpoints);
+    $fromPlace = ($showPlaces && !empty($originPoint))
+        ? '<strong style="color:#000;">' . $originPoint . '</strong>'
+        : '<strong style="color:#000;">' . $origin . '</strong>';
+    $toPlace = ($showPlaces && !empty($destinationPoint))
+        ? '<strong style="color:#000;">' . $destinationPoint . '</strong>'
+        : '<strong style="color:#000;">' . $destination . '</strong>';
+    $total = isset($totalHours) ? round((float) $totalHours) : 0;
+    $step = $total > 0 ? (int) round($total / 6) : 0;
+    $cuts = 0;
+    $status = (int) $status;
+    if ($status >= 3 && $status <= 7) {
+        $cuts = $status - 2;
+    }
+    $delay = isset($breakdownDelay) ? (int) round((float) $breakdownDelay) : 0;
+    $breakdownOpen = !empty($breakdownOpen);
+    $remaining = $total > 0 ? (int) round($total + $delay - ($cuts * $step)) : 0;
+    if ($remaining < 0) {
+        $remaining = 0;
+    }
+    $hourLine = '';
+    if (!$breakdownOpen && $total > 0 && $status >= 3 && $status <= 7) {
+        $reach = ($status >= 6) ? 'the consignee' : 'its destination';
+        $hourLine = ' ' . tracking_hours_strong($step) . ' have been reduced from the transit time, and your consignment will reach ' . $reach . ' within ' . tracking_hours_strong($remaining) . '.';
+    }
+    $isTrain = ($carrierKind === 'train');
+    $confirmWord = $isTrain ? 'train' : 'flight';
+
+    switch ($status) {
+
+    case 1:
+        return "Your consignment $grn has been booked from $fromPlace to $toPlace via $mode. The $confirmWord will be confirmed at pickup.";
+
+    case 2:
+        if ($breakdownOpen) {
+            $within = '';
+        } else {
+            $within = $total > 0
+                ? ' Your consignment will reach its destination within ' . tracking_hours_strong($remaining) . '.'
+                : '';
+        }
+        if ($carrier !== '') {
+            if ($isTrain) {
+                return "Your consignment $grn has been picked up from $fromPlace and is now in transit towards $toPlace on train $carrier, via $mode.$within";
+            }
+
+            return "Your consignment $grn has been picked up from $fromPlace and is now in transit towards $toPlace on $carrier, via $mode.$within";
+        }
+
+        return "Your consignment $grn has been picked up from $fromPlace and is now in transit towards $toPlace via $mode.$within";
+
+    case 3:
+        if ($carrier !== '') {
+            if ($isTrain) {
+                return "Your consignment $grn is on train $carrier and is currently in transit from $fromPlace towards $toPlace.$hourLine";
+            }
+
+            return "Your consignment $grn is on $carrier and is currently in transit from $fromPlace towards $toPlace.$hourLine";
+        }
+        if ($showPlaces) {
+            return "Your consignment $grn is currently in transit from $fromPlace towards $toPlace.$hourLine";
+        }
+
+        return "Your consignment $grn is currently in transit from the origin state towards the destination.$hourLine";
+
+    case 4:
+        if ($carrier !== '') {
+            if ($isTrain) {
+                return "Your consignment $grn continues on train $carrier towards $toPlace and is being prepared for onward transportation.$hourLine";
+            }
+
+            return "Your consignment $grn continues on $carrier towards $toPlace and is being prepared for onward transportation.$hourLine";
+        }
+        if ($showPlaces) {
+            return "Your consignment $grn is currently in transit towards $toPlace and is being prepared for onward transportation.$hourLine";
+        }
+
+        return "Your consignment $grn is currently in transit towards the destination state and is being prepared for onward transportation.$hourLine";
+
+    case 5:
+        if ($carrier !== '') {
+            if ($isTrain) {
+                return "Good news! Your consignment $grn on train $carrier is progressing towards the destination and is currently undergoing transit processing.$hourLine";
+            }
+
+            return "Good news! Your consignment $grn on $carrier is progressing towards the destination and is currently undergoing transit processing.$hourLine";
+        }
+
+        return "Good news! Your consignment $grn is progressing towards the destination and is currently undergoing transit processing.$hourLine";
+
+    case 6:
+        if ($carrier !== '') {
+            return "Your consignment $grn has arrived at $toPlace on $carrier and has been scheduled for final delivery.$hourLine";
+        }
+        if ($showPlaces) {
+            return "Your consignment $grn has arrived at $toPlace and has been scheduled for final delivery.$hourLine";
+        }
+
+        return "Your consignment $grn has arrived at the destination hub and has been scheduled for final delivery.$hourLine";
+
+    case 7:
+        if ($carrier !== '') {
+            if ($isTrain) {
+                return "Your consignment $grn (received from train $carrier at $toPlace) is out for delivery and is on its way to the consignee.$hourLine";
+            }
+
+            return "Your consignment $grn (received from $carrier at $toPlace) is out for delivery and is on its way to the consignee.$hourLine";
+        }
+
+        return "Your consignment $grn is out for delivery and is currently on its way to the consignee.$hourLine";
+
+    case 8:
+        if ($total > 0 && $delay > 0) {
+            $cycle = ' The full ' . tracking_hours_strong($total, '-hour') . ' transit cycle has been completed, including a breakdown delay of ' . tracking_hours_strong($delay) . '.';
+        } else {
+            $cycle = $total > 0
+                ? ' The full ' . tracking_hours_strong($total, '-hour') . ' transit cycle has been completed.'
+                : '';
+        }
+        $travel = '';
+        if ($carrier !== '') {
+            if ($isTrain) {
+                $travel = ' It travelled on train ' . $carrier . ' via ' . $mode . '.';
+            } else {
+                $travel = ' It travelled on ' . $carrier . ' via ' . $mode . '.';
+            }
+        }
+
+        return "Your consignment $grn has been successfully delivered to the consignee at $destination.$travel$cycle Thank you for choosing EliteWave360 Logistics.";
+
+    default:
+        return "";
+    }
+}
+
+/**
  * Road freight messages. Hours are entered at Picked Up.
  * Step = total / 6. Transit-1 through Out for Delivery each subtract one step.
  */
 function tracking_template_road($status, $data)
 {
+    $carrierKind = isset($data['carrierKind']) ? (string) $data['carrierKind'] : '';
+    if ($carrierKind === 'train' || $carrierKind === 'flight') {
+        return tracking_template_air_train($status, $data);
+    }
+
     extract($data);
 
     $grn = '<strong style="color:#000;">' . $grn . '</strong>';
     $origin = '<strong style="color:#000;">' . $origin . '</strong>';
     $destination = '<strong style="color:#000;">' . $destination . '</strong>';
     $mode = '<strong style="color:#000;">' . $mode . '</strong>';
+    $showPlaces = !empty($nameEndpoints);
+    $fromPlace = ($showPlaces && !empty($originPoint))
+        ? '<strong style="color:#000;">' . $originPoint . '</strong>'
+        : $origin;
+    $toPlace = ($showPlaces && !empty($destinationPoint))
+        ? '<strong style="color:#000;">' . $destinationPoint . '</strong>'
+        : $destination;
     $total = isset($totalHours) ? round((float) $totalHours) : 0;
     $step = $total > 0 ? (int) round($total / 6) : 0;
     $cuts = 0;
@@ -199,7 +361,7 @@ function tracking_template_road($status, $data)
     switch ($status) {
 
     case 1:
-        return "Your consignment $grn has been booked from $origin and is scheduled for transportation to $destination via $mode. Your consignment will reach its destination within the Scheduled Time.";
+        return "Your consignment $grn has been booked from $fromPlace and is scheduled for transportation to $toPlace via $mode. Your consignment will reach its destination within the Scheduled Time.";
 
     case 2:
         if ($breakdownOpen) {
@@ -209,18 +371,27 @@ function tracking_template_road($status, $data)
                 ? ' Your consignment will reach its destination within ' . tracking_hours_strong($remaining) . '.'
                 : '';
         }
-        return "Your consignment $grn has been picked up from $origin and is now in transit towards $destination via $mode.$within";
+        return "Your consignment $grn has been picked up from $fromPlace and is now in transit towards $toPlace via $mode.$within";
 
     case 3:
+        if ($showPlaces) {
+            return "Your consignment $grn is currently in transit from $fromPlace towards $toPlace.$hourLine";
+        }
         return "Your consignment $grn is currently in transit from the origin state towards the destination.$hourLine";
 
     case 4:
+        if ($showPlaces) {
+            return "Your consignment $grn is currently in transit towards $toPlace and is being prepared for onward transportation.$hourLine";
+        }
         return "Your consignment $grn is currently in transit towards the destination state and is being prepared for onward transportation.$hourLine";
 
     case 5:
         return "Good news! Your consignment $grn is progressing towards the destination and is currently undergoing transit processing.$hourLine";
 
     case 6:
+        if ($showPlaces) {
+            return "Your consignment $grn has arrived at $toPlace and has been scheduled for final delivery.$hourLine";
+        }
         return "Your consignment $grn has arrived at the destination hub and has been scheduled for final delivery.$hourLine";
 
     case 7:

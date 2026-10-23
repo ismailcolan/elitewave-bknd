@@ -133,31 +133,67 @@ function billing_invoice_cn_remaining($conn, $master, $exclude_note_id = 0)
     return max(0, round($grand - $used, 2));
 }
 
-function billing_next_credit_note_seq($conn)
+function billing_max_credit_note_seq($conn, $fy_suffix)
 {
-    $q = mysqli_query($conn, "SELECT COALESCE(MAX(CAST(SUBSTRING(note_no, 7) AS UNSIGNED)),0) AS n
-        FROM billing_note_master
-        WHERE note_type='CN' AND note_no LIKE 'EW-CN/%'");
-    $n = 0;
-    if ($q && ($row = mysqli_fetch_assoc($q))) {
-        $n = (int) $row['n'];
+    $fy_suffix = trim((string) $fy_suffix);
+    $max = 0;
+    $like = mysqli_real_escape_string($conn, 'CN/%/' . $fy_suffix);
+    $q = mysqli_query($conn, "SELECT note_no FROM billing_note_master WHERE note_type='CN' AND note_no LIKE '$like'");
+    if ($q) {
+        $pattern = '#^CN/(\d+)/' . preg_quote($fy_suffix, '#') . '$#i';
+        while ($row = mysqli_fetch_assoc($q)) {
+            if (preg_match($pattern, trim((string) $row['note_no']), $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
     }
-    return $n + 1;
+    $fy_esc = mysqli_real_escape_string($conn, $fy_suffix);
+    $sq = @mysqli_query($conn, "SELECT last_seq FROM billing_invoice_series_seq WHERE series_code='CN' AND fy_suffix='$fy_esc' LIMIT 1");
+    if ($sq && ($srow = mysqli_fetch_assoc($sq))) {
+        $max = max($max, (int) $srow['last_seq']);
+    }
+    return $max;
 }
 
-function billing_format_credit_note_no($seq)
+function billing_format_credit_note_no($seq, $fy_suffix)
 {
-    return 'EW-CN/' . sprintf('%05d', (int) $seq);
+    return 'CN/' . sprintf('%03d', (int) $seq) . '/' . $fy_suffix;
 }
 
-function billing_preview_credit_note_number($conn)
+function billing_preview_credit_note_number($conn, $note_date = '')
 {
-    return billing_format_credit_note_no(billing_next_credit_note_seq($conn));
+    if (trim((string) $note_date) === '') {
+        $note_date = date('d-m-Y');
+    }
+    $fy = billing_indian_fy_suffix($note_date);
+    return billing_format_credit_note_no(billing_max_credit_note_seq($conn, $fy) + 1, $fy);
 }
 
-function billing_allocate_credit_note_number($conn)
+function billing_allocate_credit_note_number($conn, $note_date = '')
 {
-    return billing_format_credit_note_no(billing_next_credit_note_seq($conn));
+    if (trim((string) $note_date) === '') {
+        $note_date = date('d-m-Y');
+    }
+    if (function_exists('ensure_billing_tables')) {
+        ensure_billing_tables($conn);
+    }
+    $fy = billing_indian_fy_suffix($note_date);
+    $fy_esc = mysqli_real_escape_string($conn, $fy);
+    mysqli_begin_transaction($conn);
+    mysqli_query($conn, "INSERT IGNORE INTO billing_invoice_series_seq (series_code, fy_suffix, last_seq) VALUES ('CN','$fy_esc',0)");
+    $lock = mysqli_query($conn, "SELECT last_seq FROM billing_invoice_series_seq WHERE series_code='CN' AND fy_suffix='$fy_esc' LIMIT 1 FOR UPDATE");
+    if (!$lock || !mysqli_fetch_assoc($lock)) {
+        mysqli_rollback($conn);
+        return '';
+    }
+    $next = billing_max_credit_note_seq($conn, $fy) + 1;
+    $upd = mysqli_query($conn, "UPDATE billing_invoice_series_seq SET last_seq='$next' WHERE series_code='CN' AND fy_suffix='$fy_esc'");
+    if (!$upd) {
+        mysqli_rollback($conn);
+        return '';
+    }
+    mysqli_commit($conn);
+    return billing_format_credit_note_no($next, $fy);
 }
 
 function billing_get_credit_note($conn, $billing_note_id)
@@ -312,7 +348,7 @@ function billing_save_credit_note($conn, $payload, $user_id)
 
     $note_no = '';
     if ($status === 'final') {
-        $note_no = billing_allocate_credit_note_number($conn);
+        $note_no = billing_allocate_credit_note_number($conn, $note_date);
     } elseif ($edit_id > 0 && !empty($existing['master']['note_no'])) {
         $note_no = $existing['master']['note_no'];
     }

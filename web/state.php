@@ -2,8 +2,9 @@
 require_once("include/connect.php");
 require_once("include/function.php");
 ew_geo_scope_ensure_column($conn, 'state');
+ew_area_ensure_country_name($conn, 'state');
 $geo_scope = ew_geo_scope_from_request();
-$state_page_title = $geo_scope === 'international' ? 'International State Lists' : 'Indian State List'; 
+$state_page_title = 'State Master'; 
 ?>
 <!DOCTYPE html>
 <html>
@@ -56,9 +57,11 @@ $state_page_title = $geo_scope === 'international' ? 'International State Lists'
 				<div class="ew-table-wrap widget-content padded clearfix new_dept">
 						<table class="table table-bordered table-striped" id="dataTable1">
 							<thead>
-								<th class="table-title" style="width:10%">S.No</th>
-								<th class="table-title" style="width:10%">State</th>
-								<th class="table-title" style="width:10%">Action</th>              
+								<th class="table-title" style="width:8%">S.No</th>
+								<th class="table-title" style="width:16%">Code</th>
+								<th class="table-title" style="width:28%">State</th>
+								<th class="table-title" style="width:24%">Country</th>
+								<th class="table-title" style="width:12%">Action</th>              
 							</thead>
 							<tbody>
 							<?php 
@@ -72,7 +75,9 @@ $state_page_title = $geo_scope === 'international' ? 'International State Lists'
 							?>
 								<tr>
 									<td class="text-center"><?php echo $i; ?></td>
+									<td><?php echo htmlspecialchars($row['state_code'] ?? ''); ?></td>
 									<td><?php echo $row['state_name']; ?></td>
+									<td><?php echo htmlspecialchars($row['country_name'] ?? ''); ?></td>
 									
 									<td class="actions center-content ">
 										<div class="action-buttons">
@@ -285,6 +290,11 @@ $state_page_title = $geo_scope === 'international' ? 'International State Lists'
 				$('#form_name').val('add_state');
 				$('#edit_id').val('');
 				$('#state_name').val('');
+				$('#state_code').val('');
+				$('#country_name').val('');
+				$.getJSON('fetch_details.php', { cmd: 'get_state_next_code', scope: $('#geo_scope').val() }, function(data) {
+					$('#state_code').val(data && data.state_code ? data.state_code : '');
+				});
 				$('#stateModalTitle').text('Create State');
 				ewV2OpenModal('stateModal');
 			});
@@ -304,7 +314,9 @@ $state_page_title = $geo_scope === 'international' ? 'International State Lists'
 						$(".form-data-saving").hide();
 						$("#form_name").val("edit_state");
 						$("#edit_id").val(result['state_id']);
+						$("#state_code").val(result['state_code'] || '');
 						$("#state_name").val(result['state_name']);
+						$("#country_name").val(result['country_name'] || '');
 						$('#stateModalTitle').text('Edit State');
 						ewV2OpenModal('stateModal');
 					},
@@ -320,6 +332,8 @@ $state_page_title = $geo_scope === 'international' ? 'International State Lists'
 				$('#form_name').val('add_state');
 				$('#edit_id').val('');
 				$('#state_name').val('');
+				$('#state_code').val('');
+				$('#country_name').val('');
 				ewV2CloseModal('stateModal');
 			});
 
@@ -386,8 +400,16 @@ $state_page_title = $geo_scope === 'international' ? 'International State Lists'
 				  <div class="message" style="text-align:center"></div>
 				</div>
 				<div class="form-group">
+				  <label class="control-label">State Code :</label>
+				  <input type="text" id="state_code" name="state_code" class="form-control" readonly placeholder="<?php echo htmlspecialchars(ew_master_format_code(ew_master_code_prefix('State Master'), 1)); ?>" />
+				</div>
+				<div class="form-group">
 				  <label class="control-label">State Name <span style="color:red;">*</span> :</label>
 				  <input type="text" id="state_name" name="state_name" class="form-control" required/>
+				</div>
+				<div class="form-group">
+				  <label class="control-label">Country <span style="color:red;">*</span> :</label>
+				  <input type="text" id="country_name" name="country_name" class="form-control" required autocomplete="off"/>
 				</div>
 			  </form>
 			</div>

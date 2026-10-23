@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Invoice Dashboard — Preview</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="stylesheets/dashboard-suite-preview.css">
+</head>
+<body>
+	<div class="preview-banner">
+		<div><strong>HTML preview only</strong> — Invoice Dashboard (sample data, not live)</div>
+		<span>Dashboard suite · 2 of 4</span>
+	</div>
+	<div class="wrap">
+		<div class="page-head">
+			<div>
+				<h1>Invoice Dashboard</h1>
+				<p>Billing, receivables, GST on invoices, and collection status</p>
+			</div>
+			<nav class="head-tabs" aria-label="Dashboard suite">
+				<a href="dashboard_booking_preview.html">Bookings</a>
+				<a class="active" href="dashboard_invoice_preview.html">Invoices</a>
+				<a href="dashboard_payments_preview.html">Payments</a>
+				<a href="dashboard_pl_preview.html">Expenses &amp; P&amp;L</a>
+			</nav>
+		</div>
+
+		<div class="kpi-strip cols-8">
+			<div class="kpi c1"><div class="lbl">Total Invoices</div><div class="val">1,120</div></div>
+			<div class="kpi c8"><div class="lbl">Draft</div><div class="val">120</div></div>
+			<div class="kpi c4"><div class="lbl">Generated</div><div class="val">845</div></div>
+			<div class="kpi c5"><div class="lbl">Sent</div><div class="val">720</div></div>
+			<div class="kpi c3"><div class="lbl">Partially Paid</div><div class="val">210</div></div>
+			<div class="kpi c7"><div class="lbl">Paid</div><div class="val">356</div></div>
+			<div class="kpi c9"><div class="lbl">Overdue</div><div class="val">186</div></div>
+			<div class="kpi c8"><div class="lbl">Cancelled</div><div class="val">18</div></div>
+		</div>
+
+		<div class="grid-2">
+			<div class="card">
+				<div class="card-head">Financial summary</div>
+				<div class="card-body">
+					<div class="revenue-grid">
+						<div class="big">
+							<div class="stat-block">
+								<div class="sl">Total invoiced</div>
+								<div class="sv">₹ 62,77,950</div>
+							</div>
+							<div class="stat-block">
+								<div class="sl">Net invoice value</div>
+								<div class="sv">₹ 54,23,050</div>
+							</div>
+						</div>
+						<div class="stat-row"><span class="k">Current month billing</span><span class="v">₹ 8,42,600</span></div>
+						<div class="stat-row"><span class="k">Previous month billing</span><span class="v">₹ 7,15,200</span></div>
+						<div class="stat-row"><span class="k">GST amount</span><span class="v">₹ 8,54,900</span></div>
+						<div class="stat-row"><span class="k">Discounts</span><span class="v">₹ 1,24,000</span></div>
+					</div>
+				</div>
+			</div>
+			<div class="card alert-outline">
+				<div class="card-head">Total outstanding</div>
+				<div class="card-body">
+					<div class="stat-block">
+						<div class="sl">Balance due</div>
+						<div class="sv danger">₹ 40,10,000</div>
+					</div>
+					<div class="stat-row"><span class="k">Open invoices</span><span class="v">186</span></div>
+					<div class="stat-row"><span class="k">Overdue count</span><span class="v text-neg">112</span></div>
+					<div class="stat-row"><span class="k">Avg. days overdue</span><span class="v">24</span></div>
+				</div>
+			</div>
+		</div>
+
+		<div class="grid-3">
+			<div class="card">
+				<div class="card-head">Invoice status</div>
+				<div class="card-body">
+					<div class="donut-wrap">
+						<div class="donut d2" aria-hidden="true"></div>
+						<ul class="legend">
+							<li><span class="left"><span class="dot" style="background:#6366f1"></span> Generated</span><strong>45%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#0891b2"></span> Sent</span><strong>22%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#f59e0b"></span> Partial</span><strong>12%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#22c55e"></span> Paid</span><strong>18%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#94a3b8"></span> Other</span><strong>3%</strong></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+			<div class="card span-2">
+				<div class="card-head">Receivable aging</div>
+				<div class="card-body">
+					<div class="bar-chart-static">
+						<div class="bar" style="height:45%"></div>
+						<div class="bar" style="height:72%"></div>
+						<div class="bar alt" style="height:55%"></div>
+						<div class="bar alt" style="height:38%"></div>
+						<div class="bar alt" style="height:22%"></div>
+						<div class="bar" style="height:15%"></div>
+					</div>
+					<div class="bar-labels">
+						<span>Not due</span><span>1–30</span><span>31–60</span><span>61–90</span><span>91–120</span><span>120+</span>
+					</div>
+					<p style="margin:12px 0 0;font-size:11px;color:var(--ew-muted);text-align:center;">Live version: amounts from billing_invoice_master + outstanding</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<div class="card-head">Recent invoices</div>
+			<div class="card-body flush">
+				<div style="overflow-x:auto;">
+					<table class="dash-tbl compact">
+						<thead>
+							<tr>
+								<th>Invoice No</th>
+								<th>Date</th>
+								<th>Customer</th>
+								<th>GCN No</th>
+								<th class="num">Freight</th>
+								<th class="num">Add. chg</th>
+								<th class="num">GST (₹)</th>
+								<th class="num">Total (₹)</th>
+								<th class="num">Paid</th>
+								<th class="num">Balance</th>
+								<th>Due date</th>
+								<th>Status</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>INV/2026/1842</td><td>18-10-2026</td><td>Nuvora Retail Pvt Ltd</td><td>EW360/0209</td>
+								<td class="num">48,000</td><td class="num">2,500</td><td class="num">9,090</td><td class="num">59,590</td>
+								<td class="num">59,590</td><td class="num">0</td><td>25-10-2026</td><td><span class="badge paid">Paid</span></td>
+							</tr>
+							<tr>
+								<td>INV/2026/1835</td><td>12-10-2026</td><td>Cargomen Logistics</td><td>EW360/0217</td>
+								<td class="num">1,02,000</td><td class="num">5,000</td><td class="num">19,260</td><td class="num">1,26,260</td>
+								<td class="num">50,000</td><td class="num">76,260</td><td>05-10-2026</td><td><span class="badge overdue">Overdue</span></td>
+							</tr>
+							<tr>
+								<td>INV/2026/1820</td><td>08-10-2026</td><td>ASTORMUELLER Shoes</td><td>EW360/0198</td>
+								<td class="num">22,400</td><td class="num">800</td><td class="num">4,176</td><td class="num">27,376</td>
+								<td class="num">15,000</td><td class="num">12,376</td><td>20-10-2026</td><td><span class="badge partial">Partially paid</span></td>
+							</tr>
+							<tr>
+								<td>INV/2026/1811</td><td>02-10-2026</td><td>NK Logistics</td><td>EW360/0185</td>
+								<td class="num">35,000</td><td class="num">0</td><td class="num">6,300</td><td class="num">41,300</td>
+								<td class="num">0</td><td class="num">41,300</td><td>15-10-2026</td><td><span class="badge sent">Sent</span></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

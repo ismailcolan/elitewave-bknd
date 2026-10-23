@@ -122,12 +122,9 @@ function ew_vehicle_type_get_by_key($conn, $key)
 function ew_vehicle_type_next_code($conn)
 {
 	ew_vehicle_type_ensure_schema($conn);
-	$row = mysqli_fetch_assoc(mysqli_query($conn, 'SELECT COUNT(*) AS n FROM vehicle_type_master'));
-	$n = (int) ($row['n'] ?? 0) + 1;
-	if ($n < 1) {
-		$n = 1;
-	}
-	return 'VT' . sprintf('%05d', $n);
+	ew_master_sync_menu_codes($conn);
+	$prefix = ew_master_code_prefix('Vehicle Type Master');
+	return ew_master_format_code($prefix, ew_master_max_code_number($conn, 'vehicle_type_master', 'type_code', $prefix) + 1);
 }
 
 function ew_vehicle_type_category_label($code)

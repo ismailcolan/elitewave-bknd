@@ -231,6 +231,10 @@ function ew_quotation_all_modes_status_pill_class($status)
 												<label>Subject</label>
 												<input type="text" name="subject" id="subject" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['subject'] ?? ''); ?>" />
 											</div>
+											<div class="ew-field span-4">
+												<label>Dear Sir / Madam</label>
+												<textarea name="letter_body" id="letter_body" class="form-control pv-bind" rows="3" <?php echo $form_editable ? '' : 'readonly'; ?>><?php echo htmlspecialchars(quotation_letter_body_for($master)); ?></textarea>
+											</div>
 										</div>
 									</div>
 								</div>
@@ -475,7 +479,7 @@ window.QUOTATION_ALL_MODES_SCREEN = true;
 window.QUOTATION_PREVIEW_IN_MODAL = true;
 window.QUOTATION_RETURN_PAGE = 'quotation_all_modes.php';
 </script>
-<script src="javascripts/quotation-form.js?v=20261008mmsource2"></script>
+<script src="javascripts/quotation-form.js?v=20261020letter"></script>
 <?php echo quotation_customer_approve_modal_html(); ?>
 <?php echo quotation_customer_approve_script('quotation_all_modes_list.php?tab=approved'); ?>
 </body>

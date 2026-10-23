@@ -156,6 +156,55 @@
     return $card.find('#dataTable1, #ew_db_backup_table, #txn_list_table, #ts_status_table, #invoice_list_table, #receipt_list_table, #trip_list_table, #payment_report_table, #invoice_register_table, #pending_payments_table, table.dataTable').length > 0;
   }
 
+  function normalizeHeaderLabel(text) {
+    return String(text || '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase()
+      .replace(/\./g, '');
+  }
+
+  function isSerialNumberHeader(text) {
+    var t = normalizeHeaderLabel(text);
+    if (!t) {
+      return false;
+    }
+    if (t === 'sno' || t === 'slno' || t === 'srno' || t === 'serial' || t === '#') {
+      return true;
+    }
+    return /^(s|sl|sr)\s*no$/.test(t) || /^serial(\s*no)?$/.test(t);
+  }
+
+  function applySerialColumnAlign($table) {
+    if (!$table || !$table.length) {
+      return;
+    }
+    var $headRow = $table.find('thead tr').first();
+    if (!$headRow.length) {
+      return;
+    }
+    $headRow.find('th').each(function (idx) {
+      var $th = $(this);
+      if (!$th.hasClass('col-sno') && !isSerialNumberHeader($th.text())) {
+        return;
+      }
+      $th.addClass('col-sno');
+      $table.find('tbody tr').each(function () {
+        var $td = $(this).children('td').eq(idx);
+        if ($td.length) {
+          $td.addClass('col-sno');
+        }
+      });
+    });
+  }
+
+  function applySerialColumnsAll() {
+    $('table.table, table.dataTable, #dataTable1').each(function () {
+      applySerialColumnAlign($(this));
+    });
+  }
+
   function applyAll() {
     $('.ew-page-v2 .ew-card').each(function () {
       var $card = $(this);
@@ -166,9 +215,11 @@
         layoutListCard($card);
       }
     });
+    applySerialColumnsAll();
   }
 
   window.applyEwListLayout = applyAll;
+  window.applyEwSerialColumnAlign = applySerialColumnsAll;
 
   function isListSearchFocused() {
     return $(document.activeElement).closest('.dataTables_filter, .ew-search-wrap, .ew-erp-search').length > 0;
@@ -183,9 +234,13 @@
 
   if ($.fn.dataTable) {
     $(document).on('init.dt', function () {
-      window.setTimeout(applyAll, 50);
+      window.setTimeout(function () {
+        applySerialColumnsAll();
+        applyAll();
+      }, 50);
     });
     $(document).on('draw.dt', function () {
+      applySerialColumnsAll();
       if (isListSearchFocused()) {
         return;
       }

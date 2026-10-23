@@ -19,6 +19,7 @@ $payload = array(
     'invoice_date' => trim($_POST['invoice_date'] ?? date('d-m-Y')),
     'customer_id' => (int) ($_POST['customer_id'] ?? 0),
     'billing_type' => trim($_POST['billing_type'] ?? ''),
+    'invoice_series' => trim($_POST['invoice_series'] ?? 'GST'),
     'status' => trim($_POST['status'] ?? 'draft'),
     'lines' => isset($_POST['lines']) ? json_decode($_POST['lines'], true) : array(),
 );

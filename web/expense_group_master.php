@@ -30,7 +30,7 @@ $group_rows = expense_group_list($conn, false);
 					<div class="ew-page-v2">
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
-								<h1 class="ew-page-title">Expense Group Master</h1>
+								<h1 class="ew-page-title">Expense Group GCN Master</h1>
 							</div>
 						</div>
 						<div class="ew-card ew-erp-list">

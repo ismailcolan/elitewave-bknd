@@ -17,9 +17,11 @@ function billing_json_out($payload)
 
 if ($cmd === 'preview_invoice_no') {
     $invoice_date = isset($_REQUEST['invoice_date']) ? trim($_REQUEST['invoice_date']) : date('d-m-Y');
+    $invoice_series = billing_normalize_invoice_series($_REQUEST['invoice_series'] ?? 'GST');
     billing_json_out(array(
         'status' => 0,
-        'invoice_no' => billing_preview_invoice_number($conn, $invoice_date),
+        'invoice_no' => billing_next_grouped_invoice_number($conn, $invoice_date, $invoice_series, false),
+        'invoice_series' => $invoice_series,
     ));
 }
 
@@ -27,7 +29,8 @@ if ($cmd === 'fetch_gcns') {
     $customers = isset($_REQUEST['customers']) ? explode(',', $_REQUEST['customers']) : array();
     $exclude = (int) ($_REQUEST['billing_invoice_id'] ?? 0);
     $billing_type = isset($_REQUEST['billing_type']) ? billing_normalize_billing_type($_REQUEST['billing_type']) : '';
-    $rows = billing_fetch_delivered_gcns($conn, $customers, $exclude, $billing_type);
+    $invoice_series = billing_normalize_invoice_series($_REQUEST['invoice_series'] ?? 'GST');
+    $rows = billing_fetch_delivered_gcns($conn, $customers, $exclude, $billing_type, $invoice_series);
     billing_json_out(array('status' => 0, 'data' => $rows));
 }
 

@@ -8,7 +8,7 @@ ensure_billing_tables($conn);
 ensure_billing_note_tables($conn);
 
 $c_date = date('d-m-Y');
-$preview_no = billing_preview_credit_note_number($conn);
+$preview_no = billing_preview_credit_note_number($conn, $c_date);
 $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $preselect_invoice = isset($_GET['invoice_id']) ? (int) $_GET['invoice_id'] : 0;
 $is_edit = ($edit_id > 0);
@@ -92,6 +92,7 @@ $reasons = billing_credit_note_reasons();
 								<div class="ew-field span-2">
 									<label>Note No</label>
 									<div class="ew-invoice-no-display" id="note_no_preview"><?php echo htmlspecialchars($preview_no); ?></div>
+									<p class="ew-field-hint" style="margin-top:6px;">One series for GST and GTA invoices: CN/001/26-27.</p>
 								</div>
 								<div class="ew-field">
 									<label>Date <span class="req">*</span></label>
@@ -321,8 +322,14 @@ $(function() {
 	if ($inv.val()) {
 		loadInvoice(function() { recalc(); });
 	} else if (!$('#billing_note_id').val()) {
-		$.getJSON('create_credit_note_data.php', { cmd: 'preview_note_no' }, function(r) {
+		$.getJSON('create_credit_note_data.php', { cmd: 'preview_note_no', note_date: $('#note_date').val() }, function(r) {
 			if (r && r.status === 0) $('#note_no_preview').text(r.note_no);
+		});
+		$('#note_date').on('change', function() {
+			if ($('#billing_note_id').val()) return;
+			$.getJSON('create_credit_note_data.php', { cmd: 'preview_note_no', note_date: $('#note_date').val() }, function(r) {
+				if (r && r.status === 0) $('#note_no_preview').text(r.note_no);
+			});
 		});
 	}
 });

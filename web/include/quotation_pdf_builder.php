@@ -220,10 +220,10 @@ function quotation_pdf_info_table_from_rows(array $rows, $label_width = null)
 </table>';
 }
 
-function quotation_pdf_shipment_details_table_html($q, $loading, $dims, $delivery, $mode_label = '')
+function quotation_pdf_shipment_details_table_html($q, $loading, $dims, $delivery, $mode_label = '', $conn = null)
 {
 	return quotation_pdf_info_table_from_rows(
-		quotation_pdf_shipment_detail_rows($q, $loading, $dims, $delivery, $mode_label),
+		quotation_pdf_shipment_detail_rows($q, $loading, $dims, $delivery, $mode_label, $conn),
 		EW_QUOTE_PDF_INFO_LABEL_WIDTH_STD
 	);
 }
@@ -239,7 +239,20 @@ function quotation_pdf_other_details_html($conn, $label_width = null)
 		. '</div>';
 }
 
-function quotation_pdf_shipment_detail_rows($q, $loading, $dims, $delivery, $mode_label = '')
+function quotation_pdf_delivery_assurance_html()
+{
+	$navy = EW_QUOTE_PDF_NAVY;
+	$text = 'At EliteWave360 Logistics, every shipment is handled against a clearly committed delivery timeline based on the selected service mode. Our Premium Fast Delivery service is built to deliver within the committed timeline, with proactive planning, close monitoring, and accountability at every stage—because when you choose premium service and pay accordingly, you deserve speed, certainty, and a commitment you can rely on.';
+
+	return quotation_pdf_section_heading('Elitewave Assurance', false)
+		. '<table width="100%" cellpadding="0" cellspacing="0" class="ew-quote-assurance" style="border-collapse:collapse;margin:0 0 4px;page-break-inside:avoid;">
+<tr>
+	<td style="border:2px solid ' . $navy . ';padding:6px 8px;font-size:9pt;color:#000;font-weight:normal;line-height:1.4;text-align:justify;">' . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . '</td>
+</tr>
+</table>';
+}
+
+function quotation_pdf_shipment_detail_rows($q, $loading, $dims, $delivery, $mode_label = '', $conn = null)
 {
 	$origin = htmlspecialchars($q['origin_text'] ?? '—', ENT_QUOTES, 'UTF-8');
 	$dest = htmlspecialchars($q['destination_name'] ?? '—', ENT_QUOTES, 'UTF-8');
@@ -257,11 +270,29 @@ function quotation_pdf_shipment_detail_rows($q, $loading, $dims, $delivery, $mod
 	if ($mode_box === '') {
 		$mode_box = 'Mode / Vehicle';
 	}
+	$kind = ($conn && function_exists('quotation_mode_kind_for_id'))
+		? quotation_mode_kind_for_id($conn, (int) ($q['mode_of_transportation'] ?? 0))
+		: 'road';
 	$detail_rows = array(
 		array('Route', $route, ''),
-		array($mode_box, $vehicle_line, ''),
-		array('Loading / Unloading', $load_unload, ''),
 	);
+	if ($kind === 'train' || $kind === 'flight') {
+		$src_lbl = '—';
+		if ($kind === 'train' && $conn && function_exists('quotation_train_label_by_id')) {
+			$src_lbl = quotation_train_label_by_id($conn, (int) ($q['train_id'] ?? 0));
+		} elseif ($kind === 'flight' && $conn && function_exists('quotation_flight_label_by_id')) {
+			$src_lbl = quotation_flight_label_by_id($conn, (int) ($q['flight_id'] ?? 0));
+		}
+		$hrs = trim((string) ($q['journey_hours'] ?? ''));
+		$detail_rows[] = array($mode_box, htmlspecialchars($src_lbl, ENT_QUOTES, 'UTF-8'), '');
+		$detail_rows[] = array('Hours', htmlspecialchars($hrs !== '' ? $hrs : '—', ENT_QUOTES, 'UTF-8'), '');
+		$detail_rows[] = array('Pickup/Delivery vehicle', $vehicle_line, '');
+	} else {
+		$hrs = trim((string) ($q['journey_hours'] ?? ''));
+		$detail_rows[] = array($mode_box, $vehicle_line, '');
+		$detail_rows[] = array('Hours', htmlspecialchars($hrs !== '' ? $hrs : '—', ENT_QUOTES, 'UTF-8'), '');
+	}
+	$detail_rows[] = array('Loading / Unloading', $load_unload, '');
 	$cfs = trim((string) ($q['cfs_port_factory'] ?? ''));
 	if ($cfs !== '') {
 		$detail_rows[] = array('CFS / Port / Factory / Warehouse', htmlspecialchars($cfs, ENT_QUOTES, 'UTF-8'), '');
@@ -393,19 +424,32 @@ function quotation_pdf_commercial_summary_html($charge_rows, $gst_pct, $gst_amt,
 		. '</table>';
 }
 
+function quotation_pdf_page_number_footer_html()
+{
+	return '<div style="text-align:center;font-family:freesans;font-size:8pt;color:#06416F;margin:0;padding:0;">Page {PAGENO} of {nbpg}</div>';
+}
+
+function quotation_mpdf_apply_page_numbers($mpdf)
+{
+	$mpdf->SetHTMLFooter(quotation_pdf_page_number_footer_html());
+}
+
 function quotation_mpdf_create()
 {
-	return new \Mpdf\Mpdf(array(
+	$mpdf = new \Mpdf\Mpdf(array(
 		'mode' => 'utf-8',
 		'format' => 'A4',
 		'default_font' => 'freesans',
 		'margin_left' => 12,
 		'margin_right' => 12,
 		'margin_top' => 10,
-		'margin_bottom' => 12,
+		'margin_bottom' => 14,
+		'margin_footer' => 5,
 		'tempDir' => sys_get_temp_dir(),
 		'shrink_tables_to_fit' => 1,
 	));
+	quotation_mpdf_apply_page_numbers($mpdf);
+	return $mpdf;
 }
 
 /** Page 2 signatory and brand footer are in quotation_pdf_terms_body_html(). */
@@ -519,7 +563,7 @@ function quotation_build_pdf_pages($conn, $quotation_id)
 
 	$html .= '
 <p style="margin:8px 0 8px;font-size:9.5pt;color:#000;font-weight:bold;line-height:1.38;">Dear Sir / Madam,<br>
-<span style="font-weight:normal;">' . htmlspecialchars(quotation_letter_intro_text(), ENT_QUOTES, 'UTF-8') . '</span></p>';
+<span style="font-weight:normal;">' . nl2br(htmlspecialchars(quotation_letter_body_for($q), ENT_QUOTES, 'UTF-8')) . '</span></p>';
 
 	$logistics_cfs = $is_multi || $is_consignor_md;
 	$info_label_w = ($is_multi || $is_consignor_md) ? EW_QUOTE_PDF_INFO_LABEL_WIDTH : EW_QUOTE_PDF_INFO_LABEL_WIDTH_STD;
@@ -549,12 +593,13 @@ function quotation_build_pdf_pages($conn, $quotation_id)
 		$html .= '<div class="ew-quote-page1-tail">';
 		$html .= quotation_pdf_section_heading('Shipment details', false)
 			. '<div class="ew-shipment-block">'
-			. quotation_pdf_shipment_details_table_html($q, $loading, $dims, $delivery, $mode_label)
+			. quotation_pdf_shipment_details_table_html($q, $loading, $dims, $delivery, $mode_label, $conn)
 			. '</div>';
 		$html .= quotation_pdf_other_details_html($conn, EW_QUOTE_PDF_INFO_LABEL_WIDTH_STD);
 		$html .= '</div>';
 	}
 
+	$html .= quotation_pdf_delivery_assurance_html();
 	$html .= '</div>';
 	$page1 = $html . quotation_pdf_letterhead_close(false);
 	$page2_terms = elitewave_pdf_letterhead_css() . quotation_pdf_terms_body_html();
@@ -579,7 +624,8 @@ function quotation_mpdf_write_quotation($mpdf, $conn, $quotation_id)
 		return false;
 	}
 	quotation_mpdf_write_html($mpdf, $pages['page1']);
-	$mpdf->AddPage('', '', '', '', '', 10, 10, 8, 8);
+	$mpdf->AddPage('', '', '', '', '', 10, 10, 8, 14);
+	quotation_mpdf_apply_page_numbers($mpdf);
 	quotation_mpdf_write_html($mpdf, $pages['page2_terms']);
 	quotation_mpdf_write_page2_closing_at_bottom($mpdf);
 	return true;

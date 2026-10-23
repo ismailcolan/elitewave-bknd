@@ -70,7 +70,7 @@ function expense_group_ensure_schema($conn)
 		$today = date('d-m-Y');
 		$n = 1;
 		foreach (expense_group_default_rows() as $row) {
-			$code = mysqli_real_escape_string($conn, 'GRP' . sprintf('%05d', $n));
+			$code = mysqli_real_escape_string($conn, ew_master_format_code(ew_master_code_prefix('Expense Group GCN Master'), $n));
 			$name = mysqli_real_escape_string($conn, $row[1]);
 			$sort = (int) $row[2];
 			mysqli_query($conn, "INSERT INTO expense_group (group_code, group_name, sort_no, status, created_at)
@@ -156,12 +156,9 @@ function expense_group_id_from_code($conn, $code)
 
 function expense_group_next_code($conn)
 {
-	$row = mysqli_fetch_assoc(mysqli_query($conn, 'SELECT COUNT(*) AS n FROM expense_group'));
-	$n = (int) ($row['n'] ?? 0) + 1;
-	if ($n < 1) {
-		$n = 1;
-	}
-	return 'GRP' . sprintf('%05d', $n);
+	ew_master_sync_menu_codes($conn);
+	$prefix = ew_master_code_prefix('Expense Group GCN Master');
+	return ew_master_format_code($prefix, ew_master_max_code_number($conn, 'expense_group', 'group_code', $prefix) + 1);
 }
 
 function expense_group_resequence_codes($conn)
@@ -177,7 +174,7 @@ function expense_group_resequence_codes($conn)
 	$n = 1;
 	$needs = false;
 	foreach ($rows as $row) {
-		$expected = 'GRP' . sprintf('%05d', $n);
+		$expected = ew_master_format_code(ew_master_code_prefix('Expense Group GCN Master'), $n);
 		if (($row['group_code'] ?? '') !== $expected) {
 			$needs = true;
 			break;
@@ -195,7 +192,7 @@ function expense_group_resequence_codes($conn)
 	$n = 1;
 	foreach ($rows as $row) {
 		$id = (int) $row['group_id'];
-		$code = 'GRP' . sprintf('%05d', $n);
+		$code = ew_master_format_code(ew_master_code_prefix('Expense Group GCN Master'), $n);
 		$code_esc = mysqli_real_escape_string($conn, $code);
 		mysqli_query($conn, "UPDATE expense_group SET group_code='$code_esc' WHERE group_id='$id' LIMIT 1");
 		if (expense_type_column_exists($conn, 'expense_group')) {
@@ -408,11 +405,17 @@ function expense_type_backfill_groups($conn)
 
 function expense_type_next_code($conn)
 {
+	ew_master_sync_menu_codes($conn);
+	$prefix = ew_master_code_prefix('Expense Type GCN Master');
+	$n = ew_master_max_code_number($conn, 'expense_category', 'category_code', $prefix) + 1;
 	$row = mysqli_fetch_assoc(mysqli_query($conn, 'SELECT MAX(expense_code_id) AS code_id FROM expense_category'));
 	$id = (int) ($row['code_id'] ?? 0) + 1;
+	if ($id < $n) {
+		$id = $n;
+	}
 	return array(
 		'expense_code_id' => $id,
-		'expense_code' => 'EXP' . sprintf('%05d', $id),
+		'expense_code' => ew_master_format_code($prefix, $n),
 	);
 }
 

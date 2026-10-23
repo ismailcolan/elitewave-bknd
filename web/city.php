@@ -3,8 +3,9 @@ require_once("include/connect.php");
 require_once("include/function.php");
 ew_geo_scope_ensure_column($conn, 'city');
 ew_geo_scope_ensure_column($conn, 'state');
+ew_area_ensure_country_name($conn, 'city');
 $geo_scope = ew_geo_scope_from_request();
-$city_page_title = $geo_scope === 'international' ? 'International City Lists' : 'Indian City Lists';
+$city_page_title = 'City Master';
 ?>
 <!DOCTYPE html>
 <html>
@@ -97,6 +98,7 @@ div#dataTable1_length {
                                     <th class="table-title" style="width:10%">S.No</th>
                                     <th class="table-title" style="width:10%">City Code</th>
                                     <th class="table-title" style="width:10%">City Name</th>
+                                    <th class="table-title" style="width:10%">Country</th>
                                     <th class="table-title" style="width:10%">State</th>
                            <th class="table-title" style="width:20%">Railway Station</th>
 <th class="table-title" style="width:10%">Airport</th>
@@ -119,6 +121,7 @@ div#dataTable1_length {
                                             <td class="text-center"><?php echo $i; ?></td>
                                             <td><?php echo $row['city_code']; ?></td>
                                             <td><?php echo $row['city_name']; ?></td>
+                                            <td><?php echo htmlspecialchars($row['country_name'] ?? ''); ?></td>
                                             <td><?php echo $state; ?></td>
                                             <td><?php echo $row['railway_station']; ?></td>
 <td><?php echo $row['airport']; ?></td>
@@ -344,7 +347,8 @@ div#dataTable1_length {
                     $('#form_name').val('add_city');
                     $('#edit_id').val('');
                     $('#city_name').val('');
-                    $.getJSON('fetch_details.php', { cmd: 'get_city_next_code' }, function(data) {
+                    $('#country_name').val('');
+                    $.getJSON('fetch_details.php', { cmd: 'get_city_next_code', scope: $('#geo_scope').val() }, function(data) {
                         $('#city_code').val(data && data.city_code ? data.city_code : '');
                     });
                     $('#state_name').val('');
@@ -379,6 +383,7 @@ div#dataTable1_length {
                             $("#edit_id").val(result['city_id']);
                             $("#city").val(result['via_city']);
                             $("#city_name").val(result['city_name']);
+                            $("#country_name").val(result['country_name'] || '');
                             $("#city_code").val(result['city_code']);
                             $("#state_name").val(result['state']);
                         $("#railway_station").val(result['railway_station']);
@@ -406,6 +411,7 @@ $("#port").val(result['port']);
                     $('#form_name').val('add_city');
                     $('#edit_id').val('');
                     $('#city_name').val('');
+                    $('#country_name').val('');
                     $('#city_code').val('');
                     $('#state_name').val('');
                 $("#railway_station").val('');
@@ -482,12 +488,16 @@ $("#port").val('');
                         </div>
                         <div class="form-group">
                             <label class="control-label">City Code <span style="color:red;">*</span> :</label>
-                            <input type="text" id="city_code" Placeholder="Ex:EW001" name="city_code" class="form-control" disabled />
+                            <input type="text" id="city_code" placeholder="<?php echo htmlspecialchars(ew_master_format_code(ew_master_code_prefix('City Master'), 1)); ?>" name="city_code" class="form-control" disabled />
                         </div>
                         <div class="form-group">
                             <label class="control-label">City Name <span style="color:red;">*</span> :</label>
                             <input type="text" name="city_name" id="city_name" class="form-control" required />
                             <span class="dup-check"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Country <span style="color:red;">*</span> :</label>
+                            <input type="text" name="country_name" id="country_name" class="form-control" required autocomplete="off" />
                         </div>
                         <div class="form-group">
                             <label class="control-label">State <span style="color:red;">*</span> :</label>

@@ -4,8 +4,9 @@ require_once ('include/function.php');
 ew_geo_scope_ensure_column($conn, 'branch');
 ew_geo_scope_ensure_column($conn, 'state');
 ew_geo_scope_ensure_column($conn, 'city');
+ew_area_ensure_country_name($conn, 'branch');
 $geo_scope = ew_geo_scope_from_request();
-$branch_page_title = $geo_scope === 'international' ? 'Foreign Branches List' : 'India Branches List';
+$branch_page_title = 'Branch Master';
 ?>
 <!DOCTYPE html>
 <html>
@@ -79,8 +80,9 @@ th.table-title.sorting  {
                                 <thead>
                                     <th class="table-title" style="width:10%">S.No</th>
                                     <th class="table-title" style="width:10%">Branch Code</th>
-                                    <th class="table-title" style="width:30%">Branch Name</th>
-                                    <th class="table-title" style="width:20%">Contact Person</th>
+                                    <th class="table-title" style="width:24%">Branch Name</th>
+                                    <th class="table-title" style="width:16%">Country</th>
+                                    <th class="table-title" style="width:16%">Contact Person</th>
                                     <th class="table-title" style="width:10%">Action</th>
                                 </thead>
                                 <tbody>
@@ -94,6 +96,7 @@ th.table-title.sorting  {
                                             <td class="text-center"><?php echo $i; ?></td>
                                             <td><?php echo $row['branch_code']; ?></td>
                                             <td><?php echo $row['branch_name']; ?></td>
+                                            <td><?php echo htmlspecialchars($row['country_name'] ?? ''); ?></td>
                                             <td><?php echo $row['contact_person'] ?></td>
 
                                             <td class="actions center-content ">
@@ -164,7 +167,7 @@ th.table-title.sorting  {
                 $('#form_data')[0].reset();
                 $('#city').html('<option value="">Select City</option>');
                 $('#branch_code').prop('readonly', true);
-                $.getJSON('fetch_details.php', { cmd: 'get_branch_next_code' }, function(data) {
+                $.getJSON('fetch_details.php', { cmd: 'get_branch_next_code', scope: $('#geo_scope').val() }, function(data) {
                     $('#branch_code').val(data && data.branch_code ? data.branch_code : '');
                 });
                 $('#branchModalTitle').text('Create Branch');
@@ -332,6 +335,7 @@ th.table-title.sorting  {
                         $("#edit_id").val(result.branch_id);
                         $("#branch_code").val(result.branch_code).prop('readonly', false);
                         $('#branch_name').val(result.branch_name);
+                        $('#country_name').val(result.country_name || '');
                         $('#contact_person').val(result.contact_person);
                         $('#contact_no').val(result.contact_no);
                         $('#address1').val(result.address1);
@@ -439,6 +443,10 @@ th.table-title.sorting  {
                         <div class="ew-field">
                             <label class="control-label">Branch Name <span style="color:red;">*</span> :</label>
                             <input type="text" name="branch_name" id="branch_name" class="form-control" required autocomplete="off" />
+                        </div>
+                        <div class="ew-field">
+                            <label class="control-label">Country <span style="color:red;">*</span> :</label>
+                            <input type="text" name="country_name" id="country_name" class="form-control" required autocomplete="off" />
                         </div>
                         <div class="ew-field">
                             <label class="control-label">Contact Person <span style="color:red;">*</span> :</label>

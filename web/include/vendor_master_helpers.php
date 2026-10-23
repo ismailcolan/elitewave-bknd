@@ -521,11 +521,17 @@ function ew_vendor_get_payment_account($conn, $vendor_id, $role = 'PRIMARY')
 
 function ew_vendor_next_code($conn)
 {
+	ew_master_sync_menu_codes($conn);
+	$prefix = ew_master_code_prefix('Vendor');
+	$n = ew_master_max_code_number($conn, 'vendor_master', 'vendor_code', $prefix) + 1;
 	$row = mysqli_fetch_array(mysqli_query($conn, 'SELECT MAX(vendor_code_id) AS code_id FROM vendor_master'));
 	$id = (int) ($row['code_id'] ?? 0) + 1;
+	if ($id < $n) {
+		$id = $n;
+	}
 	return array(
 		'vendor_code_id' => $id,
-		'vendor_code' => 'VEN' . sprintf('%05d', $id),
+		'vendor_code' => ew_master_format_code($prefix, $n),
 	);
 }
 

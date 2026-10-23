@@ -23,4 +23,17 @@ if (!$result['ok']) {
 
 $sizeMb = isset($result['size']) ? round($result['size'] / 1048576, 2) : 0;
 echo date('c') . ' ' . $result['message'] . ' ' . ($result['file'] ?? '') . " ({$sizeMb} MB).\n";
+
+if (($result['message'] ?? '') === 'Backup completed.') {
+    $zipPath = $result['path'] ?? '';
+    if ($zipPath === '' && !empty($result['file'])) {
+        $zipPath = ew_db_backup_dir() . '/' . $result['file'];
+    }
+    $mail = ew_db_backup_email_zip($zipPath);
+    echo date('c') . ' ' . $mail['message'] . "\n";
+    if (empty($mail['ok'])) {
+        exit(1);
+    }
+}
+
 exit(0);

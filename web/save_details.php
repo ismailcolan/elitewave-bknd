@@ -234,6 +234,7 @@ if ($form_name == 'add_branch') {
     ew_geo_scope_ensure_column($conn, 'branch');
     $branch_code = ew_branch_next_code($conn);
     $branch_name = $_POST['branch_name'];
+    $country_name = mysqli_real_escape_string($conn, trim((string) ($_POST['country_name'] ?? '')));
     $contact_person = $_POST['contact_person'];
     $contact_no = $_POST['contact_no'];
     $address1 = $_POST['address1'];
@@ -243,10 +244,12 @@ if ($form_name == 'add_branch') {
     $pincode = $_POST['pincode'];
     $email = $_POST['email'];
     $geo_scope = ew_geo_scope_from_request();
+    ew_area_ensure_country_name($conn, 'branch');
 
     $query = "insert into branch(
 branch_code,
 branch_name,
+country_name,
 contact_person,
 contact_no,
 address1,
@@ -264,6 +267,7 @@ status
 ) values (
 '$branch_code',
 '$branch_name',
+'$country_name',
 '$contact_person',
 '$contact_no',
 '$address1',
@@ -289,6 +293,7 @@ if ($form_name == 'edit_branch') {
     $edit_id = $_POST['edit_id'];
     $branch_code = $_POST['branch_code'];
     $branch_name = $_POST['branch_name'];
+    $country_name = mysqli_real_escape_string($conn, trim((string) ($_POST['country_name'] ?? '')));
     $contact_person = $_POST['contact_person'];
     $contact_no = $_POST['contact_no'];
     $address1 = $_POST['address1'];
@@ -297,7 +302,7 @@ if ($form_name == 'edit_branch') {
     $state = $_POST['state'];
     $pincode = $_POST['pincode'];
     $email = $_POST['email'];
-    $query = "update branch set branch_code='" . $branch_code . "',branch_name='" . $branch_name . "',contact_person='" . $contact_person . "',contact_no='" . $contact_no . "',address1='" . $address1 . "',address2='" . $address2 . "',city='" . $city . "',state='" . $state . "',pincode='" . $pincode . "',email='" . $email . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where branch_id='" . $edit_id . "'";
+    $query = "update branch set branch_code='" . $branch_code . "',branch_name='" . $branch_name . "',country_name='" . $country_name . "',contact_person='" . $contact_person . "',contact_no='" . $contact_no . "',address1='" . $address1 . "',address2='" . $address2 . "',city='" . $city . "',state='" . $state . "',pincode='" . $pincode . "',email='" . $email . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where branch_id='" . $edit_id . "'";
     $result = mysqli_query($conn, $query);
     if ($result)
         echo 1;
@@ -332,11 +337,55 @@ if ($form_name == 'inacv_branch') {
     else
         echo 0;
 }
+if ($form_name == 'add_country' || $form_name == 'edit_country') {
+    ew_country_ensure_table($conn);
+    $country_name = trim((string) ($_POST['country_name'] ?? ''));
+    $edit_id = (int) ($_POST['edit_id'] ?? 0);
+    if ($country_name === '') {
+        echo 0;
+    } else {
+        $name_esc = mysqli_real_escape_string($conn, $country_name);
+        $dup_sql = "SELECT country_id FROM country WHERE LOWER(country_name)=LOWER('$name_esc')";
+        if ($edit_id > 0) {
+            $dup_sql .= " AND country_id<>'$edit_id'";
+        }
+        $dup_sql .= ' LIMIT 1';
+        $dup = mysqli_query($conn, $dup_sql);
+        if ($dup && mysqli_num_rows($dup) > 0) {
+            echo 'duplicate';
+        } elseif ($form_name == 'edit_country' && $edit_id > 0) {
+            $ok = mysqli_query($conn, "UPDATE country SET country_name='$name_esc', updated_at='$updated_at', updated_by='$updated_by' WHERE country_id='$edit_id' LIMIT 1");
+            echo $ok ? 1 : 0;
+        } else {
+            $country_code = mysqli_real_escape_string($conn, ew_country_next_code($conn));
+            $ok = mysqli_query($conn, "INSERT INTO country (country_code, country_name, status, created_at, created_by, updated_at, updated_by)
+                VALUES ('$country_code', '$name_esc', 0, '$created_at', '$created_by', '$updated_at', '$updated_by')");
+            echo $ok ? 1 : 0;
+        }
+    }
+}
+if ($form_name == 'del_country') {
+    ew_country_ensure_table($conn);
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $ok = $id > 0 && mysqli_query($conn, "DELETE FROM country WHERE country_id='$id' LIMIT 1");
+    echo $ok ? 1 : 0;
+}
+if ($form_name == 'inacv_country') {
+    ew_country_ensure_table($conn);
+    $id = (int) ($_POST['tbl_id'] ?? 0);
+    $status = ((string) ($_POST['status'] ?? '0') === '1') ? 1 : 0;
+    $ok = $id > 0 && mysqli_query($conn, "UPDATE country SET status='$status', updated_at='$updated_at', updated_by='$updated_by' WHERE country_id='$id' LIMIT 1");
+    echo $ok ? 1 : 0;
+}
 if ($form_name == 'add_state') {
     ew_geo_scope_ensure_column($conn, 'state');
-    $state_name = $_POST['state_name'];
+    ew_state_ensure_code_column($conn);
+    $state_name = mysqli_real_escape_string($conn, $_POST['state_name']);
+    $country_name = mysqli_real_escape_string($conn, trim((string) ($_POST['country_name'] ?? '')));
     $geo_scope = ew_geo_scope_from_request();
-    $query = "insert into state(state_name,geo_scope,created_at,created_by,status)values('" . $state_name . "'," . ew_geo_scope_sql($conn, $geo_scope) . ",'" . $created_at . "','" . $created_by . "','0')";
+    $state_code = mysqli_real_escape_string($conn, ew_state_next_code($conn));
+    ew_area_ensure_country_name($conn, 'state');
+    $query = "insert into state(state_code,state_name,country_name,geo_scope,created_at,created_by,status)values('" . $state_code . "','" . $state_name . "','" . $country_name . "'," . ew_geo_scope_sql($conn, $geo_scope) . ",'" . $created_at . "','" . $created_by . "','0')";
     $result = mysqli_query($conn, $query);
     if ($result)
         echo 1;
@@ -365,9 +414,11 @@ if ($form_name == 'del_state') {
     }
 }
 if ($form_name == 'edit_state') {
-    $state_name = $_POST['state_name'];
+    $state_name = mysqli_real_escape_string($conn, $_POST['state_name']);
+    $country_name = mysqli_real_escape_string($conn, trim((string) ($_POST['country_name'] ?? '')));
     $edit_id = $_POST['edit_id'];
-    $query = "update  state set state_name='" . $state_name . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where state_id='" . $edit_id . "'";
+    ew_area_ensure_country_name($conn, 'state');
+    $query = "update  state set state_name='" . $state_name . "',country_name='" . $country_name . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where state_id='" . $edit_id . "'";
     $result = mysqli_query($conn, $query);
     if ($result)
         echo 1;
@@ -391,6 +442,7 @@ if ($form_name == 'add_city') {
     $id = $city_next['city_code_id'];
     $city_code = $city_next['city_code'];
     $city_name = $_POST['city_name'];
+    $country_name = mysqli_real_escape_string($conn, trim((string) ($_POST['country_name'] ?? '')));
     $state_name = $_POST['state_name'];
     $city = $_POST['city'];
     $automation = isset($_POST['automation']) ? 1 : 0;
@@ -400,11 +452,13 @@ if ($form_name == 'add_city') {
     $warehouse = $_POST['warehouse'];
     $port = $_POST['port'];
     $geo_scope = ew_geo_scope_from_request();
+    ew_area_ensure_country_name($conn, 'city');
 
     $query = "insert into city(
 city_code,
 city_code_id,
 city_name,
+country_name,
 state,
 automation,
 via_city,
@@ -420,6 +474,7 @@ status) values(
 '$city_code',
 '$id',
 '$city_name',
+'$country_name',
 '$state_name',
 '$automation',
 '$city',
@@ -443,6 +498,7 @@ if ($form_name == 'edit_city') {
 
     $edit_id = $_POST['edit_id'];
     $city_name = $_POST['city_name'];
+    $country_name = mysqli_real_escape_string($conn, trim((string) ($_POST['country_name'] ?? '')));
     $state_name = $_POST['state_name'];
     $city = $_POST['city'];
     $automation = isset($_POST['automation']) ? 1 : 0;
@@ -454,6 +510,7 @@ if ($form_name == 'edit_city') {
 
     $query = "UPDATE city SET
         city_name = '$city_name',
+        country_name = '$country_name',
         state = '$state_name',
         automation = '$automation',
         via_city = '$city',
@@ -525,7 +582,7 @@ if ($form_name == 'add_hub') {
     $hub_r = mysqli_fetch_assoc($hubcode_q);
 
     $hub_no   = $hub_r['hub_no'] + 1;
-    $hub_code = $hub_no;
+    $hub_code = ew_hub_next_code($conn);
 
     $query = "INSERT INTO hub
     (
@@ -666,23 +723,16 @@ if ($form_name == 'inacv_role') {
 // Train
 
 if ($form_name == 'add_train') {
+    ew_master_ensure_journey_hours_column($conn, 'train');
     $train_name = mysqli_real_escape_string($conn, $_POST['train_name'] ?? '');
     $train_number = mysqli_real_escape_string($conn, $_POST['train_number'] ?? '');
-    $loading_point1 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 1));
-    $loading_point2 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 2));
-    $loading_point3 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 3));
-    $loading_point4 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 4));
-    $journey_hours = mysqli_real_escape_string($conn, $_POST['journey_hours'] ?? '');
+    $journey_hours = mysqli_real_escape_string($conn, ew_master_normalize_journey_hours($_POST['journey_hours'] ?? ''));
     ew_geo_scope_ensure_column($conn, 'train');
     $geo_sql = ew_geo_scope_sql($conn, ew_geo_scope_from_request());
 
     $query = "INSERT INTO train (
     train_name,
     train_number,
-    loading_point1,
-    loading_point2,
-    loading_point3,
-    loading_point4,
     journey_hours,
     geo_scope,
     created_at,
@@ -693,10 +743,6 @@ if ($form_name == 'add_train') {
 ) VALUES (
     '$train_name',
     '$train_number',
-    $loading_point1,
-    $loading_point2,
-    $loading_point3,
-    $loading_point4,
     '$journey_hours',
     $geo_sql,
     '$created_at',
@@ -715,16 +761,13 @@ if ($form_name == 'add_train') {
 }
 
 if ($form_name == 'edit_train') {
+    ew_master_ensure_journey_hours_column($conn, 'train');
     $edit_id = (int) ($_POST['edit_id'] ?? 0);
     $train_name = mysqli_real_escape_string($conn, $_POST['train_name'] ?? '');
     $train_number = mysqli_real_escape_string($conn, $_POST['train_number'] ?? '');
-    $loading_point1 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 1));
-    $loading_point2 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 2));
-    $loading_point3 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 3));
-    $loading_point4 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 4));
-    $journey_hours = mysqli_real_escape_string($conn, $_POST['journey_hours'] ?? '');
+    $journey_hours = mysqli_real_escape_string($conn, ew_master_normalize_journey_hours($_POST['journey_hours'] ?? ''));
 
-    $query = "update train set train_name='" . $train_name . "',train_number='" . $train_number . "',loading_point1=" . $loading_point1 . ",loading_point2=" . $loading_point2 . ",loading_point3=" . $loading_point3 . ",loading_point4=" . $loading_point4 . ",journey_hours='" . $journey_hours . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where train_id='" . $edit_id . "'";
+    $query = "update train set train_name='" . $train_name . "',train_number='" . $train_number . "',journey_hours='" . $journey_hours . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where train_id='" . $edit_id . "'";
 
     $result = mysqli_query($conn, $query);
     if (!$result) {
@@ -754,23 +797,16 @@ if ($form_name == 'inacv_train') {
 // Flight
 
 if ($form_name == 'add_flight') {
+    ew_master_ensure_journey_hours_column($conn, 'flight');
     $flight_name = mysqli_real_escape_string($conn, $_POST['flight_name'] ?? '');
     $flight_number = mysqli_real_escape_string($conn, $_POST['flight_number'] ?? '');
-    $loading_point1 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 1));
-    $loading_point2 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 2));
-    $loading_point3 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 3));
-    $loading_point4 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 4));
-    $journey_hours = mysqli_real_escape_string($conn, $_POST['journey_hours'] ?? '');
+    $journey_hours = mysqli_real_escape_string($conn, ew_master_normalize_journey_hours($_POST['journey_hours'] ?? ''));
     ew_geo_scope_ensure_column($conn, 'flight');
     $geo_sql = ew_geo_scope_sql($conn, ew_geo_scope_from_request());
 
     $query = "INSERT INTO flight(
     flight_name,
     flight_number,
-    loading_point1,
-    loading_point2,
-    loading_point3,
-    loading_point4,
     journey_hours,
     geo_scope,
     created_at,
@@ -782,10 +818,6 @@ if ($form_name == 'add_flight') {
 VALUES(
     '$flight_name',
     '$flight_number',
-    $loading_point1,
-    $loading_point2,
-    $loading_point3,
-    $loading_point4,
     '$journey_hours',
     $geo_sql,
     '$created_at',
@@ -803,16 +835,13 @@ VALUES(
 }
 
 if ($form_name == 'edit_flight') {
+    ew_master_ensure_journey_hours_column($conn, 'flight');
     $edit_id = (int) ($_POST['edit_id'] ?? 0);
     $flight_name = mysqli_real_escape_string($conn, $_POST['flight_name'] ?? '');
     $flight_number = mysqli_real_escape_string($conn, $_POST['flight_number'] ?? '');
-    $loading_point1 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 1));
-    $loading_point2 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 2));
-    $loading_point3 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 3));
-    $loading_point4 = ew_sql_nullable_int(ew_loading_point_from_post($conn, $_POST, 4));
-    $journey_hours = mysqli_real_escape_string($conn, $_POST['journey_hours'] ?? '');
+    $journey_hours = mysqli_real_escape_string($conn, ew_master_normalize_journey_hours($_POST['journey_hours'] ?? ''));
 
-    $query = "update flight set flight_name='" . $flight_name . "',flight_number='" . $flight_number . "',loading_point1=" . $loading_point1 . ",loading_point2=" . $loading_point2 . ",loading_point3=" . $loading_point3 . ",loading_point4=" . $loading_point4 . ",journey_hours='" . $journey_hours . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where flight_id='" . $edit_id . "'";
+    $query = "update flight set flight_name='" . $flight_name . "',flight_number='" . $flight_number . "',journey_hours='" . $journey_hours . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where flight_id='" . $edit_id . "'";
 
     $result = mysqli_query($conn, $query);
     if ($result)
@@ -1468,15 +1497,12 @@ if ($form_name == 'delete_vehicle_type') {
 }
 
 // CFS master (booking dropdown)
-if ($form_name == 'add_cfs_master') {
+if ($form_name == 'add_cfs_master' || $form_name == 'edit_cfs_master') {
     require_once __DIR__ . '/include/cfs_master_helpers.php';
-    $result = ew_cfs_master_insert($conn, $_POST, $created_by);
-    echo !empty($result['result']) ? 1 : ($result['message'] ?? 0);
-    exit;
-}
-if ($form_name == 'edit_cfs_master') {
-    require_once __DIR__ . '/include/cfs_master_helpers.php';
-    $result = ew_cfs_master_update($conn, $_POST, $created_by);
+    $cfs_edit_id = (int) ($_POST['edit_id'] ?? 0);
+    $result = $cfs_edit_id > 0
+        ? ew_cfs_master_update($conn, $_POST, $created_by)
+        : ew_cfs_master_insert($conn, $_POST, $created_by);
     echo !empty($result['result']) ? 1 : ($result['message'] ?? 0);
     exit;
 }
@@ -2300,6 +2326,24 @@ if ($form_name == 'add_new_consignment') {
         $con_pincode = $consigneerow['pincode'];
         $con_phone = $consigneerow['contact_no'];
         $con_gst = $consigneerow['gst_no'];
+
+        $consignor_branch_id = isset($_POST['consignor_branch']) ? (int) $_POST['consignor_branch'] : 0;
+        $bill_to_branch_id = isset($_POST['bill_to_branch']) ? (int) $_POST['bill_to_branch'] : 0;
+        $consignee_branch_id = isset($_POST['consignee_branch']) ? (int) $_POST['consignee_branch'] : 0;
+        $ship_to_client_id = ew_booking_normalize_ship_to_client_id($_POST['ship_to_client'] ?? 0, $consignee);
+        if ($ship_to_client_id > 0) {
+            ew_booking_fill_party_address_from_client($conn, $ship_to_client_id, $con_address1, $con_address2, $con_city, $con_state, $con_pincode, $con_phone, $con_gst);
+            ew_booking_apply_client_branch($conn, $consignee_branch_id, $con_address1, $con_address2, $con_city, $con_state, $con_pincode, $con_phone, $con_gst);
+            ew_booking_apply_ship_to_route($conn, $ship_to_client_id, $consignee_branch_id, $_POST);
+            $destination = $_POST['destination'];
+        }
+        $pickup_client_id = ew_booking_normalize_pickup_client_id($_POST['pickup_client'] ?? 0, $consignor);
+        if ($pickup_client_id > 0) {
+            ew_booking_fill_party_address_from_client($conn, $pickup_client_id, $address1, $address2, $city, $state, $pincode, $phone, $gst_no);
+            ew_booking_apply_client_branch($conn, $consignor_branch_id, $address1, $address2, $city, $state, $pincode, $phone, $gst_no);
+            ew_booking_apply_pickup_route($conn, $pickup_client_id, $consignor_branch_id, $_POST);
+            $origin = $_POST['origin'];
+        }
         $ftl_type = $_POST['truck_type'];
 
         // Train type and Charges
@@ -2405,10 +2449,17 @@ vehicle_loading_unloading,other_train_name) values('" . $grn_num1 . "','" . $id_
         // $insert_result = mysqli_query($conn, $query) or die(mysqli_error($conn));
         $insert_result = mysqli_query($conn, $query);
         $transaction_id = (int) mysqli_insert_id($conn);
+        if ($insert_result && $transaction_id) {
+            mysqli_query(
+                $conn,
+                "UPDATE $table0 SET consignor_branch_id='$consignor_branch_id', bill_to_branch_id='$bill_to_branch_id', consignee_branch_id='$consignee_branch_id', ship_to_client_id='$ship_to_client_id', pickup_client_id='$pickup_client_id' WHERE transaction_id='$transaction_id'"
+            );
+        }
         if (!$insert_result) {
+            $db_error = mysqli_error($conn);
             rollback_last_grn_id($conn, $grn_seq_key);
             $out_put['result'] = '0';
-            $out_put['sql_error'] = mysqli_error($conn) ?: 'Could not save consignment (database error).';
+            $out_put['sql_error'] = $db_error !== '' ? $db_error : 'Could not save consignment (database error).';
             ob_clean();
             echo json_encode($out_put);
             exit;
@@ -3854,6 +3905,14 @@ if ($form_name == 'edit_consignment_details') {
     $con_pincode = $consigneerow['pincode'];
     $con_phone = $consigneerow['contact_no'];
     $con_gst = $consigneerow['gst_no'];
+    $ship_to_client_id = ew_booking_normalize_ship_to_client_id($_POST['ship_to_client'] ?? 0, $consignee);
+    if ($ship_to_client_id > 0) {
+        ew_booking_fill_party_address_from_client($conn, $ship_to_client_id, $con_address1, $con_address2, $con_city, $con_state, $con_pincode, $con_phone, $con_gst);
+    }
+    $pickup_client_id = ew_booking_normalize_pickup_client_id($_POST['pickup_client'] ?? 0, $consignor);
+    if ($pickup_client_id > 0) {
+        ew_booking_fill_party_address_from_client($conn, $pickup_client_id, $address1, $address2, $city, $state, $pincode, $phone, $gst_no);
+    }
     $grn_no = $_POST['grn_no'];
     $ftl_type = $_POST['truck_type'];
     $train_name = $_POST['train_name'];
@@ -3865,6 +3924,14 @@ if ($form_name == 'edit_consignment_details') {
     ew_transaction_ensure_party_branch_columns($conn, $tables[0]);
     ew_booking_apply_client_branch($conn, $consignor_branch_id, $address1, $address2, $city, $state, $pincode, $phone, $gst_no);
     ew_booking_apply_client_branch($conn, $consignee_branch_id, $con_address1, $con_address2, $con_city, $con_state, $con_pincode, $con_phone, $con_gst);
+    if ($ship_to_client_id > 0) {
+        ew_booking_apply_ship_to_route($conn, $ship_to_client_id, $consignee_branch_id, $_POST);
+        $destination = $_POST['destination'];
+    }
+    if ($pickup_client_id > 0) {
+        ew_booking_apply_pickup_route($conn, $pickup_client_id, $consignor_branch_id, $_POST);
+        $origin = $_POST['origin'];
+    }
 
     // Volumetric Values
     $len = $_POST['length'] ? $_POST['length'] : null;
@@ -4002,6 +4069,30 @@ if ($form_name == 'edit_consignment_details') {
             total='$total',
             balance='$total',
             total_words='$amount_in_words',
+            mode_of_consignment='" . mysqli_real_escape_string($conn, (string) ($mode_of_consignment ?? '')) . "',
+            consigner='" . (int) $consignor . "',
+            origin='" . (int) ($origin ?? 0) . "',
+            address1='" . mysqli_real_escape_string($conn, (string) $address1) . "',
+            address2='" . mysqli_real_escape_string($conn, (string) $address2) . "',
+            city='" . (int) $city . "',
+            state='" . (int) $state . "',
+            pincode='" . mysqli_real_escape_string($conn, (string) $pincode) . "',
+            phone='" . mysqli_real_escape_string($conn, (string) $phone) . "',
+            gst_no='" . mysqli_real_escape_string($conn, (string) $gst_no) . "',
+            consignee='" . (int) $consignee . "',
+            destination='" . (int) ($destination ?? 0) . "',
+            con_address1='" . mysqli_real_escape_string($conn, (string) $con_address1) . "',
+            con_address2='" . mysqli_real_escape_string($conn, (string) $con_address2) . "',
+            con_city='" . (int) $con_city . "',
+            con_state='" . (int) $con_state . "',
+            con_pincode='" . mysqli_real_escape_string($conn, (string) $con_pincode) . "',
+            con_phone='" . mysqli_real_escape_string($conn, (string) $con_phone) . "',
+            con_gst_no='" . mysqli_real_escape_string($conn, (string) $con_gst) . "',
+            bill_to_branch_id='" . (int) $bill_to_branch_id . "',
+            consignee_branch_id='" . (int) $consignee_branch_id . "',
+            ship_to_client_id='" . (int) $ship_to_client_id . "',
+            pickup_client_id='" . (int) $pickup_client_id . "',
+            consignor_branch_id='" . (int) $consignor_branch_id . "',
             updated_at='$updated_at',
             updated_by='$updated_by'
             WHERE transaction_id='" . mysqli_real_escape_string($conn, $edit_id) . "'";
@@ -4098,7 +4189,7 @@ cfs='$cfs',
 
 mamul_charge='$mamul_charge',
 vehicle_halting_charge='$vehicle_halting_charge',
-vehicle_loading_unloading='$vehicle_loading_unloading',consignor_branch_id='$consignor_branch_id',bill_to_branch_id='$bill_to_branch_id',consignee_branch_id='$consignee_branch_id',consigner_signature='" . $signature . "',updated_at = '" . $updated_at . "',updated_by ='" . $updated_by . "', eway_number = '$eway_number', eway_expirydate = '$eway_expiryDate', other_train_name = '$other_train_names' where transaction_id='$edit_id'";
+vehicle_loading_unloading='$vehicle_loading_unloading',consignor_branch_id='$consignor_branch_id',bill_to_branch_id='$bill_to_branch_id',consignee_branch_id='$consignee_branch_id',ship_to_client_id='$ship_to_client_id',pickup_client_id='$pickup_client_id',consigner_signature='" . $signature . "',updated_at = '" . $updated_at . "',updated_by ='" . $updated_by . "', eway_number = '$eway_number', eway_expirydate = '$eway_expiryDate', other_train_name = '$other_train_names' where transaction_id='$edit_id'";
     $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
 
     $package = array();
@@ -7353,6 +7444,18 @@ $total_packages = isset($_POST['total_packages'])
         }
         ew_road_transit_hours_save($conn, $grn_no, (float) $hours_raw);
         $txn_preview['road_transit_hours_override'] = $hours_raw;
+    }
+    $cargo_pickup_kind = $txn_preview ? ew_mode_offload_kind($conn, $txn_preview['mode_of_transportation'] ?? 0) : '';
+    if ((int) $status === 2 && $cargo_pickup_kind !== '') {
+        $carrier_id = (int) ($_POST['status_pickup_carrier'] ?? 0);
+        if (!ew_status_pickup_carrier_valid($conn, $cargo_pickup_kind, $carrier_id)) {
+            echo 0;
+            exit;
+        }
+        $carrier_sql = (int) $carrier_id;
+        $grn_sql = mysqli_real_escape_string($conn, $grn_no);
+        mysqli_query($conn, "UPDATE `$table_names` SET train_type='$carrier_sql' WHERE grn_no='$grn_sql' LIMIT 1");
+        $txn_preview['train_type'] = $carrier_sql;
     }
     if ($uses_transit_hours && !((int) $status === 8 && (isset($_POST['delivery_type']) ? $_POST['delivery_type'] : '') === 'partial')) {
         $txn_preview['active_status'] = $status;

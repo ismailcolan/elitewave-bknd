@@ -171,6 +171,7 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 											<div class="ew-field"><label>Quote date <span class="req">*</span></label><?php echo ew_date_input(array('name' => 'quote_date', 'id' => 'quote_date', 'value' => $quote_date, 'required' => true, 'readonly' => !$form_editable)); ?></div>
 											<div class="ew-field"><label>Valid till</label><?php echo ew_date_input(array('name' => 'valid_till', 'id' => 'valid_till', 'value' => $valid_till, 'readonly' => !$form_editable)); ?></div>
 											<div class="ew-field span-4"><label>Subject</label><input type="text" name="subject" id="subject" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['subject'] ?? ''); ?>" /></div>
+											<div class="ew-field span-4"><label>Dear Sir / Madam</label><textarea name="letter_body" id="letter_body" class="form-control pv-bind" rows="3" <?php echo $form_editable ? '' : 'readonly'; ?>><?php echo htmlspecialchars(quotation_letter_body_for($master)); ?></textarea></div>
 										</div>
 									</div>
 								</div>
@@ -335,7 +336,7 @@ window.QUOTATION_PAYMENT_LABELS = <?php echo json_encode(quotation_payment_terms
 window.QUOTATION_PREVIEW_IN_MODAL = true;
 window.QUOTATION_RETURN_PAGE = 'quotation_consignor_multi_dest.php';
 </script>
-<script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261008mdsource2"></script>
+<script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261020letter"></script>
 <?php echo quotation_customer_approve_modal_html(); ?>
 <?php echo quotation_customer_approve_script('quotation_consignor_multi_dest_list.php?tab=approved'); ?>
 </body>

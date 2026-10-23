@@ -263,65 +263,80 @@ th.table-title,
   vertical-align: middle !important;
 }
 
-/* Global table — center all column headers and cell values */
+/* Column headers stay centered */
 .table > thead > tr > th,
 .table > thead > tr > td,
-.table > tbody > tr > td,
 .table > tfoot > tr > th,
-.table > tfoot > tr > td,
 table.dataTable thead th,
 table.dataTable thead td,
-table.dataTable tbody td,
 table.dataTable tbody th,
 table.dataTable tfoot th,
-table.dataTable tfoot td,
 .dataTable thead th,
 .dataTable thead td,
-.dataTable tbody td,
 .dataTable tbody th,
 .dataTable tfoot th,
-.dataTable tfoot td,
 .ew-data-table thead th,
-.ew-data-table tbody td,
 .trans_list_table thead th,
-.trans_list_table tbody td,
 #dataTable1 thead th,
-#dataTable1 tbody td,
 #egcn_list_table th,
-#egcn_list_table td,
 #egen_list_table th,
-#egen_list_table td,
 #tss_list_table th,
-#tss_list_table td,
 #trip_list_table th,
-#trip_list_table td,
 #gcn_items_table th,
-#gcn_items_table td,
 #expense_lines_table th,
-#expense_lines_table td,
 #dataTable_exp_type thead th,
-#dataTable_exp_type tbody td,
 #ts_status_table thead th,
-#ts_status_table tbody td,
 .widget-container table thead th,
-.widget-container table tbody td,
 .widget-container .dataTable thead th,
-.widget-container .dataTable tbody td,
 th.table-title,
 th.table-title-data,
-.table-title-data {
+table thead .text-left,
+table thead .text-right,
+.table thead .text-left,
+.table thead .text-right,
+table.dataTable thead .text-left,
+table.dataTable thead .text-right,
+.dataTable thead .text-left,
+.dataTable thead .text-right,
+.table thead th.col-actions {
   text-align: center !important;
 }
 
-table .text-left,
-table .text-right,
-.table .text-left,
-.table .text-right,
-table.dataTable .text-left,
-table.dataTable .text-right,
-.dataTable .text-left,
-.dataTable .text-right {
-  text-align: center !important;
+/* Table body values are left-aligned */
+.table > tbody > tr > td,
+.table > tfoot > tr > td,
+table.dataTable tbody td,
+table.dataTable tfoot td,
+.dataTable tbody td,
+.dataTable tfoot td,
+.ew-data-table tbody td,
+.trans_list_table tbody td,
+#dataTable1 tbody td,
+#egcn_list_table td,
+#egen_list_table td,
+#tss_list_table td,
+#trip_list_table td,
+#gcn_items_table td,
+#expense_lines_table td,
+#dataTable_exp_type tbody td,
+#ts_status_table tbody td,
+.widget-container table tbody td,
+.widget-container .dataTable tbody td,
+td.table-title-data,
+.table-title-data,
+table tbody .text-left,
+table tbody .text-right,
+.table tbody .text-left,
+.table tbody .text-right,
+table.dataTable tbody .text-left,
+table.dataTable tbody .text-right,
+.dataTable tbody .text-left,
+.dataTable tbody .text-right,
+.table tbody td.actions,
+.table tbody td.col-actions,
+.summary_automatize td,
+.summary_automatize td.summary_automatize_name {
+  text-align: left !important;
 }
 
 .table tbody td .form-control,
@@ -331,15 +346,7 @@ table.dataTable tbody td .form-control,
 .table tbody td .form-control.text-right,
 table.dataTable tbody td .form-control.text-right,
 .dataTable tbody td .form-control.text-right {
-  text-align: center !important;
-}
-
-.table tbody td.actions,
-.table tbody td.col-actions,
-.table thead th.col-actions,
-.summary_automatize td,
-.summary_automatize td.summary_automatize_name {
-  text-align: center !important;
+  text-align: left !important;
 }
 
 /* ── Form Controls ────────────────────────────────────────── */

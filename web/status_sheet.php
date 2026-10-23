@@ -307,6 +307,9 @@ $c_Y = date('Y');
 			width: 36px;
 			text-align: center !important;
 		}
+		#list_report_table tbody td.cb-col {
+			text-align: left !important;
+		}
 
 		#select_all_chk {
 			cursor: pointer;

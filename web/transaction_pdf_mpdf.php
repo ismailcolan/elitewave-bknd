@@ -9,6 +9,7 @@ $month          = $_GET['month'];
 $year           = $_GET['year'];
 $transaction_id = $_GET['id'];
 
+ew_transaction_ensure_party_branch_columns($conn, 'transaction_' . $month . '_' . $year);
 $query  = "SELECT * FROM transaction_" . $month . "_" . $year . " WHERE transaction_id='" . $transaction_id . "'";
 $result = mysqli_query($conn, $query);
 $row    = mysqli_fetch_assoc($result);
@@ -164,9 +165,13 @@ $consignor_addr   = fmt_addr($consignor_det, $conn);
 
 $bill_to_branch_id = isset($bill_to_branch_id) ? (int) $bill_to_branch_id : 0;
 $ship_to_branch_id = isset($consignee_branch_id) ? (int) $consignee_branch_id : 0;
+$ship_client_id = isset($ship_to_client_id) ? (int) $ship_to_client_id : 0;
+if ($ship_client_id <= 0) {
+    $ship_client_id = (int) $consignee;
+}
 
 $bill_block = ew_gcn_party_block($conn, $consignee, $bill_to_branch_id);
-$ship_block = ew_gcn_party_block($conn, $consignee, $ship_to_branch_id, true);
+$ship_block = ew_gcn_party_block($conn, $ship_client_id, $ship_to_branch_id, $ship_client_id === (int) $consignee);
 
 $consignee_addr = str_replace('<br>', ', ', $bill_block['addr_html']);
 

@@ -192,8 +192,8 @@
 		if (subject !== '') {
 			html += '<div class="meta" style="margin-top:8px;"><b>Subject:</b> ' + escHtml(subject) + '</div>';
 		}
-		var intro = window.QUOTATION_LETTER_INTRO || '';
-		html += '<p style="margin:10px 0 6px;">Dear Sir / Madam,<br><span style="font-weight:normal;">' + escHtml(intro) + '</span></p>';
+		var intro = $.trim($('#letter_body').val() || '') || (window.QUOTATION_LETTER_INTRO || '');
+		html += '<p style="margin:10px 0 6px;">Dear Sir / Madam,<br><span style="font-weight:normal;">' + escHtml(intro).replace(/\n/g, '<br>') + '</span></p>';
 		var logistics = '';
 		var qaLbl = selectPreviewLabel('quotation_approval');
 		if (qaLbl !== '') {

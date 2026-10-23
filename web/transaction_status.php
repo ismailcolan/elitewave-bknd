@@ -3,6 +3,7 @@ require_once ('include/connect.php');
 require_once ('include/function.php');
 require_once ('include/transaction_list_query.php');
 $logged_id = $_SESSION['user_id'];
+$status_pickup_carriers = ew_status_pickup_carrier_options($conn);
 ?>
 <!DOCTYPE html>
 <html>
@@ -103,7 +104,7 @@ $logged_id = $_SESSION['user_id'];
             overflow: visible !important;
             white-space: nowrap;
             padding: 8px 6px !important;
-            text-align: center !important;
+            text-align: left !important;
         }
         .trans_list_table tbody tr:hover td { background: #F8FAFC !important; }
         .trans_list_table tbody tr:nth-child(even) td { background: #FBFCFE; }
@@ -370,7 +371,7 @@ $logged_id = $_SESSION['user_id'];
                     <div class="ew-page-v2 ew-page-v2--wide-table txn-page-wrap">
                         <div class="ew-page-head">
                             <div class="ew-page-head-left">
-                                <h1 class="ew-page-title">Change Status</h1>
+                                <h1 class="ew-page-title">GCN Transit Update</h1>
                             </div>
                         </div>
                         <div class="ew-card ew-erp-list txn-table-card">
@@ -443,7 +444,7 @@ $logged_id = $_SESSION['user_id'];
                                     <th>Destination</th>
                                     <th>Mode</th>
                                     <th>Status</th>
-                                    <th>Change Status</th>
+                                    <th>Transit Update</th>
                                     </tr>
                                 </thead>
                                 <tbody id="get_month_details">
@@ -545,7 +546,7 @@ if ($delivery_type == 'partial') {
                                                     'total_packages' => $total_packages,
                                                 )); ?></td>
 
-                                                <td class="col-steps actions center-content" data-label="Change Status" data-road="<?php echo ew_mode_is_road_freight($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0'; ?>" data-transit-hours="<?php echo ew_mode_uses_transit_hours($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0'; ?>" data-breakdown-open="<?php echo ew_road_breakdown_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>" data-offload-open="<?php echo ew_air_offload_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>">
+                                                <td class="col-steps actions center-content" data-label="Change Status" data-road="<?php echo ew_mode_is_road_freight($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0'; ?>" data-transit-hours="<?php echo ew_mode_uses_transit_hours($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0'; ?>" data-cargo-kind="<?php echo htmlspecialchars(ew_mode_offload_kind($conn, $row['mode_of_transportation'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>" data-cargo-id="<?php echo (int) ($row['train_type'] ?? 0); ?>" data-breakdown-open="<?php echo ew_road_breakdown_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>" data-offload-open="<?php echo ew_air_offload_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>">
                                                     <div>
                                                         <button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>
                                                         <button class="border picked-up <?php if ($row['status'] >= 2) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 2) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="2" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 2) { echo 'data-remarks="' . get_cong_remarks($conn, 2, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="Consignment Picked Up"><?php if ($row['status'] >= 2) { echo "<i class='fa fa-check'></i>"; } else { echo '2'; } ?></button>
@@ -607,6 +608,7 @@ if ($delivery_type == 'partial') {
 
     <script type="text/javascript">
         window.tsStatusTable = null;
+        var statusPickupCarrierLists = <?php echo json_encode($status_pickup_carriers, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
         function hidePageLoaders() {
             $(".loading-page").hide();
@@ -898,6 +900,18 @@ if ($delivery_type == 'partial') {
                         return;
                     }
                 }
+                if ($('#status_cargo_pickup_group').is(':visible')) {
+                    var carrierVal = $.trim($('#status_pickup_carrier').val() || '');
+                    if (!carrierVal) {
+                        var cargoLabel = $('#status_popup_modal').attr('data-cargo-kind') === 'flight' ? 'flight' : 'train';
+                        if (typeof ewToast === 'function') {
+                            ewToast('Select the ' + cargoLabel + ' for this pickup.', 'warning');
+                        } else {
+                            alert('Select the ' + cargoLabel + ' for this pickup.');
+                        }
+                        return;
+                    }
+                }
                 var $saveBtn = $(this);
                 function proceedStatusSave() {
                         $saveBtn.attr('disabled', true);
@@ -1043,6 +1057,87 @@ if (parseInt($("#status").val()) === 8) {
                $('#road_transit_hours').val('');
            }
        }
+
+       function statusRowCargoKind($el) {
+           var kind = $el.attr('data-cargo-kind');
+           if (kind === undefined) {
+               var $wrap = $el.closest('[data-cargo-kind]');
+               kind = $wrap.length ? $wrap.attr('data-cargo-kind') : '';
+           }
+           return kind ? String(kind) : '';
+       }
+
+       function statusRowCargoId($el) {
+           var id = $el.attr('data-cargo-id');
+           if (id === undefined) {
+               var $wrap = $el.closest('[data-cargo-id]');
+               id = $wrap.length ? $wrap.attr('data-cargo-id') : '';
+           }
+           id = parseInt(id, 10);
+           return isNaN(id) ? 0 : id;
+       }
+
+       function destroyStatusPickupCarrierSelect2() {
+           var $sel = $('#status_pickup_carrier');
+           if (!$sel.length || !$.fn.select2) {
+               return;
+           }
+           try {
+               if ($sel.data('select2')) {
+                   $sel.select2('destroy');
+               }
+           } catch (e) {}
+       }
+
+       function fillStatusPickupCarrierSelect(kind, selectedId) {
+           var $sel = $('#status_pickup_carrier');
+           var rows = (statusPickupCarrierLists && statusPickupCarrierLists[kind]) ? statusPickupCarrierLists[kind] : [];
+           var html = '<option value="">Select</option>';
+           $.each(rows, function(i, row) {
+               var sel = (selectedId && String(selectedId) === String(row.id)) ? ' selected' : '';
+               var jh = row.journey_hours ? String(row.journey_hours).replace(/"/g, '&quot;') : '';
+               html += '<option value="' + row.id + '" data-journey-hours="' + jh + '"' + sel + '>' + $('<div>').text(row.label || '').html() + '</option>';
+           });
+           destroyStatusPickupCarrierSelect2();
+           $sel.html(html);
+           if ($sel.length && $.fn.select2) {
+               $sel.select2({
+                   width: '100%',
+                   placeholder: 'Select',
+                   allowClear: false,
+                   minimumResultsForSearch: 0
+               });
+           }
+           if (selectedId) {
+               $sel.val(String(selectedId));
+               if ($sel.data('select2')) {
+                   $sel.select2('val', String(selectedId));
+               }
+           }
+       }
+
+       function syncPickupCarrierField(status, cargoKind, preselectId) {
+           cargoKind = cargoKind || '';
+           var show = parseInt(status, 10) === 2 && (cargoKind === 'train' || cargoKind === 'flight');
+           $('#status_cargo_pickup_group').toggle(show);
+           if (!show) {
+               destroyStatusPickupCarrierSelect2();
+               $('#status_pickup_carrier').html('<option value="">Select</option>').prop('disabled', true);
+               return;
+           }
+           var label = cargoKind === 'flight' ? 'Flight' : 'Train';
+           $('#status_cargo_pickup_label').text(label);
+           $('#status_pickup_carrier').prop('disabled', false);
+           fillStatusPickupCarrierSelect(cargoKind, preselectId || 0);
+       }
+
+       $(document).on('change', '#status_pickup_carrier', function() {
+           var jh = $(this).find('option:selected').data('journeyHours');
+           if (jh && $('#road_transit_hours_group').is(':visible') && !$.trim($('#road_transit_hours').val())) {
+               $('#road_transit_hours').val(jh);
+               loadStatusTrackingMessage();
+           }
+       });
 
        function loadStatusTrackingMessage() {
            var tableName = $('#table_names').val() || '';
@@ -1255,8 +1350,13 @@ if (parseInt($("#status").val()) === 8) {
     $("#grn_no").val(grn_no);
     $("#status").val(status);
     var pickedTransitHours = statusRowUsesTransitHours($(this));
+    var pickedCargoKind = statusRowCargoKind($(this));
+    var pickedCargoId = statusRowCargoId($(this));
     $('#status_popup_modal').attr('data-transit-hours', pickedTransitHours ? '1' : '0');
+    $('#status_popup_modal').attr('data-cargo-kind', pickedCargoKind);
+    $('#status_popup_modal').attr('data-cargo-id', pickedCargoId ? String(pickedCargoId) : '');
     syncTransitHoursField(status, pickedTransitHours);
+    syncPickupCarrierField(status, pickedCargoKind, pickedCargoId);
 
     // =====================================
 // Delivery status handling for Status 8
@@ -1439,14 +1539,21 @@ $(document).on('click','.mobile-update-status',function(){
     $("#mobile_status_select").html(html);
     $("#status").val($("#mobile_status_select").val());
     var mobileTransitHours = statusRowUsesTransitHours($(this));
+    var mobileCargoKind = statusRowCargoKind($(this));
+    var mobileCargoId = statusRowCargoId($(this));
     $('#status_popup_modal').attr('data-transit-hours', mobileTransitHours ? '1' : '0');
+    $('#status_popup_modal').attr('data-cargo-kind', mobileCargoKind);
+    $('#status_popup_modal').attr('data-cargo-id', mobileCargoId ? String(mobileCargoId) : '');
     syncTransitHoursField($("#status").val(), mobileTransitHours);
+    syncPickupCarrierField($("#status").val(), mobileCargoKind, mobileCargoId);
     loadStatusTrackingMessage();
 
 });
 $(document).on("change","#mobile_status_select",function(){
     $("#status").val($(this).val());
-    syncTransitHoursField($(this).val(), $('#status_popup_modal').attr('data-transit-hours') === '1');
+    var modal = $('#status_popup_modal');
+    syncTransitHoursField($(this).val(), modal.attr('data-transit-hours') === '1');
+    syncPickupCarrierField($(this).val(), modal.attr('data-cargo-kind') || '', parseInt(modal.attr('data-cargo-id') || '0', 10) || 0);
     loadStatusTrackingMessage();
 });
     </script>
@@ -1480,6 +1587,14 @@ $(document).on("change","#mobile_status_select",function(){
                         </div>
 
                         <div id="status_remarks" class="ts-modal-remarks-panel"></div>
+
+                        <div class="form-group" id="status_cargo_pickup_group" style="display:none;">
+                            <label id="status_cargo_pickup_label">Train <span class="req-star">*</span></label>
+                            <select class="form-control" id="status_pickup_carrier" name="status_pickup_carrier">
+                                <option value="">Select</option>
+                            </select>
+                            <p class="ew-field-hint" style="margin:6px 0 0;">Choose the train or flight this consignment is picked up on. Road consignments do not use this field.</p>
+                        </div>
 
                         <div class="form-group" id="road_transit_hours_group" style="display:none;">
                             <label>Transit hours (pickup to delivery) <span class="req-star">*</span></label>

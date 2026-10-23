@@ -97,8 +97,10 @@ function quotation_build_approval_email_body($conn, $row)
 		$summary_rows .= '<tr><td style="padding:6px 12px 6px 0;color:#1a1a1a;font-weight:bold;vertical-align:top;">Mode of transport</td>'
 			. '<td style="padding:6px 0;color:#1a1a1a;vertical-align:top;">' . $mode . '</td></tr>';
 	}
-	$summary_rows .= '<tr><td style="padding:6px 12px 6px 0;color:#1a1a1a;font-weight:bold;vertical-align:top;">Total amount</td>'
-		. '<td style="padding:6px 0;color:#1a1a1a;vertical-align:top;">&#8377; ' . htmlspecialchars($total, ENT_QUOTES, 'UTF-8') . ' /- (inclusive of applicable taxes as per attachment)</td></tr>';
+	if (!$is_multi && !$is_consignor_md) {
+		$summary_rows .= '<tr><td style="padding:6px 12px 6px 0;color:#1a1a1a;font-weight:bold;vertical-align:top;">Total amount</td>'
+			. '<td style="padding:6px 0;color:#1a1a1a;vertical-align:top;">&#8377; ' . htmlspecialchars($total, ENT_QUOTES, 'UTF-8') . ' /- (inclusive of applicable taxes as per attachment)</td></tr>';
+	}
 
 	$mm_table = '';
 	if ($is_consignor_md) {

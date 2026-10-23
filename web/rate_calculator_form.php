@@ -68,37 +68,122 @@ if ($key != '') {
 					
 				  <div class="ew-form-grid">
 						<?php
-							$query = "select * from rate where md5(id)='".$_REQUEST['key']."'";
+							$key_sql = mysqli_real_escape_string($conn, (string) ($_REQUEST['key'] ?? ''));
+							$query = "select * from rate where md5(id)='".$key_sql."'";
 							$result = mysqli_query($conn,$query);
-							$row = mysqli_fetch_array($result);
+							$row = $result ? mysqli_fetch_array($result) : null;
+							if (!is_array($row)) {
+								$row = array('origin' => '', 'destination' => '', 'surface' => '', 'express' => '', 'train' => '', 'air' => '', 'note' => '');
+							}
+							$city_options = array();
+							$city_q = mysqli_query($conn, "SELECT city_name FROM city WHERE status=0 ORDER BY city_name ASC");
+							if ($city_q) {
+								while ($city = mysqli_fetch_assoc($city_q)) {
+									$name = trim((string) ($city['city_name'] ?? ''));
+									if ($name === '') {
+										continue;
+									}
+									$city_options[$name] = $name;
+								}
+							}
+							$rate_city_name = function ($saved) {
+								$saved = trim((string) $saved);
+								if ($saved === '') {
+									return '';
+								}
+								$dash = strpos($saved, '-');
+								if ($dash !== false) {
+									$saved = trim(substr($saved, $dash + 1));
+								}
+								return $saved;
+							};
+							foreach (array('origin', 'destination') as $saved_key) {
+								$saved_name = $rate_city_name($row[$saved_key] ?? '');
+								if ($saved_name !== '' && !isset($city_options[$saved_name])) {
+									$city_options = array($saved_name => $saved_name) + $city_options;
+								}
+							}
+							$rate_field_for_mode = function ($mode_type) {
+								$t = strtolower(trim((string) $mode_type));
+								if (strpos($t, 'air') !== false) {
+									return 'air';
+								}
+								if (strpos($t, 'train') !== false) {
+									return 'train';
+								}
+								if (strpos($t, 'express') !== false || strpos($t, 'urgent') !== false) {
+									return 'express';
+								}
+								return 'surface';
+							};
+							$modes = array();
+							$mode_q = mysqli_query($conn, "SELECT mode_id, mode_type FROM mode_of_transportation WHERE status=0 ORDER BY mode_type ASC");
+							if ($mode_q) {
+								while ($mode = mysqli_fetch_assoc($mode_q)) {
+									$modes[] = $mode;
+								}
+							}
+							$filled_rates = array();
+							foreach (array('surface', 'express', 'train', 'air') as $rate_key) {
+								if (trim((string) ($row[$rate_key] ?? '')) !== '') {
+									$filled_rates[] = $rate_key;
+								}
+							}
+							$preselect_rate = count($filled_rates) === 1 ? $filled_rates[0] : '';
+							$mode_selected = false;
 						?>
 						<div class="ew-section-label">Route &amp; Pricing</div>
 						<div class="ew-field">
 							<label class="control-label">Origin <span style="color:red;">*</span> :</label>
-							<input type="text" id="origin" name="origin" value="<?php echo $row['origin']; ?>" class="form-control" autocomplete="off" required placeholder="000001-Origin Name"/>
+							<select id="origin" name="origin" class="form-control select2able" required>
+								<option value="">Select Origin</option>
+								<?php foreach ($city_options as $city_label) { ?>
+								<option value="<?php echo htmlspecialchars($city_label, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($rate_city_name($row['origin']) === $city_label) ? 'selected' : ''; ?>><?php echo htmlspecialchars($city_label, ENT_QUOTES, 'UTF-8'); ?></option>
+								<?php } ?>
+							</select>
 							<span id="origin_dup-check"></span>
 						</div>
 						<div class="ew-field">
 							<label class="control-label">Destination <span style="color:red;">*</span> :</label>
-							<input type="text" name="destination" id="destination" value="<?php echo $row['destination']; ?>" class="form-control" autocomplete="off" required placeholder="000001-Destination Name"/>
+							<select name="destination" id="destination" class="form-control select2able" required>
+								<option value="">Select Destination</option>
+								<?php foreach ($city_options as $city_label) { ?>
+								<option value="<?php echo htmlspecialchars($city_label, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($rate_city_name($row['destination']) === $city_label) ? 'selected' : ''; ?>><?php echo htmlspecialchars($city_label, ENT_QUOTES, 'UTF-8'); ?></option>
+								<?php } ?>
+							</select>
 							<span id="destination_dup-check"></span>
 						</div>
 						<div class="ew-field">
-							<label class="control-label">Surface <span style="color:red;">*</span> :</label>
-							<input type="text" name="surface" id="surface" value="<?php echo $row['surface']; ?>" class="form-control" autocomplete="off" required placeholder="Enter Surface Rate"/>
+							<label class="control-label">Mode <span style="color:red;">*</span> :</label>
+							<select id="mode" name="mode" class="form-control select2able" required>
+								<option value="">Select Mode</option>
+								<?php foreach ($modes as $mode) {
+									$rate_field = $rate_field_for_mode($mode['mode_type']);
+									$selected = (!$mode_selected && $preselect_rate !== '' && $preselect_rate === $rate_field);
+									if ($selected) {
+										$mode_selected = true;
+									}
+								?>
+								<option value="<?php echo (int) $mode['mode_id']; ?>" data-rate="<?php echo $rate_field; ?>" <?php echo $selected ? 'selected' : ''; ?>><?php echo htmlspecialchars($mode['mode_type'], ENT_QUOTES, 'UTF-8'); ?></option>
+								<?php } ?>
+							</select>
 						</div>
-						<div class="ew-field">
-							<label class="control-label">Express <span style="color:red;">*</span> :</label>
-							<input type="text" name="express" id="express" class="form-control" value="<?php echo $row['express']; ?>" autocomplete="off" required placeholder="Enter Express Rate"/>
+						<div class="ew-field rate-field-wrap" data-rate="surface" style="display:none;">
+							<label class="control-label"><span class="rate-label">Surface</span> <span style="color:red;">*</span> :</label>
+							<input type="text" name="surface" id="surface" value="<?php echo htmlspecialchars((string) $row['surface'], ENT_QUOTES, 'UTF-8'); ?>" class="form-control" autocomplete="off" placeholder="Enter Surface Rate"/>
 						</div>
-						<div class="ew-field">
-							<label class="control-label">Train <span style="color:red;">*</span> :</label>
-							<input type="text" name="train" id="train" class="form-control" value="<?php echo $row['train']; ?>" autocomplete="off" required placeholder="Enter Train Rate"/>
+						<div class="ew-field rate-field-wrap" data-rate="express" style="display:none;">
+							<label class="control-label"><span class="rate-label">Express</span> <span style="color:red;">*</span> :</label>
+							<input type="text" name="express" id="express" class="form-control" value="<?php echo htmlspecialchars((string) $row['express'], ENT_QUOTES, 'UTF-8'); ?>" autocomplete="off" placeholder="Enter Express Rate"/>
+						</div>
+						<div class="ew-field rate-field-wrap" data-rate="train" style="display:none;">
+							<label class="control-label"><span class="rate-label">Train</span> <span style="color:red;">*</span> :</label>
+							<input type="text" name="train" id="train" class="form-control" value="<?php echo htmlspecialchars((string) $row['train'], ENT_QUOTES, 'UTF-8'); ?>" autocomplete="off" placeholder="Enter Train Rate"/>
 							<span class="dup-check"></span>
 						</div>
-						<div class="ew-field">
-							<label class="control-label">Air <span style="color:red;">*</span> :</label>
-							<input type="text" name="air" id="air" value="<?php echo $row['air']; ?>" class="form-control" autocomplete="off" required placeholder="Enter Air Rate"/>
+						<div class="ew-field rate-field-wrap" data-rate="air" style="display:none;">
+							<label class="control-label"><span class="rate-label">Air</span> <span style="color:red;">*</span> :</label>
+							<input type="text" name="air" id="air" value="<?php echo htmlspecialchars((string) $row['air'], ENT_QUOTES, 'UTF-8'); ?>" class="form-control" autocomplete="off" placeholder="Enter Air Rate"/>
 							<span class="email-dup-check"></span>
 						</div>
 						<div class="ew-field span-2">
@@ -130,6 +215,21 @@ if ($key != '') {
 		
 		<script type="text/javascript">
 		$(document).ready(function(){
+
+		function showRateForMode() {
+			var $opt = $('#mode option:selected');
+			var field = $opt.data('rate') || '';
+			var label = $.trim($opt.text());
+			$('.rate-field-wrap').hide().find('input').prop('required', false);
+			if (field) {
+				var $wrap = $('.rate-field-wrap[data-rate="' + field + '"]');
+				$wrap.show();
+				$wrap.find('.rate-label').text(label);
+				$wrap.find('input').prop('required', true);
+			}
+		}
+		$('#mode').on('change', showRateForMode);
+		showRateForMode();
 
 		//Duplication
 		var dup_chk = true;

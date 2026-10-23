@@ -28,7 +28,6 @@ function ew_cfs_master_ensure_schema($conn)
 	}
 
 	ew_cfs_master_apply_default_seeds($conn);
-	ew_cfs_master_sync_pdf_codes($conn);
 }
 
 /** Chennai / North Chennai CFS list (GCN PDF). */
@@ -67,7 +66,7 @@ function ew_cfs_master_default_seeds()
 
 function ew_cfs_master_format_code($num)
 {
-	return 'CFS' . sprintf('%03d', (int) $num);
+	return ew_master_format_code(ew_master_code_prefix('CFS Master'), $num);
 }
 
 function ew_cfs_master_next_code($conn)
@@ -84,13 +83,18 @@ function ew_cfs_master_next_code($conn)
 
 function ew_cfs_master_apply_default_seeds($conn)
 {
+	$cnt_q = mysqli_query($conn, 'SELECT COUNT(*) AS n FROM cfs_master');
+	$cnt_row = $cnt_q ? mysqli_fetch_assoc($cnt_q) : null;
+	if ((int) ($cnt_row['n'] ?? 0) > 0) {
+		return;
+	}
 	$seeds = ew_cfs_master_default_seeds();
 	$dt = date('d-m-Y');
 	foreach ($seeds as $i => $name) {
 		$name_esc = mysqli_real_escape_string($conn, $name);
 		mysqli_query($conn, "INSERT IGNORE INTO cfs_master (cfs_name, status, sort_order, created_at) VALUES ('$name_esc', 0, '$i', '$dt')");
-		mysqli_query($conn, "UPDATE cfs_master SET sort_order='$i', status=0 WHERE cfs_name='$name_esc'");
 	}
+	ew_cfs_master_sync_pdf_codes($conn);
 }
 
 /** Keep only the 27 PDF CFS rows (removes old placeholders / inactive extras). */
@@ -107,7 +111,7 @@ function ew_cfs_master_purge_non_pdf_rows($conn)
 	mysqli_query($conn, 'DELETE FROM cfs_master WHERE cfs_name NOT IN (' . implode(',', $parts) . ')');
 }
 
-/** Assign CFS001–CFS027 to PDF list order. */
+/** Assign EWCFS001 onward in the CFS list order. */
 function ew_cfs_master_sync_pdf_codes($conn)
 {
 	$seeds = ew_cfs_master_default_seeds();
@@ -283,6 +287,10 @@ function ew_booking_cfs_controls_html($conn, $stored_value = '', $opts = array()
 
 function ew_cfs_master_insert($conn, $post, $user_id)
 {
+	$edit_id = (int) ($post['edit_id'] ?? 0);
+	if ($edit_id > 0) {
+		return ew_cfs_master_update($conn, $post, $user_id);
+	}
 	ew_cfs_master_ensure_schema($conn);
 	$name = trim((string) ($post['cfs_name'] ?? ''));
 	if ($name === '') {

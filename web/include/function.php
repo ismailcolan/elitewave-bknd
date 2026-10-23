@@ -327,6 +327,40 @@ function ew_client_branch_ensure_schema($conn)
 /**
  * When a consignor/consignee client branch is selected on booking, overlay branch address fields.
  */
+/** Journey hours may be 4.20, not only whole hours. */
+function ew_master_ensure_journey_hours_column($conn, $table_name)
+{
+	$table_name = preg_replace('/[^a-z_]/', '', (string) $table_name);
+	if ($table_name !== 'train' && $table_name !== 'flight') {
+		return;
+	}
+	$q = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE 'journey_hours'");
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	if (!$row) {
+		return;
+	}
+	$type = strtolower((string) ($row['Type'] ?? ''));
+	$wide_enough = (strpos($type, 'text') !== false);
+	if (preg_match('/varchar\((\d+)\)/', $type, $m)) {
+		$wide_enough = ((int) $m[1]) >= 100;
+	}
+	if (!$wide_enough) {
+		mysqli_query($conn, "ALTER TABLE `$table_name` MODIFY `journey_hours` VARCHAR(100) NOT NULL DEFAULT ''");
+	}
+}
+
+function ew_master_normalize_journey_hours($value)
+{
+	$value = trim(preg_replace('/\s+/', ' ', (string) $value));
+	if ($value === '') {
+		return '';
+	}
+	if (function_exists('mb_substr')) {
+		return mb_substr($value, 0, 100);
+	}
+	return substr($value, 0, 100);
+}
+
 function ew_transaction_ensure_party_branch_columns($conn, $table_name)
 {
 	$table_name = preg_replace('/[^a-z0-9_]/i', '', (string) $table_name);
@@ -341,6 +375,123 @@ function ew_transaction_ensure_party_branch_columns($conn, $table_name)
 	$chk = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE 'bill_to_branch_id'");
 	if ($chk && mysqli_num_rows($chk) === 0) {
 		mysqli_query($conn, "ALTER TABLE `$table_name` ADD COLUMN `bill_to_branch_id` INT NOT NULL DEFAULT 0 AFTER `consignee_branch_id`");
+	}
+	$chk_ship = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE 'ship_to_client_id'");
+	if ($chk_ship && mysqli_num_rows($chk_ship) === 0) {
+		mysqli_query($conn, "ALTER TABLE `$table_name` ADD COLUMN `ship_to_client_id` INT NOT NULL DEFAULT 0 AFTER `bill_to_branch_id`");
+	}
+	$chk_pickup = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE 'pickup_client_id'");
+	if ($chk_pickup && mysqli_num_rows($chk_pickup) === 0) {
+		mysqli_query($conn, "ALTER TABLE `$table_name` ADD COLUMN `pickup_client_id` INT NOT NULL DEFAULT 0 AFTER `consignor_branch_id`");
+	}
+}
+
+/**
+ * 0 means ship-to is the consignee (today's branch-only behaviour).
+ */
+function ew_booking_normalize_ship_to_client_id($ship_to_client_id, $consignee_id)
+{
+	$ship_to_client_id = (int) $ship_to_client_id;
+	$consignee_id = (int) $consignee_id;
+	if ($ship_to_client_id <= 0 || $ship_to_client_id === $consignee_id) {
+		return 0;
+	}
+	return $ship_to_client_id;
+}
+
+/**
+ * Copy a client master address into the booking consignee address fields.
+ */
+function ew_booking_fill_party_address_from_client($conn, $client_id, &$address1, &$address2, &$city, &$state, &$pincode, &$phone, &$gst_no)
+{
+	$client_id = (int) $client_id;
+	if ($client_id <= 0) {
+		return;
+	}
+	$q = mysqli_query(
+		$conn,
+		"SELECT address1, address2, city, state, pincode, contact_no, gst_no
+		 FROM client WHERE client_id='" . $client_id . "' LIMIT 1"
+	);
+	if (!$q || !($row = mysqli_fetch_assoc($q))) {
+		return;
+	}
+	$address1 = $row['address1'];
+	$address2 = $row['address2'];
+	$city = $row['city'];
+	$state = $row['state'];
+	$pincode = $row['pincode'];
+	$phone = $row['contact_no'];
+	$gst_no = $row['gst_no'];
+}
+
+/**
+ * When ship-to is another customer, destination and GST place of supply follow that customer (or its branch).
+ */
+function ew_booking_apply_ship_to_route($conn, $ship_to_client_id, $branch_id, &$post)
+{
+	$ship_to_client_id = (int) $ship_to_client_id;
+	$branch_id = (int) $branch_id;
+	if ($ship_to_client_id <= 0) {
+		return;
+	}
+	$city = 0;
+	$state = 0;
+	if ($branch_id > 0) {
+		$q = mysqli_query($conn, "SELECT city, state FROM client_branch WHERE client_branch_id='" . $branch_id . "' LIMIT 1");
+		if ($q && ($row = mysqli_fetch_assoc($q))) {
+			$city = (int) ($row['city'] ?? 0);
+			$state = (int) ($row['state'] ?? 0);
+		}
+	}
+	if ($city <= 0) {
+		$q = mysqli_query($conn, "SELECT city, state FROM client WHERE client_id='" . $ship_to_client_id . "' LIMIT 1");
+		if ($q && ($row = mysqli_fetch_assoc($q))) {
+			$city = (int) ($row['city'] ?? 0);
+			$state = (int) ($row['state'] ?? 0);
+		}
+	}
+	if ($city > 0) {
+		$post['destination'] = $city;
+	}
+	if ($state > 0) {
+		$post['destination_state_id'] = $state;
+	}
+}
+
+/**
+ * 0 means pickup is the consignor.
+ */
+function ew_booking_normalize_pickup_client_id($pickup_client_id, $consignor_id)
+{
+	return ew_booking_normalize_ship_to_client_id($pickup_client_id, $consignor_id);
+}
+
+/**
+ * When pickup is another customer, origin follows that customer (or its branch).
+ */
+function ew_booking_apply_pickup_route($conn, $pickup_client_id, $branch_id, &$post)
+{
+	$pickup_client_id = (int) $pickup_client_id;
+	$branch_id = (int) $branch_id;
+	if ($pickup_client_id <= 0) {
+		return;
+	}
+	$city = 0;
+	if ($branch_id > 0) {
+		$q = mysqli_query($conn, "SELECT city FROM client_branch WHERE client_branch_id='" . $branch_id . "' LIMIT 1");
+		if ($q && ($row = mysqli_fetch_assoc($q))) {
+			$city = (int) ($row['city'] ?? 0);
+		}
+	}
+	if ($city <= 0) {
+		$q = mysqli_query($conn, "SELECT city FROM client WHERE client_id='" . $pickup_client_id . "' LIMIT 1");
+		if ($q && ($row = mysqli_fetch_assoc($q))) {
+			$city = (int) ($row['city'] ?? 0);
+		}
+	}
+	if ($city > 0) {
+		$post['origin'] = $city;
 	}
 }
 
@@ -374,6 +525,15 @@ function ew_transaction_ensure_booking_schema($conn, $table_name)
 		$c = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE '$col'");
 		if ($c && mysqli_num_rows($c) > 0) {
 			mysqli_query($conn, "ALTER TABLE `$table_name` $sqlPart");
+		}
+	}
+
+	// Consignee street lines are copied from client.address1/address2, which are often longer than VARCHAR(100).
+	foreach (array('con_address1', 'con_address2') as $col) {
+		$c = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE '$col'");
+		$row = $c ? mysqli_fetch_assoc($c) : null;
+		if ($row && stripos((string) $row['Type'], 'text') === false) {
+			mysqli_query($conn, "ALTER TABLE `$table_name` MODIFY `$col` TEXT NULL");
 		}
 	}
 }
@@ -1383,6 +1543,88 @@ function ew_mode_uses_transit_hours($conn, $mode_id)
 	return ew_mode_offload_kind($conn, $mode_id) !== '';
 }
 
+function ew_transport_carrier_option_label($name, $number)
+{
+	$name = trim((string) $name);
+	$number = trim((string) $number);
+	if ($name === '') {
+		return $number;
+	}
+	if ($number === '') {
+		return $name;
+	}
+
+	return $name . ' (' . $number . ')';
+}
+
+/** Active trains and flights for status-2 (Picked Up) carrier selection. */
+function ew_status_pickup_carrier_options($conn)
+{
+	$out = array('train' => array(), 'flight' => array());
+	$tq = @mysqli_query($conn, "SELECT train_id, train_name, train_number, journey_hours FROM train WHERE status=0 ORDER BY train_name ASC");
+	if ($tq) {
+		while ($tr = mysqli_fetch_assoc($tq)) {
+			$out['train'][] = array(
+				'id' => (int) $tr['train_id'],
+				'label' => ew_transport_carrier_option_label($tr['train_name'] ?? '', $tr['train_number'] ?? ''),
+				'journey_hours' => isset($tr['journey_hours']) ? (string) $tr['journey_hours'] : '',
+			);
+		}
+	}
+	$fq = @mysqli_query($conn, "SELECT flight_id, flight_name, flight_number, journey_hours FROM flight WHERE status=0 ORDER BY flight_name ASC");
+	if ($fq) {
+		while ($fl = mysqli_fetch_assoc($fq)) {
+			$out['flight'][] = array(
+				'id' => (int) $fl['flight_id'],
+				'label' => ew_transport_carrier_option_label($fl['flight_name'] ?? '', $fl['flight_number'] ?? ''),
+				'journey_hours' => isset($fl['journey_hours']) ? (string) $fl['journey_hours'] : '',
+			);
+		}
+	}
+
+	return $out;
+}
+
+function ew_status_pickup_carrier_valid($conn, $kind, $carrier_id)
+{
+	$carrier_id = (int) $carrier_id;
+	$kind = trim((string) $kind);
+	if ($carrier_id <= 0 || ($kind !== 'train' && $kind !== 'flight')) {
+		return false;
+	}
+	$table = ($kind === 'train') ? 'train' : 'flight';
+	$id_col = ($kind === 'train') ? 'train_id' : 'flight_id';
+	$q = @mysqli_query($conn, "SELECT `$id_col` FROM `$table` WHERE `$id_col`='$carrier_id' AND status=0 LIMIT 1");
+
+	return ($q && mysqli_num_rows($q) > 0);
+}
+
+/** Resolve booked train/flight label for tracking (train_type column stores train_id or flight_id). */
+function ew_tracking_carrier_label($conn, $mode_id, $carrier_id)
+{
+	$kind = ew_mode_offload_kind($conn, $mode_id);
+	$carrier_id = (int) $carrier_id;
+	if ($kind === '' || $carrier_id <= 0) {
+		return array('kind' => $kind, 'label' => '');
+	}
+	if ($kind === 'train') {
+		$q = @mysqli_query($conn, "SELECT train_name, train_number FROM train WHERE train_id='$carrier_id' LIMIT 1");
+		$row = $q ? mysqli_fetch_assoc($q) : null;
+
+		return array(
+			'kind' => 'train',
+			'label' => $row ? ew_transport_carrier_option_label($row['train_name'] ?? '', $row['train_number'] ?? '') : '',
+		);
+	}
+	$q = @mysqli_query($conn, "SELECT flight_name, flight_number FROM flight WHERE flight_id='$carrier_id' LIMIT 1");
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+
+	return array(
+		'kind' => 'flight',
+		'label' => $row ? ew_transport_carrier_option_label($row['flight_name'] ?? '', $row['flight_number'] ?? '') : '',
+	);
+}
+
 function ew_road_transit_hours_ensure($conn)
 {
 	mysqli_query($conn, "CREATE TABLE IF NOT EXISTS consignment_road_transit_hours (
@@ -1660,12 +1902,24 @@ $data = array(
 
 );
 
+	$endpoint_field = (string) ($loadingLoc['field'] ?? $destLoc['field'] ?? '');
+	$data['nameEndpoints'] = in_array($endpoint_field, array('airport', 'railway_station'), true);
+	$data['originPoint'] = (!empty($loadingLoc['has_mapped_endpoint']) && in_array($loadingLoc['field'] ?? '', array('airport', 'railway_station'), true))
+		? rtrim(trim((string) $loadingLoc['label']), " .")
+		: $origin;
+	$data['destinationPoint'] = (!empty($destLoc['has_mapped_endpoint']) && in_array($destLoc['field'] ?? '', array('airport', 'railway_station'), true))
+		? rtrim(trim((string) $destLoc['label']), " .")
+		: $destination;
+
 	if (ew_mode_uses_transit_hours($conn, $mode_id)) {
 		$override = isset($row['road_transit_hours_override']) ? trim((string) $row['road_transit_hours_override']) : '';
 		$total_hours = ($override !== '' && is_numeric($override))
 			? (float) $override
 			: ew_road_transit_hours_get($conn, $grn);
 		$data['totalHours'] = $total_hours;
+		$carrier = ew_tracking_carrier_label($conn, $mode_id, $row['train_type'] ?? 0);
+		$data['carrierKind'] = $carrier['kind'];
+		$data['carrierLabel'] = $carrier['label'];
 		if (ew_mode_is_road_freight($conn, $mode_id)) {
 			$breakdown = ew_road_breakdown_for_message($conn, $grn, $status);
 			$data['breakdownOpen'] = $breakdown['open'];
@@ -1874,41 +2128,272 @@ function ew_format_entity_code($number, $pad = 3)
 }
 
 /**
- * Next city code from city_code_id sequence (e.g. EW001).
+ * Code from a master menu name.
+ * Drops "Master" and a leading "EW360", then takes the first letter of each word.
+ * A single acronym such as CFS is kept whole so the code still identifies that master.
+ * Domestic City Master → EWDC. Number is always 3 digits: EWDC001.
+ */
+function ew_master_code_prefix($menu_label)
+{
+	$label = preg_replace('/\bEW360\b/i', ' ', (string) $menu_label);
+	$label = preg_replace('/\bMaster\b/i', ' ', $label);
+	$label = trim(preg_replace('/\s+/', ' ', $label));
+	$skip = array('of' => true, 'for' => true, 'the' => true, 'a' => true, 'an' => true, 'and' => true);
+	$words = array();
+	foreach (preg_split('/\s+/', $label) as $word) {
+		if ($word === '' || isset($skip[strtolower($word)])) {
+			continue;
+		}
+		$words[] = $word;
+	}
+	$token = '';
+	if (count($words) === 1 && preg_match('/^[A-Z]{2,5}$/', $words[0])) {
+		$token = $words[0];
+	} else {
+		foreach ($words as $word) {
+			$token .= strtoupper(substr($word, 0, 1));
+		}
+	}
+	if ($token === '') {
+		$token = 'X';
+	}
+	if (strpos($token, 'EW') !== 0) {
+		$token = 'EW' . $token;
+	}
+	return $token;
+}
+
+function ew_master_format_code($prefix, $number)
+{
+	return $prefix . sprintf('%03d', (int) $number);
+}
+
+function ew_master_max_code_number($conn, $table, $column, $prefix, $where = '')
+{
+	$table = preg_replace('/[^a-z0-9_]/i', '', (string) $table);
+	$column = preg_replace('/[^a-z0-9_]/i', '', (string) $column);
+	$prefix = (string) $prefix;
+	$sql = "SELECT `$column` AS code FROM `$table` WHERE `$column` LIKE '" . mysqli_real_escape_string($conn, $prefix) . "%'";
+	if ($where !== '') {
+		$sql .= ' AND (' . $where . ')';
+	}
+	$max = 0;
+	$len = strlen($prefix);
+	$q = mysqli_query($conn, $sql);
+	if ($q) {
+		while ($row = mysqli_fetch_assoc($q)) {
+			$rest = substr((string) ($row['code'] ?? ''), $len);
+			if (preg_match('/^(\d+)$/', $rest, $m)) {
+				$max = max($max, (int) $m[1]);
+			}
+		}
+	}
+	return $max;
+}
+
+function ew_master_assign_codes($conn, $table, $id_col, $code_col, $prefix, $where = '1=1', $order = '', $seq_col = '')
+{
+	$table = preg_replace('/[^a-z0-9_]/i', '', (string) $table);
+	$id_col = preg_replace('/[^a-z0-9_]/i', '', (string) $id_col);
+	$code_col = preg_replace('/[^a-z0-9_]/i', '', (string) $code_col);
+	$seq_col = preg_replace('/[^a-z0-9_]/i', '', (string) $seq_col);
+	if ($order === '') {
+		$order = "`$id_col` ASC";
+	}
+	$q = mysqli_query($conn, "SELECT `$id_col` AS id, `$code_col` AS code FROM `$table` WHERE $where ORDER BY $order");
+	if (!$q) {
+		return;
+	}
+	$rows = array();
+	while ($row = mysqli_fetch_assoc($q)) {
+		$rows[] = $row;
+	}
+	$n = 1;
+	$needs = false;
+	foreach ($rows as $row) {
+		if ((string) $row['code'] !== ew_master_format_code($prefix, $n)) {
+			$needs = true;
+			break;
+		}
+		$n++;
+	}
+	if (!$needs) {
+		return;
+	}
+	foreach ($rows as $row) {
+		$id = (int) $row['id'];
+		$tmp = mysqli_real_escape_string($conn, '__T' . $id);
+		mysqli_query($conn, "UPDATE `$table` SET `$code_col`='$tmp' WHERE `$id_col`='$id' LIMIT 1");
+	}
+	$n = 1;
+	foreach ($rows as $row) {
+		$id = (int) $row['id'];
+		$code = mysqli_real_escape_string($conn, ew_master_format_code($prefix, $n));
+		$set = "`$code_col`='$code'";
+		if ($seq_col !== '') {
+			$set .= ", `$seq_col`='$n'";
+		}
+		mysqli_query($conn, "UPDATE `$table` SET $set WHERE `$id_col`='$id' LIMIT 1");
+		$n++;
+	}
+}
+
+function ew_master_table_exists($conn, $table)
+{
+	$table = mysqli_real_escape_string($conn, preg_replace('/[^a-z0-9_]/i', '', (string) $table));
+	$q = mysqli_query($conn, "SHOW TABLES LIKE '$table'");
+	return $q && mysqli_num_rows($q) > 0;
+}
+
+function ew_state_ensure_code_column($conn)
+{
+	if (!ew_master_table_exists($conn, 'state')) {
+		return;
+	}
+	if (function_exists('ew_geo_scope_ensure_column')) {
+		ew_geo_scope_ensure_column($conn, 'state');
+	}
+	$q = mysqli_query($conn, "SHOW COLUMNS FROM state LIKE 'state_code'");
+	if ($q && mysqli_num_rows($q) === 0) {
+		mysqli_query($conn, "ALTER TABLE state ADD COLUMN state_code VARCHAR(20) NOT NULL DEFAULT '' AFTER state_id");
+	}
+}
+
+function ew_state_next_code($conn)
+{
+	ew_master_sync_menu_codes($conn);
+	$scope = function_exists('ew_geo_scope_from_request') ? ew_geo_scope_from_request() : 'domestic';
+	$prefix = ew_master_code_prefix($scope === 'international' ? 'International State Master' : 'State Master');
+	$where = "geo_scope='" . ($scope === 'international' ? 'international' : 'domestic') . "'";
+	return ew_master_format_code($prefix, ew_master_max_code_number($conn, 'state', 'state_code', $prefix, $where) + 1);
+}
+
+function ew_country_ensure_table($conn)
+{
+	mysqli_query($conn, "CREATE TABLE IF NOT EXISTS country (
+		country_id INT(11) NOT NULL AUTO_INCREMENT,
+		country_code VARCHAR(20) NOT NULL DEFAULT '',
+		country_name VARCHAR(150) NOT NULL,
+		status TINYINT(1) NOT NULL DEFAULT 0,
+		created_at VARCHAR(30) DEFAULT NULL,
+		created_by INT(11) DEFAULT NULL,
+		updated_at VARCHAR(30) DEFAULT NULL,
+		updated_by INT(11) DEFAULT NULL,
+		PRIMARY KEY (country_id),
+		UNIQUE KEY uk_country_code (country_code)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function ew_country_next_code($conn)
+{
+	ew_country_ensure_table($conn);
+	ew_master_sync_menu_codes($conn);
+	$prefix = ew_master_code_prefix('Country Master');
+	return ew_master_format_code($prefix, ew_master_max_code_number($conn, 'country', 'country_code', $prefix) + 1);
+}
+
+function ew_area_ensure_country_name($conn, $table)
+{
+	$table = preg_replace('/[^a-z0-9_]/i', '', (string) $table);
+	if ($table === '') {
+		return;
+	}
+	$chk = mysqli_query($conn, "SHOW COLUMNS FROM `$table` LIKE 'country_name'");
+	if ($chk && mysqli_num_rows($chk) === 0) {
+		mysqli_query($conn, "ALTER TABLE `$table` ADD COLUMN country_name VARCHAR(150) NOT NULL DEFAULT ''");
+	}
+}
+
+/** Apply menu-name codes on every master that stores a serial code. */
+function ew_master_sync_menu_codes($conn)
+{
+	static $done = false;
+	if ($done || !$conn) {
+		return;
+	}
+	$done = true;
+
+	if (ew_master_table_exists($conn, 'city')) {
+		ew_master_assign_codes($conn, 'city', 'city_id', 'city_code', ew_master_code_prefix('City Master'), "geo_scope='domestic'", 'city_id ASC');
+		ew_master_assign_codes($conn, 'city', 'city_id', 'city_code', ew_master_code_prefix('International City Master'), "geo_scope='international'", 'city_id ASC');
+	}
+	if (ew_master_table_exists($conn, 'branch')) {
+		ew_master_assign_codes($conn, 'branch', 'branch_id', 'branch_code', ew_master_code_prefix('Branch Master'), "geo_scope='domestic'", 'branch_id ASC');
+		ew_master_assign_codes($conn, 'branch', 'branch_id', 'branch_code', ew_master_code_prefix('EW360 International Branches'), "geo_scope='international'", 'branch_id ASC');
+	}
+	ew_state_ensure_code_column($conn);
+	ew_country_ensure_table($conn);
+	if (ew_master_table_exists($conn, 'country')) {
+		ew_master_assign_codes($conn, 'country', 'country_id', 'country_code', ew_master_code_prefix('Country Master'), '1=1', 'country_id ASC');
+	}
+	if (ew_master_table_exists($conn, 'state')) {
+		ew_master_assign_codes($conn, 'state', 'state_id', 'state_code', ew_master_code_prefix('State Master'), "geo_scope='domestic'", 'state_id ASC');
+		ew_master_assign_codes($conn, 'state', 'state_id', 'state_code', ew_master_code_prefix('International State Master'), "geo_scope='international'", 'state_id ASC');
+	}
+	if (ew_master_table_exists($conn, 'hub')) {
+		ew_master_assign_codes($conn, 'hub', 'hub_id', 'hub_code', ew_master_code_prefix('Hub Details'), '1=1', 'hub_no ASC, hub_id ASC');
+	}
+	if (ew_master_table_exists($conn, 'cfs_master')) {
+		$cfs_code_col = mysqli_query($conn, "SHOW COLUMNS FROM cfs_master LIKE 'cfs_code'");
+		if ($cfs_code_col && mysqli_num_rows($cfs_code_col) > 0) {
+			ew_master_assign_codes($conn, 'cfs_master', 'cfs_id', 'cfs_code', ew_master_code_prefix('CFS Master'), '1=1', 'sort_order ASC, cfs_id ASC', 'cfs_code_id');
+		}
+	}
+	if (ew_master_table_exists($conn, 'vehicle_type_master')) {
+		ew_master_assign_codes($conn, 'vehicle_type_master', 'vehicle_type_id', 'type_code', ew_master_code_prefix('Vehicle Type Master'), '1=1', 'vehicle_type_id ASC');
+	}
+	if (ew_master_table_exists($conn, 'expense_group')) {
+		ew_master_assign_codes($conn, 'expense_group', 'group_id', 'group_code', ew_master_code_prefix('Expense Group GCN Master'), '1=1', 'sort_no ASC, group_name ASC, group_id ASC');
+		$gid_col = mysqli_query($conn, "SHOW COLUMNS FROM expense_category LIKE 'expense_group_id'");
+		if ($gid_col && mysqli_num_rows($gid_col) > 0) {
+			mysqli_query($conn, 'UPDATE expense_category c INNER JOIN expense_group g ON g.group_id=c.expense_group_id SET c.expense_group=g.group_code');
+		}
+	}
+	if (ew_master_table_exists($conn, 'expense_category')) {
+		ew_master_assign_codes($conn, 'expense_category', 'category_id', 'category_code', ew_master_code_prefix('Expense Type GCN Master'), '1=1', 'expense_code_id ASC, category_id ASC');
+	}
+	if (ew_master_table_exists($conn, 'vendor_master')) {
+		ew_master_assign_codes($conn, 'vendor_master', 'vendor_id', 'vendor_code', ew_master_code_prefix('Vendor'), '1=1', 'vendor_code_id ASC, vendor_id ASC');
+	}
+}
+
+/**
+ * Next city code for the open Area Master screen (e.g. EWDC001).
  *
  * @return array{city_code_id:int,city_code:string}
  */
 function ew_city_next_code($conn)
 {
+	ew_master_sync_menu_codes($conn);
+	$scope = function_exists('ew_geo_scope_from_request') ? ew_geo_scope_from_request() : 'domestic';
+	$prefix = ew_master_code_prefix($scope === 'international' ? 'International City Master' : 'City Master');
+	$where = "geo_scope='" . ($scope === 'international' ? 'international' : 'domestic') . "'";
 	$row = mysqli_fetch_array(mysqli_query($conn, 'SELECT MAX(city_code_id) AS code_id FROM city'));
 	$id = (int) ($row['code_id'] ?? 0) + 1;
 
 	return array(
 		'city_code_id' => $id,
-		'city_code' => ew_format_entity_code($id, 3),
+		'city_code' => ew_master_format_code($prefix, ew_master_max_code_number($conn, 'city', 'city_code', $prefix, $where) + 1),
 	);
 }
 
 /**
- * Next branch code from max numeric suffix on GE/GEC/EW codes (e.g. EW1011).
+ * Next branch code for the open branch screen (e.g. EWDB001).
  */
 function ew_branch_next_code($conn)
 {
-	$max = 1000;
-	$res = mysqli_query($conn, 'SELECT branch_code FROM branch');
-	if ($res) {
-		while ($row = mysqli_fetch_assoc($res)) {
-			$code = strtoupper(trim((string) ($row['branch_code'] ?? '')));
-			if (preg_match('/^(?:GE|GEC|EW)(\d+)$/', $code, $m)) {
-				$n = (int) $m[1];
-				if ($n > $max) {
-					$max = $n;
-				}
-			}
-		}
-	}
+	ew_master_sync_menu_codes($conn);
+	$scope = function_exists('ew_geo_scope_from_request') ? ew_geo_scope_from_request() : 'domestic';
+	$prefix = ew_master_code_prefix($scope === 'international' ? 'EW360 International Branches' : 'Branch Master');
+	$where = "geo_scope='" . ($scope === 'international' ? 'international' : 'domestic') . "'";
+	return ew_master_format_code($prefix, ew_master_max_code_number($conn, 'branch', 'branch_code', $prefix, $where) + 1);
+}
 
-	return ew_format_entity_code($max + 1, 4);
+function ew_hub_next_code($conn)
+{
+	ew_master_sync_menu_codes($conn);
+	$prefix = ew_master_code_prefix('Hub Details');
+	return ew_master_format_code($prefix, ew_master_max_code_number($conn, 'hub', 'hub_code', $prefix) + 1);
 }
 
 /** Normalize stored codes GE/GEC### → EW### (same numeric part). */
@@ -1980,5 +2465,9 @@ function ew_eway_attachment_icon_class($filename)
 }
 
 require_once __DIR__ . '/ew_geo_scope.php';
+
+if (isset($conn) && $conn instanceof mysqli) {
+	ew_master_sync_menu_codes($conn);
+}
 
 ?>

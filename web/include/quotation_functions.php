@@ -91,13 +91,22 @@ function quotation_ensure_schema_columns($conn)
 		'payment_terms' => "ADD COLUMN payment_terms VARCHAR(40) DEFAULT NULL AFTER highload_challan",
 		'payment_terms_note' => "ADD COLUMN payment_terms_note VARCHAR(255) DEFAULT NULL AFTER payment_terms",
 		'mode_of_transportation' => "ADD COLUMN mode_of_transportation INT(11) DEFAULT NULL AFTER loading_type",
+		'train_id' => "ADD COLUMN train_id INT(11) DEFAULT NULL AFTER mode_of_transportation",
+		'flight_id' => "ADD COLUMN flight_id INT(11) DEFAULT NULL AFTER train_id",
+		'journey_hours' => "ADD COLUMN journey_hours VARCHAR(100) DEFAULT NULL AFTER flight_id",
 		'customer_approval_file' => "ADD COLUMN customer_approval_file VARCHAR(255) DEFAULT NULL AFTER rejection_remarks",
+		'letter_body' => "ADD COLUMN letter_body TEXT NULL AFTER subject",
 	);
 	foreach ($add as $col => $sql) {
 		$chk = mysqli_query($conn, "SHOW COLUMNS FROM rate_quotation_master LIKE '$col'");
 		if ($chk && mysqli_num_rows($chk) === 0) {
 			mysqli_query($conn, "ALTER TABLE rate_quotation_master $sql");
 		}
+	}
+	$hrs_col = mysqli_query($conn, "SHOW COLUMNS FROM rate_quotation_master LIKE 'journey_hours'");
+	$hrs_row = $hrs_col ? mysqli_fetch_assoc($hrs_col) : null;
+	if ($hrs_row && preg_match('/varchar\((\d+)\)/i', (string) ($hrs_row['Type'] ?? ''), $hrs_len) && (int) $hrs_len[1] < 100) {
+		mysqli_query($conn, "ALTER TABLE rate_quotation_master MODIFY journey_hours VARCHAR(100) DEFAULT NULL");
 	}
 }
 
@@ -197,6 +206,50 @@ function quotation_mode_of_transport_label($conn, $mode_id)
 	return '';
 }
 
+function quotation_mode_kind_from_labels($mode_group, $mode_type = '')
+{
+	$kind = function_exists('quotation_mode_source_kind')
+		? quotation_mode_source_kind($mode_group)
+		: '';
+	if ($kind !== '') {
+		return $kind;
+	}
+	$t = strtolower(trim((string) $mode_type . ' ' . $mode_group));
+	if (strpos($t, 'train') !== false) {
+		return 'train';
+	}
+	if (strpos($t, 'air') !== false || strpos($t, 'flight') !== false) {
+		return 'flight';
+	}
+	return 'road';
+}
+
+function quotation_mode_kind_map($conn)
+{
+	$map = array();
+	$q = @mysqli_query($conn, 'SELECT mode_id, mode_type, mode_group FROM mode_of_transportation WHERE status=0');
+	if ($q) {
+		while ($row = mysqli_fetch_assoc($q)) {
+			$map[(string) (int) $row['mode_id']] = quotation_mode_kind_from_labels($row['mode_group'] ?? '', $row['mode_type'] ?? '');
+		}
+	}
+	return $map;
+}
+
+function quotation_mode_kind_for_id($conn, $mode_id)
+{
+	$mode_id = (int) $mode_id;
+	if ($mode_id <= 0) {
+		return 'road';
+	}
+	$q = @mysqli_query($conn, "SELECT mode_type, mode_group FROM mode_of_transportation WHERE mode_id='$mode_id' LIMIT 1");
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	if (!$row) {
+		return 'road';
+	}
+	return quotation_mode_kind_from_labels($row['mode_group'] ?? '', $row['mode_type'] ?? '');
+}
+
 function quotation_quotation_approval_options()
 {
 	return array(
@@ -249,7 +302,10 @@ function quotation_freight_paid_by_label($conn, $code)
 
 function quotation_payment_terms_options()
 {
-	$opts = array();
+	$opts = array(
+		'same_day' => 'Same day',
+		'next_day' => 'Next day',
+	);
 	for ($days = 5; $days <= 100; $days += 5) {
 		$key = $days . '_days';
 		$opts[$key] = $days . ' days';
@@ -509,6 +565,15 @@ function quotation_letter_intro_text()
 	return 'Thank you for considering EliteWave360 Logistics for your transportation requirements. Please find below our quotation for your kind consideration.';
 }
 
+function quotation_letter_body_for($quotation)
+{
+	$custom = trim((string) (is_array($quotation) ? ($quotation['letter_body'] ?? '') : ''));
+	if ($custom !== '') {
+		return $custom;
+	}
+	return quotation_letter_intro_text();
+}
+
 function quotation_vehicle_snapshot($conn, $vehicle_type_id)
 {
 	$vehicle_type_id = (int) $vehicle_type_id;
@@ -592,6 +657,10 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 	$valid_till = trim((string) ($payload['valid_till'] ?? ''));
 	$quote_type = trim((string) ($payload['quote_type'] ?? 'door_to_door'));
 	$subject = trim((string) ($payload['subject'] ?? ''));
+	$letter_body = trim((string) ($payload['letter_body'] ?? ''));
+	if ($letter_body === '') {
+		$letter_body = quotation_letter_intro_text();
+	}
 	$customer_mode = trim((string) ($payload['customer_mode'] ?? 'new'));
 	if ($customer_mode !== 'existing') {
 		$customer_mode = 'new';
@@ -605,6 +674,9 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 	$destination_city_id = (int) ($payload['destination_city_id'] ?? 0);
 	$loading_type = trim((string) ($payload['loading_type'] ?? ''));
 	$mode_of_transportation = (int) ($payload['mode_of_transportation'] ?? 0);
+	$train_id = (int) ($payload['train_id'] ?? 0);
+	$flight_id = (int) ($payload['flight_id'] ?? 0);
+	$journey_hours = trim((string) ($payload['journey_hours'] ?? ''));
 	$destination = trim((string) ($payload['destination_name'] ?? ''));
 	$unloading = trim((string) ($payload['unloading_at'] ?? ''));
 	$delivery_address = trim((string) ($payload['delivery_address'] ?? ''));
@@ -695,6 +767,9 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 			'dim_display' => '',
 		);
 		$mode_of_transportation = 0;
+		$train_id = 0;
+		$flight_id = 0;
+		$journey_hours = '';
 	} elseif ($is_multi_mode) {
 		$parsed_mm = quotation_parse_mode_rows_from_post($conn, $payload);
 		if (empty($parsed_mm['ok'])) {
@@ -720,6 +795,9 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 			'dim_display' => '',
 		);
 		$mode_of_transportation = 0;
+		$train_id = 0;
+		$flight_id = 0;
+		$journey_hours = '';
 	} else {
 		$parsed = quotation_parse_lines_from_post($payload);
 		if (empty($parsed['ok'])) {
@@ -728,6 +806,21 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 		$lines = $parsed['lines'];
 		$totals = quotation_compute_from_lines($lines, $gst_rate);
 		$veh = quotation_vehicle_snapshot($conn, $vehicle_type_id);
+		$kind = quotation_mode_kind_for_id($conn, $mode_of_transportation);
+		if ($kind === 'train') {
+			$flight_id = 0;
+			if ($train_id <= 0) {
+				$journey_hours = '';
+			}
+		} elseif ($kind === 'flight') {
+			$train_id = 0;
+			if ($flight_id <= 0) {
+				$journey_hours = '';
+			}
+		} else {
+			$train_id = 0;
+			$flight_id = 0;
+		}
 	}
 
 	$now = date('d-m-Y');
@@ -749,6 +842,7 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 		"valid_till='" . $esc($valid_till) . "'",
 		"quote_type='" . $esc($quote_type) . "'",
 		"subject='" . $esc($subject) . "'",
+		"letter_body='" . $esc($letter_body) . "'",
 		"status='" . $esc($status) . "'",
 		"party_id='$party_id'",
 		"party_name='" . $esc($party_name) . "'",
@@ -760,6 +854,9 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 		"origin_city_id='$origin_city_id'",
 		"loading_type='" . $esc($loading_type) . "'",
 		"mode_of_transportation='$mode_of_transportation'",
+		"train_id=" . ($train_id > 0 ? "'$train_id'" : 'NULL'),
+		"flight_id=" . ($flight_id > 0 ? "'$flight_id'" : 'NULL'),
+		"journey_hours='" . $esc($journey_hours) . "'",
 		"destination_name='" . $esc($destination) . "'",
 		"destination_city_id='$destination_city_id'",
 		"unloading_at='" . $esc($unloading) . "'",

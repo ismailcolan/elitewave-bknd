@@ -124,6 +124,21 @@ $bank_rows = ew_company_bank_options($conn);
 			opacity: .65;
 		}
 
+		#gst_amount.egen-gst-readonly {
+			background: var(--panel-head-bg, #F3F7FB) !important;
+			cursor: default;
+			margin-top: 8px;
+		}
+
+		#gst_wrap .ew-field-sub-label {
+			display: block;
+			margin-top: 10px;
+			margin-bottom: 4px;
+			font-size: 12px;
+			font-weight: 600;
+			color: var(--ew-text-muted, #6B7A8D);
+		}
+
 		@media (max-width: 768px) {
 			.ew-form-footer.egen-form-footer {
 				flex-direction: column;
@@ -206,8 +221,16 @@ $bank_rows = ew_company_bank_options($conn);
 										<input type="text" id="expense_amount" name="expense_amount" class="form-control text-right" placeholder="0.00" autocomplete="off">
 									</div>
 									<div class="ew-field" id="gst_wrap">
-										<label class="control-label">GST Value :</label>
-										<input type="text" id="gst_amount" name="gst_amount" class="form-control text-right" placeholder="0.00" autocomplete="off">
+										<label class="control-label">GST % :</label>
+										<select id="gst_percent" name="gst_percent" class="form-control">
+											<option value="0">0%</option>
+											<option value="5">5%</option>
+											<option value="12">12%</option>
+											<option value="18">18%</option>
+											<option value="28">28%</option>
+										</select>
+										<span class="ew-field-sub-label">GST amount (auto)</span>
+										<input type="text" id="gst_amount" name="gst_amount" class="form-control text-right egen-gst-readonly" placeholder="0.00" readonly tabindex="-1" autocomplete="off">
 										<span class="ew-field-hint" id="gst_hint"></span>
 									</div>
 
@@ -294,7 +317,7 @@ $bank_rows = ew_company_bank_options($conn);
 		var bankOptions = <?php echo json_encode($bank_rows, JSON_UNESCAPED_UNICODE); ?>;
 		var primaryBankId = 0;
 		var vendorTax = { gst_applicable: 0, tds_applicable: 0, tds_rate: 0 };
-		var gstManual = false;
+		var gstPercentRates = [0, 5, 12, 18, 28];
 		var tdsManual = false;
 		var skipTypeDefault = false;
 
@@ -308,6 +331,41 @@ $bank_rows = ew_company_bank_options($conn);
 		}
 		function formatMoney(v) {
 			return parseMoney(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+		}
+		function getCategoryRow(categoryId) {
+			var found = null;
+			$.each(categoryOptions || [], function(i, row) {
+				if (String(row.category_id) === String(categoryId)) {
+					found = row;
+					return false;
+				}
+			});
+			return found;
+		}
+		function normalizeGstPercentSelect(pct) {
+			pct = parseFloat(pct);
+			if (isNaN(pct) || pct < 0) pct = 0;
+			var best = 0;
+			var bestDiff = null;
+			$.each(gstPercentRates, function(i, rate) {
+				var diff = Math.abs(pct - rate);
+				if (bestDiff === null || diff < bestDiff) {
+					bestDiff = diff;
+					best = rate;
+				}
+			});
+			return best;
+		}
+		function setGstPercentVal(pct) {
+			$('#gst_percent').val(String(normalizeGstPercentSelect(pct)));
+		}
+		function applyCategoryDefaultGstPercent() {
+			var row = getCategoryRow(getSelectVal($('#category_id')));
+			var pct = 0;
+			if (row && parseInt(row.gst_applicable, 10) === 1 && parseFloat(row.gst_percent) > 0) {
+				pct = parseFloat(row.gst_percent);
+			}
+			setGstPercentVal(pct);
 		}
 		function getCategoryDefaultAmount(categoryId) {
 			var amt = 0;
@@ -441,11 +499,12 @@ $bank_rows = ew_company_bank_options($conn);
 			$('#vendor_tax_hint').text(parts.join(' · '));
 			if (vendorTax.gst_applicable) {
 				$('#gst_wrap').removeClass('field-disabled');
-				$('#gst_amount').prop('readonly', false);
+				$('#gst_percent').prop('disabled', false);
 			} else {
 				$('#gst_wrap').addClass('field-disabled');
-				$('#gst_amount').val('0.00').prop('readonly', true);
-				gstManual = false;
+				setGstPercentVal(0);
+				$('#gst_percent').prop('disabled', true);
+				$('#gst_amount').val('0.00');
 			}
 		}
 		function loadVendorTax(vendorId, callback) {
@@ -461,25 +520,29 @@ $bank_rows = ew_company_bank_options($conn);
 				if (callback) callback();
 			});
 		}
-		function recalcAmounts(useSuggested) {
+		function recalcAmounts(useSuggestedTds, applyCategoryGst) {
+			if (applyCategoryGst) {
+				applyCategoryDefaultGstPercent();
+			}
 			var payload = {
 				cmd: 'calc_amounts',
 				vendor_id: getSelectVal($('#vendor_id')) || 0,
 				category_id: getSelectVal($('#category_id')) || 0,
 				expense_amount: $('#expense_amount').val() || 0,
+				gst_percent: $('#gst_percent').val() || 0,
 				other_deduction: $('#other_deduction').val() || 0
 			};
-			if (!useSuggested) {
-				payload.gst_amount = $('#gst_amount').val() || 0;
+			if (!useSuggestedTds) {
 				payload.tds_amount = $('#tds_amount').val() || 0;
 			}
 			$.getJSON('expense_general_data.php', payload, function(r) {
 				if (!r || r.status !== 0 || !r.amounts) return;
-				if (useSuggested || !gstManual) {
-					$('#gst_amount').val(formatMoney(r.suggested_gst || 0));
-					$('#gst_hint').text((r.suggested_gst > 0) ? 'Auto from vendor/type' : '');
+				if (applyCategoryGst && r.suggested_gst_percent !== undefined) {
+					setGstPercentVal(r.suggested_gst_percent);
 				}
-				if (useSuggested || !tdsManual) {
+				$('#gst_amount').val(formatMoney(r.suggested_gst || r.amounts.gst_amount || 0));
+				$('#gst_hint').text(parseMoney($('#gst_amount').val()) > 0 ? 'From expense amount × GST %' : '');
+				if (useSuggestedTds || !tdsManual) {
 					$('#tds_amount').val(formatMoney(r.suggested_tds || 0));
 					$('#tds_hint').text((r.suggested_tds > 0) ? 'Auto from vendor/type' : '');
 				}
@@ -488,8 +551,8 @@ $bank_rows = ew_company_bank_options($conn);
 		}
 		function resetForm(keepDate) {
 			generalExpenseId = 0;
-			gstManual = false;
 			tdsManual = false;
+			setGstPercentVal(0);
 			$('#expense_no_display').val(nextExpenseNoPreview);
 			if (!keepDate) $('#expense_date').val(<?php echo json_encode($c_date); ?>);
 			setSelectVal($('#vendor_id'), '');
@@ -512,6 +575,7 @@ $bank_rows = ew_company_bank_options($conn);
 			buildCategorySelect(data.category_id || '');
 			skipTypeDefault = false;
 			$('#expense_amount').val(data.expense_amount || '');
+			setGstPercentVal(data.gst_percent_raw !== undefined ? data.gst_percent_raw : 0);
 			$('#gst_amount').val(data.gst_amount || '');
 			$('#tds_amount').val(data.tds_amount || '');
 			$('#other_deduction').val(data.other_deduction || '');
@@ -525,7 +589,6 @@ $bank_rows = ew_company_bank_options($conn);
 				clearBankSelection();
 			}
 			$('#net_payable_display').val(data.net_payable || '0.00');
-			gstManual = parseMoney(data.gst_amount_raw) > 0;
 			tdsManual = parseMoney(data.tds_amount_raw) > 0;
 			loadVendorTax(data.vendor_id || 0, function() {
 				togglePaymentBankRequirement();
@@ -559,11 +622,10 @@ $bank_rows = ew_company_bank_options($conn);
 			}
 
 			$('#vendor_id').on('change', function() {
-				gstManual = false;
 				tdsManual = false;
 				syncSelectTitle($(this));
 				loadVendorTax(getSelectVal($(this)), function() {
-					recalcAmounts(true);
+					recalcAmounts(true, false);
 				});
 			});
 			$('#category_id').on('change', function() {
@@ -571,18 +633,17 @@ $bank_rows = ew_company_bank_options($conn);
 				if (!skipTypeDefault) {
 					applyCategoryDefaultAmount();
 				}
-				if (!gstManual) recalcAmounts(true);
+				recalcAmounts(true, true);
 			});
 			$('#expense_amount, #other_deduction').on('input blur', function() {
-				recalcAmounts(!gstManual && !tdsManual);
+				recalcAmounts(!tdsManual, false);
 			});
-			$('#gst_amount').on('input', function() {
-				gstManual = true;
-				recalcAmounts(false);
+			$('#gst_percent').on('change', function() {
+				recalcAmounts(!tdsManual, false);
 			});
 			$('#tds_amount').on('input', function() {
 				tdsManual = true;
-				recalcAmounts(false);
+				recalcAmounts(false, false);
 			});
 			$('#company_bank_id').on('change', function() {
 				var bankId = getSelectVal($(this));
@@ -609,6 +670,7 @@ $bank_rows = ew_company_bank_options($conn);
 					vendor_id: getSelectVal($('#vendor_id')),
 					category_id: getSelectVal($('#category_id')),
 					expense_amount: $('#expense_amount').val(),
+					gst_percent: $('#gst_percent').val(),
 					gst_amount: $('#gst_amount').val(),
 					tds_amount: $('#tds_amount').val(),
 					other_deduction: $('#other_deduction').val(),

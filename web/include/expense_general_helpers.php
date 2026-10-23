@@ -48,6 +48,7 @@ function expense_general_ensure_schema($conn)
 		'vendor_id' => "ALTER TABLE general_expense_header ADD COLUMN vendor_id INT(11) NOT NULL DEFAULT 0 AFTER expense_date",
 		'category_id' => "ALTER TABLE general_expense_header ADD COLUMN category_id INT(11) NOT NULL DEFAULT 0 AFTER vendor_id",
 		'expense_amount' => "ALTER TABLE general_expense_header ADD COLUMN expense_amount DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER category_id",
+		'gst_percent' => "ALTER TABLE general_expense_header ADD COLUMN gst_percent DECIMAL(6,2) NOT NULL DEFAULT 0 AFTER expense_amount",
 		'other_deduction' => "ALTER TABLE general_expense_header ADD COLUMN other_deduction DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER total_tds",
 		'description' => "ALTER TABLE general_expense_header ADD COLUMN description VARCHAR(500) DEFAULT '' AFTER other_deduction",
 		'payment_mode' => "ALTER TABLE general_expense_header ADD COLUMN payment_mode VARCHAR(20) DEFAULT '' AFTER description",
@@ -161,22 +162,64 @@ function expense_general_calc_amounts($expense_amount, $gst_amount, $tds_amount,
 	);
 }
 
-function expense_general_suggest_tax($conn, $vendor_id, $category_id, $expense_amount)
+function expense_general_gst_percent_options()
+{
+	return array(0, 5, 12, 18, 28);
+}
+
+function expense_general_normalize_gst_percent($gst_percent)
+{
+	$gst_percent = round((float) $gst_percent, 2);
+	if ($gst_percent < 0) {
+		$gst_percent = 0;
+	}
+	if ($gst_percent > 100) {
+		$gst_percent = 100;
+	}
+	$allowed = expense_general_gst_percent_options();
+	foreach ($allowed as $rate) {
+		if (abs($gst_percent - (float) $rate) < 0.001) {
+			return (float) $rate;
+		}
+	}
+	$best = 0.0;
+	$best_diff = null;
+	foreach ($allowed as $rate) {
+		$diff = abs($gst_percent - (float) $rate);
+		if ($best_diff === null || $diff < $best_diff) {
+			$best_diff = $diff;
+			$best = (float) $rate;
+		}
+	}
+	return $best;
+}
+
+function expense_general_gst_amount_from_percent($vendor, $expense_amount, $gst_percent)
+{
+	if (empty($vendor['gst_applicable'])) {
+		return 0;
+	}
+	$gst_percent = expense_general_normalize_gst_percent($gst_percent);
+	$expense_amount = round((float) $expense_amount, 2);
+	if ($gst_percent <= 0 || $expense_amount <= 0) {
+		return 0;
+	}
+	return round($expense_amount * $gst_percent / 100, 2);
+}
+
+function expense_general_suggest_tax($conn, $vendor_id, $category_id, $expense_amount, $gst_percent_override = null)
 {
 	$vendor = expense_general_vendor_tax_info($conn, $vendor_id);
 	$category = expense_general_category_tax_info($conn, $category_id);
 	$expense_amount = round((float) $expense_amount, 2);
 
-	$gst_amount = 0;
-	if (!empty($vendor['gst_applicable'])) {
-		$gst_percent = 0;
-		if (!empty($category['gst_applicable']) && (float) $category['gst_percent'] > 0) {
-			$gst_percent = (float) $category['gst_percent'];
-		}
-		if ($gst_percent > 0 && $expense_amount > 0) {
-			$gst_amount = round($expense_amount * $gst_percent / 100, 2);
-		}
+	$gst_percent = 0;
+	if ($gst_percent_override !== null && $gst_percent_override !== '') {
+		$gst_percent = expense_general_normalize_gst_percent($gst_percent_override);
+	} elseif (!empty($vendor['gst_applicable']) && !empty($category['gst_applicable']) && (float) $category['gst_percent'] > 0) {
+		$gst_percent = expense_general_normalize_gst_percent($category['gst_percent']);
 	}
+	$gst_amount = expense_general_gst_amount_from_percent($vendor, $expense_amount, $gst_percent);
 
 	$tds_amount = 0;
 	$tds_rate = 0;
@@ -192,6 +235,7 @@ function expense_general_suggest_tax($conn, $vendor_id, $category_id, $expense_a
 	return array(
 		'vendor' => $vendor,
 		'category' => $category,
+		'gst_percent' => $gst_percent,
 		'gst_amount' => $gst_amount,
 		'tds_amount' => $tds_amount,
 		'tds_rate' => $tds_rate,
@@ -266,6 +310,11 @@ function expense_general_format_record($conn, $header)
 		$header['other_deduction'] ?? 0
 	);
 
+	$gst_percent = expense_general_normalize_gst_percent($header['gst_percent'] ?? 0);
+	if ($gst_percent <= 0 && $amounts['gst_amount'] > 0 && $amounts['expense_amount'] > 0) {
+		$gst_percent = expense_general_normalize_gst_percent($amounts['gst_amount'] / $amounts['expense_amount'] * 100);
+	}
+
 	return array(
 		'general_expense_id' => (int) ($header['general_expense_id'] ?? 0),
 		'expense_no' => $header['expense_no'] ?? '',
@@ -276,6 +325,8 @@ function expense_general_format_record($conn, $header)
 		'category_label' => $category_label,
 		'expense_amount' => expense_gcn_format_money($amounts['expense_amount']),
 		'expense_amount_raw' => $amounts['expense_amount'],
+		'gst_percent' => $gst_percent,
+		'gst_percent_raw' => $gst_percent,
 		'gst_amount' => expense_gcn_format_money($amounts['gst_amount']),
 		'gst_amount_raw' => $amounts['gst_amount'],
 		'tds_amount' => expense_gcn_format_money($amounts['tds_amount']),
@@ -316,7 +367,9 @@ function expense_general_save($conn, $payload, $user_id)
 	$vendor_id = (int) ($payload['vendor_id'] ?? 0);
 	$category_id = (int) ($payload['category_id'] ?? 0);
 	$expense_amount = round(expense_gcn_parse_money($payload['expense_amount'] ?? 0), 2);
-	$gst_amount = round(expense_gcn_parse_money($payload['gst_amount'] ?? 0), 2);
+	$vendor_tax = expense_general_vendor_tax_info($conn, $vendor_id);
+	$gst_percent = expense_general_normalize_gst_percent($payload['gst_percent'] ?? 0);
+	$gst_amount = expense_general_gst_amount_from_percent($vendor_tax, $expense_amount, $gst_percent);
 	$tds_amount = round(expense_gcn_parse_money($payload['tds_amount'] ?? 0), 2);
 	$other_deduction = round(expense_gcn_parse_money($payload['other_deduction'] ?? 0), 2);
 	$description = trim((string) ($payload['description'] ?? ''));
@@ -344,9 +397,9 @@ function expense_general_save($conn, $payload, $user_id)
 		return array('ok' => false, 'message' => 'Invalid payment mode selected.');
 	}
 
-	$vendor_tax = expense_general_vendor_tax_info($conn, $vendor_id);
 	if (empty($vendor_tax['gst_applicable'])) {
 		$gst_amount = 0;
+		$gst_percent = 0;
 	}
 	if ($gst_amount < 0 || $tds_amount < 0 || $other_deduction < 0) {
 		return array('ok' => false, 'message' => 'GST, TDS and other deduction cannot be negative.');
@@ -404,6 +457,7 @@ function expense_general_save($conn, $payload, $user_id)
 			vendor_id='$vendor_id',
 			category_id='$category_id',
 			expense_amount='$expenses_without_gst',
+			gst_percent='$gst_percent',
 			remarks='$description_esc',
 			description='$description_esc',
 			expenses_without_gst='$expenses_without_gst',
@@ -424,11 +478,11 @@ function expense_general_save($conn, $payload, $user_id)
 		$expense_no = $existing['expense_no'] ?? expense_general_next_no($conn, $gid);
 	} else {
 		mysqli_query($conn, "INSERT INTO general_expense_header
-			(expense_no, expense_date, vendor_id, category_id, expense_amount, remarks, description,
+			(expense_no, expense_date, vendor_id, category_id, expense_amount, gst_percent, remarks, description,
 			expenses_without_gst, total_gst, total_tds, other_deduction, net_payable, net_amount, profit_amount,
 			payment_mode, company_bank_id, payment_bank_name, payment_ifsc, payment_bank_branch,
 			status, created_at, created_by, updated_at, updated_by)
-			VALUES ('', '$expense_date_esc', '$vendor_id', '$category_id', '$expenses_without_gst', '$description_esc', '$description_esc',
+			VALUES ('', '$expense_date_esc', '$vendor_id', '$category_id', '$expenses_without_gst', '$gst_percent', '$description_esc', '$description_esc',
 			'$expenses_without_gst', '$total_gst', '$total_tds', '$other_deduction_val', '$net_payable', '0', '0',
 			'$payment_mode_esc', '$company_bank_id', '$payment_bank_name_esc', '$payment_ifsc_esc', '$payment_bank_branch_esc',
 			0, '$now', '$user_id', '$now', '$user_id')");
@@ -455,6 +509,7 @@ function expense_general_save($conn, $payload, $user_id)
 			'vendor_id' => $vendor_id,
 			'category_id' => $category_id,
 			'expense_amount' => $expenses_without_gst,
+			'gst_percent' => $gst_percent,
 			'total_gst' => $total_gst,
 			'total_tds' => $total_tds,
 			'other_deduction' => $other_deduction_val,

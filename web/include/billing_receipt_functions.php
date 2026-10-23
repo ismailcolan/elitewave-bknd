@@ -77,6 +77,39 @@ function billing_receipt_type_label($type)
     return isset($opts[$type]) ? $opts[$type] : $type;
 }
 
+/** TDS % choices for payment receipts (from GST / TDS master). */
+function billing_receipt_tds_percent_options($conn)
+{
+    if (function_exists('ensure_gst_tax_master_table')) {
+        ensure_gst_tax_master_table($conn);
+    }
+    $out = array();
+    $q = @mysqli_query($conn, "SELECT gst_tax_id, tax_code, tax_name, tds_rate FROM gst_tax_master
+        WHERE COALESCE(is_deleted,0)=0 AND status=1 AND tds_rate > 0
+        ORDER BY tds_rate ASC, tax_code ASC");
+    if ($q) {
+        while ($row = mysqli_fetch_assoc($q)) {
+            $rate = round((float) ($row['tds_rate'] ?? 0), 2);
+            if ($rate <= 0) {
+                continue;
+            }
+            $code = trim((string) ($row['tax_code'] ?? ''));
+            $name = trim((string) ($row['tax_name'] ?? ''));
+            $label = $name !== '' ? $name : ('TDS ' . $rate . '%');
+            if ($code !== '') {
+                $label = $code . ' — ' . $label;
+            }
+            $out[] = array(
+                'gst_tax_id' => (int) $row['gst_tax_id'],
+                'tax_code' => $code,
+                'label' => $label,
+                'rate' => $rate,
+            );
+        }
+    }
+    return $out;
+}
+
 function billing_invoice_received_total($conn, $invoice_id, $exclude_receipt_id = 0)
 {
     $invoice_id = (int) $invoice_id;
@@ -288,6 +321,15 @@ function billing_save_receipt($conn, $payload, $user_id, $files = null)
         $bank_account_id = 0;
     }
 
+    $update_id = (int) ($payload['billing_receipt_id'] ?? 0);
+    if ($update_id > 0) {
+        $exist_q = mysqli_query($conn, "SELECT billing_receipt_id, receipt_no, status FROM billing_receipt_master WHERE billing_receipt_id='$update_id' LIMIT 1");
+        $exist = ($exist_q && ($exist_row = mysqli_fetch_assoc($exist_q))) ? $exist_row : null;
+        if (!$exist || ($exist['status'] ?? '') !== 'final') {
+            return array('status' => 1, 'message' => 'Receipt not found or cannot be edited.');
+        }
+    }
+
     $lines_in = isset($payload['lines']) && is_array($payload['lines']) ? $payload['lines'] : array();
     $total_amount = 0.0;
     $tds_total = 0.0;
@@ -307,7 +349,7 @@ function billing_save_receipt($conn, $payload, $user_id, $files = null)
             if ($inv_id <= 0 || $receive <= 0) {
                 continue;
             }
-            $snap = billing_invoice_settlement_snapshot($conn, $inv_id, 0);
+            $snap = billing_invoice_settlement_snapshot($conn, $inv_id, $update_id);
             if (!$snap) {
                 return array('status' => 1, 'message' => 'Invalid or non-final invoice selected.');
             }
@@ -315,8 +357,8 @@ function billing_save_receipt($conn, $payload, $user_id, $files = null)
                 return array('status' => 1, 'message' => 'Invoice ' . $snap['invoice_no'] . ' does not belong to selected customer.');
             }
             $balance = (float) $snap['balance'];
-            if ($receive - $balance > 0.009) {
-                return array('status' => 1, 'message' => 'Receive amount exceeds balance on invoice ' . $snap['invoice_no'] . '.');
+            if ($receive + $tds - $balance > 0.009) {
+                return array('status' => 1, 'message' => 'Receive plus TDS exceeds outstanding balance on invoice ' . $snap['invoice_no'] . '.');
             }
             $parsed_lines[] = array(
                 'billing_invoice_id' => $inv_id,
@@ -345,8 +387,6 @@ function billing_save_receipt($conn, $payload, $user_id, $files = null)
         }
     }
 
-    $receipt_no = billing_allocate_receipt_number($conn);
-    $esc_no = mysqli_real_escape_string($conn, $receipt_no);
     $esc_date = mysqli_real_escape_string($conn, $receipt_date);
     $esc_type = mysqli_real_escape_string($conn, $receipt_type);
     $esc_payer = mysqli_real_escape_string($conn, $payer_name);
@@ -357,15 +397,43 @@ function billing_save_receipt($conn, $payload, $user_id, $files = null)
     $amt = billing_format_money($total_amount);
     $tds = billing_format_money($tds_total);
 
-    mysqli_query($conn, "INSERT INTO billing_receipt_master
-        (receipt_no, receipt_date, receipt_type, party_id, payer_name, total_amount, tds_total,
-         payment_mode, payment_ref, payment_ref_date, bank_account_id, remarks, status, created_at, created_by, updated_at, updated_by)
-        VALUES
-        ('$esc_no','$esc_date','$esc_type','$party_id','$esc_payer','$amt','$tds',
-         '$esc_mode','$esc_ref'," . ($payment_ref_date !== '' ? "'$esc_ref_date'" : 'NULL') . ',' . ($bank_account_id > 0 ? "'$bank_account_id'" : 'NULL') . ",'$esc_remarks','final','$now','$user_id','$now','$user_id')");
-    $billing_receipt_id = (int) mysqli_insert_id($conn);
-    if ($billing_receipt_id <= 0) {
-        return array('status' => 1, 'message' => 'Could not save receipt.');
+    if ($update_id > 0) {
+        $billing_receipt_id = $update_id;
+        $receipt_no = $exist['receipt_no'];
+        $bank_sql = ($bank_account_id > 0 ? "'$bank_account_id'" : 'NULL');
+        $ref_date_sql = ($payment_ref_date !== '' ? "'$esc_ref_date'" : 'NULL');
+        $ok = mysqli_query($conn, "UPDATE billing_receipt_master SET
+            receipt_date='$esc_date',
+            receipt_type='$esc_type',
+            party_id='$party_id',
+            payer_name='$esc_payer',
+            total_amount='$amt',
+            tds_total='$tds',
+            payment_mode='$esc_mode',
+            payment_ref='$esc_ref',
+            payment_ref_date=$ref_date_sql,
+            bank_account_id=$bank_sql,
+            remarks='$esc_remarks',
+            updated_at='$now',
+            updated_by='$user_id'
+            WHERE billing_receipt_id='$billing_receipt_id' LIMIT 1");
+        if (!$ok) {
+            return array('status' => 1, 'message' => 'Could not update receipt.');
+        }
+        mysqli_query($conn, "DELETE FROM billing_receipt_lines WHERE billing_receipt_id='$billing_receipt_id'");
+    } else {
+        $receipt_no = billing_allocate_receipt_number($conn);
+        $esc_no = mysqli_real_escape_string($conn, $receipt_no);
+        mysqli_query($conn, "INSERT INTO billing_receipt_master
+            (receipt_no, receipt_date, receipt_type, party_id, payer_name, total_amount, tds_total,
+             payment_mode, payment_ref, payment_ref_date, bank_account_id, remarks, status, created_at, created_by, updated_at, updated_by)
+            VALUES
+            ('$esc_no','$esc_date','$esc_type','$party_id','$esc_payer','$amt','$tds',
+             '$esc_mode','$esc_ref'," . ($payment_ref_date !== '' ? "'$esc_ref_date'" : 'NULL') . ',' . ($bank_account_id > 0 ? "'$bank_account_id'" : 'NULL') . ",'$esc_remarks','final','$now','$user_id','$now','$user_id')");
+        $billing_receipt_id = (int) mysqli_insert_id($conn);
+        if ($billing_receipt_id <= 0) {
+            return array('status' => 1, 'message' => 'Could not save receipt.');
+        }
     }
 
     foreach ($parsed_lines as $line) {
@@ -390,9 +458,76 @@ function billing_save_receipt($conn, $payload, $user_id, $files = null)
 
     return array(
         'status' => 0,
-        'message' => 'Receipt saved successfully.',
+        'message' => $update_id > 0 ? 'Receipt updated successfully.' : 'Receipt saved successfully.',
         'billing_receipt_id' => $billing_receipt_id,
         'receipt_no' => $receipt_no,
+    );
+}
+
+function billing_receipt_fetch_view($conn, $billing_receipt_id)
+{
+    $billing_receipt_id = (int) $billing_receipt_id;
+    $rec = billing_get_receipt($conn, $billing_receipt_id);
+    if (!$rec || ($rec['master']['status'] ?? '') !== 'final') {
+        return array('ok' => false, 'message' => 'Receipt not found.');
+    }
+    $m = $rec['master'];
+    $party = '—';
+    if ((int) ($m['party_id'] ?? 0) > 0) {
+        $cq = mysqli_query($conn, "SELECT client_company_name FROM client WHERE client_id='" . (int) $m['party_id'] . "' LIMIT 1");
+        if ($cq && ($cr = mysqli_fetch_assoc($cq))) {
+            $party = $cr['client_company_name'];
+        }
+    } elseif (trim((string) ($m['payer_name'] ?? '')) !== '') {
+        $party = trim($m['payer_name']);
+    }
+
+    $bank_label = '—';
+    if ((int) ($m['bank_account_id'] ?? 0) > 0) {
+        $bank = ew_company_bank_get($conn, (int) $m['bank_account_id']);
+        if ($bank && !empty($bank['label'])) {
+            $bank_label = $bank['label'];
+        }
+    }
+
+    $lines = array();
+    $invoice_open_sum = 0.0;
+    foreach ($rec['lines'] as $ln) {
+        $open = (float) ($ln['balance_amount'] ?? 0);
+        $recv = (float) ($ln['receive_now'] ?? 0);
+        $tds = (float) ($ln['tds_amount'] ?? 0);
+        $remain = max(0, round($open - $recv - $tds, 2));
+        $invoice_open_sum += $open;
+        $lines[] = array(
+            'invoice_no' => $ln['invoice_no'] ?? '',
+            'invoice_date' => $ln['invoice_date'] ?? '',
+            'invoice_amount' => billing_format_money($ln['invoice_amount'] ?? 0),
+            'already_received' => billing_format_money($ln['already_received'] ?? 0),
+            'credit_note_amount' => billing_format_money($ln['credit_note_amount'] ?? 0),
+            'tds_amount' => billing_format_money($tds),
+            'receive_now' => billing_format_money($recv),
+            'balance_open' => billing_format_money($open),
+            'balance_remain' => billing_format_money($remain),
+        );
+    }
+
+    return array(
+        'ok' => true,
+        'billing_receipt_id' => $billing_receipt_id,
+        'receipt_no' => $m['receipt_no'] ?? '',
+        'receipt_date' => $m['receipt_date'] ?? '',
+        'receipt_type' => billing_receipt_type_label($m['receipt_type'] ?? ''),
+        'receipt_type_key' => $m['receipt_type'] ?? '',
+        'party_label' => $party,
+        'payment_mode' => $m['payment_mode'] ?? '',
+        'payment_ref' => $m['payment_ref'] ?? '',
+        'payment_ref_date' => $m['payment_ref_date'] ?? '',
+        'bank_account_label' => $bank_label,
+        'remarks' => $m['remarks'] ?? '',
+        'total_amount' => billing_format_money($m['total_amount'] ?? 0),
+        'tds_total' => billing_format_money($m['tds_total'] ?? 0),
+        'invoice_open_total' => billing_format_money($invoice_open_sum),
+        'lines' => $lines,
     );
 }
 
@@ -400,10 +535,11 @@ function billing_receipt_list_balance_after($conn, $receipt_id)
 {
     $receipt_id = (int) $receipt_id;
     $sum = 0.0;
-    $q = mysqli_query($conn, "SELECT billing_invoice_id, balance_amount, receive_now FROM billing_receipt_lines WHERE billing_receipt_id='$receipt_id'");
+    $q = mysqli_query($conn, "SELECT balance_amount, receive_now, tds_amount FROM billing_receipt_lines WHERE billing_receipt_id='$receipt_id'");
     if ($q) {
         while ($row = mysqli_fetch_assoc($q)) {
-            $sum += max(0, (float) $row['balance_amount'] - (float) $row['receive_now']);
+            $remain = (float) $row['balance_amount'] - (float) $row['receive_now'] - (float) $row['tds_amount'];
+            $sum += max(0, round($remain, 2));
         }
     }
     return billing_format_money($sum);

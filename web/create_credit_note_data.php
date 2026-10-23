@@ -17,9 +17,10 @@ function billing_cn_json($payload)
 }
 
 if ($cmd === 'preview_note_no') {
+    $note_date = isset($_REQUEST['note_date']) ? trim($_REQUEST['note_date']) : date('d-m-Y');
     billing_cn_json(array(
         'status' => 0,
-        'note_no' => billing_preview_credit_note_number($conn),
+        'note_no' => billing_preview_credit_note_number($conn, $note_date),
     ));
 }
 

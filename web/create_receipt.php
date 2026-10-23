@@ -8,16 +8,17 @@ ew_company_bank_ensure_schema($conn);
 
 $c_date = date('d-m-Y');
 $preview_no = billing_preview_receipt_number($conn);
-$view_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
-$is_view = ($view_id > 0);
-if (!$is_view && empty($_GET['create'])) {
+$receipt_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$is_edit = ($receipt_id > 0 && !empty($_GET['edit']));
+$is_view = ($receipt_id > 0 && !$is_edit);
+if (!$is_view && !$is_edit && empty($_GET['create'])) {
 	header('Location: receipt_list.php');
 	exit;
 }
 
 $receipt = null;
-if ($is_view) {
-	$receipt = billing_get_receipt($conn, $view_id);
+if ($is_view || $is_edit) {
+	$receipt = billing_get_receipt($conn, $receipt_id);
 	if (!$receipt) {
 		header('Location: receipt_list.php');
 		exit;
@@ -29,7 +30,16 @@ if ($is_view) {
 $type_opts = billing_receipt_type_options();
 $pay_modes = ew_company_bank_payment_modes();
 $banks = ew_company_bank_options($conn);
+$tds_percent_options = billing_receipt_tds_percent_options($conn);
 $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM client WHERE status=0 ORDER BY client_company_name ASC");
+$view_against_amount = '0.00';
+if ($is_view && !empty($receipt['lines'])) {
+	$view_inv_sum = 0.0;
+	foreach ($receipt['lines'] as $vl) {
+		$view_inv_sum += (float) ($vl['balance_amount'] ?? 0);
+	}
+	$view_against_amount = billing_format_money($view_inv_sum);
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -53,9 +63,12 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 					<div class="ew-page-head">
 						<div class="ew-page-head-left">
 							<a href="receipt_list.php" class="ew-back-btn" title="Back to list"><i class="fa fa-arrow-left"></i></a>
-							<h1 class="ew-page-title"><?php echo $is_view ? 'View Receipt' : 'Create Receipt'; ?></h1>
+							<h1 class="ew-page-title"><?php echo $is_view ? 'View Receipt' : ($is_edit ? 'Edit Receipt' : 'Create Receipt'); ?></h1>
 						</div>
 						<div class="ew-toolbar-right">
+							<?php if ($is_view) { ?>
+							<a href="receipt_pdf.php?id=<?php echo (int) $receipt_id; ?>&amp;download=1" class="ew-btn-v2 ew-btn-v2-primary" target="_blank" rel="noopener"><i class="fa fa-download"></i> Download PDF</a>
+							<?php } ?>
 							<a href="receipt_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
 						</div>
 					</div>
@@ -67,10 +80,14 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 								<?php if (!$is_view) { ?>
 								<div class="ew-field span-2">
 									<label>Receipt type <span class="req">*</span></label>
-									<select id="receipt_type" class="form-control">
-										<?php foreach ($type_opts as $k => $label) { ?>
-											<option value="<?php echo htmlspecialchars($k); ?>"><?php echo htmlspecialchars($label); ?></option>
-										<?php } ?>
+									<select id="receipt_type" class="form-control"<?php echo $is_edit ? ' disabled' : ''; ?>>
+										<?php
+										$cur_type = $is_edit ? ($receipt['master']['receipt_type'] ?? 'against_invoice') : 'against_invoice';
+										foreach ($type_opts as $k => $label) {
+											$sel = ($k === $cur_type) ? ' selected' : '';
+											echo '<option value="' . htmlspecialchars($k) . '"' . $sel . '>' . htmlspecialchars($label) . '</option>';
+										}
+										?>
 									</select>
 								</div>
 								<div class="ew-field span-2 ew-field--spacer" aria-hidden="true"></div>
@@ -98,7 +115,7 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 									<select id="party_id_against" class="form-control" <?php echo $is_view ? 'disabled' : ''; ?>>
 										<option value=""></option>
 										<?php
-										$sel_party = $is_view ? (int) $receipt['master']['party_id'] : 0;
+										$sel_party = ($is_view || $is_edit) ? (int) $receipt['master']['party_id'] : 0;
 										while ($c = mysqli_fetch_assoc($clients_q)) {
 											$sel = ((int) $c['client_id'] === $sel_party) ? ' selected' : '';
 											echo '<option value="' . (int) $c['client_id'] . '"' . $sel . '>' . htmlspecialchars($c['client_company_name']) . '</option>';
@@ -113,8 +130,8 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 								</div>
 								<div class="ew-field span-2">
 									<label>Amount</label>
-									<input type="text" class="form-control" id="total_amount_against" readonly value="<?php echo $is_view ? htmlspecialchars(billing_format_money($receipt['master']['total_amount'])) : '0.00'; ?>" />
-									<p class="ew-field-hint">Auto total from allocation “Receive now”.</p>
+									<input type="text" class="form-control" id="total_amount_against" readonly value="<?php echo $is_view ? htmlspecialchars($view_against_amount) : '0.00'; ?>" />
+									<p class="ew-field-hint">Auto total: sum of selected invoice outstanding balance (TDS is separate).</p>
 								</div>
 							</div>
 					</div>
@@ -136,7 +153,7 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 										<?php
 										mysqli_data_seek($clients_q, 0);
 										while ($c = mysqli_fetch_assoc($clients_q)) {
-											$sel = ($is_view && (int) $c['client_id'] === (int) $receipt['master']['party_id']) ? ' selected' : '';
+											$sel = (($is_view || $is_edit) && (int) $c['client_id'] === (int) $receipt['master']['party_id']) ? ' selected' : '';
 											echo '<option value="' . (int) $c['client_id'] . '"' . $sel . '>' . htmlspecialchars($c['client_company_name']) . '</option>';
 										}
 										?>
@@ -144,11 +161,11 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 								</div>
 								<div class="ew-field span-2">
 									<label>Payer name (if not in client list)</label>
-									<input type="text" class="form-control" id="payer_name" value="<?php echo $is_view ? htmlspecialchars($receipt['master']['payer_name']) : ''; ?>" />
+									<input type="text" class="form-control" id="payer_name" value="<?php echo ($is_view || $is_edit) ? htmlspecialchars($receipt['master']['payer_name']) : ''; ?>" />
 								</div>
 								<div class="ew-field span-2">
 									<label>Amount <span class="req">*</span></label>
-									<input type="number" step="0.01" min="0" class="form-control" id="total_amount_simple" value="<?php echo $is_view ? htmlspecialchars($receipt['master']['total_amount']) : ''; ?>" />
+									<input type="number" step="0.01" min="0" class="form-control" id="total_amount_simple" value="<?php echo ($is_view || $is_edit) ? htmlspecialchars($receipt['master']['total_amount']) : ''; ?>" />
 								</div>
 							</div>
 					</div>
@@ -163,19 +180,19 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 											<thead>
 												<tr>
 													<th>Inv. No</th><th>Inv. Date</th>
-													<th class="num">Inv. Amount</th><th class="num">Already Received</th>
-													<th class="num">Credit Note</th><th class="num">TDS</th><th class="num">Balance</th>
-													<th class="num">Receive now</th>
+													<th class="num">Inv. Receipt</th>
+													<th class="num">Already Received</th><th class="num">Credit Note</th>
+													<th class="num">TDS</th><th class="num" title="Outstanding cash receivable after TDS on this line">Balance</th>
 												</tr>
 											</thead>
 											<tbody id="alloc_body">
-												<tr class="ew-receipt-alloc-empty" id="alloc_empty_row"><td colspan="8">Select customer and invoice(s) to load allocation.</td></tr>
+												<tr class="ew-receipt-alloc-empty" id="alloc_empty_row"><td colspan="7">Select customer and invoice(s) to load allocation.</td></tr>
 											</tbody>
 											<tfoot>
 												<tr class="totals-row">
-													<td colspan="6" class="num"><strong>Total</strong></td>
+													<td colspan="5" class="num"><strong>Total</strong></td>
+													<td class="num" id="foot_tds">0.00</td>
 													<td class="num" id="foot_balance">0.00</td>
-													<td class="num" id="foot_receive">0.00</td>
 												</tr>
 											</tfoot>
 										</table>
@@ -191,7 +208,7 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 									<label>Payment mode <span class="req">*</span></label>
 									<select id="payment_mode" class="form-control" <?php echo $is_view ? 'disabled' : ''; ?>>
 										<?php
-										$cur_mode = $is_view ? $receipt['master']['payment_mode'] : 'UPI';
+										$cur_mode = ($is_view || $is_edit) ? $receipt['master']['payment_mode'] : 'UPI';
 										foreach ($pay_modes as $code => $label) {
 											$sel = ($code === $cur_mode) ? ' selected' : '';
 											echo '<option value="' . htmlspecialchars($code) . '"' . $sel . '>' . htmlspecialchars($label) . '</option>';
@@ -201,22 +218,22 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 								</div>
 								<div class="ew-field span-2" id="payment_upi_ref_wrap">
 									<label id="payment_upi_ref_label">UPI reference</label>
-									<input type="text" class="form-control" id="payment_ref_upi" value="<?php echo $is_view ? htmlspecialchars($receipt['master']['payment_ref']) : ''; ?>" <?php echo $is_view ? 'readonly' : ''; ?> placeholder="UPI transaction ID (optional)" />
+									<input type="text" class="form-control" id="payment_ref_upi" value="<?php echo ($is_view || $is_edit) ? htmlspecialchars($receipt['master']['payment_ref']) : ''; ?>" <?php echo $is_view ? 'readonly' : ''; ?> placeholder="UPI transaction ID (optional)" />
 								</div>
 								<div class="ew-field" id="payment_ref_wrap" style="display:none;">
 									<label id="payment_ref_label">Cheque No <span class="req">*</span></label>
-									<input type="text" class="form-control" id="payment_ref" value="<?php echo $is_view ? htmlspecialchars($receipt['master']['payment_ref']) : ''; ?>" <?php echo $is_view ? 'readonly' : ''; ?> />
+									<input type="text" class="form-control" id="payment_ref" value="<?php echo ($is_view || $is_edit) ? htmlspecialchars($receipt['master']['payment_ref']) : ''; ?>" <?php echo $is_view ? 'readonly' : ''; ?> />
 								</div>
 								<div class="ew-field" id="payment_ref_date_wrap" style="display:none;">
 									<label id="payment_ref_date_label">Cheque date <span class="req">*</span></label>
 									<?php
-									$ref_date_val = ($is_view && !empty($receipt['master']['payment_ref_date'])) ? $receipt['master']['payment_ref_date'] : date('d-m-Y');
+									$ref_date_val = (($is_view || $is_edit) && !empty($receipt['master']['payment_ref_date'])) ? $receipt['master']['payment_ref_date'] : date('d-m-Y');
 									echo ew_date_input(array('id' => 'payment_ref_date', 'value' => $ref_date_val, 'required' => false, 'readonly' => $is_view));
 									?>
 								</div>
 								<div class="ew-field" id="payment_remarks_wrap">
 									<label>Remarks</label>
-									<input type="text" class="form-control ew-remarks-compact" id="remarks" maxlength="500" value="<?php echo $is_view ? htmlspecialchars($receipt['master']['remarks']) : ''; ?>" <?php echo $is_view ? 'readonly' : ''; ?> placeholder="Optional notes" />
+									<input type="text" class="form-control ew-remarks-compact" id="remarks" maxlength="500" value="<?php echo ($is_view || $is_edit) ? htmlspecialchars($receipt['master']['remarks']) : ''; ?>" <?php echo $is_view ? 'readonly' : ''; ?> placeholder="Optional notes" />
 								</div>
 								<div class="ew-field span-4 ew-section-label" id="payment_bank_section_label" style="display:none;">Debited to EliteWave360 bank</div>
 								<div class="ew-field span-2" id="payment_bank_wrap" style="display:none;">
@@ -224,7 +241,7 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 									<select id="bank_account_id" class="form-control" <?php echo $is_view ? 'disabled' : ''; ?>>
 										<option value="">— Select bank —</option>
 										<?php
-										$cur_bank = $is_view ? (int) $receipt['master']['bank_account_id'] : 0;
+										$cur_bank = ($is_view || $is_edit) ? (int) $receipt['master']['bank_account_id'] : 0;
 										foreach ($banks as $b) {
 											$sel = ((int) $b['bank_account_id'] === $cur_bank) ? ' selected' : '';
 											echo '<option value="' . (int) $b['bank_account_id'] . '"' . $sel . '>' . htmlspecialchars($b['label']) . '</option>';
@@ -232,9 +249,29 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 										?>
 									</select>
 								</div>
+								<div class="ew-field" id="payment_tds_pct_wrap">
+									<label>TDS %</label>
+									<?php if ($is_view) { ?>
+									<input type="text" class="form-control" readonly value="—" />
+									<?php } else { ?>
+									<select id="tds_percent" class="form-control">
+										<option value="0">No TDS (0%)</option>
+										<?php
+										$default_tds = 2.0;
+										foreach ($tds_percent_options as $opt) {
+											$rate = (float) $opt['rate'];
+											$sel = (abs($rate - $default_tds) < 0.001) ? ' selected' : '';
+											echo '<option value="' . htmlspecialchars((string) $rate, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>'
+												. htmlspecialchars($opt['label'], ENT_QUOTES, 'UTF-8') . '</option>';
+										}
+										?>
+									</select>
+									<p class="ew-field-hint">Rates from GST Tax Master (TDS1, TDS2, …). Choosing a rate fills TDS on each line; you can edit TDS. Cash = balance − TDS.</p>
+									<?php } ?>
+								</div>
 								<div class="ew-field" id="payment_tds_wrap">
 									<label>TDS deduction</label>
-									<input type="text" class="form-control" id="tds_total_display" readonly value="<?php echo $is_view ? htmlspecialchars(billing_format_money($receipt['master']['tds_total'])) : '0.00'; ?>" />
+									<input type="text" class="form-control" id="tds_total_display" readonly value="<?php echo ($is_view || $is_edit) ? htmlspecialchars(billing_format_money($receipt['master']['tds_total'])) : '0.00'; ?>" />
 								</div>
 							</div>
 						</div>
@@ -247,7 +284,7 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 							$ew_upload_id_prefix = 'receipt_attach';
 							$ew_upload_existing_items = array();
 							$ew_upload_readonly = $is_view;
-							if ($is_view && !empty($receipt['attachments'])) {
+							if (($is_view || $is_edit) && !empty($receipt['attachments'])) {
 								foreach ($receipt['attachments'] as $att) {
 									$ew_upload_existing_items[] = array(
 										'name' => $att['original_name'] ?: basename($att['file_path']),
@@ -263,7 +300,12 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 						<?php if (!$is_view) { ?>
 						<div class="ew-form-footer ew-invoice-form-footer">
 							<a href="receipt_list.php" class="ew-btn-v2 ew-btn-v2-outline">Cancel</a>
-							<button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="btn_submit"><i class="fa fa-check"></i> Submit</button>
+							<button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="btn_submit"><i class="fa fa-check"></i> <?php echo $is_edit ? 'Update' : 'Submit'; ?></button>
+						</div>
+						<?php } else { ?>
+						<div class="ew-form-footer ew-invoice-form-footer">
+							<a href="receipt_list.php" class="ew-btn-v2 ew-btn-v2-outline">Close</a>
+							<a href="receipt_pdf.php?id=<?php echo (int) $receipt_id; ?>&amp;download=1" class="ew-btn-v2 ew-btn-v2-primary" target="_blank" rel="noopener"><i class="fa fa-download"></i> Download PDF</a>
 						</div>
 						<?php } ?>
 					</div>
@@ -276,8 +318,16 @@ $clients_q = mysqli_query($conn, "SELECT client_id, client_company_name FROM cli
 <script src="javascripts/ew-attachment-upload.js?v=20260922"></script>
 <script>
 var isView = <?php echo $is_view ? 'true' : 'false'; ?>;
+var isEdit = <?php echo $is_edit ? 'true' : 'false'; ?>;
+var editReceiptId = <?php echo $is_edit ? (int) $receipt_id : 0; ?>;
+var editReceiptType = <?php echo $is_edit ? json_encode($receipt['master']['receipt_type']) : 'null'; ?>;
+var editLines = <?php echo $is_edit ? json_encode($receipt['lines']) : '[]'; ?>;
 var viewReceiptType = <?php echo $is_view ? json_encode($receipt['master']['receipt_type']) : 'null'; ?>;
 var viewLines = <?php echo $is_view ? json_encode($receipt['lines']) : '[]'; ?>;
+
+function excludeReceiptIdParam() {
+	return (isEdit && editReceiptId) ? editReceiptId : 0;
+}
 
 function toast(msg, type) {
 	if (typeof ewFormToast === 'function') ewFormToast(msg, type || 'error', 5000);
@@ -285,6 +335,7 @@ function toast(msg, type) {
 
 function isAgainst() {
 	if (isView && viewReceiptType) return viewReceiptType === 'against_invoice';
+	if (isEdit && editReceiptType) return editReceiptType === 'against_invoice';
 	return $('#receipt_type').val() === 'against_invoice';
 }
 
@@ -305,42 +356,122 @@ function fmt(n) {
 	return v.toFixed(2);
 }
 
+function tdsPercentValue() {
+	return parseFloat($('#tds_percent').val()) || 0;
+}
+
+function rowOpenBalance($row) {
+	var v = $row.data('openBalance');
+	if (v === undefined || v === null || v === '') {
+		v = $row.attr('data-open-balance');
+	}
+	return parseFloat(v) || 0;
+}
+
+/** Cash for this line: full outstanding balance, minus TDS when entered. */
+function calcRowReceive($row) {
+	var openBal = rowOpenBalance($row);
+	var tds = parseFloat($row.find('.tds-input').val()) || 0;
+	if (openBal <= 0) {
+		return 0;
+	}
+	if (tds <= 0) {
+		return openBal;
+	}
+	var recv = Math.round((openBal - tds) * 100) / 100;
+	return recv > 0 ? recv : 0;
+}
+
+function calcTdsFromPercent(taxableAmount) {
+	var pct = tdsPercentValue();
+	taxableAmount = parseFloat(taxableAmount) || 0;
+	if (pct <= 0 || taxableAmount <= 0) {
+		return 0;
+	}
+	return Math.round(taxableAmount * pct / 100 * 100) / 100;
+}
+
+function rowTdsTaxableAmount($row) {
+	return rowOpenBalance($row);
+}
+
+function updateRowBalance($row) {
+	var openBal = rowOpenBalance($row);
+	var tds = parseFloat($row.find('.tds-input').val()) || 0;
+	// Cash receivable on this line (invoice due minus TDS); not “zero because cash+TDS clears the bill”.
+	var remain = Math.round((openBal - tds) * 100) / 100;
+	if (remain < 0) {
+		remain = 0;
+	}
+	if (tds - openBal > 0.009) {
+		$row.find('.bal-display').addClass('text-danger');
+	} else {
+		$row.find('.bal-display').removeClass('text-danger');
+	}
+	$row.find('.bal-display').text(fmt(remain));
+	return remain;
+}
+
+function applyTdsPercentToRow($row) {
+	if (!$row || !$row.length || $row.hasClass('ew-receipt-alloc-empty')) {
+		return;
+	}
+	if ($row.data('tdsManual') === 1) {
+		return;
+	}
+	var pct = tdsPercentValue();
+	if (pct <= 0) {
+		$row.find('.tds-input').val(fmt(0));
+		return;
+	}
+	$row.find('.tds-input').val(fmt(calcTdsFromPercent(rowTdsTaxableAmount($row))));
+}
+
+function applyTdsPercentToAllRows() {
+	$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+		applyTdsPercentToRow($(this));
+	});
+	recalcAlloc();
+}
+
 function recalcAlloc() {
-	var balSum = 0, recvSum = 0, tdsSum = 0;
+	var remainSum = 0, tdsSum = 0, invBalSum = 0;
 	$('#alloc_body tr').each(function() {
-		var bal = parseFloat($(this).data('balance')) || 0;
-		var recv = parseFloat($(this).find('.recv-input').val()) || 0;
+		if ($(this).hasClass('ew-receipt-alloc-empty')) {
+			return;
+		}
 		var tds = parseFloat($(this).find('.tds-input').val()) || 0;
-		balSum += bal;
-		recvSum += recv;
+		invBalSum += rowOpenBalance($(this));
+		remainSum += updateRowBalance($(this));
 		tdsSum += tds;
 	});
-	$('#foot_balance').text(fmt(balSum));
-	$('#foot_receive').text(fmt(recvSum));
-	$('#total_amount_against').val(fmt(recvSum));
+	$('#foot_balance').text(fmt(remainSum));
+	$('#foot_tds').text(fmt(tdsSum));
+	$('#total_amount_against').val(fmt(invBalSum));
 	$('#tds_total_display').val(fmt(tdsSum));
 }
 
 function renderAllocLines(lines) {
 	var html = '';
 	$.each(lines || [], function(i, r) {
-		var recv = r.receive_now !== undefined ? r.receive_now : r.balance;
-		html += '<tr data-invoice-id="' + r.billing_invoice_id + '" data-balance="' + r.balance + '">';
+		var openBal = parseFloat(String(r.balance).replace(/,/g, '')) || 0;
+		var invAmt = parseFloat(String(r.invoice_amount).replace(/,/g, '')) || 0;
+		var tdsVal = r.tds_amount !== undefined ? r.tds_amount : 0;
+		html += '<tr data-invoice-id="' + r.billing_invoice_id + '" data-open-balance="' + openBal + '" data-invoice-amount="' + invAmt + '">';
 		html += '<td>' + (r.invoice_no || '') + '</td><td>' + (r.invoice_date || '') + '</td>';
 		html += '<td class="num">' + fmt(r.invoice_amount) + '</td>';
 		html += '<td class="num">' + fmt(r.already_received) + '</td>';
 		html += '<td class="num">' + fmt(r.credit_note) + '</td>';
-		html += '<td class="num"><input type="number" step="0.01" min="0" class="form-control tds-input" value="0.00" /></td>';
-		html += '<td class="num">' + fmt(r.balance) + '</td>';
-		html += '<td class="num"><input type="number" step="0.01" min="0" class="form-control recv-input" value="' + fmt(recv) + '" /></td>';
+		html += '<td class="num"><input type="number" step="0.01" min="0" class="form-control tds-input" value="' + fmt(tdsVal) + '" /></td>';
+		html += '<td class="num bal-display">' + fmt(openBal) + '</td>';
 		html += '</tr>';
 	});
 	if (!html) {
-		html = '<tr class="ew-receipt-alloc-empty" id="alloc_empty_row"><td colspan="8">Select customer and invoice(s) to load allocation.</td></tr>';
+		html = '<tr class="ew-receipt-alloc-empty" id="alloc_empty_row"><td colspan="7">Select customer and invoice(s) to load allocation.</td></tr>';
 	}
 	$('#alloc_body').html(html);
 	syncAllocEmptyState();
-	recalcAlloc();
+	applyTdsPercentToAllRows();
 }
 
 function loadInvoices() {
@@ -349,7 +480,7 @@ function loadInvoices() {
 		$('#invoice_ids').empty().trigger('change');
 		return;
 	}
-	$.getJSON('create_receipt_data.php', { cmd: 'fetch_invoices', customer_id: cid }, function(r) {
+	$.getJSON('create_receipt_data.php', { cmd: 'fetch_invoices', customer_id: cid, exclude_receipt_id: excludeReceiptIdParam() }, function(r) {
 		if (!r || r.status !== 0) return;
 		var opts = '';
 		$.each(r.data || [], function(i, row) {
@@ -365,7 +496,7 @@ function loadAllocation() {
 		renderAllocLines([]);
 		return;
 	}
-	$.getJSON('create_receipt_data.php', { cmd: 'fetch_allocation', invoice_ids: ids }, function(r) {
+	$.getJSON('create_receipt_data.php', { cmd: 'fetch_allocation', invoice_ids: ids, exclude_receipt_id: excludeReceiptIdParam() }, function(r) {
 		if (!r || r.status !== 0) return;
 		renderAllocLines(r.lines);
 	});
@@ -428,15 +559,23 @@ function syncPaymentDetailsFields() {
 	var $remarks = $('#payment_remarks_wrap');
 	if (instrument) {
 		$remarks.insertAfter('#payment_ref_date_wrap');
-		$('#payment_tds_wrap').insertAfter('#payment_bank_wrap');
+		$('#payment_tds_pct_wrap').insertAfter('#payment_bank_wrap');
+		$('#payment_tds_wrap').insertAfter('#payment_tds_pct_wrap');
 	} else if (isUpi) {
 		$remarks.insertAfter('#payment_upi_ref_wrap');
-		$('#payment_tds_wrap').insertAfter('#payment_remarks_wrap');
+		$('#payment_tds_pct_wrap').insertAfter('#payment_remarks_wrap');
+		$('#payment_tds_wrap').insertAfter('#payment_tds_pct_wrap');
 	} else {
 		$remarks.insertAfter($('#payment_mode').closest('.ew-field'));
-		$('#payment_tds_wrap').insertAfter('#payment_remarks_wrap');
+		$('#payment_tds_pct_wrap').insertAfter('#payment_remarks_wrap');
+		$('#payment_tds_wrap').insertAfter('#payment_tds_pct_wrap');
 	}
-	$('#payment_tds_wrap').show();
+	if (isView) {
+		$('#payment_tds_pct_wrap').hide();
+		$('#payment_tds_wrap').toggle(isAgainst());
+	} else {
+		$('#payment_tds_pct_wrap, #payment_tds_wrap').toggle(isAgainst());
+	}
 }
 
 function collectPaymentRef() {
@@ -454,9 +593,9 @@ function collectLines() {
 	var lines = [];
 	$('#alloc_body tr').each(function() {
 		var invId = $(this).data('invoice-id');
-		var recv = parseFloat($(this).find('.recv-input').val()) || 0;
 		var tds = parseFloat($(this).find('.tds-input').val()) || 0;
-		if (invId && recv > 0) {
+		var recv = calcRowReceive($(this));
+		if (invId && recv > 0.009) {
 			lines.push({ billing_invoice_id: invId, receive_now: recv, tds_amount: tds });
 		}
 	});
@@ -465,8 +604,33 @@ function collectLines() {
 
 function submitReceipt() {
 	var against = isAgainst();
+	if (against) {
+		var over = false;
+		var hasLine = false;
+		$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+			var openBal = rowOpenBalance($(this));
+			var tds = parseFloat($(this).find('.tds-input').val()) || 0;
+			var recv = calcRowReceive($(this));
+			if (recv > 0.009) {
+				hasLine = true;
+			}
+			if (tds - openBal > 0.009 || recv + tds - openBal > 0.009) {
+				over = true;
+			}
+		});
+		if (!hasLine) {
+			toast('Select at least one invoice with outstanding balance.', 'warning');
+			return;
+		}
+		if (over) {
+			toast('TDS cannot exceed the invoice balance on a line.', 'warning');
+			return;
+		}
+	}
 	var fd = new FormData();
-	fd.append('receipt_type', against ? 'against_invoice' : $('#receipt_type').val());
+	if (!(isEdit && editReceiptType)) {
+		fd.append('receipt_type', against ? 'against_invoice' : $('#receipt_type').val());
+	}
 	fd.append('receipt_date', against ? $('#receipt_date_against').val() : $('#receipt_date_simple').val());
 	if (against) {
 		fd.append('party_id', $('#party_id_against').val() || '0');
@@ -481,6 +645,12 @@ function submitReceipt() {
 	fd.append('payment_ref_date', paymentModeRequiresInstrument($('#payment_mode').val()) ? ($('#payment_ref_date').val() || '') : '');
 	fd.append('bank_account_id', $('#bank_account_id').val() || '0');
 	fd.append('remarks', $('#remarks').val());
+	if (isEdit && editReceiptId) {
+		fd.append('billing_receipt_id', String(editReceiptId));
+	}
+	if (isEdit && editReceiptType) {
+		fd.append('receipt_type', editReceiptType);
+	}
 	$('input[name="attachments[]"]').each(function() {
 		if (this.files && this.files[0]) fd.append('attachments[]', this.files[0]);
 	});
@@ -506,24 +676,88 @@ function submitReceipt() {
 	});
 }
 
+function editLineTdsMap() {
+	var m = {};
+	$.each(editLines || [], function(i, l) {
+		m[l.billing_invoice_id] = parseFloat(l.tds_amount) || 0;
+	});
+	return m;
+}
+
+function initEditReceipt() {
+	if (!isEdit || !editReceiptId || editReceiptType !== 'against_invoice') {
+		return;
+	}
+	var ids = [];
+	$.each(editLines || [], function(i, l) {
+		if (l.billing_invoice_id) {
+			ids.push(String(l.billing_invoice_id));
+		}
+	});
+	if (!ids.length) {
+		return;
+	}
+	var cid = $('#party_id_against').val();
+	var tdsMap = editLineTdsMap();
+	$.getJSON('create_receipt_data.php', { cmd: 'fetch_invoices', customer_id: cid, exclude_receipt_id: editReceiptId }, function(r) {
+		if (!r || r.status !== 0) {
+			return;
+		}
+		var opts = '';
+		$.each(r.data || [], function(i, row) {
+			opts += '<option value="' + row.billing_invoice_id + '">' + row.invoice_no + ' · Bal ' + row.balance + '</option>';
+		});
+		$('#invoice_ids').html(opts).val(ids);
+		$.getJSON('create_receipt_data.php', { cmd: 'fetch_allocation', invoice_ids: ids, exclude_receipt_id: editReceiptId }, function(ar) {
+			if (!ar || ar.status !== 0) {
+				return;
+			}
+			$.each(ar.lines || [], function(i, row) {
+				if (tdsMap[row.billing_invoice_id] !== undefined) {
+					row.tds_amount = tdsMap[row.billing_invoice_id];
+				}
+			});
+			renderAllocLines(ar.lines);
+			$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+				$(this).data('tdsManual', 1);
+			});
+		});
+	});
+}
+
 $(function() {
 	syncBlocks();
 	syncPaymentDetailsFields();
 	if (!isView) {
 		$('#payment_mode').on('change', syncPaymentDetailsFields);
-		$('#receipt_type').on('change', syncBlocks);
+		$('#receipt_type').on('change', function() {
+			syncBlocks();
+			syncPaymentDetailsFields();
+		});
 		$('#party_id_against').select2({ width: '100%', placeholder: 'Select customer' });
 		$('#invoice_ids').select2({ width: '100%', placeholder: 'Select invoice(s)', closeOnSelect: false });
 		$('#party_id_simple').select2({ width: '100%', allowClear: true, placeholder: 'Optional client' });
 		$('#party_id_against').on('change', loadInvoices);
 		$('#invoice_ids').on('change', loadAllocation);
-		$(document).on('input', '.recv-input, .tds-input', recalcAlloc);
+		$(document).on('input', '.tds-input', function() {
+			$(this).closest('tr').data('tdsManual', 1);
+			recalcAlloc();
+		});
+		$('#tds_percent').on('change', function() {
+			$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+				$(this).removeData('tdsManual');
+			});
+			applyTdsPercentToAllRows();
+		});
 		$('#btn_submit').on('click', submitReceipt);
 		if (typeof ewInitAttachmentUpload === 'function') {
 			ewInitAttachmentUpload({
 				inputName: 'attachments[]',
 				inputIdPrefix: 'receipt_attach'
 			});
+		}
+		if (isEdit) {
+			initEditReceipt();
 		}
 	} else {
 		if (viewReceiptType) {
@@ -532,13 +766,22 @@ $(function() {
 		syncBlocks();
 		if (viewReceiptType === 'against_invoice' && viewLines.length) {
 			$('#alloc_body').empty();
+			var footTds = 0, footBal = 0;
 			$.each(viewLines, function(i, l) {
+				var openBal = parseFloat(l.balance_amount) || 0;
+				var recv = parseFloat(l.receive_now) || 0;
+				var tds = parseFloat(l.tds_amount) || 0;
+				var remain = Math.round((openBal - recv - tds) * 100) / 100;
+				footTds += tds;
+				footBal += remain;
 				var row = '<tr><td>' + l.invoice_no + '</td><td>' + l.invoice_date + '</td>';
-				row += '<td class="num">' + fmt(l.invoice_amount) + '</td><td class="num">' + fmt(l.already_received) + '</td>';
-				row += '<td class="num">' + fmt(l.credit_note_amount) + '</td><td class="num">' + fmt(l.tds_amount) + '</td>';
-				row += '<td class="num">' + fmt(l.balance_amount) + '</td><td class="num">' + fmt(l.receive_now) + '</td></tr>';
+				row += '<td class="num">' + fmt(l.invoice_amount) + '</td>';
+				row += '<td class="num">' + fmt(l.already_received) + '</td><td class="num">' + fmt(l.credit_note_amount) + '</td>';
+				row += '<td class="num">' + fmt(l.tds_amount) + '</td><td class="num">' + fmt(remain) + '</td></tr>';
 				$('#alloc_body').append(row);
 			});
+			$('#foot_tds').text(fmt(footTds));
+			$('#foot_balance').text(fmt(footBal));
 			syncAllocEmptyState();
 		}
 	}

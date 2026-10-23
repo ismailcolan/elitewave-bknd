@@ -34,6 +34,18 @@ function ensure_billing_tables($conn)
         KEY idx_invoice_no (invoice_no)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+    $series_col = mysqli_query($conn, "SHOW COLUMNS FROM billing_invoice_master LIKE 'invoice_series'");
+    if ($series_col && mysqli_num_rows($series_col) === 0) {
+        mysqli_query($conn, "ALTER TABLE billing_invoice_master ADD COLUMN invoice_series VARCHAR(10) DEFAULT NULL AFTER billing_type");
+    }
+
+    mysqli_query($conn, "CREATE TABLE IF NOT EXISTS billing_invoice_series_seq (
+        series_code VARCHAR(10) NOT NULL,
+        fy_suffix VARCHAR(12) NOT NULL,
+        last_seq INT NOT NULL DEFAULT 0,
+        PRIMARY KEY (series_code, fy_suffix)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
     mysqli_query($conn, "CREATE TABLE IF NOT EXISTS billing_invoice_details (
         detail_id INT AUTO_INCREMENT PRIMARY KEY,
         billing_invoice_id INT NOT NULL,
@@ -417,6 +429,170 @@ function billing_should_exclude_gcn($conn, $trans_table, $transaction_id, $total
     return billing_gcn_on_invoice($conn, $trans_table, $transaction_id, $exclude_invoice_id);
 }
 
+function billing_normalize_invoice_series($series)
+{
+    $series = strtoupper(trim((string) $series));
+    return $series === 'GTA' ? 'GTA' : 'GST';
+}
+
+/** Mode group decides the series. Premium Air Cargo, Premium Train Cargo, and Urgent Delivery are GST. Every other mode is GTA. */
+function billing_invoice_series_from_mode_names($mode_type, $mode_group)
+{
+    $type = strtolower(trim((string) $mode_type));
+    $group = strtolower(trim((string) $mode_group));
+    if ($type === '' && $group === '') {
+        return '';
+    }
+    $blob = $group . ' ' . $type;
+    if (strpos($blob, 'air') !== false || strpos($blob, 'flight') !== false
+        || strpos($blob, 'train') !== false || strpos($blob, 'rail') !== false
+        || strpos($blob, 'urgent') !== false) {
+        return 'GST';
+    }
+    return 'GTA';
+}
+
+function billing_series_mode_ids($conn, $series)
+{
+    static $map = null;
+    if ($map === null) {
+        $map = array('GST' => array(), 'GTA' => array());
+        $has_group = false;
+        $chk = @mysqli_query($conn, "SHOW COLUMNS FROM mode_of_transportation LIKE 'mode_group'");
+        if ($chk && mysqli_num_rows($chk) > 0) {
+            $has_group = true;
+        }
+        $sql = $has_group
+            ? 'SELECT mode_id, mode_type, mode_group FROM mode_of_transportation'
+            : 'SELECT mode_id, mode_type FROM mode_of_transportation';
+        $q = @mysqli_query($conn, $sql);
+        if ($q) {
+            while ($row = mysqli_fetch_assoc($q)) {
+                $kind = billing_invoice_series_from_mode_names($row['mode_type'] ?? '', $row['mode_group'] ?? '');
+                if ($kind !== '') {
+                    $map[$kind][] = (int) $row['mode_id'];
+                }
+            }
+        }
+    }
+    $series = billing_normalize_invoice_series($series);
+    return $map[$series];
+}
+
+function billing_gcn_invoice_series($conn, $trans_table, $transaction_id)
+{
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $trans_table);
+    $transaction_id = (int) $transaction_id;
+    if ($trans_table === '' || $transaction_id <= 0) {
+        return '';
+    }
+    $col = @mysqli_query($conn, "SHOW COLUMNS FROM `$trans_table` LIKE 'mode_of_transportation'");
+    if (!$col || mysqli_num_rows($col) === 0) {
+        return '';
+    }
+    $q = mysqli_query($conn, "SELECT mode_of_transportation FROM `$trans_table` WHERE transaction_id='$transaction_id' LIMIT 1");
+    $row = $q ? mysqli_fetch_assoc($q) : null;
+    if (!$row) {
+        return '';
+    }
+    $mode_id = (int) ($row['mode_of_transportation'] ?? 0);
+    foreach (array('GST', 'GTA') as $series) {
+        if (in_array($mode_id, billing_series_mode_ids($conn, $series), true)) {
+            return $series;
+        }
+    }
+    return '';
+}
+
+function billing_invoice_no_series($invoice_no)
+{
+    $invoice_no = strtoupper(trim((string) $invoice_no));
+    if (strpos($invoice_no, 'GTA/') === 0 || strpos($invoice_no, 'HRGTA') === 0) {
+        return 'GTA';
+    }
+    if (strpos($invoice_no, 'GST/') === 0 || strpos($invoice_no, 'HRGST') === 0) {
+        return 'GST';
+    }
+    return '';
+}
+
+function billing_indian_fy_suffix($invoice_date)
+{
+    $parts = explode('-', trim((string) $invoice_date));
+    if (count($parts) !== 3) {
+        $parts = explode('-', date('d-m-Y'));
+    }
+    $month = (int) $parts[1];
+    $year = (int) $parts[2];
+    if ($month >= 4) {
+        $start = $year;
+        $end = $year + 1;
+    } else {
+        $start = $year - 1;
+        $end = $year;
+    }
+    return substr((string) $start, -2) . '-' . substr((string) $end, -2);
+}
+
+function billing_format_series_invoice_no($series, $seq, $fy_suffix)
+{
+    return billing_normalize_invoice_series($series) . '/' . sprintf('%04d', (int) $seq) . '/' . $fy_suffix;
+}
+
+function billing_max_series_invoice_seq($conn, $series, $fy_suffix)
+{
+    $series = billing_normalize_invoice_series($series);
+    $fy_suffix = trim((string) $fy_suffix);
+    $like = mysqli_real_escape_string($conn, $series . '/%/' . $fy_suffix);
+    $max = 0;
+    $q = mysqli_query($conn, "SELECT invoice_no FROM billing_invoice_master WHERE invoice_no LIKE '$like'");
+    if ($q) {
+        $pattern = '#^' . preg_quote($series, '#') . '/(\d+)/' . preg_quote($fy_suffix, '#') . '$#i';
+        while ($row = mysqli_fetch_assoc($q)) {
+            if (preg_match($pattern, trim((string) $row['invoice_no']), $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
+    }
+    $series_esc = mysqli_real_escape_string($conn, $series);
+    $fy_esc = mysqli_real_escape_string($conn, $fy_suffix);
+    $sq = mysqli_query($conn, "SELECT last_seq FROM billing_invoice_series_seq WHERE series_code='$series_esc' AND fy_suffix='$fy_esc' LIMIT 1");
+    if ($sq && ($srow = mysqli_fetch_assoc($sq))) {
+        $max = max($max, (int) $srow['last_seq']);
+    }
+    return $max;
+}
+
+function billing_next_grouped_invoice_number($conn, $invoice_date, $series, $commit = false)
+{
+    ensure_billing_tables($conn);
+    $series = billing_normalize_invoice_series($series);
+    $fy_suffix = billing_indian_fy_suffix($invoice_date);
+    $series_esc = mysqli_real_escape_string($conn, $series);
+    $fy_esc = mysqli_real_escape_string($conn, $fy_suffix);
+
+    if (!$commit) {
+        $next = billing_max_series_invoice_seq($conn, $series, $fy_suffix) + 1;
+        return billing_format_series_invoice_no($series, $next, $fy_suffix);
+    }
+
+    mysqli_begin_transaction($conn);
+    mysqli_query($conn, "INSERT IGNORE INTO billing_invoice_series_seq (series_code, fy_suffix, last_seq) VALUES ('$series_esc','$fy_esc',0)");
+    $lock = mysqli_query($conn, "SELECT last_seq FROM billing_invoice_series_seq WHERE series_code='$series_esc' AND fy_suffix='$fy_esc' LIMIT 1 FOR UPDATE");
+    if (!$lock || !mysqli_fetch_assoc($lock)) {
+        mysqli_rollback($conn);
+        return '';
+    }
+    $next = billing_max_series_invoice_seq($conn, $series, $fy_suffix) + 1;
+    $upd = mysqli_query($conn, "UPDATE billing_invoice_series_seq SET last_seq='$next' WHERE series_code='$series_esc' AND fy_suffix='$fy_esc'");
+    if (!$upd) {
+        mysqli_rollback($conn);
+        return '';
+    }
+    mysqli_commit($conn);
+    return billing_format_series_invoice_no($series, $next, $fy_suffix);
+}
+
 function billing_fy_suffix_from_date($invoice_date)
 {
     $parts = explode('-', trim((string) $invoice_date));
@@ -678,7 +854,7 @@ function billing_parse_trans_key($key)
     return array('trans_table' => $table, 'transaction_id' => $tid);
 }
 
-function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_invoice_id = 0, $billing_type = '')
+function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_invoice_id = 0, $billing_type = '', $invoice_series = '')
 {
     ensure_billing_tables($conn);
     ensure_transaction_gst_columns($conn, 'transaction');
@@ -692,6 +868,15 @@ function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_i
             // Show all delivered GCNs where customer is consignor or consignee.
             $customer_filter = " AND (t.consigner IN ($id_list) OR t.consignee IN ($id_list))";
         }
+    }
+
+    $invoice_series = strtoupper(trim((string) $invoice_series));
+    $series_mode_sql = '';
+    if ($invoice_series === 'GST' || $invoice_series === 'GTA') {
+        $mode_ids = billing_series_mode_ids($conn, $invoice_series);
+        $series_mode_sql = empty($mode_ids)
+            ? ' AND 1=0'
+            : ' AND t.mode_of_transportation IN (' . implode(',', $mode_ids) . ')';
     }
 
     $rows = array();
@@ -709,6 +894,12 @@ function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_i
         if (!gst_tax_report_table_has_gst_columns($conn, $trans_table)) {
             ensure_transaction_gst_columns($conn, $trans_table);
         }
+        if ($series_mode_sql !== '') {
+            $mode_col = @mysqli_query($conn, "SHOW COLUMNS FROM `$trans_table` LIKE 'mode_of_transportation'");
+            if (!$mode_col || mysqli_num_rows($mode_col) === 0) {
+                continue;
+            }
+        }
 
         $sql = "SELECT t.transaction_id, t.grn_no, t.grn_date, t.consigner, t.consignee,
             t.total, t.mode_of_consignment,
@@ -719,6 +910,7 @@ function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_i
             WHERE t.status='8'
             AND (t.booking_status IS NULL OR t.booking_status='' OR t.booking_status!='1')
             $customer_filter
+            $series_mode_sql
             ORDER BY STR_TO_DATE(t.grn_date,'%d-%m-%Y') DESC, t.grn_no DESC";
 
         $prev_report = mysqli_report(MYSQLI_REPORT_OFF);
@@ -1028,6 +1220,7 @@ function billing_save_invoice($conn, $payload, $user_id)
 
     $invoice_date = trim($payload['invoice_date'] ?? date('d-m-Y'));
     $customer_id = (int) ($payload['customer_id'] ?? 0);
+    $invoice_series = billing_normalize_invoice_series($payload['invoice_series'] ?? 'GST');
     $billing_type_raw = trim($payload['billing_type'] ?? '');
     $status = ($payload['status'] ?? 'draft') === 'final' ? 'final' : 'draft';
     $edit_id = (int) ($payload['billing_invoice_id'] ?? 0);
@@ -1059,6 +1252,11 @@ function billing_save_invoice($conn, $payload, $user_id)
         if (empty($validated['ok'])) {
             return array('status' => 1, 'message' => $validated['message'] ?? ('GCN not available for invoicing: ' . ($line['grn_no'] ?? $key)));
         }
+        $gcn_series = billing_gcn_invoice_series($conn, $parsed['trans_table'], $parsed['transaction_id']);
+        if ($gcn_series !== $invoice_series) {
+            $series_label = $invoice_series === 'GTA' ? 'roadways' : 'Premium Air, Train, or Urgent';
+            return array('status' => 1, 'message' => 'GCN ' . ($line['grn_no'] ?? '') . ' is not a ' . $series_label . ' consignment.');
+        }
         $parsed_lines[] = $validated['detail'];
     }
 
@@ -1084,7 +1282,11 @@ function billing_save_invoice($conn, $payload, $user_id)
         }
     }
     if ($invoice_no === '' && ($status === 'final' || $status === 'draft')) {
-        $invoice_no = billing_allocate_invoice_number($conn, $invoice_date, $user_id);
+        $invoice_no = billing_next_grouped_invoice_number($conn, $invoice_date, $invoice_series, true);
+    }
+    $saved_series = billing_invoice_no_series($invoice_no);
+    if ($saved_series !== '' && $saved_series !== $invoice_series && strpos(strtoupper($invoice_no), 'HR') !== 0) {
+        return array('status' => 1, 'message' => 'This invoice number belongs to the ' . $saved_series . ' series.');
     }
     if ($invoice_no === '' && $status === 'final') {
         return array('status' => 1, 'message' => 'Could not generate invoice number.');
@@ -1110,6 +1312,7 @@ function billing_save_invoice($conn, $payload, $user_id)
             invoice_date='$esc_date',
             customer_id='$customer_id',
             billing_type='$billing_type',
+            invoice_series='$invoice_series',
             status='$status',
             total_freight='{$totals['total_freight']}',
             total_other='{$totals['total_other']}',
@@ -1128,10 +1331,10 @@ function billing_save_invoice($conn, $payload, $user_id)
         $billing_invoice_id = $edit_id;
     } else {
         mysqli_query($conn, "INSERT INTO billing_invoice_master
-            (invoice_no, invoice_date, customer_id, billing_type, status,
+            (invoice_no, invoice_date, customer_id, billing_type, invoice_series, status,
              total_freight, total_other, taxable_value, cgst_amount, sgst_amount, igst_amount, cess_amount, gst_amount, grand_total, total_words, created_at, created_by, updated_at, updated_by)
             VALUES
-            ('$esc_no','$esc_date','$customer_id','$billing_type','$status',
+            ('$esc_no','$esc_date','$customer_id','$billing_type','$invoice_series','$status',
              '{$totals['total_freight']}','{$totals['total_other']}','{$totals['taxable_value']}',
              '{$totals['cgst_amount']}','{$totals['sgst_amount']}','{$totals['igst_amount']}','{$totals['cess_amount']}','{$totals['gst_amount']}','{$totals['grand_total']}','$esc_words','$now','$user_id','$now','$user_id')");
         $billing_invoice_id = (int) mysqli_insert_id($conn);

@@ -243,23 +243,19 @@ $backupCount = count($backups);
   margin-bottom: 0;
 }
 .ew-db-backup-table th.ew-db-backup-date-col,
-.ew-db-backup-table td.ew-db-backup-date-col,
 table.dataTable#ew_db_backup_table thead th.ew-db-backup-date-col,
-table.dataTable#ew_db_backup_table tbody td.ew-db-backup-date-col {
-  text-align: center !important;
-}
-table.dataTable#ew_db_backup_table tbody td.text-center {
-  text-align: center !important;
-}
-.ew-db-backup-card #ew_db_backup_table td.ew-db-backup-date-col,
-.ew-db-backup-card #ew_db_backup_table th.ew-db-backup-date-col {
-  text-align: center !important;
-}
+.ew-db-backup-card #ew_db_backup_table th.ew-db-backup-date-col,
 .ew-db-backup-table th.ew-db-backup-fromto-col,
-.ew-db-backup-table td.ew-db-backup-fromto-col,
-table.dataTable#ew_db_backup_table thead th.ew-db-backup-fromto-col,
-table.dataTable#ew_db_backup_table tbody td.ew-db-backup-fromto-col {
+table.dataTable#ew_db_backup_table thead th.ew-db-backup-fromto-col {
   text-align: center !important;
+}
+.ew-db-backup-table td.ew-db-backup-date-col,
+table.dataTable#ew_db_backup_table tbody td.ew-db-backup-date-col,
+table.dataTable#ew_db_backup_table tbody td.text-center,
+.ew-db-backup-card #ew_db_backup_table td.ew-db-backup-date-col,
+.ew-db-backup-table td.ew-db-backup-fromto-col,
+table.dataTable#ew_db_backup_table tbody td.ew-db-backup-fromto-col {
+  text-align: left !important;
 }
 .ew-db-backup-date-inner {
   display: inline-flex;

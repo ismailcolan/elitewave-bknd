@@ -105,7 +105,23 @@ if ($booking_clients_json === false) {
 		}
 
 		#grn_details.billing-only-edit .payment-charges-table input,
-		#grn_details.billing-only-edit .billing-generate-invoice-option input {
+		#grn_details.billing-only-edit .billing-generate-invoice-option input,
+		#grn_details.billing-only-edit #mode_of_consignment {
+			pointer-events: auto !important;
+			background-color: #fff !important;
+			opacity: 1 !important;
+		}
+
+		#grn_details.billing-only-edit .ew-booking-section .party-card--consignor input,
+		#grn_details.billing-only-edit .ew-booking-section .party-card--consignor select,
+		#grn_details.billing-only-edit .ew-booking-section .party-card--consignor .select2-container,
+		#grn_details.billing-only-edit .ew-booking-section .party-card--consignor .select2-choice,
+		#grn_details.billing-only-edit .ew-booking-section .party-card--consignor .select2-container .select2-choice,
+		#grn_details.billing-only-edit .ew-booking-section .party-card--consignee input,
+		#grn_details.billing-only-edit .ew-booking-section .party-card--consignee select,
+		#grn_details.billing-only-edit .ew-booking-section .party-card--consignee .select2-container,
+		#grn_details.billing-only-edit .ew-booking-section .party-card--consignee .select2-choice,
+		#grn_details.billing-only-edit .ew-booking-section .party-card--consignee .select2-container .select2-choice {
 			pointer-events: auto !important;
 			background-color: #fff !important;
 			opacity: 1 !important;
@@ -1017,7 +1033,7 @@ if ($booking_clients_json === false) {
 								<?php if ($form_fully_locked) { ?>
 								<div class="form-locked-banner"><i class="fa fa-lock"></i> This GCN is already invoiced. The booking form is locked and cannot be edited.</div>
 								<?php } elseif ($billing_only_edit) { ?>
-								<div class="form-locked-banner" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;"><i class="fa fa-info-circle"></i> Delivered consignment — only payment / billing fields can be edited. GST settings are locked.</div>
+								<div class="form-locked-banner" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;"><i class="fa fa-info-circle"></i> Delivered consignment — payment, billing, consignment mode, consignor, pickup customer, consignee, and ship-to customer can be edited. GST settings stay locked.</div>
 								<?php } ?>
 								<input type="hidden" name="truck_type" id="truck_type" value="<?php echo $ftl_type; ?>" />
 								<input type="hidden" name="form_name" value="<?php echo $form_name; ?>" id="form_name">
@@ -1198,6 +1214,23 @@ if ($booking_clients_json === false) {
 												<label for="" class="consignor_name_val"></label>
 												<input name="consignor" id="consignor" required value="<?php echo $row['consigner']; ?>" type="hidden" class="get_consigner_valll" />
 											</div>
+											<div class="ew-field" id="pickup_client_wrap" style="display:none;">
+												<label class="control-label">Pickup customer</label>
+												<select id="pickup_client" name="pickup_client" class="form-control party-select" data-placeholder="Same as consignor">
+													<option value="">Same as consignor</option>
+													<?php
+													$saved_pickup_client = (int) ($row['pickup_client_id'] ?? 0);
+													$saved_consignor_id = (int) ($row['consigner'] ?? 0);
+													if ($saved_pickup_client === $saved_consignor_id) {
+														$saved_pickup_client = 0;
+													}
+													foreach ($booking_clients as $copt) {
+														$sel = ((int) $copt['id'] === $saved_pickup_client) ? ' selected' : '';
+														echo '<option value="' . (int) $copt['id'] . '"' . $sel . '>' . htmlspecialchars($copt['name']) . '</option>';
+													}
+													?>
+												</select>
+											</div>
 											<div class="ew-field" id="consignor_branch_div" style="display:none;">
 												<label class="control-label" title="Consignor branch / pickup address">Pickup branch</label>
 												<select id="consignor_branch" name="consignor_branch" class="form-control party-select" data-placeholder="Select branch">
@@ -1225,6 +1258,23 @@ if ($booking_clients_json === false) {
 													<label class="control-label">Bill To</label>
 													<select id="bill_to_branch" name="bill_to_branch" class="form-control party-select" data-placeholder="Select branch">
 														<option value="">Select branch</option>
+													</select>
+												</div>
+												<div class="ew-field" id="ship_to_client_wrap" style="display:none;">
+													<label class="control-label">Ship to customer</label>
+													<select id="ship_to_client" name="ship_to_client" class="form-control party-select" data-placeholder="Same as consignee">
+														<option value="">Same as consignee</option>
+														<?php
+														$saved_ship_client = (int) ($row['ship_to_client_id'] ?? 0);
+														$saved_consignee_id = (int) ($row['consignee'] ?? 0);
+														if ($saved_ship_client === $saved_consignee_id) {
+															$saved_ship_client = 0;
+														}
+														foreach ($booking_clients as $copt) {
+															$sel = ((int) $copt['id'] === $saved_ship_client) ? ' selected' : '';
+															echo '<option value="' . (int) $copt['id'] . '"' . $sel . '>' . htmlspecialchars($copt['name']) . '</option>';
+														}
+														?>
 													</select>
 												</div>
 												<div class="ew-field" id="consignee_branch_div" style="display:none;">
@@ -2003,6 +2053,9 @@ if ($booking_clients_json === false) {
 				if (type === 'hidden' || id === 'save' || $el.hasClass('btn-cancel')) {
 					return;
 				}
+				if ($el.hasClass('select2-input') || $el.hasClass('select2-focusser') || $el.closest('.select2-container, .select2-drop').length) {
+					return;
+				}
 				if (paymentAllow[id] || paymentAllow[name] || $el.closest('.payment-charges-table').length) {
 					if (id === 'frieght_amount') {
 						if ($('#freight_manual_amount').is(':checked')) {
@@ -2031,6 +2084,24 @@ if ($booking_clients_json === false) {
 
 			$('#gst_tax_id, #gst_type').prop('disabled', true);
 			$('.gst-config-block').addClass('gst-locked');
+			$('#mode_of_consignment').prop('disabled', false);
+			['#consignor_name', '#pickup_client', '#consignor_branch', '#consignee_name', '#ship_to_client', '#bill_to_branch', '#consignee_branch'].forEach(function(sel) {
+				var $party = $(sel);
+				if (!$party.length) {
+					return;
+				}
+				$party.prop('disabled', false);
+				var s2 = $party.data('select2');
+				if (s2) {
+					$party.select2('enable', true);
+					if (s2.search) {
+						s2.search.prop('readonly', false).prop('disabled', false);
+					}
+					if (s2.focusser) {
+						s2.focusser.prop('readonly', false);
+					}
+				}
+			});
 			$('input[name=billing_invoice_mode]').prop('disabled', false);
 			syncBillingInvoiceModeChoice();
 			$('.upload-dropzone, #add_more, .remove-image, #signature, .jSignature, .pkg-row-btn').css('pointer-events', 'none');
@@ -2620,21 +2691,34 @@ if ($booking_clients_json === false) {
 				consignor: consignorId
 			}, function(rows) {
 				rows = rows || [];
-				var hasMapped = rows.length > 0;
-				if (hasMapped) {
-					fillConsigneeNameSelect(rows, selected || '', false);
-				} else if (selected) {
-					var label = $('#consignee_name option[value="' + selected + '"]').text() || '';
-					if (label) {
-						fillConsigneeNameSelect([{ id: selected, name: label }], selected, false);
-					} else {
-						var fallback = bookingConsigneeOptions(consignorId);
-						fillConsigneeNameSelect(fallback, selected, false);
+				var mappedIds = {};
+				var ordered = [];
+				$.each(rows, function(i, c) {
+					mappedIds[String(c.id)] = true;
+					ordered.push(c);
+				});
+				$.each(bookingConsigneeOptions(consignorId), function(i, c) {
+					if (!mappedIds[String(c.id)]) {
+						ordered.push(c);
 					}
+				});
+				if (!ordered.length && selected) {
+					var label = $('#consignee_name option[value="' + selected + '"]').text() || ('Customer ' + selected);
+					ordered = [{ id: selected, name: label }];
+				}
+				fillConsigneeNameSelect(ordered, selected || '', false);
+				if (selected) {
 					$('#consignee').val(String(selected));
 				} else {
-					fillConsigneeNameSelect(bookingConsigneeOptions(consignorId), '', false);
 					$('#consignee').val('');
+				}
+				if (typeof done === 'function') {
+					done();
+				}
+			}).fail(function() {
+				fillConsigneeNameSelect(bookingConsigneeOptions(consignorId), selected || '', false);
+				if (selected) {
+					$('#consignee').val(String(selected));
 				}
 				if (typeof done === 'function') {
 					done();
@@ -2690,19 +2774,196 @@ if ($booking_clients_json === false) {
 			}
 		}
 
-		function refreshConsigneeBranchDropdowns(preBill, preShip) {
-			var branches = cachedConsigneeBranches || [];
-			var has = branches.length > 0;
-			if (!has) {
-				$('#bill_to_branch_div, #consignee_branch_div').hide();
+		function effectiveShipClientId() {
+			var ship = partySelectVal($('#ship_to_client'));
+			var consignee = $('#consignee').val();
+			if (!ship || String(ship) === String(consignee)) {
+				return '';
+			}
+			return String(ship);
+		}
+
+		function effectivePickupClientId() {
+			var pickup = partySelectVal($('#pickup_client'));
+			var consignor = $('#consignor').val();
+			if (!pickup || String(pickup) === String(consignor)) {
+				return '';
+			}
+			return String(pickup);
+		}
+
+		function showPickupCustomer() {
+			if ($('#consignor').val()) {
+				$('#pickup_client_wrap').show();
+				if (!$('#pickup_client').data('select2')) {
+					initPartyNameSelect($('#pickup_client'), 'Same as consignor', false);
+				}
+			} else {
+				$('#pickup_client_wrap').hide();
+			}
+		}
+
+		function setOriginFromParty(cityId, stateId, cityName) {
+			if (!cityId) {
 				return;
 			}
-			populateBranchDropdown('#bill_to_branch', branches, null, preBill || partySelectVal($('#bill_to_branch')));
-			populateBranchDropdown('#consignee_branch', branches, null, preShip || partySelectVal($('#consignee_branch')));
+			var cityVal = String(cityId);
+			var $opt = $('#origin option[value="' + cityVal + '"]');
+			if (!$opt.length) {
+				$opt = $('<option></option>').val(cityVal).text(cityName || cityVal);
+				$('#origin').append($opt);
+			}
+			$('#origin').val(cityVal);
+			if (stateId) {
+				$('#consignor_state_id').val(stateId);
+			}
+			if (typeof reloadDestinationDropdown === 'function') {
+				reloadDestinationDropdown(cityVal, function() {
+					refreshGstCalculation();
+				});
+			} else {
+				refreshGstCalculation();
+			}
+		}
+
+		function applyPickupClientCity(clientId) {
+			if (!clientId) {
+				return;
+			}
+			$.ajax({
+				url: 'fetch_details.php',
+				type: 'GET',
+				dataType: 'json',
+				data: { cmd: 'get_client_details_consignment', tbl_id: clientId },
+				success: function(result) {
+					if (!result) {
+						return;
+					}
+					setOriginFromParty(result.city, result.state_id, result.city_name);
+				}
+			});
+		}
+
+		function loadPickupCustomerBranches(clientId, preBranch) {
+			if (!clientId) {
+				showPickupCustomer();
+				if (cachedConsignorBranches.length) {
+					populateBranchDropdown('#consignor_branch', cachedConsignorBranches, $('#consignee_branch').val(), preBranch || '');
+				}
+				return;
+			}
+			$.ajax({
+				url: 'fetch_details.php',
+				type: 'GET',
+				dataType: 'json',
+				data: { cmd: 'get_client_branches', company_id: clientId },
+				success: function(branches) {
+					branches = branches || [];
+					showPickupCustomer();
+					if (branches.length) {
+						populateBranchDropdown('#consignor_branch', branches, null, preBranch || '');
+					} else {
+						$('#consignor_branch_div').hide();
+						$('#consignor_branch').html('<option value="">Select branch</option>');
+						applyPickupClientCity(clientId);
+					}
+				}
+			});
+		}
+
+		function showShipToCustomer() {
+			if ($('#consignee').val()) {
+				$('#ship_to_client_wrap').show();
+				if (!$('#ship_to_client').data('select2')) {
+					initPartyNameSelect($('#ship_to_client'), 'Same as consignee', false);
+				}
+			} else {
+				$('#ship_to_client_wrap').hide();
+			}
+		}
+
+		function setDestinationFromParty(cityId, stateId, cityName) {
+			if (!cityId) {
+				return;
+			}
+			var cityVal = String(cityId);
+			var $opt = $('#destination option[value="' + cityVal + '"]');
+			if (!$opt.length) {
+				$opt = $('<option></option>').val(cityVal).text(cityName || cityVal);
+				$('#destination').append($opt);
+			}
+			if (stateId) {
+				$opt.attr('data-state', stateId);
+				$('#consignee_state_id').val(stateId);
+			}
+			$('#destination').val(cityVal);
+			refreshGstCalculation();
+			if (typeof load_payment_info === 'function') {
+				load_payment_info();
+			}
+		}
+
+		function refreshConsigneeBranchDropdowns(preBill, preShip) {
+			var branches = cachedConsigneeBranches || [];
+			showShipToCustomer();
+			if (branches.length) {
+				populateBranchDropdown('#bill_to_branch', branches, null, preBill || partySelectVal($('#bill_to_branch')));
+			} else {
+				$('#bill_to_branch_div').hide();
+			}
+			if (effectiveShipClientId()) {
+				return;
+			}
+			if (branches.length) {
+				populateBranchDropdown('#consignee_branch', branches, null, preShip || partySelectVal($('#consignee_branch')));
+			} else {
+				$('#consignee_branch_div').hide();
+			}
+		}
+
+		function applyShipToClientCity(clientId) {
+			if (!clientId) {
+				return;
+			}
+			$.ajax({
+				url: 'fetch_details.php',
+				type: 'GET',
+				dataType: 'json',
+				data: { cmd: 'get_client_details_consignment', tbl_id: clientId },
+				success: function(result) {
+					if (!result) {
+						return;
+					}
+					setDestinationFromParty(result.city, result.state_id, result.city_name);
+				}
+			});
+		}
+
+		function loadShipToCustomerBranches(clientId, preShip) {
+			if (!clientId) {
+				refreshConsigneeBranchDropdowns(null, preShip);
+				return;
+			}
+			$.ajax({
+				url: 'fetch_details.php',
+				type: 'GET',
+				dataType: 'json',
+				data: { cmd: 'get_client_branches', company_id: clientId },
+				success: function(branches) {
+					branches = branches || [];
+					if (branches.length) {
+						populateBranchDropdown('#consignee_branch', branches, null, preShip || '');
+					} else {
+						$('#consignee_branch_div').hide();
+						$('#consignee_branch').html('<option value="">Select branch</option>');
+						applyShipToClientCity(clientId);
+					}
+				}
+			});
 		}
 
 		function syncBranchDropdowns() {
-			if (cachedConsignorBranches.length && $('#consignor').val()) {
+			if (!effectivePickupClientId() && cachedConsignorBranches.length && $('#consignor').val()) {
 				populateBranchDropdown('#consignor_branch', cachedConsignorBranches, $('#consignee_branch').val());
 			}
 			if (cachedConsigneeBranches.length && $('#consignee').val()) {
@@ -2726,7 +2987,10 @@ if ($booking_clients_json === false) {
 				success: function(branches) {
 					if (party === 'consignor') {
 						cachedConsignorBranches = branches || [];
-						populateBranchDropdown('#consignor_branch', cachedConsignorBranches, $('#consignee_branch').val(), preselectBranchId);
+						showPickupCustomer();
+						if (!effectivePickupClientId()) {
+							populateBranchDropdown('#consignor_branch', cachedConsignorBranches, $('#consignee_branch').val(), preselectBranchId);
+						}
 					} else {
 						cachedConsigneeBranches = branches || [];
 						refreshConsigneeBranchDropdowns(preselectBillBranchId, preselectShipBranchId || preselectBranchId);
@@ -2742,6 +3006,8 @@ if ($booking_clients_json === false) {
 		var savedConsignorBranchId = <?php echo (int) ($row['consignor_branch_id'] ?? 0); ?>;
 		var savedBillToBranchId = <?php echo (int) ($row['bill_to_branch_id'] ?? 0); ?>;
 		var savedConsigneeBranchId = <?php echo (int) ($row['consignee_branch_id'] ?? 0); ?>;
+		var savedShipToClientId = <?php echo (int) ($row['ship_to_client_id'] ?? 0); ?>;
+		var savedPickupClientId = <?php echo (int) ($row['pickup_client_id'] ?? 0); ?>;
 		var bookingVehicleTypeDims = <?php echo $booking_vehicle_type_dims_json; ?>;
 
 		function syncVehicleTypeDimsDisplay() {
@@ -2797,10 +3063,32 @@ if ($booking_clients_json === false) {
 				if (!consigneeId) {
 					return;
 				}
-				loadClientBranches(consigneeId, 'consignee', null, true, null, savedBillToBranchId || null, savedConsigneeBranchId || null);
+				var shipDiffers = savedShipToClientId > 0 && String(savedShipToClientId) !== String(consigneeId);
+				loadClientBranches(consigneeId, 'consignee', function() {
+					if (!shipDiffers) {
+						return;
+					}
+					if ($('#ship_to_client').data('select2')) {
+						$('#ship_to_client').select2('val', String(savedShipToClientId));
+					} else {
+						$('#ship_to_client').val(String(savedShipToClientId));
+					}
+					loadShipToCustomerBranches(savedShipToClientId, savedConsigneeBranchId || null);
+				}, true, null, savedBillToBranchId || null, shipDiffers ? null : (savedConsigneeBranchId || null));
 			};
 			if (consignorId) {
-				loadClientBranches(consignorId, 'consignor', loadConsigneeBranches, true, savedConsignorBranchId || null);
+				var pickupDiffers = savedPickupClientId > 0 && String(savedPickupClientId) !== String(consignorId);
+				loadClientBranches(consignorId, 'consignor', function() {
+					if (pickupDiffers) {
+						if ($('#pickup_client').data('select2')) {
+							$('#pickup_client').select2('val', String(savedPickupClientId));
+						} else {
+							$('#pickup_client').val(String(savedPickupClientId));
+						}
+						loadPickupCustomerBranches(savedPickupClientId, savedConsignorBranchId || null);
+					}
+					loadConsigneeBranches();
+				}, true, pickupDiffers ? null : (savedConsignorBranchId || null));
 			} else {
 				loadConsigneeBranches();
 			}
@@ -2890,14 +3178,11 @@ if ($booking_clients_json === false) {
 					if (r.gst_no) {
 						$('#con_gst').val(r.gst_no);
 					}
-					if (r.state) {
-						$('#consignee_state_id').val(r.state);
-					}
-
 					if (r.city) {
-						$('#destination').val(r.city);
+						setDestinationFromParty(r.city, r.state, r.city_name);
+					} else if (r.state) {
+						$('#consignee_state_id').val(r.state);
 						refreshGstCalculation();
-						load_payment_info();
 					}
 				}
 			});
@@ -2908,6 +3193,9 @@ if ($booking_clients_json === false) {
 		});
 
 		$(document).on('change', '#bill_to_branch', function() {
+			if (effectiveShipClientId()) {
+				return;
+			}
 			var branchId = $(this).val();
 			if (branchId) {
 				$.ajax({
@@ -2927,6 +3215,24 @@ if ($booking_clients_json === false) {
 
 		$(document).on('change', '#consignee_branch', function() {
 			applyConsigneeBranch($(this).val());
+		});
+
+		$(document).on('change', '#ship_to_client', function() {
+			var shipId = effectiveShipClientId();
+			if (!shipId) {
+				refreshConsigneeBranchDropdowns(null, '');
+				return;
+			}
+			loadShipToCustomerBranches(shipId, '');
+		});
+
+		$(document).on('change', '#pickup_client', function() {
+			var pickupId = effectivePickupClientId();
+			if (!pickupId) {
+				loadPickupCustomerBranches('', partySelectVal($('#consignor_branch')));
+				return;
+			}
+			loadPickupCustomerBranches(pickupId, '');
 		});
 		//Auto Calculation Part — FTL / Train Type UI disabled; Rajdhani row follows transport mode only
 		function ewSyncRajdhaniRowForTransport() {
@@ -3266,9 +3572,6 @@ if ($booking_clients_json === false) {
 								$('#frieght_amount').val(lockedFreightVal);
 								sum_amount();
 							}
-
-						} else {
-							ewToast("Consignor Does Not Have That Destination", 'warning');
 						}
 
 
@@ -3468,7 +3771,7 @@ if ($booking_clients_json === false) {
 		//End
 
 		$(document).ready(function() {
-		$("#consignor_branch_div, #bill_to_branch_div, #consignee_branch_div").hide();
+		$("#consignor_branch_div, #bill_to_branch_div, #ship_to_client_wrap, #consignee_branch_div").hide();
 			var freightRateVal = parseFloat($('#frieght_rate').val()) || 0;
 			var freightAmtVal = parseFloat($('#frieght_amount').val()) || 0;
 			if (freightRateVal <= 0 && freightAmtVal > 0) {
@@ -3933,7 +4236,12 @@ if ($booking_clients_json === false) {
 				$('#gst_no').val('');
 				$('#consignor_state_id').val('');
 				cachedConsignorBranches = [];
-				$("#consignor_branch_div").hide();
+				if ($('#pickup_client').data('select2')) {
+					$('#pickup_client').select2('val', '');
+				} else {
+					$('#pickup_client').val('');
+				}
+				$("#pickup_client_wrap, #consignor_branch_div").hide();
 				$("#consignor_branch").html('<option value="">Select Branch</option>');
 			}
 
@@ -3953,7 +4261,12 @@ if ($booking_clients_json === false) {
 				$('#con_gst').val('');
 				$('#consignee_state_id').val('');
 				cachedConsigneeBranches = [];
-				$("#bill_to_branch_div, #consignee_branch_div").hide();
+				if ($('#ship_to_client').data('select2')) {
+					$('#ship_to_client').select2('val', '');
+				} else {
+					$('#ship_to_client').val('');
+				}
+				$("#bill_to_branch_div, #ship_to_client_wrap, #consignee_branch_div").hide();
 				$("#bill_to_branch, #consignee_branch").html('<option value="">Select Branch</option>');
 			}
 
@@ -3965,9 +4278,23 @@ if ($booking_clients_json === false) {
 				$('#consignor').val(id || '');
 				if (!id) {
 					reset_consignee();
+					if ($('#pickup_client').data('select2')) {
+						$('#pickup_client').select2('val', '');
+					} else {
+						$('#pickup_client').val('');
+					}
+					$('#pickup_client_wrap, #consignor_branch_div').hide();
 					$("#con_details").hide();
 					$("#con_details1").hide();
 					return;
+				}
+				var pickupNow = partySelectVal($('#pickup_client'));
+				if (pickupNow && String(pickupNow) === String(id)) {
+					if ($('#pickup_client').data('select2')) {
+						$('#pickup_client').select2('val', '');
+					} else {
+						$('#pickup_client').val('');
+					}
 				}
 				loadClientBranches(id, 'consignor', null, true);
 				loadMappedConsignees(id, '');
@@ -4018,6 +4345,14 @@ if ($booking_clients_json === false) {
 					$('#con_details1').hide();
 					return;
 				}
+				var shipNow = partySelectVal($('#ship_to_client'));
+				if (shipNow && String(shipNow) === String(id)) {
+					if ($('#ship_to_client').data('select2')) {
+						$('#ship_to_client').select2('val', '');
+					} else {
+						$('#ship_to_client').val('');
+					}
+				}
 				loadClientBranches(id, 'consignee', null, true);
 				$.ajax({
 					url: 'fetch_details.php',
@@ -4025,6 +4360,9 @@ if ($booking_clients_json === false) {
 					dataType: 'JSON',
 					data: { cmd: 'get_client_details_consignment', tbl_id: id },
 					success: function(result) {
+						if (effectiveShipClientId()) {
+							return;
+						}
 						if ($('#destination').val() == '' && cachedConsigneeBranches.length <= 1 && result && result['city']) {
 							$('#destination').val(result['city']);
 							refreshGstCalculation();
@@ -4339,6 +4677,8 @@ $("input[name='file_receipt[]']").each(function () {
 					formData.set('consignor_branch', $('#consignor_branch').val() || '');
 					formData.set('bill_to_branch', $('#bill_to_branch').val() || '');
 					formData.set('consignee_branch', $('#consignee_branch').val() || '');
+					formData.set('ship_to_client', effectiveShipClientId() || '');
+					formData.set('pickup_client', effectivePickupClientId() || '');
 					formData.append('del_id', id);
 					formData.append('length', length);
 					formData.append('width', width);

@@ -69,6 +69,9 @@ if ($id > 0) {
 		'origin_text' => '',
 		'loading_type' => '2_point',
 		'mode_of_transportation' => 0,
+		'train_id' => 0,
+		'flight_id' => 0,
+		'journey_hours' => '',
 		'destination_name' => '',
 		'unloading_at' => '',
 		'delivery_address' => '',
@@ -105,6 +108,9 @@ if ($customer_mode === 'new' && (int) ($master['party_id'] ?? 0) > 0 && trim((st
 if ($customer_mode === 'existing' && trim((string) ($master['party_name'] ?? '')) === '' && (int) ($master['party_id'] ?? 0) > 0) {
 	$master['party_name'] = quotation_party_name($conn, (int) $master['party_id']);
 }
+$source_trains = quotation_active_trains($conn);
+$source_flights = quotation_active_flights($conn);
+$mode_kind_map = quotation_mode_kind_map($conn);
 $vehicle_types = ew_vehicle_type_list($conn, true);
 $vehicle_json = array();
 foreach ($vehicle_types as $vt) {
@@ -229,6 +235,10 @@ function ew_quotation_status_pill_class($status)
 											<div class="ew-field span-4">
 												<label>Subject</label>
 												<input type="text" name="subject" id="subject" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['subject'] ?? ''); ?>" />
+											</div>
+											<div class="ew-field span-4">
+												<label>Dear Sir / Madam</label>
+												<textarea name="letter_body" id="letter_body" class="form-control pv-bind" rows="3" <?php echo $form_editable ? '' : 'readonly'; ?>><?php echo htmlspecialchars(quotation_letter_body_for($master)); ?></textarea>
 											</div>
 										</div>
 									</div>
@@ -359,12 +369,44 @@ function ew_quotation_status_pill_class($status)
 									</div>
 								</div>
 
-								<div class="ew-card ew-invoice-details-card">
-									<h2 class="ew-card-section-title">Vehicle specification</h2>
+								<div class="ew-card ew-invoice-details-card" id="vehicle_spec_card">
+									<h2 class="ew-card-section-title" id="vehicle_spec_title">Vehicle specification</h2>
 									<div class="ew-form-body">
 										<div class="ew-form-grid ew-form-grid--invoice ew-form-grid--quotation">
+											<div class="ew-field span-2" id="quote_train_wrap" style="display:none;">
+												<label>Train</label>
+												<select name="train_id" id="quote_train_id" class="form-control">
+													<option value="" data-hours="">Select train</option>
+													<?php foreach ($source_trains as $tr) {
+														$tid = (int) ($tr['train_id'] ?? 0);
+														$sel = ((int) ($master['train_id'] ?? 0) === $tid) ? ' selected' : '';
+														$hrs = trim((string) ($tr['journey_hours'] ?? ''));
+														echo '<option value="' . $tid . '" data-hours="' . htmlspecialchars($hrs, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>'
+															. htmlspecialchars(quotation_transport_option_label($tr['train_name'] ?? '', $tr['train_number'] ?? ''))
+															. '</option>';
+													} ?>
+												</select>
+											</div>
+											<div class="ew-field span-2" id="quote_flight_wrap" style="display:none;">
+												<label>Flight</label>
+												<select name="flight_id" id="quote_flight_id" class="form-control">
+													<option value="" data-hours="">Select flight</option>
+													<?php foreach ($source_flights as $fl) {
+														$fid = (int) ($fl['flight_id'] ?? 0);
+														$sel = ((int) ($master['flight_id'] ?? 0) === $fid) ? ' selected' : '';
+														$hrs = trim((string) ($fl['journey_hours'] ?? ''));
+														echo '<option value="' . $fid . '" data-hours="' . htmlspecialchars($hrs, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>'
+															. htmlspecialchars(quotation_transport_option_label($fl['flight_name'] ?? '', $fl['flight_number'] ?? ''))
+															. '</option>';
+													} ?>
+												</select>
+											</div>
+											<div class="ew-field" id="quote_hours_wrap">
+												<label>Hours</label>
+												<input type="text" name="journey_hours" id="quote_journey_hours" class="form-control" value="<?php echo htmlspecialchars($master['journey_hours'] ?? ''); ?>" placeholder="Enter hours" autocomplete="off" />
+											</div>
 											<div class="ew-field span-2">
-												<label>Vehicle type</label>
+												<label id="vehicle_type_label">Vehicle type</label>
 												<select name="vehicle_type_id" id="vehicle_type_id" class="form-control">
 													<option value="">Select vehicle type</option>
 													<?php foreach ($vehicle_types as $vt) {
@@ -537,13 +579,14 @@ function ew_quotation_status_pill_class($status)
 
 <script>
 window.QUOTATION_VEHICLE_MAP = <?php echo json_encode($vehicle_json); ?>;
+window.QUOTATION_MODE_KIND = <?php echo json_encode($mode_kind_map); ?>;
 window.QUOTATION_LOADING_LABELS = <?php echo json_encode(quotation_loading_type_options()); ?>;
 window.QUOTATION_PAYMENT_LABELS = <?php echo json_encode(quotation_payment_terms_options()); ?>;
 window.QUOTATION_LETTER_INTRO = <?php echo json_encode(quotation_letter_intro_text()); ?>;
 window.QUOTATION_MULTI_MODE_TYPES = [];
 window.QUOTATION_ALL_MODES_SCREEN = false;
 </script>
-<script src="javascripts/quotation-form.js?v=20261007singlecfs"></script>
+<script src="javascripts/quotation-form.js?v=20261020letter"></script>
 <?php echo quotation_customer_approve_modal_html(); ?>
 <?php echo quotation_customer_approve_script('quotation_list.php?tab=approved'); ?>
 </body>

@@ -61,6 +61,9 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
     $sum_weight = 0;
     $sum_freight = 0;
     $sum_dc = 0;
+    $sum_cgst = 0;
+    $sum_sgst = 0;
+    $sum_igst = 0;
     $sum_total_line = 0;
     $rows_html = '';
     $sno = 1;
@@ -93,10 +96,36 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
 
         $qty = (int) ($item['qty'] ?: $detail['packages']);
         $weight = round((float) ($item['charged_weight'] ?: $detail['weight']), 1);
-        $rate = (float) ($item['frieght_rate'] ?: $trow['frieght_rate']);
+        $line_agg = billing_invoice_lines_aggregate($conn, $tbl, $tid);
+        $live_amounts = billing_amounts_from_booking_row($trow, $line_agg);
+        $rate = (float) ($trow['frieght_rate'] ?? 0);
+        if ($rate <= 0) {
+            $rate = (float) ($line_agg['rate'] ?? 0);
+        }
         $freight = (float) $detail['freight_amount'];
+        if ($freight <= 0) {
+            $freight = (float) $live_amounts['freight'];
+        }
+        if ($rate <= 0 && $weight > 0 && $freight > 0) {
+            $rate = round($freight / $weight, 2);
+        }
         $dc = (float) $detail['other_charges'];
+        if ($dc <= 0) {
+            $dc = (float) $live_amounts['other'];
+        }
+        $line_cgst = (float) $detail['cgst_amount'];
+        $line_sgst = (float) $detail['sgst_amount'];
+        $line_igst = (float) $detail['igst_amount'];
+        if ($line_cgst <= 0 && $line_sgst <= 0 && $line_igst <= 0) {
+            $line_cgst = (float) ($trow['cgst_amount'] ?? 0);
+            $line_sgst = (float) ($trow['sgst_amount'] ?? 0);
+            $line_igst = (float) ($trow['igst_amount'] ?? 0);
+        }
         $total_line = (float) $detail['total_amount'];
+        if ($total_line <= 0) {
+            $gst_line = $line_cgst + $line_sgst + $line_igst;
+            $total_line = round($freight + $dc + $gst_line, 2);
+        }
         $mode_name = get_mode($conn, $trow['mode_of_transportation']);
         $consignee_det = get_client_info($conn, $trow['consignee']);
         $consignee_addr_html = tax_invoice_fmt_addr($consignee_det ?: array(), $conn);
@@ -106,6 +135,9 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
         $sum_weight += $weight;
         $sum_freight += $freight;
         $sum_dc += $dc;
+        $sum_cgst += $line_cgst;
+        $sum_sgst += $line_sgst;
+        $sum_igst += $line_igst;
         $sum_total_line += $total_line;
         $gcn_count++;
 
@@ -131,10 +163,23 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
     $cgst_amt = $is_other_doc ? 0.0 : (float) $master['cgst_amount'];
     $sgst_amt = $is_other_doc ? 0.0 : (float) $master['sgst_amount'];
     $igst_amt = $is_other_doc ? 0.0 : (float) $master['igst_amount'];
+    if (!$is_other_doc && $cgst_amt <= 0 && $sgst_amt <= 0 && $igst_amt <= 0) {
+        $cgst_amt = $sum_cgst;
+        $sgst_amt = $sum_sgst;
+        $igst_amt = $sum_igst;
+    }
     $cess_amt = $is_other_doc ? 0.0 : (float) ($master['cess_amount'] ?? 0);
     $taxable = (float) $master['taxable_value'];
     $grand_total = $is_other_doc ? $taxable : (float) $master['grand_total'];
-    $is_same_state = (!$is_other_doc && ($cgst_amt > 0 || $sgst_amt > 0));
+    if ($is_other_doc) {
+        $tax_mode = '';
+    } elseif ($cgst_amt > 0 || $sgst_amt > 0) {
+        $tax_mode = 'intra';
+    } elseif ($igst_amt > 0) {
+        $tax_mode = 'inter';
+    } else {
+        $tax_mode = '';
+    }
 
     $cgst_rate = $taxable > 0 ? round(($cgst_amt / $taxable) * 100, 2) : 0;
     $sgst_rate = $taxable > 0 ? round(($sgst_amt / $taxable) * 100, 2) : 0;
@@ -227,18 +272,18 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
     $html .= '
 <table border="1" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;table-layout:fixed;font-family:Arial, Helvetica, sans-serif;font-size:7.5pt;">
 <tr style="font-weight:bold;text-align:center;vertical-align:middle;height:22px;">
-    <td style="border:1px solid #000;width:5%;padding:2px;">S/No</td>
-    <td style="border:1px solid #000;width:8%;padding:2px;">GCN No</td>
-    <td style="border:1px solid #000;width:8%;padding:2px;">Date</td>
+    <td style="border:1px solid #000;width:4%;padding:2px;">S/No</td>
+    <td style="border:1px solid #000;width:7%;padding:2px;">GCN No</td>
+    <td style="border:1px solid #000;width:7%;padding:2px;">Date</td>
     <td style="border:1px solid #000;width:4%;padding:2px;">Qty</td>
-    <td style="border:1px solid #000;width:6%;padding:2px;">Weight</td>
-    <td style="border:1px solid #000;width:5%;padding:2px;">Rate</td>
-    <td style="border:1px solid #000;width:15%;padding:2px;">Consignor / Consignee</td>
-    <td style="border:1px solid #000;width:20%;padding:2px;">Ship To</td>
-    <td style="border:1px solid #000;width:7%;padding:2px;">Mode</td>
-    <td style="border:1px solid #000;width:8%;padding:2px;">Supp.Inv.No.</td>
+    <td style="border:1px solid #000;width:5%;padding:2px;">Weight</td>
+    <td style="border:1px solid #000;width:4%;padding:2px;">Rate</td>
+    <td style="border:1px solid #000;width:12%;padding:2px;">Consignor / Consignee</td>
+    <td style="border:1px solid #000;width:14%;padding:2px;">Ship To</td>
+    <td style="border:1px solid #000;width:6%;padding:2px;">Mode</td>
+    <td style="border:1px solid #000;width:7%;padding:2px;">Supp.Inv.No.</td>
     <td style="border:1px solid #000;width:6%;padding:2px;">Freight</td>
-    <td style="border:1px solid #000;width:4%;padding:2px;">DC</td>
+    <td style="border:1px solid #000;width:5%;padding:2px;">DC</td>
     <td style="border:1px solid #000;width:6%;padding:2px;">Total</td>
 </tr>' . $rows_html . '
 <tr style="font-weight:bold;height:20px;page-break-inside:avoid;">
@@ -262,7 +307,7 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
         $html .= gst_invoice_pdf_summary_section_html(
             $unique_invoice_no,
             $transport_types,
-            $is_same_state,
+            $tax_mode,
             $cgst_rate,
             $sgst_rate,
             $igst_rate,

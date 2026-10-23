@@ -513,7 +513,7 @@ div#dataTable1_length {
 				</div>
 				<div class="form-group">
 				  <label class="control-label">Hub Code <span style="color:red;">*</span> :</label>
-				  <input type="text" id="hub_code" name="hub_code" placeholder="E.g(201)" class="form-control" disabled/>
+				  <input type="text" id="hub_code" name="hub_code" placeholder="<?php echo htmlspecialchars(ew_master_format_code(ew_master_code_prefix('Hub Details'), 1)); ?>" class="form-control" disabled/>
 				</div>
 				<div class="form-group">
 				  <label class="control-label">Hub Name <span style="color:red;">*</span> :</label>

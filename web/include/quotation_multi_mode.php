@@ -77,7 +77,7 @@ function quotation_source_ids_from_stored($row)
 function quotation_active_trains($conn)
 {
 	$rows = array();
-	$q = @mysqli_query($conn, 'SELECT train_id, train_name, train_number FROM train WHERE status=0 ORDER BY train_name ASC, train_number ASC');
+	$q = @mysqli_query($conn, 'SELECT train_id, train_name, train_number, journey_hours FROM train WHERE status=0 ORDER BY train_name ASC, train_number ASC');
 	if ($q) {
 		while ($r = mysqli_fetch_assoc($q)) {
 			$rows[] = $r;
@@ -89,7 +89,7 @@ function quotation_active_trains($conn)
 function quotation_active_flights($conn)
 {
 	$rows = array();
-	$q = @mysqli_query($conn, 'SELECT flight_id, flight_name, flight_number FROM flight WHERE status=0 ORDER BY flight_name ASC, flight_number ASC');
+	$q = @mysqli_query($conn, 'SELECT flight_id, flight_name, flight_number, journey_hours FROM flight WHERE status=0 ORDER BY flight_name ASC, flight_number ASC');
 	if ($q) {
 		while ($r = mysqli_fetch_assoc($q)) {
 			$rows[] = $r;

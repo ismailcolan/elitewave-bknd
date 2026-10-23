@@ -93,6 +93,9 @@ function expense_gcn_ensure_schema($conn)
 	if (empty($have['tds_amount'])) {
 		mysqli_query($conn, "ALTER TABLE gcn_expense_lines ADD COLUMN tds_amount DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER gst_amount");
 	}
+	if (empty($have['gst_percent'])) {
+		mysqli_query($conn, "ALTER TABLE gcn_expense_lines ADD COLUMN gst_percent DECIMAL(6,2) NOT NULL DEFAULT 0 AFTER expense_amount");
+	}
 }
 
 function expense_gcn_vendor_tax_info($conn, $vendor_id)
@@ -228,7 +231,17 @@ function expense_gcn_parse_lines_input($conn, $lines_in)
 		$category_id = (int) ($line['category_id'] ?? 0);
 		$expense_date = trim((string) ($line['expense_date'] ?? ''));
 		$expense_amount = expense_gcn_parse_money($line['expense_amount'] ?? 0);
+		$gst_percent = round((float) ($line['gst_percent'] ?? 0), 2);
+		if ($gst_percent < 0) {
+			$gst_percent = 0;
+		}
+		if ($gst_percent > 100) {
+			$gst_percent = 100;
+		}
 		$gst_amount = expense_gcn_parse_money($line['gst_amount'] ?? 0);
+		if ($gst_percent > 0 && $expense_amount > 0) {
+			$gst_amount = round($expense_amount * $gst_percent / 100, 2);
+		}
 		$tds_amount = expense_gcn_parse_money($line['tds_amount'] ?? 0);
 
 		if ($vendor_id <= 0 && $category_id <= 0 && $expense_amount <= 0 && $expense_date === '' && $gst_amount <= 0 && $tds_amount <= 0) {
@@ -254,11 +267,6 @@ function expense_gcn_parse_lines_input($conn, $lines_in)
 			return array('ok' => false, 'message' => 'Invalid expense type selected.');
 		}
 
-		$tax = expense_gcn_suggest_tax($conn, $vendor_id, $category_id, $expense_amount);
-		if (empty($tax['vendor']['gst_applicable'])) {
-			$gst_amount = 0;
-		}
-
 		$line_no++;
 		$parsed_lines[] = array(
 			'line_no' => $line_no,
@@ -266,6 +274,7 @@ function expense_gcn_parse_lines_input($conn, $lines_in)
 			'category_id' => $category_id,
 			'expense_date' => $expense_date,
 			'expense_amount' => round($expense_amount, 2),
+			'gst_percent' => $gst_percent,
 			'gst_amount' => round($gst_amount, 2),
 			'tds_amount' => round($tds_amount, 2),
 		);
@@ -289,11 +298,12 @@ function expense_gcn_save_lines($conn, $gcn_expense_id, $parsed_lines, $user_id,
 		$category_id = (int) $line['category_id'];
 		$expense_date_esc = mysqli_real_escape_string($conn, $line['expense_date']);
 		$expense_amount = $line['expense_amount'];
+		$gst_percent = round((float) ($line['gst_percent'] ?? 0), 2);
 		$gst_amount = $line['gst_amount'];
 		$tds_amount = $line['tds_amount'];
 		mysqli_query($conn, "INSERT INTO gcn_expense_lines
-			(gcn_expense_id, line_no, vendor_id, category_id, expense_date, expense_amount, gst_amount, tds_amount, created_at, created_by)
-			VALUES ('$gcn_expense_id', '$line_no', '$vendor_id', '$category_id', '$expense_date_esc', '$expense_amount', '$gst_amount', '$tds_amount', '$now', '$user_id')");
+			(gcn_expense_id, line_no, vendor_id, category_id, expense_date, expense_amount, gst_percent, gst_amount, tds_amount, created_at, created_by)
+			VALUES ('$gcn_expense_id', '$line_no', '$vendor_id', '$category_id', '$expense_date_esc', '$expense_amount', '$gst_percent', '$gst_amount', '$tds_amount', '$now', '$user_id')");
 	}
 }
 
@@ -309,6 +319,12 @@ function expense_gcn_load_lines($conn, $gcn_expense_id)
 		ORDER BY l.line_no ASC, l.line_id ASC");
 	if ($lq) {
 		while ($row = mysqli_fetch_assoc($lq)) {
+			$exp_raw = round((float) $row['expense_amount'], 2);
+			$gst_pct = round((float) ($row['gst_percent'] ?? 0), 2);
+			$gst_raw = round((float) ($row['gst_amount'] ?? 0), 2);
+			if ($gst_pct <= 0 && $gst_raw > 0 && $exp_raw > 0) {
+				$gst_pct = round($gst_raw * 100 / $exp_raw, 2);
+			}
 			$lines[] = array(
 				'line_id' => (int) $row['line_id'],
 				'line_no' => (int) $row['line_no'],
@@ -316,9 +332,10 @@ function expense_gcn_load_lines($conn, $gcn_expense_id)
 				'category_id' => (int) $row['category_id'],
 				'expense_date' => $row['expense_date'],
 				'expense_amount' => expense_gcn_format_money($row['expense_amount']),
-				'expense_amount_raw' => round((float) $row['expense_amount'], 2),
+				'expense_amount_raw' => $exp_raw,
+				'gst_percent' => $gst_pct,
 				'gst_amount' => expense_gcn_format_money($row['gst_amount'] ?? 0),
-				'gst_amount_raw' => round((float) ($row['gst_amount'] ?? 0), 2),
+				'gst_amount_raw' => $gst_raw,
 				'tds_amount' => expense_gcn_format_money($row['tds_amount'] ?? 0),
 				'tds_amount_raw' => round((float) ($row['tds_amount'] ?? 0), 2),
 				'vendor_label' => trim((string) ($row['vendor_name'] ?? '')),
@@ -353,7 +370,7 @@ function expense_gcn_category_options($conn)
 	expense_type_ensure_schema($conn);
 	$rows = array();
 	$q = mysqli_query($conn, "SELECT c.category_id, c.category_code, c.category_name, c.expense_type_code,
-			c.expense_group, c.expense_group_id, c.default_amount, g.group_name, g.group_code, g.sort_no
+			c.expense_group, c.expense_group_id, c.default_amount, c.gst_applicable, c.gst_percent, g.group_name, g.group_code, g.sort_no
 		FROM expense_category c
 		LEFT JOIN expense_group g ON g.group_id = c.expense_group_id
 		WHERE c.status=0
@@ -373,6 +390,8 @@ function expense_gcn_category_options($conn)
 				'expense_group_id' => (int) ($row['expense_group_id'] ?? 0),
 				'expense_group_label' => $group_label,
 				'default_amount' => round((float) ($row['default_amount'] ?? 0), 2),
+				'gst_applicable' => (int) ($row['gst_applicable'] ?? 0),
+				'gst_percent' => round((float) ($row['gst_percent'] ?? 0), 2),
 				'label' => trim((string) ($row['category_name'] ?? '')),
 				'code_label' => trim((string) ($row['category_name'] ?? '')),
 			);
@@ -1022,6 +1041,21 @@ function expense_gcn_refresh_header_revenue_profit($conn, &$header)
 	$header['profit_amount'] = $profit;
 }
 
+function expense_gcn_sum_gst_tracking($conn, $gcn_expense_id)
+{
+	$gid = (int) $gcn_expense_id;
+	if ($gid <= 0) {
+		return 0;
+	}
+	$total = 0;
+	$q = mysqli_query($conn, "SELECT COALESCE(SUM(gst_amount), 0) AS gst_total
+		FROM gcn_expense_lines WHERE gcn_expense_id='$gid'");
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
+		$total = round((float) ($row['gst_total'] ?? 0), 2);
+	}
+	return $total;
+}
+
 function expense_gcn_fetch_list($conn)
 {
 	expense_gcn_ensure_schema($conn);
@@ -1038,6 +1072,7 @@ function expense_gcn_fetch_list($conn)
 		$profit = round((float) ($h['profit_amount'] ?? 0), 2);
 		$mode = $h['expense_mode'] ?? 'single';
 		$gcn_expense_id = (int) $h['gcn_expense_id'];
+		$gst_tracking = expense_gcn_sum_gst_tracking($conn, $gcn_expense_id);
 
 		if ($mode === 'group') {
 			$items = expense_gcn_load_group_items($conn, $gcn_expense_id);
@@ -1078,6 +1113,8 @@ function expense_gcn_fetch_list($conn)
 				'expenses_without_gst' => expense_gcn_format_money($h['expenses_without_gst'] ?? 0),
 				'profit_amount' => expense_gcn_format_profit_display($profit),
 				'profit_raw' => $profit,
+				'gst_tracking' => expense_gcn_format_money($gst_tracking),
+				'gst_tracking_raw' => $gst_tracking,
 				'line_count' => (int) ($h['line_count'] ?? 0),
 				'updated_at' => $h['updated_at'] ?? ($h['created_at'] ?? ''),
 			);
@@ -1100,6 +1137,8 @@ function expense_gcn_fetch_list($conn)
 			'expenses_without_gst' => expense_gcn_format_money($h['expenses_without_gst'] ?? 0),
 			'profit_amount' => expense_gcn_format_profit_display($profit),
 			'profit_raw' => $profit,
+			'gst_tracking' => expense_gcn_format_money($gst_tracking),
+			'gst_tracking_raw' => $gst_tracking,
 			'line_count' => (int) ($h['line_count'] ?? 0),
 			'updated_at' => $h['updated_at'] ?? ($h['created_at'] ?? ''),
 		);

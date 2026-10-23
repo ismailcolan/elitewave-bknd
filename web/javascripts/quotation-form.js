@@ -73,6 +73,64 @@
 		return (t !== '' && $sel.val() !== '') ? t : '—';
 	}
 
+	function standardModeKind() {
+		var id = $('#mode_of_transportation').val();
+		var map = window.QUOTATION_MODE_KIND || {};
+		return (id && map[id]) ? map[id] : 'road';
+	}
+
+	function selectedSourceOptionLabel($sel) {
+		if (!$sel || !$sel.length || !$sel.val()) {
+			return '';
+		}
+		var txt = $.trim($sel.find('option:selected').text());
+		if (txt === '' || txt.indexOf('Select ') === 0) {
+			return '';
+		}
+		return txt;
+	}
+
+	function syncJourneyHoursFromSource() {
+		var kind = standardModeKind();
+		var $sel = kind === 'train' ? $('#quote_train_id') : (kind === 'flight' ? $('#quote_flight_id') : $());
+		var hrs = $sel.length ? ($.trim($sel.find('option:selected').attr('data-hours') || '')) : '';
+		$('#quote_journey_hours').val(hrs);
+	}
+
+	function applyStandardModeTransportUi(resetSource) {
+		if (!$('#vehicle_spec_title').length) {
+			return;
+		}
+		var kind = standardModeKind();
+		var airTrain = (kind === 'train' || kind === 'flight');
+		$('#vehicle_spec_title').text(airTrain ? 'Pickup/Delivery vehicle' : 'Vehicle specification');
+		$('#vehicle_type_label').text(airTrain ? 'Pickup/Delivery vehicle' : 'Vehicle type');
+		$('#quote_train_wrap').toggle(kind === 'train');
+		$('#quote_flight_wrap').toggle(kind === 'flight');
+		$('#quote_hours_wrap').show();
+		var $hrs = $('#quote_journey_hours');
+		if (airTrain) {
+			$hrs.prop('readonly', true).attr('placeholder', 'Mapped from master');
+		} else {
+			$hrs.prop('readonly', false).attr('placeholder', 'Enter hours');
+		}
+		if (resetSource) {
+			if (kind !== 'train') {
+				$('#quote_train_id').val('');
+			}
+			if (kind !== 'flight') {
+				$('#quote_flight_id').val('');
+			}
+			if (airTrain) {
+				syncJourneyHoursFromSource();
+			} else {
+				$hrs.val('');
+			}
+		} else if (airTrain && !$.trim($hrs.val() || '')) {
+			syncJourneyHoursFromSource();
+		}
+	}
+
 	function loadingLabel() {
 		var v = $('#loading_type').val();
 		var map = window.QUOTATION_LOADING_LABELS || {};
@@ -383,8 +441,8 @@
 			html += '<div class="meta" style="margin-top:8px;"><b>Subject:</b> ' + escHtml(subject) + '</div>';
 		}
 
-		var intro = (window.QUOTATION_LETTER_INTRO || 'Thank you for considering EliteWave360 Logistics for your transportation requirements. Please find below our quotation for your kind consideration.');
-		html += '<p style="margin:10px 0 6px;">Dear Sir / Madam,<br><span style="font-weight:normal;">' + escHtml(intro) + '</span></p>';
+		var intro = $.trim($('#letter_body').val() || '') || (window.QUOTATION_LETTER_INTRO || 'Thank you for considering EliteWave360 Logistics for your transportation requirements. Please find below our quotation for your kind consideration.');
+		html += '<p style="margin:10px 0 6px;">Dear Sir / Madam,<br><span style="font-weight:normal;">' + escHtml(intro).replace(/\n/g, '<br>') + '</span></p>';
 
 		var logistics = '';
 		var qaLbl = selectPreviewLabel('quotation_approval');
@@ -417,8 +475,19 @@
 		} else {
 			html += '<div class="pv-kv"><b>Route:</b> ' + route + (unload !== '—' ? ' (Unloading at ' + escHtml(unload) + ')' : '') + '</div>';
 			if (!multi) {
-				html += '<div class="pv-kv"><b>' + escHtml(modeOfTransportLabel() || 'Mode / Vehicle') + ':</b> ' + escHtml(vehicleLabel()) + (dims !== '—' ? ' · ' + escHtml(dims) : '') + '</div>'
-					+ '<div class="pv-kv"><b>Loading / Unloading:</b> ' + escHtml(loadingLabel()) + ' / ' + escHtml(unload) + '</div>';
+				var kind = standardModeKind();
+				var vehLine = escHtml(vehicleLabel()) + (dims !== '—' ? ' · ' + escHtml(dims) : '');
+				var hrs = $.trim($('#quote_journey_hours').val() || '') || '—';
+				if (kind === 'train' || kind === 'flight') {
+					var srcLbl = selectedSourceOptionLabel(kind === 'train' ? $('#quote_train_id') : $('#quote_flight_id')) || '—';
+					html += '<div class="pv-kv"><b>' + escHtml(modeOfTransportLabel() || (kind === 'train' ? 'Train' : 'Flight')) + ':</b> ' + escHtml(srcLbl) + '</div>'
+						+ '<div class="pv-kv"><b>Hours:</b> ' + escHtml(hrs) + '</div>'
+						+ '<div class="pv-kv"><b>Pickup/Delivery vehicle:</b> ' + vehLine + '</div>';
+				} else {
+					html += '<div class="pv-kv"><b>' + escHtml(modeOfTransportLabel() || 'Mode / Vehicle') + ':</b> ' + vehLine + '</div>'
+						+ '<div class="pv-kv"><b>Hours:</b> ' + escHtml(hrs) + '</div>';
+				}
+				html += '<div class="pv-kv"><b>Loading / Unloading:</b> ' + escHtml(loadingLabel()) + ' / ' + escHtml(unload) + '</div>';
 			} else {
 				html += '<div class="pv-kv"><b>Loading / Unloading:</b> ' + escHtml(loadingLabel()) + ' / ' + escHtml(unload) + '</div>';
 			}
@@ -569,7 +638,7 @@
 			renderPreview();
 		});
 
-		$(document).on('input change', '.pv-bind, .pv-bind-select, .pv-bind-city, .charge-amt, .charge-tax, .charge-label, .charge-remarks, .mm-amt, .mm-delivery-days, .mm-source, #gst_rate, #party_id, #party_name, #vehicle_type_id, #quotation_approval, #payment_terms, #freight_paid_by, #quote_type, #part_number, #cfs_port_factory', function() {
+		$(document).on('input change', '.pv-bind, .pv-bind-select, .pv-bind-city, .charge-amt, .charge-tax, .charge-label, .charge-remarks, .mm-amt, .mm-delivery-days, .mm-source, #gst_rate, #party_id, #party_name, #vehicle_type_id, #quotation_approval, #payment_terms, #freight_paid_by, #quote_type, #part_number, #cfs_port_factory, #quote_train_id, #quote_flight_id, #quote_journey_hours', function() {
 			if ($(this).is('#quote_type')) {
 				syncQuoteTypeUi();
 				return;
@@ -578,6 +647,13 @@
 		});
 
 		$('#vehicle_type_id').on('change', updateVehicleDims);
+		$('#mode_of_transportation').on('change', function() {
+			applyStandardModeTransportUi(true);
+		});
+		$('#quote_train_id, #quote_flight_id').on('change', function() {
+			syncJourneyHoursFromSource();
+			renderPreview();
+		});
 
 		$('#btn_add_charge_line').on('click', function() {
 			var row = '<tr>'
@@ -746,6 +822,7 @@
 		syncCustomerModeUi(false);
 		syncQuoteTypeUi();
 		applyQuotationCfsKindUi();
+		applyStandardModeTransportUi(false);
 		updateVehicleDims();
 	});
 })(jQuery);

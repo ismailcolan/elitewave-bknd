@@ -201,7 +201,67 @@ function ew_db_backup_run($force = false)
         'message' => 'Backup completed.',
         'file' => basename($zipFile),
         'size' => (int) filesize($zipFile),
+        'path' => $zipFile,
     );
+}
+
+/**
+ * Email a backup zip. Used by the daily cron after a new backup is written.
+ *
+ * @return array{ok:bool,message:string}
+ */
+function ew_db_backup_email_zip($zipPath, $to = 'elitewave360@gmail.com')
+{
+    $zipPath = (string) $zipPath;
+    $to = trim((string) $to);
+    if (!is_file($zipPath)) {
+        return array('ok' => false, 'message' => 'Backup zip was not found for email.');
+    }
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return array('ok' => false, 'message' => 'Backup email address is not valid.');
+    }
+
+    $mailerFile = dirname(__DIR__) . '/SMPT/class.phpmailer.php';
+    $smtpFile = dirname(__DIR__) . '/SMPT/class.smtp.php';
+    if (!is_file($mailerFile) || !is_file($smtpFile)) {
+        return array('ok' => false, 'message' => 'Mail library is not available.');
+    }
+    if (!function_exists('get_magic_quotes_runtime')) {
+        function get_magic_quotes_runtime()
+        {
+            return false;
+        }
+    }
+    require_once $smtpFile;
+    require_once $mailerFile;
+
+    $fileName = basename($zipPath);
+    $sizeMb = round(filesize($zipPath) / 1048576, 2);
+    $mail = new PHPMailer();
+    $mail->isSMTP();
+    $mail->Host = 'smtpout.secureserver.net';
+    $mail->SMTPAuth = true;
+    $mail->Username = 'info@elitewave360.in';
+    $mail->Password = 'EliteWave@360#';
+    $mail->SMTPSecure = 'tls';
+    $mail->Port = 587;
+    $mail->From = 'info@elitewave360.in';
+    $mail->FromName = 'Elite Wave 360';
+    $mail->addAddress($to, 'Elite Wave 360');
+    $mail->addAttachment($zipPath, $fileName);
+    $mail->isHTML(true);
+    $mail->CharSet = 'UTF-8';
+    $mail->Subject = 'EliteWave360 database backup ' . date('d-m-Y');
+    $mail->Body = 'The daily database backup is attached.<br><br>'
+        . 'File: ' . htmlspecialchars($fileName, ENT_QUOTES, 'UTF-8') . '<br>'
+        . 'Size: ' . $sizeMb . ' MB';
+    $mail->AltBody = 'The daily database backup is attached: ' . $fileName . ' (' . $sizeMb . ' MB).';
+
+    if (!$mail->send()) {
+        return array('ok' => false, 'message' => 'Backup email failed: ' . $mail->ErrorInfo);
+    }
+
+    return array('ok' => true, 'message' => 'Backup emailed to ' . $to . '.');
 }
 
 /**

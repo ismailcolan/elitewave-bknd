@@ -210,7 +210,7 @@
 
 .ew-page-v2 .ew-table-wrap table tbody td,
 .ew-page-v2 .ew-table-wrap .dataTable tbody td {
-  text-align: center !important;
+  text-align: left !important;
   vertical-align: middle !important;
   font-size: 13px;
   padding: 10px 12px !important;
@@ -235,7 +235,7 @@
 }
 .ew-page-v2 .ew-table-wrap #multi_mode_table tbody td.mm-row-actions,
 .ew-page-v2 .ew-table-wrap #md_dest_table tbody td.md-row-actions {
-  text-align: center !important;
+  text-align: left !important;
 }
 #multi_mode_table select.form-control,
 #md_dest_table select.form-control {

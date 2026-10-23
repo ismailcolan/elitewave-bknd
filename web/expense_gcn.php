@@ -41,7 +41,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 		.egcn-shell {
 			background: #fff;
-			border: 1px solid #e2e8f0;
+			border: 1px solid var(--panel-border, #C5D3E0);
 			border-radius: 12px;
 			box-shadow: 0 4px 24px rgba(15, 23, 42, .06);
 			overflow: hidden;
@@ -50,8 +50,8 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 		.egcn-toolbar {
 			padding: 24px 28px;
-			background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
-			border-bottom: 1px solid #e2e8f0;
+			background: linear-gradient(180deg, var(--panel-head-bg, #F3F7FB) 0%, #fff 100%);
+			border-bottom: 1px solid var(--panel-border, #C5D3E0);
 		}
 
 		.egcn-toolbar-row {
@@ -153,27 +153,37 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 		.egcn-split {
 			display: flex;
+			flex-direction: column;
 			align-items: stretch;
-			min-height: 460px;
+			min-height: 0;
 		}
 
 		.egcn-summary-panel {
-			flex: 0 0 360px;
-			width: 360px;
-			max-width: 360px;
-			border-left: 1px solid #e2e8f0;
-			background: #f8fafc;
+			flex: none;
+			width: 100%;
+			max-width: none;
+			border-left: none;
+			border-bottom: 1px solid var(--panel-border, #C5D3E0);
+			background: var(--panel-head-bg, #F3F7FB);
 			display: flex;
 			flex-direction: column;
 		}
 
 		.egcn-summary-panel .egcn-panel-title {
-			border-bottom: 1px solid #e2e8f0;
+			border-bottom: 1px solid var(--panel-border, #C5D3E0);
+			background: var(--rail-bg, #DDE7F0);
+			color: var(--ew-navy, #06416F);
+		}
+
+		.egcn-summary-panel .egcn-panel-title i {
+			color: var(--ew-navy, #06416F);
+			opacity: .85;
 		}
 
 		.egcn-lines-panel {
 			flex: 1 1 auto;
 			min-width: 0;
+			width: 100%;
 			display: flex;
 			flex-direction: column;
 		}
@@ -189,8 +199,8 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 		}
 
 		.egcn-summary-zone {
-			padding: 20px;
-			background: #f8fafc;
+			padding: 20px 24px 22px;
+			background: var(--panel-head-bg, #F3F7FB);
 			flex: 1 1 auto;
 		}
 
@@ -199,12 +209,13 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			align-items: center;
 			justify-content: center;
 			gap: 12px;
-			padding: 18px 20px;
-			border: 1px dashed #cbd5e1;
-			border-radius: 12px;
-			background: #fff;
-			color: #64748b;
+			padding: 28px 20px;
+			border: 1px dashed var(--panel-border, #C5D3E0);
+			border-radius: 10px;
+			background: var(--panel-bg, #FAFCFE);
+			color: var(--ew-text-muted, #6B7A8D);
 			font-size: 13px;
+			min-height: 88px;
 		}
 
 		.gcn-summary-empty i {
@@ -213,215 +224,232 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 		}
 
 		.gcn-summary-loaded {
-			border: 1px solid #dbeafe;
-			border-radius: 12px;
-			background: #fff;
-			overflow: hidden;
-			box-shadow: 0 2px 12px rgba(15, 23, 42, .05);
+			margin-bottom: 0;
 		}
 
-		.egcn-summary-panel .gcn-summary-head {
-			flex-direction: column;
-			align-items: stretch;
+		.egcn-summary-loaded-wrap {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 16px 20px;
+			width: 100%;
+			align-items: start;
 		}
 
-		.egcn-summary-panel .gcn-summary-head .gcn-route-panel {
-			flex: none;
+		.egcn-summary-loaded-wrap > .gcn-group-cards {
+			grid-column: 1 / -1;
+		}
+
+		.egcn-summary-loaded-wrap > #gcn_card {
+			min-width: 0;
 			width: 100%;
 		}
 
-		.egcn-summary-panel .gcn-kpi-strip {
-			grid-template-columns: 1fr;
-		}
+		/* Side-by-side only when both columns can stay readable */
+		@media (min-width: 1100px) {
+			.egcn-summary-loaded-wrap {
+				grid-template-columns: minmax(300px, 400px) minmax(340px, 1fr);
+				align-items: stretch;
+			}
 
-		.egcn-summary-panel .gcn-kpi {
-			border-right: none;
-			border-bottom: 1px solid #eef2f7;
-			text-align: left;
-			padding: 12px 16px;
-		}
+			.egcn-summary-loaded-wrap > #gcn_card {
+				grid-column: 1;
+			}
 
-		.egcn-summary-panel .gcn-kpi:last-child {
-			border-bottom: none;
+			.egcn-summary-loaded-wrap > .egcn-summary-metrics {
+				grid-column: 2;
+			}
 		}
 
 		.egcn-summary-panel #gcn_summary_loaded {
-			display: flex;
-			flex-direction: column;
-			gap: 12px;
-		}
-
-		.egcn-summary-panel .gcn-kpi-strip {
-			border: 1px solid #eef2f7;
-			border-radius: 12px;
-			overflow: hidden;
-			background: #fff;
+			width: 100%;
 		}
 
 		.egcn-summary-panel .gcn-summary-empty {
-			min-height: 200px;
+			min-height: 120px;
 			flex-direction: column;
 			text-align: center;
 			padding: 24px 16px;
 		}
 
-		.gcn-summary-head {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: center;
-			justify-content: space-between;
-			gap: 12px 20px;
-			padding: 14px 18px;
+		.egcn-side-meta {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(120px, 1fr));
+			gap: 12px 16px;
+			width: 100%;
+			min-width: 0;
+			margin: 0;
+			padding: 16px 18px;
+			box-sizing: border-box;
 			background: linear-gradient(135deg, #0A1E3D 0%, #06416F 100%);
-			color: #fff;
+			border: 1px solid rgba(255, 255, 255, .18);
+			border-radius: 10px;
+			box-shadow: 0 4px 16px rgba(10, 30, 61, .18);
+			font-size: 13px;
 		}
 
-		.gcn-summary-head .gcn-badge {
+		.egcn-side-meta > div {
+			min-width: 0;
+		}
+
+		.egcn-summary-metrics {
+			width: 100%;
+			min-width: 0;
 			display: flex;
 			flex-direction: column;
-			gap: 2px;
+			gap: 12px;
 		}
 
-		.gcn-summary-head .gcn-badge-title {
-			font-size: 20px;
-			font-weight: 800;
-			letter-spacing: .02em;
+		.egcn-side-meta dt {
+			font-weight: 700;
+			font-size: 11px;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			color: rgba(255, 255, 255, .72);
+			margin: 0 0 4px;
 		}
 
-		.gcn-summary-head .gcn-badge-sub {
+		.egcn-side-meta dd {
+			margin: 0;
+			color: #fff;
+			font-weight: 700;
 			font-size: 13px;
-			opacity: .85;
+			line-height: 1.35;
+			overflow-wrap: break-word;
+			word-break: normal;
 		}
 
-		.gcn-summary-head .gcn-route-panel {
-			flex: 1 1 320px;
+		.egcn-side-kpi {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 10px;
+			width: 100%;
 			min-width: 0;
-			padding: 14px 16px;
-			background: rgba(255,255,255,.12);
-			border: 1px solid rgba(255,255,255,.2);
+		}
+
+		.egcn-side-kpi .kpi {
+			background: var(--panel-bg, #FAFCFE);
+			border: 1px solid var(--panel-border, #C5D3E0);
 			border-radius: 10px;
-		}
-
-		.gcn-route-panel .route-inline {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: center;
-			gap: 0;
-			font-size: 15px;
-			line-height: 1.55;
-		}
-
-		.gcn-route-panel .route-inline > .fa-map-marker {
-			font-size: 17px;
-			opacity: .9;
-			flex-shrink: 0;
-			margin-right: 8px;
-		}
-
-		.gcn-route-panel .route-inline .route-text {
-			font-size: 15px;
-			font-weight: 700;
-			word-break: break-word;
-		}
-
-		.gcn-route-panel .route-meta-sep {
-			margin: 0 12px;
-			opacity: .45;
-			font-weight: 300;
-			flex-shrink: 0;
-			user-select: none;
-		}
-
-		.gcn-route-panel .party-flow {
-			display: inline-flex;
-			align-items: center;
-			gap: 8px;
-			font-size: 15px;
-			font-weight: 600;
+			padding: 12px 14px;
 			min-width: 0;
+			box-sizing: border-box;
+			text-align: center;
+			box-shadow: 0 1px 2px rgba(6, 65, 111, .04);
 		}
 
-		.gcn-route-panel .party-flow .party-arrow {
-			opacity: .85;
-			font-weight: 700;
-		}
-
-		.gcn-route-panel .freight-inline {
-			display: inline-flex;
-			align-items: baseline;
-			gap: 6px;
-			min-width: 0;
-		}
-
-		.gcn-route-panel .freight-inline .meta-label {
+		.egcn-side-kpi .kpi-label {
 			font-size: 11px;
 			font-weight: 700;
 			text-transform: uppercase;
-			letter-spacing: .05em;
-			opacity: .75;
+			letter-spacing: .04em;
+			color: var(--ew-text-muted, #6B7A8D);
+			margin-bottom: 6px;
+			padding: 0 2px;
+		}
+
+		.egcn-side-kpi .kpi-value {
+			display: block;
+			font-size: clamp(13px, 0.35vw + 12px, 17px);
+			font-weight: 800;
+			color: var(--ew-navy, #06416F);
+			line-height: 1.2;
+			padding: 0 8px;
+			box-sizing: border-box;
+			font-variant-numeric: tabular-nums;
 			white-space: nowrap;
 		}
 
-		.gcn-route-panel .freight-inline .meta-value {
-			font-size: 15px;
-			font-weight: 600;
+		.egcn-side-kpi .kpi.kpi-profit-positive {
+			background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+			border-color: #86efac;
 		}
 
-		.gcn-kpi-strip {
-			display: grid;
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-			gap: 0;
+		.egcn-side-kpi .kpi.kpi-profit-negative {
+			background: linear-gradient(180deg, #fef2f2 0%, #fecaca 100%);
+			border-color: #fca5a5;
 		}
 
-		.gcn-kpi {
-			padding: 14px 18px;
+		.egcn-side-kpi .kpi.kpi-profit-positive .kpi-label {
+			color: #166534;
+		}
+
+		.egcn-side-kpi .kpi.kpi-profit-negative .kpi-label {
+			color: #991b1b;
+		}
+
+		.egcn-side-kpi .kpi-value.profit-positive { color: #15803d; }
+		.egcn-side-kpi .kpi-value.profit-negative { color: #dc2626; }
+
+		.egcn-side-kpi .kpi.kpi-profit-positive .kpi-value {
+			color: #14532d;
+		}
+
+		.egcn-side-kpi .kpi.kpi-profit-negative .kpi-value {
+			color: #b91c1c;
+		}
+
+		.egcn-gst-tracking {
+			padding: 12px 14px;
+			background: var(--panel-bg, #FAFCFE);
+			border: 1px dashed var(--panel-border, #C5D3E0);
+			border-radius: 10px;
 			text-align: center;
-			border-right: 1px solid #eef2f7;
-			background: #fafbfc;
 		}
 
-		.gcn-kpi:last-child { border-right: none; }
+		@media (min-width: 768px) and (max-width: 1099px) {
+			.egcn-side-meta {
+				grid-template-columns: repeat(3, minmax(120px, 1fr));
+			}
+		}
 
-		.gcn-kpi label {
+		@media (min-width: 1100px) {
+			.egcn-side-meta {
+				grid-template-columns: repeat(2, minmax(120px, 1fr));
+			}
+		}
+
+		@media (min-width: 1400px) {
+			.egcn-summary-loaded-wrap {
+				grid-template-columns: minmax(320px, 850px) minmax(380px, 1fr);
+			}
+
+			.egcn-side-meta {
+				grid-template-columns: repeat(3, minmax(100px, 1fr));
+			}
+		}
+
+		@media (max-width: 575px) {
+			.egcn-side-meta {
+				grid-template-columns: 1fr;
+			}
+			.egcn-side-kpi {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		.egcn-gst-tracking .label {
 			display: block;
-			font-size: 12px;
+			font-size: 11px;
 			font-weight: 700;
 			text-transform: uppercase;
 			letter-spacing: .04em;
-			color: #64748b;
-			margin: 0 0 8px;
-			background: none;
+			color: var(--ew-text-muted, #6B7A8D);
+			margin-bottom: 4px;
 		}
 
-		.gcn-kpi strong,
-		.gcn-kpi .kpi-value {
-			display: block;
-			font-size: 22px;
+		.egcn-gst-tracking strong {
+			font-size: 16px;
 			font-weight: 800;
-			color: #0A1E3D;
-			line-height: 1.2;
+			color: var(--ew-navy, #06416F);
 		}
-
-		.gcn-kpi.kpi-profit {
-			background: #f8fafc;
-		}
-
-		.gcn-kpi.kpi-profit.positive {
-			background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 100%);
-		}
-
-		.gcn-kpi.kpi-profit.positive .kpi-value { color: #15803d; }
-
-		.gcn-kpi.kpi-profit.negative {
-			background: linear-gradient(180deg, #fef2f2 0%, #fff1f2 100%);
-		}
-
-		.gcn-kpi.kpi-profit.negative .kpi-value { color: #dc2626; }
 
 		.gcn-group-cards {
-			padding: 12px 16px;
-			border-bottom: 1px solid #eef2f7;
-			background: linear-gradient(135deg, #0A1E3D 0%, #06416F 100%);
+			padding: 0 0 14px;
+			background: transparent;
+			border: none;
+			border-radius: 0;
+			flex: 1 1 100%;
+			width: 100%;
 		}
 
 		.gcn-group-cards .gcn-group-label {
@@ -430,7 +458,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			font-weight: 700;
 			text-transform: uppercase;
 			letter-spacing: .05em;
-			color: rgba(255,255,255,.75);
+			color: var(--ew-text-muted, #6B7A8D);
 			margin-bottom: 10px;
 		}
 
@@ -445,12 +473,27 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			align-items: center;
 			padding: 8px 14px;
 			border-radius: 8px;
-			background: rgba(255,255,255,.14);
-			border: 1px solid rgba(255,255,255,.22);
-			color: #fff;
-			font-size: 15px;
+			background: var(--panel-link-hover, #EEF3F8);
+			border: 1px solid var(--panel-border, #C5D3E0);
+			color: var(--ew-navy, #06416F);
+			font-size: 13px;
 			font-weight: 700;
 			letter-spacing: .02em;
+		}
+
+		#expense_lines_table .col-gst-pct {
+			width: 96px;
+			min-width: 96px;
+		}
+
+		#expense_lines_table .col-gst-amt {
+			width: 110px;
+			min-width: 110px;
+		}
+
+		#expense_lines_table .line-gst-amount {
+			background: var(--panel-head-bg, #F3F7FB) !important;
+			cursor: default;
 		}
 
 		#gcn_keys.select2-container { font-size: 13px; width: 100% !important; max-width: 640px; }
@@ -486,7 +529,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 		#expense_lines_table {
 			margin-bottom: 0;
-			min-width: 800px;
+			min-width: 980px;
 			width: 100%;
 			font-size: 13px;
 			border-collapse: separate;
@@ -648,8 +691,8 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 		}
 
 		.egcn-panel-footer {
-			border-top: 1px solid #e2e8f0;
-			background: #f8fafc;
+			border-top: 1px solid var(--panel-border, #C5D3E0);
+			background: var(--panel-head-bg, #F3F7FB);
 			padding: 20px 24px;
 			display: flex;
 			justify-content: flex-end;
@@ -789,6 +832,51 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 						<div class="egcn-layout">
 							<div class="egcn-split">
+								<section class="egcn-summary-panel">
+									<div class="egcn-panel-title"><i class="fa fa-truck"></i> GCN Summary</div>
+									<div class="egcn-summary-zone">
+										<div id="gcn_card_empty" class="gcn-summary-empty">
+											<i class="fa fa-truck"></i>
+											<span id="gcn_empty_msg">Select a GCN above to load route details and profit summary.</span>
+										</div>
+										<div id="gcn_summary_loaded" style="display:none;">
+											<div id="gcn_group_cards" class="gcn-group-cards" style="display:none;"></div>
+											<div class="egcn-summary-loaded-wrap">
+												<div id="gcn_card" class="gcn-summary-loaded">
+													<dl class="egcn-side-meta">
+														<div><dt>GCN No</dt><dd id="card_grn_no"></dd></div>
+														<div><dt>GCN date</dt><dd id="card_grn_date"></dd></div>
+														<div><dt>Route</dt><dd id="card_route"></dd></div>
+														<div><dt>Mode of transport</dt><dd id="card_mode"></dd></div>
+														<div><dt>Consignor</dt><dd id="card_consignor"></dd></div>
+														<div><dt>Consignee</dt><dd id="card_consignee"></dd></div>
+													</dl>
+												</div>
+												<div class="egcn-summary-metrics">
+													<div class="egcn-side-kpi">
+														<div class="kpi">
+															<div class="kpi-label">Revenue</div>
+															<div class="kpi-value" id="sum_revenue">0.00</div>
+														</div>
+														<div class="kpi">
+															<div class="kpi-label">Expenses</div>
+															<div class="kpi-value" id="sum_expenses">0.00</div>
+														</div>
+														<div class="kpi" id="sum_profit_kpi">
+															<div class="kpi-label">Profit</div>
+															<div class="kpi-value" id="sum_profit">0.00</div>
+														</div>
+													</div>
+													<div class="egcn-gst-tracking">
+														<span class="label">GST spent (tracking only)</span>
+														<strong id="sum_gst_tracking">0.00</strong>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</section>
+
 								<div class="egcn-lines-panel">
 									<div class="egcn-lines-section">
 										<div class="egcn-panel-title"><i class="fa fa-list"></i> Expense Lines</div>
@@ -802,6 +890,8 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 															<th class="col-type">Expense Type</th>
 															<th class="col-date">Date</th>
 															<th class="col-amt">Exp.Amount</th>
+															<th class="col-gst-pct">GST %</th>
+															<th class="col-gst-amt">GST Amount</th>
 															<th class="col-action">Action</th>
 														</tr>
 													</thead>
@@ -815,58 +905,6 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 										</div>
 									</div>
 								</div>
-
-								<aside class="egcn-summary-panel">
-									<div class="egcn-panel-title"><i class="fa fa-truck"></i> GCN Summary</div>
-									<div class="egcn-summary-zone">
-										<div id="gcn_card_empty" class="gcn-summary-empty">
-											<i class="fa fa-truck"></i>
-											<span id="gcn_empty_msg">Select a GCN above to load route details and profit summary.</span>
-										</div>
-										<div id="gcn_summary_loaded" style="display:none;">
-											<div id="gcn_card" class="gcn-summary-loaded">
-												<div class="gcn-summary-head">
-													<div class="gcn-badge">
-														<span class="gcn-badge-title" id="card_grn_no"></span>
-														<span class="gcn-badge-sub" id="card_grn_date"></span>
-													</div>
-													<div class="gcn-route-panel">
-														<div class="route-inline">
-															<i class="fa fa-map-marker"></i>
-															<span class="route-text" id="card_route"></span>
-															<span class="route-meta-sep">|</span>
-															<span class="party-flow">
-																<span id="card_consignor"></span>
-																<span class="party-arrow">→</span>
-																<span id="card_consignee"></span>
-															</span>
-															<span class="route-meta-sep">|</span>
-															<span class="freight-inline">
-																<span class="meta-label">Freight</span>
-																<span class="meta-value" id="card_freight">0.00</span>
-															</span>
-														</div>
-													</div>
-												</div>
-											</div>
-											<div id="gcn_group_cards" class="gcn-group-cards" style="display:none;"></div>
-											<div class="gcn-kpi-strip">
-												<div class="gcn-kpi">
-													<label>Revenue</label>
-													<strong id="sum_revenue">0.00</strong>
-												</div>
-												<div class="gcn-kpi">
-													<label>Expenses</label>
-													<strong id="sum_expenses">0.00</strong>
-												</div>
-												<div class="gcn-kpi kpi-profit" id="sum_profit_row">
-													<label>Profit</label>
-													<span class="kpi-value" id="sum_profit">0.00</span>
-												</div>
-											</div>
-										</div>
-									</div>
-								</aside>
 							</div>
 						</div>
 							</div>
@@ -903,6 +941,8 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			return n < 0 ? ('-' + formatted) : formatted;
 		}
 
+		var gstPercentRates = [0, 5, 12, 18, 28];
+
 		function getCategoryDefaultAmount(categoryId) {
 			var amt = 0;
 			$.each(categoryOptions || [], function(i, c) {
@@ -914,15 +954,62 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			return amt;
 		}
 
+		function getCategoryGstPercent(categoryId) {
+			var pct = 0;
+			$.each(categoryOptions || [], function(i, c) {
+				if (String(c.category_id) === String(categoryId)) {
+					if (parseInt(c.gst_applicable, 10) === 1) {
+						pct = parseFloat(c.gst_percent) || 0;
+					}
+					return false;
+				}
+			});
+			return pct;
+		}
+
+		function gstPercentSelectHtml(selected) {
+			var sel = selected !== undefined && selected !== null && selected !== '' ? String(selected) : '0';
+			var html = '';
+			$.each(gstPercentRates, function(i, rate) {
+				var s = String(rate) === sel ? ' selected' : '';
+				html += '<option value="' + rate + '"' + s + '>' + rate + '%</option>';
+			});
+			return html;
+		}
+
+		function recalcLineGst($row) {
+			if (!$row || !$row.length) {
+				return;
+			}
+			var amt = parseMoney($row.find('.line-amount').val());
+			var pct = parseFloat($row.find('.line-gst-percent').val()) || 0;
+			var gst = (amt > 0 && pct > 0) ? Math.round(amt * pct / 100 * 100) / 100 : 0;
+			$row.find('.line-gst-amount').val(formatMoney(gst));
+			updateSummary();
+		}
+
+		function sumGstTracking() {
+			var total = 0;
+			$('#expense_lines_body tr').each(function() {
+				total += parseMoney($(this).find('.line-gst-amount').val());
+			});
+			return total;
+		}
+
 		function applyLineTypeDefault($row) {
 			if (!$row || !$row.length || $row.data('skip-type-default')) {
 				return;
 			}
-			var amt = getCategoryDefaultAmount(getSelectVal($row.find('.line-expense-type')));
+			var catId = getSelectVal($row.find('.line-expense-type'));
+			var amt = getCategoryDefaultAmount(catId);
 			if (amt > 0) {
 				$row.find('.line-amount').val(formatMoney(amt));
-				updateSummary();
 			}
+			var pct = getCategoryGstPercent(catId);
+			if (pct > 0) {
+				$row.find('.line-gst-percent').val(String(pct));
+			}
+			recalcLineGst($row);
 		}
 
 		function vendorSelectHtml(selected) {
@@ -1051,6 +1138,8 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 				'<td class="line-select-wrap col-type"><select class="form-control line-expense-type">' + expenseTypeSelectHtml(data.category_id || '') + '</select></td>' +
 				'<td class="col-date"><div class="date-input-inside"><input type="text" class="form-control ew-date-field line-date" value="' + escHtml(expenseDate) + '" readonly data-ew-datepicker="1" data-date-format="dd-mm-yyyy"></div></td>' +
 				'<td class="col-amt"><input type="text" class="form-control text-right line-amount" value="' + escHtml(data.expense_amount || '') + '"></td>' +
+				'<td class="col-gst-pct"><select class="form-control line-gst-percent">' + gstPercentSelectHtml(data.gst_percent !== undefined ? data.gst_percent : 0) + '</select></td>' +
+				'<td class="col-gst-amt"><input type="text" class="form-control text-right line-gst-amount" value="' + escHtml(data.gst_amount || '') + '" readonly tabindex="-1"></td>' +
 				'<td class="col-action"><div class="line-actions">' +
 				'<button type="button" class="act-btn act-btn-edit btn-line-edit" title="Edit"><i class="fa fa-pencil"></i></button>' +
 				'<button type="button" class="act-btn act-btn-delete btn-line-delete" title="Delete"><i class="fa fa-trash-o"></i></button>' +
@@ -1074,10 +1163,16 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 				syncSelectTitle($row.find('.line-expense-type'));
 			}
 			$row.data('skip-type-default', false);
+			if (data.gst_percent !== undefined && data.gst_percent !== null && data.gst_percent !== '') {
+				$row.find('.line-gst-percent').val(String(data.gst_percent));
+			}
 			if (data.expense_amount) {
 				$row.find('.line-amount').val(data.expense_amount);
+				recalcLineGst($row);
 			} else if (data.category_id) {
 				applyLineTypeDefault($row);
+			} else {
+				recalcLineGst($row);
 			}
 			if (typeof initEwDatepickers === 'function') {
 				initEwDatepickers('#' + rowId);
@@ -1107,7 +1202,9 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 					vendor_id: getSelectVal($row.find('.line-vendor')),
 					category_id: getSelectVal($row.find('.line-expense-type')),
 					expense_date: $row.find('.line-date').val(),
-					expense_amount: $row.find('.line-amount').val()
+					expense_amount: $row.find('.line-amount').val(),
+					gst_percent: $row.find('.line-gst-percent').val(),
+					gst_amount: $row.find('.line-gst-amount').val()
 				});
 			});
 			return lines;
@@ -1127,9 +1224,10 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			var profit = revenue - expenses;
 			$('#sum_revenue').text(formatMoney(revenue));
 			$('#sum_expenses').text(formatMoney(expenses));
-			$('#sum_profit').text(formatMoney(profit));
-			var $row = $('#sum_profit_row');
-			$row.removeClass('positive negative').addClass(profit >= 0 ? 'positive' : 'negative');
+			var profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
+			$('#sum_profit').text(formatMoney(profit)).removeClass('profit-positive profit-negative').addClass(profitClass);
+			$('#sum_profit_kpi').removeClass('kpi-profit-positive kpi-profit-negative').addClass('kpi-' + profitClass);
+			$('#sum_gst_tracking').text(formatMoney(sumGstTracking()));
 		}
 
 		function getMultiSelectVal($el) {
@@ -1209,7 +1307,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			$('#card_route').text(ctx.route_label || '—');
 			$('#card_consignor').text(ctx.consignor || '—');
 			$('#card_consignee').text(ctx.consignee || '—');
-			$('#card_freight').text(ctx.freight_without_gst || '0.00');
+			$('#card_mode').text(ctx.mode_of_transport || '—');
 			updateSummary();
 		}
 
@@ -1391,7 +1489,10 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			});
 
 			$(document).on('change keyup', '.line-amount', function() {
-				updateSummary();
+				recalcLineGst($(this).closest('tr'));
+			});
+			$(document).on('change', '.line-gst-percent', function() {
+				recalcLineGst($(this).closest('tr'));
 			});
 
 			$('#btn_save').on('click', function() {

@@ -22,6 +22,7 @@ if (!empty($_POST['lines'])) {
 }
 
 $payload = array(
+    'billing_receipt_id' => (int) ($_POST['billing_receipt_id'] ?? 0),
     'receipt_type' => trim($_POST['receipt_type'] ?? 'against_invoice'),
     'receipt_date' => trim($_POST['receipt_date'] ?? date('d-m-Y')),
     'party_id' => (int) ($_POST['party_id'] ?? 0),

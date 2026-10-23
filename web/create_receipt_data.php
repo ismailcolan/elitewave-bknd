@@ -38,8 +38,18 @@ if ($cmd === 'fetch_clients') {
 
 if ($cmd === 'fetch_invoices') {
     $customer_id = (int) ($_REQUEST['customer_id'] ?? 0);
+    $exclude_receipt_id = (int) ($_REQUEST['exclude_receipt_id'] ?? 0);
     if ($customer_id <= 0) {
         billing_receipt_json(array('status' => 0, 'data' => array()));
+    }
+    $linked = array();
+    if ($exclude_receipt_id > 0) {
+        $lq = mysqli_query($conn, "SELECT billing_invoice_id FROM billing_receipt_lines WHERE billing_receipt_id='$exclude_receipt_id'");
+        if ($lq) {
+            while ($lr = mysqli_fetch_assoc($lq)) {
+                $linked[(int) $lr['billing_invoice_id']] = true;
+            }
+        }
     }
     $rows = array();
     $q = mysqli_query($conn, "SELECT billing_invoice_id, invoice_no, invoice_date, grand_total
@@ -49,8 +59,12 @@ if ($cmd === 'fetch_invoices') {
         LIMIT 200");
     if ($q) {
         while ($row = mysqli_fetch_assoc($q)) {
-            $snap = billing_invoice_settlement_snapshot($conn, (int) $row['billing_invoice_id'], 0);
-            if (!$snap || (float) $snap['balance'] <= 0.009) {
+            $inv_id = (int) $row['billing_invoice_id'];
+            $snap = billing_invoice_settlement_snapshot($conn, $inv_id, $exclude_receipt_id);
+            if (!$snap) {
+                continue;
+            }
+            if ((float) $snap['balance'] <= 0.009 && empty($linked[$inv_id])) {
                 continue;
             }
             $rows[] = array(
@@ -65,8 +79,19 @@ if ($cmd === 'fetch_invoices') {
     billing_receipt_json(array('status' => 0, 'data' => $rows));
 }
 
+if ($cmd === 'view') {
+    $billing_receipt_id = (int) ($_REQUEST['billing_receipt_id'] ?? 0);
+    $view = billing_receipt_fetch_view($conn, $billing_receipt_id);
+    if (empty($view['ok'])) {
+        billing_receipt_json(array('status' => 1, 'message' => $view['message'] ?? 'Receipt not found.'));
+    }
+    unset($view['ok']);
+    billing_receipt_json(array('status' => 0, 'data' => $view));
+}
+
 if ($cmd === 'fetch_allocation') {
     $ids = isset($_REQUEST['invoice_ids']) ? $_REQUEST['invoice_ids'] : array();
+    $exclude_receipt_id = (int) ($_REQUEST['exclude_receipt_id'] ?? 0);
     if (!is_array($ids)) {
         $ids = explode(',', (string) $ids);
     }
@@ -76,7 +101,7 @@ if ($cmd === 'fetch_allocation') {
         if ($inv_id <= 0) {
             continue;
         }
-        $snap = billing_invoice_settlement_snapshot($conn, $inv_id, 0);
+        $snap = billing_invoice_settlement_snapshot($conn, $inv_id, $exclude_receipt_id);
         if ($snap) {
             $lines[] = $snap;
         }

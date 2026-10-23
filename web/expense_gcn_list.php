@@ -106,8 +106,34 @@ $list_rows = expense_gcn_fetch_list($conn);
 			color: #0A1E3D;
 		}
 
+		.egcn-view-kpi .kpi.kpi-profit-positive {
+			background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+			border-color: #86efac;
+		}
+
+		.egcn-view-kpi .kpi.kpi-profit-negative {
+			background: linear-gradient(180deg, #fef2f2 0%, #fecaca 100%);
+			border-color: #fca5a5;
+		}
+
+		.egcn-view-kpi .kpi.kpi-profit-positive .kpi-label {
+			color: #166534;
+		}
+
+		.egcn-view-kpi .kpi.kpi-profit-negative .kpi-label {
+			color: #991b1b;
+		}
+
 		.egcn-view-kpi .kpi-value.profit-positive { color: #15803d; }
 		.egcn-view-kpi .kpi-value.profit-negative { color: #dc2626; }
+
+		.egcn-view-kpi .kpi.kpi-profit-positive .kpi-value {
+			color: #14532d;
+		}
+
+		.egcn-view-kpi .kpi.kpi-profit-negative .kpi-value {
+			color: #b91c1c;
+		}
 
 		.egcn-view-meta {
 			display: grid;
@@ -213,6 +239,7 @@ $list_rows = expense_gcn_fetch_list($conn);
 												<th>Revenue</th>
 												<th>Expenses</th>
 												<th>Profit</th>
+												<th>GST Track</th>
 												<th>Last Updated</th>
 												<th class="table-title sorting_disabled col-actions">Action</th>
 											</tr>
@@ -264,6 +291,7 @@ $list_rows = expense_gcn_fetch_list($conn);
 													<td class="num"><?php echo htmlspecialchars($row['revenue_without_gst']); ?></td>
 													<td class="num"><?php echo htmlspecialchars($row['expenses_without_gst']); ?></td>
 													<td class="num <?php echo $profit_class; ?>"><span class="profit-value"><?php echo htmlspecialchars($row['profit_amount']); ?></span></td>
+													<td class="num egcn-gst-track" title="Sum of GST on all expense lines (tracking only)"><?php echo htmlspecialchars($row['gst_tracking'] ?? '0.00'); ?></td>
 													<td><?php echo htmlspecialchars($row['updated_at']); ?></td>
 													<td class="col-actions">
 														<span class="act-wrap">
@@ -358,7 +386,7 @@ $list_rows = expense_gcn_fetch_list($conn);
 				html += '<div class="egcn-view-kpi">';
 				html += '<div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-value">' + egcnEscHtml(data.revenue_without_gst) + '</div></div>';
 				html += '<div class="kpi"><div class="kpi-label">Expenses</div><div class="kpi-value">' + egcnEscHtml(data.expenses_without_gst) + '</div></div>';
-				html += '<div class="kpi"><div class="kpi-label">Profit</div><div class="kpi-value ' + profitClass + '">' + egcnEscHtml(data.profit_amount) + '</div></div>';
+				html += '<div class="kpi kpi-' + profitClass + '"><div class="kpi-label">Profit</div><div class="kpi-value ' + profitClass + '">' + egcnEscHtml(data.profit_amount) + '</div></div>';
 				html += '</div>';
 
 				html += '<p class="egcn-view-section-title">Revenue breakup</p>';

@@ -76,8 +76,11 @@ if ($cmd === 'calc_amounts') {
 	$vendor_id = (int) ($_REQUEST['vendor_id'] ?? 0);
 	$category_id = (int) ($_REQUEST['category_id'] ?? 0);
 	$expense_amount = expense_gcn_parse_money($_REQUEST['expense_amount'] ?? 0);
-	$suggested = expense_general_suggest_tax($conn, $vendor_id, $category_id, $expense_amount);
-	$gst_amount = round(expense_gcn_parse_money($_REQUEST['gst_amount'] ?? $suggested['gst_amount']), 2);
+	$gst_percent = array_key_exists('gst_percent', $_REQUEST)
+		? expense_general_normalize_gst_percent($_REQUEST['gst_percent'])
+		: null;
+	$suggested = expense_general_suggest_tax($conn, $vendor_id, $category_id, $expense_amount, $gst_percent);
+	$gst_amount = round((float) ($suggested['gst_amount'] ?? 0), 2);
 	$tds_amount = round(expense_gcn_parse_money($_REQUEST['tds_amount'] ?? $suggested['tds_amount']), 2);
 	if (empty($suggested['vendor']['gst_applicable'])) {
 		$gst_amount = 0;
@@ -86,7 +89,8 @@ if ($cmd === 'calc_amounts') {
 	$amounts = expense_general_calc_amounts($expense_amount, $gst_amount, $tds_amount, $other_deduction);
 	expense_general_json_out(array(
 		'status' => 0,
-		'suggested_gst' => $suggested['gst_amount'],
+		'suggested_gst' => $gst_amount,
+		'suggested_gst_percent' => (float) ($suggested['gst_percent'] ?? 0),
 		'suggested_tds' => $suggested['tds_amount'],
 		'vendor_tax' => $suggested['vendor'],
 		'category_tax' => $suggested['category'],
@@ -115,6 +119,7 @@ if ($cmd === 'save') {
 		'vendor_id' => $_REQUEST['vendor_id'] ?? 0,
 		'category_id' => $_REQUEST['category_id'] ?? 0,
 		'expense_amount' => $_REQUEST['expense_amount'] ?? 0,
+		'gst_percent' => $_REQUEST['gst_percent'] ?? 0,
 		'gst_amount' => $_REQUEST['gst_amount'] ?? 0,
 		'tds_amount' => $_REQUEST['tds_amount'] ?? 0,
 		'other_deduction' => $_REQUEST['other_deduction'] ?? 0,

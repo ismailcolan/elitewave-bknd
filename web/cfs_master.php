@@ -93,7 +93,7 @@ $rows = ew_cfs_master_list($conn, true);
 					</div>
 					<div class="form-group">
 						<label class="control-label">CFS Code <span style="color:red;">*</span></label>
-						<input type="text" id="cfs_code" name="cfs_code" class="form-control" disabled placeholder="CFS001" />
+						<input type="text" id="cfs_code" name="cfs_code" class="form-control" disabled placeholder="<?php echo htmlspecialchars(ew_master_format_code(ew_master_code_prefix('CFS Master'), 1)); ?>" />
 					</div>
 					<div class="form-group">
 						<label class="control-label">CFS name <span style="color:red;">*</span></label>
@@ -149,6 +149,11 @@ $rows = ew_cfs_master_list($conn, true);
 			if (!$('#cfs_name').val().trim()) {
 				$('#cfs_name').focus();
 				return;
+			}
+			if ($.trim($('#edit_id').val())) {
+				$('#form_name').val('edit_cfs_master');
+			} else {
+				$('#form_name').val('add_cfs_master');
 			}
 			$.post('save_details.php', $('#cfs_form').serialize(), function(data) {
 				if ($.trim(data) === '1') {

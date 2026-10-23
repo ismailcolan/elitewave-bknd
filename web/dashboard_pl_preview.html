@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Expenses &amp; P&amp;L Dashboard — Preview</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="stylesheets/dashboard-suite-preview.css">
+</head>
+<body>
+	<div class="preview-banner">
+		<div><strong>HTML preview only</strong> — Expenses &amp; P&amp;L Dashboard (sample data, not live)</div>
+		<span>Dashboard suite · 4 of 4</span>
+	</div>
+	<div class="wrap">
+		<div class="page-head">
+			<div>
+				<h1>Expenses &amp; P&amp;L Dashboard</h1>
+				<p>Revenue vs cost, margins, expense mix, and route/customer profitability</p>
+			</div>
+			<nav class="head-tabs" aria-label="Dashboard suite">
+				<a href="dashboard_booking_preview.html">Bookings</a>
+				<a href="dashboard_invoice_preview.html">Invoices</a>
+				<a href="dashboard_payments_preview.html">Payments</a>
+				<a class="active" href="dashboard_pl_preview.html">Expenses &amp; P&amp;L</a>
+			</nav>
+		</div>
+
+		<div class="kpi-strip cols-7">
+			<div class="kpi c1"><div class="lbl">Total revenue</div><div class="val">₹62.8L</div></div>
+			<div class="kpi c4"><div class="lbl">Direct logistics cost</div><div class="val">₹38.4L</div></div>
+			<div class="kpi c6"><div class="lbl">Gross profit</div><div class="val">₹24.4L</div></div>
+			<div class="kpi c7"><div class="lbl">Gross margin</div><div class="val">38.8%</div></div>
+			<div class="kpi c3"><div class="lbl">Operating expenses</div><div class="val">₹12.8L</div></div>
+			<div class="kpi c5"><div class="lbl">Net profit</div><div class="val">₹11.6L</div></div>
+			<div class="kpi c2"><div class="lbl">Net margin</div><div class="val">18.4%</div></div>
+		</div>
+
+		<div class="grid-2">
+			<div class="card">
+				<div class="card-head">Revenue vs expenses vs profit (monthly)</div>
+				<div class="card-body">
+					<div class="chart-placeholder tall">
+						Grouped bars: Revenue · Expenses · line overlay Net profit<br>
+						<small style="font-weight:500;margin-top:8px;display:block;">Live: billing totals + GCN/general expenses by month</small>
+					</div>
+				</div>
+			</div>
+			<div class="card">
+				<div class="card-head">Expense breakdown</div>
+				<div class="card-body">
+					<div class="donut-wrap">
+						<div class="donut d4" aria-hidden="true"></div>
+						<ul class="legend">
+							<li><span class="left"><span class="dot" style="background:#0ea5e9"></span> Air freight</span><strong>32%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#6366f1"></span> Surface transport</span><strong>24%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#f97316"></span> Handling &amp; hub</span><strong>12%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#22c55e"></span> Delivery</span><strong>8%</strong></li>
+							<li><span class="left"><span class="dot" style="background:#94a3b8"></span> Other</span><strong>24%</strong></li>
+						</ul>
+					</div>
+					<p style="margin:14px 0 0;font-size:11px;color:var(--ew-muted);">GST on expenses shown separately as <strong>GST Track</strong> (not in P&amp;L totals).</p>
+				</div>
+			</div>
+		</div>
+
+		<div class="grid-3">
+			<div class="card">
+				<div class="card-head">Profitability by service</div>
+				<div class="card-body flush">
+					<table class="dash-tbl compact">
+						<thead><tr><th>Service</th><th class="num">Revenue</th><th class="num">Cost</th><th class="num">Profit</th><th class="num">Margin</th></tr></thead>
+						<tbody>
+							<tr><td>Air cargo</td><td class="num">22,40,000</td><td class="num">12,80,000</td><td class="num text-pos">9,60,000</td><td class="num">42.9%</td></tr>
+							<tr><td>Surface / FTL</td><td class="num">28,10,000</td><td class="num">18,50,000</td><td class="num text-pos">9,60,000</td><td class="num">34.2%</td></tr>
+							<tr><td>Express</td><td class="num">8,20,000</td><td class="num">5,10,000</td><td class="num text-pos">3,10,000</td><td class="num">37.8%</td></tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="card">
+				<div class="card-head">Top customers (profit)</div>
+				<div class="card-body flush">
+					<table class="dash-tbl compact">
+						<thead><tr><th>Customer</th><th class="num">Revenue</th><th class="num">Profit</th><th class="num">Margin</th></tr></thead>
+						<tbody>
+							<tr><td>Cargomen Logistics</td><td class="num">9,85,000</td><td class="num text-pos">3,42,000</td><td class="num">34.7%</td></tr>
+							<tr><td>Nuvora Retail</td><td class="num">6,20,000</td><td class="num text-pos">2,18,000</td><td class="num">35.2%</td></tr>
+							<tr><td>ASTORMUELLER</td><td class="num">4,10,000</td><td class="num text-neg">-69,450</td><td class="num text-neg">-16.9%</td></tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="card">
+				<div class="card-head">Top routes (profit)</div>
+				<div class="card-body flush">
+					<table class="dash-tbl compact">
+						<thead><tr><th>Route</th><th class="num">Revenue</th><th class="num">Profit</th></tr></thead>
+						<tbody>
+							<tr><td>Chennai → New Delhi</td><td class="num">18,42,500</td><td class="num text-pos">6,12,000</td></tr>
+							<tr><td>Ranipet → Bangalore</td><td class="num">9,15,200</td><td class="num text-neg">-69,200</td></tr>
+							<tr><td>Mumbai → Hyderabad</td><td class="num">7,88,400</td><td class="num text-pos">2,45,000</td></tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<div class="card-head">Recent expenses (GCN + general)</div>
+			<div class="card-body flush">
+				<table class="dash-tbl">
+					<thead>
+						<tr>
+							<th>Date</th><th>Type</th><th>Ref</th><th>Vendor / category</th>
+							<th class="num">Amount</th><th class="num">GST track</th><th>Notes</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr><td>21-09-2026</td><td>GCN expense</td><td>EW360/0209</td><td>MS Trailer · Freight</td><td class="num">69,000</td><td class="num">0</td><td>Multi-line booking</td></tr>
+						<tr><td>02-10-2026</td><td>GCN expense</td><td>EW360/0217</td><td>Vendor · Vehicle</td><td class="num">1,07,000</td><td class="num">12,840</td><td>GST % on lines</td></tr>
+						<tr><td>18-10-2026</td><td>General</td><td>GEN00042</td><td>Office · Utilities</td><td class="num">18,500</td><td class="num">3,330</td><td>Operating</td></tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

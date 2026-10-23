@@ -6,7 +6,7 @@ require_once('include/billing_functions.php');
 ensure_billing_tables($conn);
 
 $c_date = date('d-m-Y');
-$preview_no = billing_preview_invoice_number($conn, $c_date);
+$preview_no = billing_next_grouped_invoice_number($conn, $c_date, 'GST', false);
 $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM client WHERE status=0 ORDER BY client_company_name ASC');
 $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $is_edit = ($edit_id > 0);
@@ -61,14 +61,21 @@ if (!$is_edit && empty($_GET['create'])) {
 							<input type="hidden" id="billing_invoice_id" value="<?php echo $edit_id; ?>">
 
 							<div class="ew-form-grid ew-form-grid--invoice">
-								<div class="ew-field span-2">
+								<div class="ew-field">
 									<label>Invoice No</label>
 									<div class="ew-invoice-no-display" id="invoice_no_preview"><?php echo htmlspecialchars($preview_no); ?></div>
-									<p class="ew-field-hint" style="margin-top:6px;">Auto-generated on save (draft or final). Same HRGST series as delivered GCN invoices — no duplicates.</p>
+									<p class="ew-field-hint" style="margin-top:6px;">GST and GTA each use their own series.</p>
 								</div>
 								<div class="ew-field">
 									<label>Date <span class="req">*</span></label>
 									<?php echo ew_date_input(array('id' => 'invoice_date', 'value' => $c_date, 'required' => true, 'readonly' => true)); ?>
+								</div>
+								<div class="ew-field">
+									<label>Mode of invoice <span class="req">*</span></label>
+									<select id="invoice_series" class="form-control">
+										<option value="GST">GST — Premium Air, Train, Urgent</option>
+										<option value="GTA">GTA — Roadways</option>
+									</select>
 								</div>
 								<div class="ew-field ew-field--invoice-actions">
 									<label class="ew-invoice-actions-label">&nbsp;</label>
@@ -89,7 +96,7 @@ if (!$is_edit && empty($_GET['create'])) {
 								<div class="ew-field span-2">
 									<label>GCN No <span class="req">*</span></label>
 									<select id="gcn_keys" class="form-control filter-select" multiple="multiple"></select>
-									<p class="ew-field-hint" id="gcn_result_hint">Select a customer to load delivered GCNs. GCNs already used on an invoice are not shown.</p>
+									<p class="ew-field-hint" id="gcn_result_hint">Choose the mode and a customer to load delivered GCNs.</p>
 								</div>
 							</div>
 						</div>
@@ -159,10 +166,22 @@ function updatePdfButton(invoiceId, status) {
 	}
 }
 
+function invoiceSeries() {
+	return $('#invoice_series').val() === 'GTA' ? 'GTA' : 'GST';
+}
+
+function seriesGcnLabel() {
+	return invoiceSeries() === 'GTA' ? 'roadways' : 'Premium Air, Train, or Urgent';
+}
+
 function refreshInvoiceNo() {
+	if ($('#invoice_series').prop('disabled') && $('#invoice_no_preview').text()) {
+		return;
+	}
 	$.getJSON('create_invoice_data.php', {
 		cmd: 'preview_invoice_no',
-		invoice_date: $('#invoice_date').val()
+		invoice_date: $('#invoice_date').val(),
+		invoice_series: invoiceSeries()
 	}, function(r) {
 		if (r && r.status === 0) {
 			$('#invoice_no_preview').text(r.invoice_no);
@@ -236,14 +255,15 @@ function sumLinesFromRows(lines) {
 function loadGcnOptions(selectKeys) {
 	var customerId = getPrimaryCustomerId();
 	if (!customerId) {
-		refreshGcnSelect('', 'Select a customer to load delivered GCNs.');
+		refreshGcnSelect('', 'Choose the mode and a customer to load delivered GCNs.');
 		renderLines([], {});
 		return;
 	}
-	refreshGcnSelect('', 'Loading delivered GCNs...');
+	refreshGcnSelect('', 'Loading delivered ' + seriesGcnLabel() + ' GCNs...');
 	$.getJSON('create_invoice_data.php', {
 		cmd: 'fetch_gcns',
 		customers: customerId,
+		invoice_series: invoiceSeries(),
 		billing_invoice_id: $('#billing_invoice_id').val()
 	}, function(r) {
 		if (!r || r.status !== 0) {
@@ -254,7 +274,7 @@ function loadGcnOptions(selectKeys) {
 		var opts = '';
 		var rows = r.data || [];
 		if (!rows.length) {
-			refreshGcnSelect('', 'No delivered GCNs found for this customer.');
+			refreshGcnSelect('', 'No delivered ' + seriesGcnLabel() + ' GCNs found for this customer.');
 			renderLines([], {});
 			return;
 		}
@@ -407,6 +427,7 @@ function saveInvoice(status) {
 		billing_invoice_id: $('#billing_invoice_id').val(),
 		invoice_date: $('#invoice_date').val(),
 		customer_id: getPrimaryCustomerId(),
+		invoice_series: invoiceSeries(),
 		billing_type: getInvoiceBillingType(),
 		status: status,
 		lines: JSON.stringify($.map(invoiceLines, function(r) {
@@ -444,9 +465,15 @@ function saveInvoice(status) {
 
 $(document).ready(function() {
 	initCustomerSelect('');
-	refreshGcnSelect('', 'Select a customer to load delivered GCNs.');
+	refreshGcnSelect('', 'Choose the mode and a customer to load delivered GCNs.');
 
 	$(document).on('change', '#invoice_date', refreshInvoiceNo);
+	$(document).on('change', '#invoice_series', function() {
+		invoiceLines = [];
+		renderLines([], {});
+		refreshInvoiceNo();
+		loadGcnOptions();
+	});
 	$(document).on('change', '#customers', function() {
 		loadGcnOptions();
 	});
@@ -467,6 +494,15 @@ $(document).ready(function() {
 	$.getJSON('create_invoice_data.php', { cmd: 'load_draft', billing_invoice_id: <?php echo $edit_id; ?> }, function(r) {
 		if (!r || r.status !== 0) return;
 		$('#invoice_date').val(r.master.invoice_date);
+		var savedSeries = (r.master.invoice_series || '').toUpperCase();
+		if (savedSeries !== 'GST' && savedSeries !== 'GTA') {
+			var savedNo = String(r.master.invoice_no || '').toUpperCase();
+			savedSeries = (savedNo.indexOf('GTA/') === 0 || savedNo.indexOf('HRGTA') === 0) ? 'GTA' : 'GST';
+		}
+		$('#invoice_series').val(savedSeries);
+		if (r.master.invoice_no) {
+			$('#invoice_series').prop('disabled', true);
+		}
 		$('#invoice_no_preview').text(r.master.invoice_no || $('#invoice_no_preview').text());
 		updatePdfButton(<?php echo $edit_id; ?>, r.master.status);
 		if (r.master.customer_id) {

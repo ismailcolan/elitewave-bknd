@@ -22,6 +22,7 @@ $month          = $_GET['month'];
 $year           = $_GET['year'];
 $transaction_id = $_GET['id'];
 
+ew_transaction_ensure_party_branch_columns($conn, 'transaction_' . $month . '_' . $year);
 $query  = "SELECT * FROM transaction_" . $month . "_" . $year . " WHERE transaction_id='" . $transaction_id . "'";
 $result = mysqli_query($conn, $query);
 $row    = mysqli_fetch_assoc($result);
@@ -62,8 +63,8 @@ $mpdf = new \Mpdf\Mpdf([
   'default_font' => 'freesans',
     'margin_left' => 5,
     'margin_right' => 5,
-    'margin_top' => 5,
-    'margin_bottom' => 5
+    'margin_top' => 4,
+    'margin_bottom' => 2
 ]);
 
 $mpdf->SetTitle($copy);
@@ -177,9 +178,13 @@ $consignor_addr   = fmt_addr($consignor_det, $conn);
 
 $bill_to_branch_id = isset($bill_to_branch_id) ? (int) $bill_to_branch_id : 0;
 $ship_to_branch_id = isset($consignee_branch_id) ? (int) $consignee_branch_id : 0;
+$ship_client_id = isset($ship_to_client_id) ? (int) $ship_to_client_id : 0;
+if ($ship_client_id <= 0) {
+    $ship_client_id = (int) $consignee;
+}
 
 $bill_block = ew_gcn_party_block($conn, $consignee, $bill_to_branch_id);
-$ship_block = ew_gcn_party_block($conn, $consignee, $ship_to_branch_id, true);
+$ship_block = ew_gcn_party_block($conn, $ship_client_id, $ship_to_branch_id, $ship_client_id === (int) $consignee);
 
 $consignee_addr = str_replace('<br>', ', ', $bill_block['addr_html']);
 
@@ -632,7 +637,7 @@ style="padding:4px 5px;height:24mm;font-size:8.5pt;line-height:14px;">
 
 <span style="font-size:9pt;font-weight:bold;">Consignor</span><br>
 
-<b>'.get_client_name($conn,$consigner).'</b>
+<b>'.get_client_name($conn,$consigner).'</b><br>
 
 '.$consignor_addr_html.'<br>
 
@@ -812,11 +817,11 @@ $html .= '
 
 $html .= '
 
-<table border="1" width="100%" cellpadding="3" cellspacing="0" style="border-collapse:collapse;">
+<table border="1" width="100%" cellpadding="2" cellspacing="0" style="border-collapse:collapse;">
 
 <tr>
 <td width="84%"
-style="border:1px solid #000;font-size:8pt;line-height:13px;text-align:justify;">
+style="border:1px solid #000;font-size:7.8pt;line-height:11.5px;text-align:justify;">
 <b>Shipment Protection & Insurance Advisory : </b>
 Each consignment must be covered with valid transit insurance. Our liability shall be NIL for any loss or damage arising due to any cause, including but not limited to natural calamities, accidents, theft, fire or unforeseen events during transit. Kindly ensure that all consignments are properly packed using poly bags and shrink wrapping to prevent moisture exposure and damage. We shall not be held liable for any wetness or damage arising from inadequate or improper packing, including consignments not protected with shrink wrap or poly bags.
 
@@ -826,17 +831,13 @@ Each consignment must be covered with valid transit insurance. Our liability sha
 
 </table>';
 
-/* ============================================================
-   SHIPMENT PROTECTION
-============================================================ */
-
 $html .= '
 
-<table border="1" width="100%" cellpadding="3" cellspacing="0" style="border-collapse:collapse;">
+<table border="1" width="100%" cellpadding="2" cellspacing="0" style="border-collapse:collapse;">
 
 <tr>
 <td width="84%"
-style="border:1px solid #000;font-size:8pt;line-height:13px;text-align:justify;">
+style="border:1px solid #000;font-size:7.8pt;line-height:11.5px;text-align:justify;">
 <b>MSDS (Material Safety Data Sheet) : </b>
 For <b>inflammable liquids, chemicals, or hazardous cargo </b>, the shipper must declare the material and provide a valid <b>MSDS (Material Safety Data Sheet)</b> before booking. Proper packing, labelling, and required documentation are mandatory; undeclared hazardous cargo will not be accepted.
 </td>
@@ -845,18 +846,13 @@ For <b>inflammable liquids, chemicals, or hazardous cargo </b>, the shipper must
 
 </table>';
 
-
-/* ============================================================
-   SERVICES
-============================================================ */
-
 $html .= '
 
-<table border="1" width="100%" cellpadding="3" cellspacing="0" style="border-collapse:collapse;">
+<table border="1" width="100%" cellpadding="2" cellspacing="0" style="border-collapse:collapse;">
 
 <tr>
 
-<td style="border:1px solid #000;font-size:8pt;line-height:13px;text-align:justify;">
+<td style="border:1px solid #000;font-size:7.8pt;line-height:11.5px;text-align:justify;">
 <b>Carrying Capacity 9 MT To 100 MT : </b>
  (Full Truck / Part Load / Heavy ODC (Over Dimensional Cargo) / ODC Equipment Bulk & Lengthy Consignment by Open Truck / Hippo / Heavy Trailers & Hydraulic Trailer / Trailer Service / Hydraulic Trailer / Hybed / Semi Bed / Low Bed Hydraulic.)
 
@@ -868,18 +864,13 @@ We can pick up & deliver your cargo PAN India (Presence across India).
 
 </table>';
 
-
-/* ============================================================
-   TERMS
-============================================================ */
-
 $html .= '
 
-<table border="1" width="100%" cellpadding="3" cellspacing="0" style="border-collapse:collapse;">
+<table border="1" width="100%" cellpadding="2" cellspacing="0" style="border-collapse:collapse;">
 
 <tr>
 
-<td style="border:1px solid #000;font-size:8pt;line-height:13px;text-align:justify;">
+<td style="border:1px solid #000;font-size:7.6pt;line-height:11.5px;text-align:justify;">
 
 <b>Terms & Conditions :</b>
 
@@ -902,29 +893,16 @@ $html .= '
 
 </table>';
 
-
-/* ============================================================
-   NOTE
-============================================================ */
-
 $html .= '
 
-<table border="1" width="100%" cellpadding="3" cellspacing="0" style="border-collapse:collapse;">
+<table border="1" width="100%" cellpadding="2" cellspacing="0" style="border-collapse:collapse;">
 
 <tr>
 
 <td align="center"
-style="font-size:8.5pt;line-height:13px;">
+style="font-size:8.7pt;line-height:12px;">
 
-<b>
-
-NOTE : WE DO NOT ACCEPT FREIGHT IN CASH.
-
-PLEASE PAY BY CHEQUE / ONLINE ONLY IN FAVOUR OF<br>
-
-M/s. EliteWave360 Logistics
-
-</b>
+<b>NOTE : WE DO NOT ACCEPT FREIGHT IN CASH. PLEASE PAY BY CHEQUE / ONLINE ONLY IN FAVOUR OF M/s. EliteWave360 Logistics</b>
 
 </td>
 
@@ -932,19 +910,14 @@ M/s. EliteWave360 Logistics
 
 </table>';
 
-
-/* ============================================================
-   BANK
-============================================================ */
-
 $html .= '
 
-<table border="1" width="100%" cellpadding="3" cellspacing="0" style="border-collapse:collapse;">
+<table border="1" width="100%" cellpadding="2" cellspacing="0" style="border-collapse:collapse;">
 
 <tr>
 
 <td align="center"
-style="font-size:8.7pt;font-weight:bold;">
+style="font-size:9pt;font-weight:bold;line-height:12px;">
 
 Bank : Axis Bank |
 A/c No : 926020021424035 |
@@ -957,19 +930,14 @@ Branch : Vepery, Chennai - 600007 Tamil Nadu
 
 </table>';
 
-
-/* ============================================================
-   FOOTER
-============================================================ */
-
 $html .= '
 
-<table border="1" width="100%" cellpadding="3" cellspacing="0" style="border-collapse:collapse;">
+<table border="1" width="100%" cellpadding="1" cellspacing="0" style="border-collapse:collapse;">
 
 <tr>
 
 <td align="center"
-style="font-size:9pt;font-weight:bold;color:#021659;">
+style="font-size:9.5pt;font-weight:bold;color:#021659;padding:2px 3px;">
 
 This is a Computer generated POD Copy, So signature is not required
 
