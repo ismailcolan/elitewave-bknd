@@ -1,6 +1,7 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+require_once('include/ew_master_usage_helpers.php');
 ew_geo_scope_ensure_column($conn, 'consignment_mode');
 ?>
 <!DOCTYPE html>
@@ -106,8 +107,15 @@ th.table-title.sorting {
                                     <?php
                                     $query = 'select * from consignment_mode';
                                     $result = mysqli_query($conn, $query);
+                                    $consignment_rows = array();
+                                    if ($result) {
+                                        while ($row = mysqli_fetch_array($result)) {
+                                            $consignment_rows[] = $row;
+                                        }
+                                    }
+                                    $consignment_usage = ew_master_usage_map($conn, 'consignment', array_column($consignment_rows, 'consignment_id'));
                                     $i = 1;
-                                    while ($row = mysqli_fetch_array($result)) {
+                                    foreach ($consignment_rows as $row) {
                                         ?>
                                         <tr>
                                             <td class="text-center"><?php echo $i; ?></td>
@@ -117,7 +125,11 @@ th.table-title.sorting {
 
                                             <td class="actions center-content ">
                                                 <div class="action-buttons">
-                                                    <a title="Edit" class="table-actions btn-edit" id="<?php echo $row['consignment_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                    <?php echo ew_master_edit_action_html(array(
+                                                        'in_use' => !empty($consignment_usage[(int) $row['consignment_id']]),
+                                                        'button_id' => (int) $row['consignment_id'],
+                                                        'button_class' => 'table-actions btn-edit',
+                                                    )); ?>
                                                     <?php
                                                     if ($row['status'] == 0) {
                                                         ?>

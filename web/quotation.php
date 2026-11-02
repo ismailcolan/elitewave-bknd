@@ -80,6 +80,9 @@ if ($id > 0) {
 		'terms_notes' => 'We look forward to your confirmation and the opportunity to serve you.',
 		'cfs_port_factory' => '',
 		'part_number' => '',
+		'license_number' => '',
+		'aadhar_number' => '',
+		'rc_number' => '',
 		'quotation_approval' => '',
 		'freight_paid_by' => '',
 		'payment_terms' => '30_days',
@@ -167,7 +170,6 @@ function ew_quotation_status_pill_class($status)
 		.ew-field-pair .uom-select { flex: 0 0 100px; max-width: 120px; }
 		.ew-dim-readonly { background: #f1f5f9; font-size: 12px; color: #475569; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0; min-height: 34px; }
 		#charges_table input.form-control, #charges_table select.form-control { height: 34px; }
-		.ew-form-footer--quotation { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 		.quotation-readonly .form-control:not([readonly]) { pointer-events: none; background: #f8fafc; }
 		.ew-cfs-location-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
 		.ew-cfs-kind-select { flex: 0 0 132px; max-width: 160px; }
@@ -365,6 +367,18 @@ function ew_quotation_status_pill_class($status)
 												<label>Part Number / Article Name / Article Number</label>
 												<input type="text" name="part_number" id="part_number" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['part_number'] ?? ''); ?>" autocomplete="off" />
 											</div>
+											<div class="ew-field">
+												<label>License number</label>
+												<input type="text" name="license_number" id="license_number" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['license_number'] ?? ''); ?>" autocomplete="off" maxlength="80" />
+											</div>
+											<div class="ew-field">
+												<label>Aadhar number</label>
+												<input type="text" name="aadhar_number" id="aadhar_number" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['aadhar_number'] ?? ''); ?>" autocomplete="off" maxlength="20" inputmode="numeric" />
+											</div>
+											<div class="ew-field">
+												<label>RC number</label>
+												<input type="text" name="rc_number" id="rc_number" class="form-control pv-bind" value="<?php echo htmlspecialchars($master['rc_number'] ?? ''); ?>" autocomplete="off" maxlength="80" />
+											</div>
 										</div>
 									</div>
 								</div>
@@ -520,33 +534,7 @@ function ew_quotation_status_pill_class($status)
 											</div>
 										</div>
 									</div>
-									<div class="ew-form-footer ew-form-footer--quotation">
-										<?php if ($editable) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-action" data-action="save_draft">Save draft</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-action" data-action="submit">Submit for approval</button>
-										<?php } elseif ($form_editable) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-action" data-action="save_draft">Save changes</button>
-										<?php } ?>
-										<?php if ($status === 'pending_approval') { ?>
-											<p class="ew-field-hint" style="width:100%;margin:0 0 6px;text-align:right;">Approving emails the PDF from athar@elitewave360.in to the customer address above, with a copy to info@elitewave360.in.</p>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-workflow" data-action="approve">Approve &amp; email PDF</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="reject">Reject</button>
-										<?php } ?>
-										<?php if ($status === 'approved') { ?>
-											<p class="ew-field-hint" style="width:100%;margin:0 0 6px;text-align:right;">Customer email with PDF was sent when you clicked Approve (if email was valid).</p>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-workflow" data-action="mark_sent">Mark sent to customer</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="resend_email">Resend email</button>
-										<?php } ?>
-										<?php if (in_array($status, array('sent', 'customer_confirmed'), true)) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="resend_email">Resend quotation email</button>
-										<?php } ?>
-										<?php if (quotation_can_customer_approve($status)) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-customer-approve" data-id="<?php echo (int) $id; ?>" data-quote="<?php echo htmlspecialchars($master['quote_no'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">Approve (upload reply)</button>
-										<?php } ?>
-										<?php if (!in_array($status, array('converted', 'cancelled'), true)) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="cancel">Cancel quotation</button>
-										<?php } ?>
-									</div>
+									<?php require __DIR__ . '/include/quotation_form_footer.php'; ?>
 								</div>
 							</div>
 
@@ -586,7 +574,7 @@ window.QUOTATION_LETTER_INTRO = <?php echo json_encode(quotation_letter_intro_te
 window.QUOTATION_MULTI_MODE_TYPES = [];
 window.QUOTATION_ALL_MODES_SCREEN = false;
 </script>
-<script src="javascripts/quotation-form.js?v=20261020letter"></script>
+<script src="javascripts/quotation-form.js?v=20261028driverids"></script>
 <?php echo quotation_customer_approve_modal_html(); ?>
 <?php echo quotation_customer_approve_script('quotation_list.php?tab=approved'); ?>
 </body>

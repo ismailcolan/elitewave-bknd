@@ -2,6 +2,7 @@
 require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/vendor_master_helpers.php');
+require_once('include/ew_master_usage_helpers.php');
 
 ew_vendor_ensure_table($conn);
 
@@ -13,6 +14,7 @@ if ($result) {
 		$data[] = $row1;
 	}
 }
+$vendor_usage = ew_master_usage_map($conn, 'vendor', array_column($data, 'vendor_id'));
 ?>
 <!DOCTYPE html>
 <html>
@@ -97,10 +99,15 @@ if ($result) {
 												$gst_disp = trim((string) ($row['gstin'] ?? ''));
 												echo $gst_disp !== '' ? htmlspecialchars($gst_disp) : '—';
 											?></td>
-											<td><?php echo ((int) $row['status'] === 0) ? 'Active' : 'Inactive'; ?></td>
+											<td class="ew-vendor-status"><?php echo ((int) $row['status'] === 0) ? 'Active' : 'Inactive'; ?></td>
 											<td class="actions center-content">
 												<div class="action-buttons">
-													<a title="Edit" href="vendor.php?key=<?php echo md5($row['vendor_id']); ?>" class="table-actions btn-edit"><i class="fa fa-pencil"></i></a>
+													<?php echo ew_master_edit_action_html(array(
+														'in_use' => !empty($vendor_usage[(int) $row['vendor_id']]),
+														'mode' => 'link',
+														'href' => 'vendor.php?key=' . md5($row['vendor_id']),
+														'link_class' => 'table-actions btn-edit',
+													)); ?>
 													<?php if ((int) $row['status'] === 0) { ?>
 														<a class="table-actions btn-active" data-status="<?php echo $row['status']; ?>" title="InActive" id="<?php echo $row['vendor_id']; ?>"><i class="fa fa-check"></i></a>
 													<?php } else { ?>
@@ -159,33 +166,57 @@ if ($result) {
 			ewRenumberVendorListSerial($vendorTable.dataTable().fnSettings());
 
 			$(document).on('click', '.btn-active', function() {
-					$('.form-data-saving').show();
+					var $btn = $(this);
+					if ($btn.data('busy')) {
+						return;
+					}
 					var status1 = '';
 					var msg = '';
-					var status = $(this).attr('data-status');
-					if (status == '1') {
+					var label = '';
+					var status = String($btn.attr('data-status'));
+					if (status === '1') {
 						status1 = '0';
 						msg = 'Activated';
+						label = 'Active';
 					} else {
 						status1 = '1';
 						msg = 'In-Activated';
+						label = 'Inactive';
 					}
+					$btn.data('busy', 1);
+					$('.form-data-saving').show();
 					$.post('save_details.php', {
 						form_name: 'inacv_vendor',
-						tbl_id: $(this).attr('id'),
+						tbl_id: $btn.attr('id'),
 						status: status1
 					}, function(data) {
-						if (data == 1) {
-							$('.form-data-saving').hide();
+						$btn.data('busy', 0);
+						$('.form-data-saving').hide();
+						if (String(data).trim() == '1') {
+							var $row = $btn.closest('tr');
+							$row.find('td.ew-vendor-status').text(label);
+							$btn.attr('data-status', status1);
+							if (status1 === '1') {
+								$btn.attr('title', 'Active').css('color', 'red');
+								$btn.find('i').attr('class', 'fa fa-times');
+							} else {
+								$btn.attr('title', 'InActive').css('color', '');
+								$btn.find('i').attr('class', 'fa fa-check');
+							}
+							if ($.fn.dataTable && $.fn.dataTable.fnIsDataTable($vendorTable[0])) {
+								var dt = $vendorTable.dataTable();
+								var pos = dt.fnGetPosition($row[0]);
+								if (pos !== null && typeof pos !== 'undefined') {
+									dt.fnUpdate(label, pos, 6, false, false);
+								}
+							}
 							$('#alert-status').text('');
 							$('#alert-message').text('Vendor Is ' + msg + '...');
 							$('#alert-container').addClass('alert-success').slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
 								$('#alert-container').hide();
 								$('#alert-container').removeClass('alert-success');
-								location.reload();
 							});
 						} else {
-							$('.form-data-saving').hide();
 							$('#alert-status').text('Alert !!! ');
 							$('#alert-message').text('Vendor status update failed');
 							$('#alert-container').addClass('alert-danger').slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
@@ -193,6 +224,9 @@ if ($result) {
 								$('#alert-container').removeClass('alert-danger');
 							});
 						}
+					}).fail(function() {
+						$btn.data('busy', 0);
+						$('.form-data-saving').hide();
 					});
 				});
 			});

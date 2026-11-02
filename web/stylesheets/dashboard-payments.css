@@ -1,0 +1,356 @@
+/* Payments KPI — shared dash-kpi-card tiles (booking / invoice style) */
+
+.dash-pay-kpi-row {
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: 12px;
+}
+
+.dash-pay-kpi-val {
+	font-size: clamp(15px, 1.05vw, 22px);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: nowrap;
+}
+
+.dash-pay-kpi-trend {
+	color: #dc2626;
+	font-size: 14px;
+	flex-shrink: 0;
+}
+
+.dash-kpi-card.k-pay-recv { --dbk-kpi-accent: #2563eb; --dbk-kpi-ico-bg: #dbeafe; }
+.dash-kpi-card.k-pay-today { --dbk-kpi-accent: #16a34a; --dbk-kpi-ico-bg: #dcfce7; }
+.dash-kpi-card.k-pay-month { --dbk-kpi-accent: #059669; --dbk-kpi-ico-bg: #d1fae5; }
+.dash-kpi-card.k-pay-pending { --dbk-kpi-accent: #0284c7; --dbk-kpi-ico-bg: #e0f2fe; }
+.dash-kpi-card.k-pay-overdue { --dbk-kpi-accent: #dc2626; --dbk-kpi-ico-bg: #fee2e2; }
+.dash-kpi-card.k-pay-advance { --dbk-kpi-accent: #15803d; --dbk-kpi-ico-bg: #dcfce7; }
+.dash-kpi-card.k-pay-unalloc { --dbk-kpi-accent: #ea580c; --dbk-kpi-ico-bg: #ffedd5; }
+
+.dash-pay-analytics-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 0.85fr);
+	gap: 14px;
+	margin-bottom: 16px;
+	align-items: stretch;
+}
+
+.dash-pay-analytics-card .dash-card-body {
+	padding: 12px 14px 16px;
+}
+
+.dash-pay-card-modes .dash-card-head {
+	border-bottom: 1px solid #e2e8f0;
+	padding-bottom: 10px;
+	margin-bottom: 0;
+}
+
+.dash-pay-analytics-card .dash-card-body.flush.dash-pay-mode-body {
+	padding: 18px 20px 20px !important;
+}
+
+.dash-pay-perf-body {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 8px 14px;
+	align-items: center;
+}
+
+.dash-pay-perf-chart {
+	min-width: 0;
+}
+
+#dash_pay_collection_bars {
+	min-height: 210px;
+}
+
+.dash-pay-efficiency-block {
+	flex-shrink: 0;
+	padding-right: 4px;
+}
+
+.dash-pay-efficiency-ring {
+	position: relative;
+	width: 108px;
+	height: 108px;
+	margin: 0 auto;
+}
+
+.dash-pay-gauge {
+	width: 108px;
+	height: 108px;
+}
+
+.dash-pay-efficiency-center {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+	text-align: center;
+	padding: 0 8px;
+}
+
+.dash-pay-efficiency-center strong {
+	font-size: 17px;
+	font-weight: 800;
+	color: #0f172a;
+	line-height: 1.1;
+}
+
+.dash-pay-efficiency-center span {
+	margin-top: 4px;
+	font-size: 9px;
+	font-weight: 600;
+	color: #64748b;
+	line-height: 1.25;
+	max-width: 88px;
+}
+
+.dash-pay-mode-wrap {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 28px;
+	min-height: 132px;
+	width: 100%;
+}
+
+.dash-pay-mode-chart-col {
+	flex: 0 0 128px;
+}
+
+.dash-pay-mode-chart {
+	width: 128px !important;
+	height: 128px !important;
+	overflow: hidden;
+}
+
+.dash-pay-mode-legend {
+	list-style: none;
+	margin: 0;
+	padding: 4px 0;
+	flex: 1;
+	min-width: 0;
+	max-width: 220px;
+}
+
+.dash-pay-mode-legend li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 7px 0;
+	font-size: 12px;
+	font-weight: 600;
+	color: #1e293b;
+	line-height: 1.35;
+}
+
+.dash-pay-mode-legend-left {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	flex: 1;
+}
+
+.dash-pay-mode-swatch {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.dash-pay-mode-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.dash-pay-mode-pct {
+	font-size: 12px;
+	font-weight: 700;
+	color: #0f172a;
+	flex-shrink: 0;
+	min-width: 36px;
+	text-align: right;
+}
+
+.dash-pay-mode-legend-empty {
+	color: #64748b;
+	font-size: 11px;
+	padding: 8px 0 !important;
+	justify-content: flex-start !important;
+}
+
+.dash-pay-top-tbl td,
+.dash-pay-top-tbl th {
+	padding: 9px 12px !important;
+	font-size: 12px;
+}
+
+.dash-pay-top-tbl thead th {
+	background: #e8f0fe;
+	color: #06416f;
+	font-size: 10px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	border-bottom: 1px solid #dbeafe;
+}
+
+.dash-pay-top-tbl tbody tr + tr td {
+	border-top: 1px solid #eef2f7;
+}
+
+.dash-pay-recent-card {
+	margin-bottom: 16px;
+}
+
+.dash-pay-bottom-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+	column-gap: 24px;
+	row-gap: 16px;
+	margin-top: 4px;
+	margin-bottom: 16px;
+	align-items: start;
+}
+
+.dash-pay-bottom-row > .dash-card {
+	min-width: 0;
+}
+
+.dash-pay-recent-tbl {
+	font-size: 12px;
+}
+
+.dash-pay-empty {
+	text-align: center;
+	padding: 20px 12px !important;
+	color: #64748b;
+}
+
+.pay-st-pill {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: 10px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.pay-st-cleared {
+	background: #dcfce7;
+	color: #166534;
+}
+
+.pay-st-pending {
+	background: #fef3c7;
+	color: #b45309;
+}
+
+.pay-credit-pill {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 6px;
+	font-size: 10px;
+	font-weight: 700;
+}
+
+.pay-credit-good {
+	background: #ecfdf5;
+	color: #047857;
+}
+
+.pay-credit-overdue {
+	background: #fee2e2;
+	color: #b91c1c;
+}
+
+.pay-credit-watch {
+	background: #fef9c3;
+	color: #a16207;
+}
+
+.dash-pay-alerts {
+	list-style: none;
+	margin: 0;
+	padding: 12px 14px 14px;
+}
+
+.dash-pay-alert {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	padding: 10px 0;
+	border-bottom: 1px solid #f1f5f9;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.dash-pay-alert:last-child {
+	border-bottom: none;
+}
+
+.dash-pay-alert strong {
+	display: block;
+	color: #0f172a;
+	font-size: 12px;
+	margin-bottom: 2px;
+}
+
+.dash-pay-alert span {
+	color: #64748b;
+}
+
+.dash-pay-alert-ico {
+	width: 28px;
+	height: 28px;
+	border-radius: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.dash-pay-alert--overdue .dash-pay-alert-ico {
+	background: #fee2e2;
+	color: #dc2626;
+}
+
+.dash-pay-alert--cheque .dash-pay-alert-ico {
+	background: #fef3c7;
+	color: #d97706;
+}
+
+.dash-pay-alert--empty {
+	color: #64748b;
+	justify-content: center;
+	padding: 24px;
+}
+
+@media (max-width: 1400px) {
+	.dash-pay-kpi-row {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+	.dash-pay-analytics-row {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 992px) {
+	.dash-pay-bottom-row {
+		grid-template-columns: 1fr;
+	}
+	.dash-pay-kpi-row {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}

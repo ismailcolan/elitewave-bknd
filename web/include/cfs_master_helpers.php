@@ -27,7 +27,45 @@ function ew_cfs_master_ensure_schema($conn)
 		}
 	}
 
+	$loc_cols = array(
+		'country_id' => 'INT(11) NOT NULL DEFAULT 0',
+		'state' => 'INT(11) NOT NULL DEFAULT 0',
+		'city' => 'INT(11) NOT NULL DEFAULT 0',
+	);
+	foreach ($loc_cols as $col => $def) {
+		$chk = mysqli_query($conn, "SHOW COLUMNS FROM cfs_master LIKE '$col'");
+		if ($chk && mysqli_num_rows($chk) === 0) {
+			mysqli_query($conn, "ALTER TABLE cfs_master ADD COLUMN `$col` $def");
+		}
+	}
+
+	ew_area_ensure_country_name($conn, 'cfs_master');
+
 	ew_cfs_master_apply_default_seeds($conn);
+}
+
+function ew_cfs_master_row_country_name($conn, $row)
+{
+	$name = trim((string) ($row['country_name'] ?? ''));
+	if ($name !== '') {
+		return $name;
+	}
+	return ew_cfs_master_country_name($conn, (int) ($row['country_id'] ?? 0));
+}
+
+function ew_cfs_master_country_name($conn, $country_id)
+{
+	$country_id = (int) $country_id;
+	if ($country_id <= 0) {
+		return '';
+	}
+	if (!function_exists('ew_country_ensure_table')) {
+		require_once __DIR__ . '/function.php';
+	}
+	ew_country_ensure_table($conn);
+	$q = mysqli_query($conn, "SELECT country_name FROM country WHERE country_id='$country_id' LIMIT 1");
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	return $row ? (string) $row['country_name'] : '';
 }
 
 /** Chennai / North Chennai CFS list (GCN PDF). */
@@ -299,6 +337,13 @@ function ew_cfs_master_insert($conn, $post, $user_id)
 	if (ew_cfs_master_name_exists($conn, $name, 0)) {
 		return array('result' => 0, 'message' => 'This CFS name already exists.');
 	}
+	$country_name = trim((string) ($post['country_name'] ?? ''));
+	$state_id = (int) ($post['state'] ?? 0);
+	$city_id = (int) ($post['city'] ?? 0);
+	if ($country_name === '' || $state_id <= 0 || $city_id <= 0) {
+		return array('result' => 0, 'message' => 'Country, State and City are required.');
+	}
+	$country_name_esc = mysqli_real_escape_string($conn, $country_name);
 	$next = ew_cfs_master_next_code($conn);
 	$code_id = (int) $next['cfs_code_id'];
 	$code = $next['cfs_code'];
@@ -312,8 +357,8 @@ function ew_cfs_master_insert($conn, $post, $user_id)
 	$geo_sql = ew_geo_scope_sql($conn, ew_geo_scope_from_request());
 	$ok = mysqli_query(
 		$conn,
-		"INSERT INTO cfs_master (cfs_code, cfs_code_id, cfs_name, status, sort_order, geo_scope, created_at, created_by)
-		VALUES ('$code_esc', '$code_id', '$name_esc', 0, '$sort_order', $geo_sql, '$dt', '$user_id')"
+		"INSERT INTO cfs_master (cfs_code, cfs_code_id, cfs_name, country_name, state, city, status, sort_order, geo_scope, created_at, created_by)
+		VALUES ('$code_esc', '$code_id', '$name_esc', '$country_name_esc', '$state_id', '$city_id', 0, '$sort_order', $geo_sql, '$dt', '$user_id')"
 	);
 	if (!$ok) {
 		return array('result' => 0, 'message' => mysqli_error($conn));
@@ -336,12 +381,19 @@ function ew_cfs_master_update($conn, $post, $user_id)
 	if (ew_cfs_master_name_exists($conn, $name, $cfs_id)) {
 		return array('result' => 0, 'message' => 'This CFS name already exists.');
 	}
+	$country_name = trim((string) ($post['country_name'] ?? ''));
+	$state_id = (int) ($post['state'] ?? 0);
+	$city_id = (int) ($post['city'] ?? 0);
+	if ($country_name === '' || $state_id <= 0 || $city_id <= 0) {
+		return array('result' => 0, 'message' => 'Country, State and City are required.');
+	}
 	$name_esc = mysqli_real_escape_string($conn, $name);
+	$country_name_esc = mysqli_real_escape_string($conn, $country_name);
 	$dt = date('d-m-Y');
 	$user_id = (int) $user_id;
 	$ok = mysqli_query(
 		$conn,
-		"UPDATE cfs_master SET cfs_name='$name_esc', updated_at='$dt', updated_by='$user_id' WHERE cfs_id='$cfs_id'"
+		"UPDATE cfs_master SET cfs_name='$name_esc', country_name='$country_name_esc', state='$state_id', city='$city_id', updated_at='$dt', updated_by='$user_id' WHERE cfs_id='$cfs_id'"
 	);
 	if (!$ok) {
 		return array('result' => 0, 'message' => mysqli_error($conn));

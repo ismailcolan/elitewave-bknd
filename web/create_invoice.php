@@ -14,6 +14,13 @@ if (!$is_edit && empty($_GET['create'])) {
 	header('Location: invoice_list.php');
 	exit;
 }
+if ($is_edit) {
+	$edit_check = billing_get_invoice($conn, $edit_id);
+	if (!$edit_check || ($edit_check['master']['status'] ?? '') === 'cancelled') {
+		header('Location: invoice_list.php');
+		exit;
+	}
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -109,7 +116,7 @@ if (!$is_edit && empty($_GET['create'])) {
 							<table class="table" id="lines_table">
 								<thead>
 									<tr>
-										<th>S.No</th><th>GCN No</th><th>Date</th><th>Sender</th><th>Receiver</th>
+										<th>S.No</th><th>GCN No</th><th>Date</th><th>Consignor</th><th>Consignee</th>
 										<th>Pkgs</th><th>Weight</th><th>Freight</th><th>Taxable</th>
 										<th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th><th>Billing Type</th><th class="col-actions"></th>
 									</tr>

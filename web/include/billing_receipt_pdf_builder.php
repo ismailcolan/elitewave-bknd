@@ -37,6 +37,22 @@ function billing_receipt_build_pdf_html($conn, array $view)
     $title = 'Payment Receipt';
     $html = elitewave_pdf_letterhead_open($conn, $title, 'Receipt Copy', true, true);
 
+    if (($view['status'] ?? '') === 'cancelled') {
+        $html .= '<div style="margin:0 0 12px;padding:10px 12px;border:2px solid #b91c1c;background:#fef2f2;color:#991b1b;font-size:10pt;font-weight:bold;text-align:center;">'
+            . 'CANCELLED — This receipt is void. Amounts are not applied to invoices.</div>';
+        $cancelBits = array();
+        if (!empty($view['cancel_reason'])) {
+            $cancelBits[] = 'Reason: ' . $view['cancel_reason'];
+        }
+        if (!empty($view['cancel_remarks'])) {
+            $cancelBits[] = $view['cancel_remarks'];
+        }
+        if (!empty($cancelBits)) {
+            $html .= '<div style="margin:0 0 12px;font-size:8.5pt;color:#64748b;">'
+                . billing_receipt_pdf_esc(implode(' — ', $cancelBits)) . '</div>';
+        }
+    }
+
     $meta = array(
         array('Receipt no', $view['receipt_no'] ?? '—'),
         array('Receipt date', $view['receipt_date'] ?? '—'),

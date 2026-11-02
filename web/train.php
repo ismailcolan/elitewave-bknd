@@ -1,6 +1,7 @@
 <?php
 require_once("include/connect.php");
 require_once("include/function.php");
+require_once("include/ew_master_usage_helpers.php");
 ew_geo_scope_ensure_column($conn, 'train'); 
 ?>
 <!DOCTYPE html>
@@ -102,10 +103,16 @@ th.table-title.sorting_disabled {
 							<tbody>
 							<?php 
 								$query = "select * from train";
-								$result = mysqli_query($conn,$query);
-									$i=1;
-								while($row = mysqli_fetch_array($result))
-								{
+								$result = mysqli_query($conn, $query);
+								$train_rows = array();
+								if ($result) {
+									while ($row = mysqli_fetch_array($result)) {
+										$train_rows[] = $row;
+									}
+								}
+								$train_usage = ew_master_usage_map($conn, 'train', array_column($train_rows, 'train_id'));
+								$i = 1;
+								foreach ($train_rows as $row) {
 							?>
 								<tr>
 									<td class="text-center"><?php echo $i; ?></td>
@@ -115,7 +122,11 @@ th.table-title.sorting_disabled {
 									
 									<td class="actions center-content ">
 										<div class="action-buttons">
-											<a title="Edit" class="table-actions btn-edit" id="<?php echo $row['train_id']; ?>"><i class="fa fa-pencil"></i></a>
+											<?php echo ew_master_edit_action_html(array(
+												'in_use' => !empty($train_usage[(int) $row['train_id']]),
+												'button_id' => (int) $row['train_id'],
+												'button_class' => 'table-actions btn-edit',
+											)); ?>
 											<?php 
 											if($row['status'] == 0)
 											{

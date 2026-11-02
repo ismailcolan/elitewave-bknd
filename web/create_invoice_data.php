@@ -82,11 +82,35 @@ if ($cmd === 'fetch_gcn_details') {
     ));
 }
 
+if ($cmd === 'cancel_invoice') {
+    $user_id = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
+    if ($user_id <= 0) {
+        billing_json_out(array('status' => 1, 'message' => 'Session expired. Please login again.'));
+    }
+    $id = (int) ($_POST['billing_invoice_id'] ?? $_REQUEST['billing_invoice_id'] ?? 0);
+    $reason = trim($_POST['cancel_reason'] ?? $_REQUEST['cancel_reason'] ?? '');
+    $remarks = trim($_POST['cancel_remarks'] ?? $_REQUEST['cancel_remarks'] ?? '');
+    billing_json_out(billing_cancel_invoice($conn, $id, $reason, $remarks, $user_id));
+}
+
+if ($cmd === 'set_invoice_active') {
+    $user_id = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
+    if ($user_id <= 0) {
+        billing_json_out(array('status' => 1, 'message' => 'Session expired. Please login again.'));
+    }
+    $id = (int) ($_POST['billing_invoice_id'] ?? $_REQUEST['billing_invoice_id'] ?? 0);
+    $is_active = (int) ($_POST['is_active'] ?? $_REQUEST['is_active'] ?? 1);
+    billing_json_out(billing_set_invoice_active($conn, $id, $is_active, $user_id));
+}
+
 if ($cmd === 'load_draft') {
     $id = (int) ($_REQUEST['billing_invoice_id'] ?? 0);
     $data = billing_get_invoice($conn, $id);
     if (!$data) {
         billing_json_out(array('status' => 1, 'message' => 'Invoice not found.'));
+    }
+    if (($data['master']['status'] ?? '') === 'cancelled') {
+        billing_json_out(array('status' => 1, 'message' => 'Cancelled invoice cannot be edited.'));
     }
     $lines = array();
     foreach ($data['details'] as $d) {

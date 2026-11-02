@@ -232,6 +232,116 @@
 		}
 	}
 
+	function mdRowFieldVal($tr, selector) {
+		var $el = $tr.find(selector);
+		if (!$el.length) {
+			return '';
+		}
+		var v = $el.val();
+		if ($el.data('select2')) {
+			v = $el.select2('val');
+		}
+		return $.trim(v == null ? '' : String(v));
+	}
+
+	function clearMdFieldErrors() {
+		$('#md_dest_tbody .md-field-error').removeClass('md-field-error');
+	}
+
+	function mdRowIsActive($tr) {
+		if (mdRowFieldVal($tr, '.md-city') || mdRowFieldVal($tr, '.md-mode')) {
+			return true;
+		}
+		if (mdRowFieldVal($tr, '.md-days')) {
+			return true;
+		}
+		if ($.trim($tr.find('.md-amt[name="md_freight[]"]').val() || '') !== '') {
+			return true;
+		}
+		if ($.trim($tr.find('.md-amt[name="md_tempo[]"]').val() || '') !== '') {
+			return true;
+		}
+		return false;
+	}
+
+	function mdFlagInvalid($el) {
+		if (!$el || !$el.length) {
+			return;
+		}
+		$el.addClass('md-field-error');
+	}
+
+	function validateMdDestinationRows() {
+		clearMdFieldErrors();
+		var seen = 0;
+		var $firstBad = null;
+		$('#md_dest_tbody tr.md-row').each(function() {
+			var $tr = $(this);
+			if (!mdRowIsActive($tr)) {
+				return;
+			}
+			seen++;
+			var city = mdRowFieldVal($tr, '.md-city');
+			var mode = mdRowFieldVal($tr, '.md-mode');
+			var days = mdRowFieldVal($tr, '.md-days');
+			var $freight = $tr.find('.md-amt[name="md_freight[]"]');
+			var $tempo = $tr.find('.md-amt[name="md_tempo[]"]');
+			var freight = $.trim($freight.val() || '');
+			var tempo = $.trim($tempo.val() || '');
+
+			if (!city) {
+				mdFlagInvalid($tr.find('.md-city'));
+				if (!$firstBad) {
+					$firstBad = $tr.find('.md-city');
+				}
+			}
+			if (!mode) {
+				mdFlagInvalid($tr.find('.md-mode'));
+				if (!$firstBad) {
+					$firstBad = $tr.find('.md-mode');
+				}
+			}
+			if (!days) {
+				mdFlagInvalid($tr.find('.md-days'));
+				if (!$firstBad) {
+					$firstBad = $tr.find('.md-days');
+				}
+			}
+			if (freight === '') {
+				mdFlagInvalid($freight);
+				if (!$firstBad) {
+					$firstBad = $freight;
+				}
+			}
+			if (tempo === '') {
+				mdFlagInvalid($tempo);
+				if (!$firstBad) {
+					$firstBad = $tempo;
+				}
+			}
+		});
+		if (seen === 0) {
+			var $firstRow = $('#md_dest_tbody tr.md-row').first();
+			mdFlagInvalid($firstRow.find('.md-city'));
+			mdFlagInvalid($firstRow.find('.md-mode'));
+			mdFlagInvalid($firstRow.find('.md-days'));
+			mdFlagInvalid($firstRow.find('.md-amt[name="md_freight[]"]'));
+			mdFlagInvalid($firstRow.find('.md-amt[name="md_tempo[]"]'));
+			$firstBad = $firstRow.find('.md-city');
+		}
+		if ($firstBad && $firstBad.length) {
+			var top = $firstBad.offset().top - 140;
+			$('html, body').animate({ scrollTop: top > 0 ? top : 0 }, 220);
+			setTimeout(function() {
+				try {
+					$firstBad.trigger('focus');
+				} catch (e) { /* ignore */ }
+			}, 240);
+		}
+		return { ok: $('#md_dest_tbody .md-field-error').length === 0, message: '' };
+	}
+	window.validateMdDestinationRows = validateMdDestinationRows;
+
 	function postQuotation(action, extra, cb) {
 		$('#quotation_action').val(action);
 		var data = $('#quotation_form').serialize();
@@ -256,6 +366,8 @@
 	}
 
 	$(function() {
+		var masterOnly = !!window.QUOTATION_DEST_MASTER_ONLY;
+
 		function syncCustomerModeUi(clearOpposite) {
 			var existing = isExistingCustomerMode();
 			$('.ew-customer-new').toggle(!existing);
@@ -313,6 +425,10 @@
 			renderPreview();
 		});
 
+		$(document).on('change input', '#md_dest_tbody .md-city, #md_dest_tbody .md-mode, #md_dest_tbody .md-days, #md_dest_tbody .md-amt', function() {
+			$(this).removeClass('md-field-error');
+		});
+
 		$(document).on('click', '.btn-md-remove-row', function() {
 			var $tbody = $('#md_dest_tbody');
 			if ($tbody.find('tr.md-row').length <= 1) {
@@ -325,6 +441,101 @@
 			renderPreview();
 		});
 
+		function resolveDestMasterId() {
+			var id = $.trim($('#md_dest_master_id').val() || '');
+			if (id) {
+				return id;
+			}
+			var fromWin = window.QUOTATION_DEST_MASTER_SINGLETON_ID;
+			if (fromWin) {
+				id = String(fromWin);
+				$('#md_dest_master_id').val(id);
+				return id;
+			}
+			return '';
+		}
+
+		function applyDestMasterHtml(html) {
+			var $tbody = $('#md_dest_tbody');
+			$tbody.find('select.md-city').each(function() {
+				var $el = $(this);
+				if ($el.hasClass('select2-hidden-accessible')) {
+					try {
+						$el.select2('destroy');
+					} catch (e) { /* ignore */ }
+				}
+			});
+			$tbody.html(html || '');
+			if ($.fn.select2) {
+				initMdSelect2($tbody);
+			}
+			syncMdVehicleFields();
+			renderPreview();
+		}
+
+		var destMasterLoadXhr = null;
+		function loadDestMasterRows(showToast) {
+			var masterId = resolveDestMasterId();
+			if (!masterId) {
+				if (typeof ewToast === 'function') {
+					ewToast('Save rows in Quotation Master first.', 'warning');
+				}
+				return;
+			}
+			if (destMasterLoadXhr && destMasterLoadXhr.readyState !== 4) {
+				destMasterLoadXhr.abort();
+			}
+			destMasterLoadXhr = $.ajax({
+				url: 'fetch_details.php',
+				type: 'POST',
+				dataType: 'json',
+				data: { cmd: 'get_quotation_dest_master_rows', master_id: masterId },
+				success: function(data) {
+					destMasterLoadXhr = null;
+					if (!data || !data.ok) {
+						alert((data && data.message) || 'Could not load Quotation Master.');
+						return;
+					}
+					if (!data.html || String(data.html).indexOf('md-row') === -1) {
+						alert('Quotation Master has no saved rows yet.');
+						return;
+					}
+					applyDestMasterHtml(data.html);
+					if (showToast !== false && typeof ewToast === 'function') {
+						ewToast('Destination rows loaded.', 'success');
+					}
+				},
+				error: function(xhr, status) {
+					destMasterLoadXhr = null;
+					if (status === 'abort') {
+						return;
+					}
+					var msg = xhr.responseText || 'Could not load Quotation Master.';
+					try {
+						var parsed = JSON.parse(xhr.responseText);
+						if (parsed && parsed.message) {
+							msg = parsed.message;
+						}
+					} catch (e) { /* use raw */ }
+					alert(msg);
+				}
+			});
+		}
+
+		$('input[name=md_dest_entry_mode]').on('change', function() {
+			if ($('input[name=md_dest_entry_mode]:checked').val() === 'master') {
+				loadDestMasterRows(false);
+			}
+		});
+
+		if (masterOnly) {
+			if ($.fn.select2) {
+				initMdSelect2($('#md_dest_tbody'));
+			}
+			syncMdVehicleFields();
+			return;
+		}
+
 		$('#btn_quotation_preview').on('click', function() {
 			openQuotationPreviewModal();
 		});
@@ -332,6 +543,10 @@
 		$('.btn-quotation-action').on('click', function() {
 			var action = $(this).data('action');
 			var $btn = $(this);
+			if (!validateMdDestinationRows().ok) {
+				$('#response').hide();
+				return;
+			}
 			$btn.prop('disabled', true);
 			postQuotation(action, {}, function(result) {
 				$btn.prop('disabled', false);

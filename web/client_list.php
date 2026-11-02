@@ -4,6 +4,8 @@ require_once ('include/function.php');
 ?>
 <?php
 $logged_id = $_SESSION['user_id'];
+$data = array();
+$ew_client_edit_lock_msg = 'Sorry, this record is already in use and cannot be edited.';
 
 // if ($_SESSION['role'] == 'AD') {
 $query = 'select * from client';
@@ -135,7 +137,7 @@ while ($row1 = mysqli_fetch_array($result)) {
 
                                     foreach ($data as $row) {
                                         ?>
-                                        <tr>
+                                        <tr data-client-id="<?php echo (int) $row['client_id']; ?>">
                                             <td class="text-center"><?php echo $i; ?></td>
                                             <td><?php echo $row['client_company_name']; ?></td>
                                             <td><?php echo $row['contact_person']; ?></td>
@@ -153,7 +155,9 @@ while ($row1 = mysqli_fetch_array($result)) {
                                                     ?>
 
                                                     <div class="action-buttons">
-                                                        <a title="Edit" href="client.php?key=<?php echo md5($row['client_id']); ?>" class="table-actions btn-edit" id="<?php echo $row['client_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                        <span class="client-master-edit">
+                                                            <a title="Edit" href="client.php?key=<?php echo md5($row['client_id']); ?>" class="table-actions client-edit-link"><i class="fa fa-pencil"></i></a>
+                                                        </span>
 
 
                                                         <?php
@@ -217,6 +221,34 @@ while ($row1 = mysqli_fetch_array($result)) {
 
         <script type="text/javascript">
             $(document).ready(function() {
+                var clientEditLockMsg = <?php echo json_encode($ew_client_edit_lock_msg, JSON_UNESCAPED_UNICODE); ?>;
+                $.ajax({
+                    url: 'client_edit_locks_data.php',
+                    type: 'GET',
+                    dataType: 'json',
+                    timeout: 120000,
+                    beforeSend: function () {
+                        $('.loading-page').show();
+                    },
+                    complete: function () {
+                        $('.loading-page').hide();
+                    },
+                    success: function (resp) {
+                        if (!resp || resp.status !== 0 || !resp.locked || !resp.locked.length) {
+                            return;
+                        }
+                        resp.locked.forEach(function (id) {
+                            var $slot = $('tr[data-client-id="' + id + '"] .client-master-edit');
+                            if (!$slot.length) {
+                                return;
+                            }
+                            $slot.replaceWith(
+                                '<span role="button" tabindex="0" class="table-actions ew-master-edit-locked" title="In use — not editable" data-message="' +
+                                $('<div>').text(clientEditLockMsg).html() + '"><i class="fa fa-lock"></i></span>'
+                            );
+                        });
+                    }
+                });
 
                 //Frequency Start
 
@@ -533,6 +565,9 @@ while ($row1 = mysqli_fetch_array($result)) {
 
                 //	Button Edit
                 $(document).on('click', '.btn-edit', function(ev) {
+                    if ($(this).hasClass('cancel_booking') || $(this).hasClass('client-edit-link')) {
+                        return;
+                    }
                     $(".form-data-saving").show();
                     var tbl_id = $(this).attr("id");
                     $.ajax({

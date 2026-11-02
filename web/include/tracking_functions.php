@@ -1,5 +1,45 @@
 <?php
 
+/**
+ * Normalize GCN / tracking code from user input (trim; strip spaces in digit-only codes).
+ */
+function ew_normalize_track_consignment_query($code)
+{
+    $code = trim((string) $code);
+    if ($code === '') {
+        return '';
+    }
+    if (preg_match('/^[\d\s]+$/u', $code)) {
+        return preg_replace('/\s+/u', '', $code);
+    }
+    return $code;
+}
+
+/** Numeric customer tracking code from transaction_log (not GCN / grn_no). */
+function ew_transaction_tracking_code_for_grn($conn, $grn_no)
+{
+    $grn_no = trim((string) $grn_no);
+    if ($grn_no === '') {
+        return '';
+    }
+    $esc = mysqli_real_escape_string($conn, $grn_no);
+    $q = mysqli_query($conn, "SELECT tracking_code FROM transaction_log WHERE grn_no='$esc' ORDER BY id DESC LIMIT 1");
+    if ($q && ($row = mysqli_fetch_assoc($q))) {
+        return trim((string) ($row['tracking_code'] ?? ''));
+    }
+    return '';
+}
+
+/** Display as groups of 4 digits (e.g. 1234 5678 9012). */
+function ew_format_public_tracking_no($code)
+{
+    $digits = preg_replace('/\D+/', '', (string) $code);
+    if ($digits === '') {
+        return '';
+    }
+    return trim(chunk_split($digits, 4, ' '));
+}
+
 function get_client_phone($conn, $id)
 {
     if (!$id) return '';

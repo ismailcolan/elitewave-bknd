@@ -126,6 +126,66 @@ function billing_invoice_note_total($conn, $invoice_id, $note_type = 'CN', $excl
     return 0.0;
 }
 
+function billing_invoice_note_gst_total($conn, $invoice_id, $note_type = 'CN', $exclude_note_id = 0, $final_only = true)
+{
+    $invoice_id = (int) $invoice_id;
+    $exclude_note_id = (int) $exclude_note_id;
+    $note_type = ($note_type === 'DN') ? 'DN' : 'CN';
+    $sql = "SELECT COALESCE(SUM(gst_amount),0) AS amt
+        FROM billing_note_master
+        WHERE against_invoice_id='$invoice_id'
+        AND note_type='$note_type'
+        AND party_type='client'";
+    if ($final_only) {
+        $sql .= " AND status='final'";
+    } else {
+        $sql .= " AND status IN ('draft','final')";
+    }
+    if ($exclude_note_id > 0) {
+        $sql .= " AND billing_note_id!='$exclude_note_id'";
+    }
+    $q = mysqli_query($conn, $sql);
+    if ($q && ($row = mysqli_fetch_assoc($q))) {
+        return (float) $row['amt'];
+    }
+    return 0.0;
+}
+
+function billing_credit_notes_for_invoice($conn, $invoice_id, $exclude_note_id = 0)
+{
+    $invoice_id = (int) $invoice_id;
+    $exclude_note_id = (int) $exclude_note_id;
+    $rows = array();
+    $sql = "SELECT billing_note_id, note_no, note_date, status, taxable_value, gst_amount, grand_total, reason
+        FROM billing_note_master
+        WHERE against_invoice_id='$invoice_id'
+        AND note_type='CN'
+        AND party_type='client'
+        AND status IN ('draft','final')";
+    if ($exclude_note_id > 0) {
+        $sql .= " AND billing_note_id!='$exclude_note_id'";
+    }
+    $sql .= " ORDER BY note_date ASC, billing_note_id ASC";
+    $q = mysqli_query($conn, $sql);
+    if (!$q) {
+        return $rows;
+    }
+    while ($row = mysqli_fetch_assoc($q)) {
+        $note_no = $row['note_no'] ?: ('DRAFT-' . $row['billing_note_id']);
+        $rows[] = array(
+            'billing_note_id' => (int) $row['billing_note_id'],
+            'note_no' => $note_no,
+            'note_date' => $row['note_date'],
+            'status' => $row['status'],
+            'reason' => $row['reason'],
+            'credit_note_amount' => billing_format_money($row['taxable_value']),
+            'gst_claim' => billing_format_money($row['gst_amount']),
+            'grand_total' => billing_format_money($row['grand_total']),
+        );
+    }
+    return $rows;
+}
+
 function billing_invoice_cn_remaining($conn, $master, $exclude_note_id = 0)
 {
     $grand = (float) ($master['grand_total'] ?? 0);
@@ -239,6 +299,9 @@ function billing_credit_note_invoice_snapshot($conn, $invoice_id, $exclude_note_
     $inv_amt = (float) $master['grand_total'];
     $to_pay = max(0, round($inv_amt - $paid - $cn_total + $dn_total, 2));
     $remaining = billing_invoice_cn_remaining($conn, $master, $exclude_note_id);
+    $invoice_gst = (float) ($master['gst_amount'] ?? 0);
+    $gst_claimed = billing_invoice_note_gst_total($conn, (int) $master['billing_invoice_id'], 'CN', $exclude_note_id, true);
+    $gst_remaining = max(0, round($invoice_gst - $gst_claimed, 2));
     return array(
         'billing_invoice_id' => (int) $master['billing_invoice_id'],
         'invoice_no' => $master['invoice_no'],
@@ -248,6 +311,9 @@ function billing_credit_note_invoice_snapshot($conn, $invoice_id, $exclude_note_
         'status' => $master['status'],
         'invoice_amount' => billing_format_money($inv_amt),
         'taxable_value' => billing_format_money($master['taxable_value']),
+        'invoice_gst_amount' => billing_format_money($invoice_gst),
+        'gst_claimed_total' => billing_format_money($gst_claimed),
+        'gst_claim_remaining' => billing_format_money($gst_remaining),
         'already_paid' => billing_format_money($paid),
         'credit_note_total' => billing_format_money($cn_total),
         'debit_note_total' => billing_format_money($dn_total),
@@ -258,6 +324,7 @@ function billing_credit_note_invoice_snapshot($conn, $invoice_id, $exclude_note_
         'gst_label' => $profile['gst_label'],
         'gcns' => $gcns,
         'gcn_label' => implode(', ', $gcns),
+        'gst_claim_history' => billing_credit_notes_for_invoice($conn, (int) $master['billing_invoice_id'], $exclude_note_id),
     );
 }
 
@@ -267,7 +334,7 @@ function billing_final_invoices_for_credit_note($conn)
     $q = mysqli_query($conn, "SELECT m.billing_invoice_id, m.invoice_no, m.invoice_date, m.grand_total, c.client_company_name
         FROM billing_invoice_master m
         LEFT JOIN client c ON c.client_id = m.customer_id
-        WHERE m.status='final'
+        WHERE m.status='final' AND COALESCE(m.is_active,1)=1
         ORDER BY m.billing_invoice_id DESC
         LIMIT 500");
     if (!$q) {
@@ -324,7 +391,7 @@ function billing_save_credit_note($conn, $payload, $user_id)
             return array('status' => 1, 'message' => 'Final credit note cannot be moved back to draft.');
         }
         if ($existing['master']['status'] === 'final') {
-            return array('status' => 1, 'message' => 'Final credit note cannot be edited.');
+            $status = 'final';
         }
     }
 
@@ -347,10 +414,10 @@ function billing_save_credit_note($conn, $payload, $user_id)
     }
 
     $note_no = '';
-    if ($status === 'final') {
-        $note_no = billing_allocate_credit_note_number($conn, $note_date);
-    } elseif ($edit_id > 0 && !empty($existing['master']['note_no'])) {
+    if ($edit_id > 0 && $existing && !empty($existing['master']['note_no'])) {
         $note_no = $existing['master']['note_no'];
+    } elseif ($status === 'final') {
+        $note_no = billing_allocate_credit_note_number($conn, $note_date);
     }
 
     $esc_date = mysqli_real_escape_string($conn, $note_date);
@@ -412,12 +479,122 @@ function billing_save_credit_note($conn, $payload, $user_id)
         ('$billing_note_id','$esc_grn','$esc_desc','{$amounts['taxable_value']}','{$amounts['cgst_amount']}',
          '{$amounts['sgst_amount']}','{$amounts['igst_amount']}','{$amounts['gst_amount']}','{$amounts['grand_total']}','$now')");
 
+    $msg = 'Credit note draft saved.';
+    if ($status === 'final') {
+        $msg = ($edit_id > 0 && $existing && ($existing['master']['status'] ?? '') === 'final')
+            ? 'Credit note updated.'
+            : 'Credit note finalised.';
+    }
+
     return array(
         'status' => 0,
-        'message' => $status === 'final' ? 'Credit note finalised.' : 'Credit note draft saved.',
+        'message' => $msg,
         'billing_note_id' => $billing_note_id,
         'note_no' => $note_no,
         'note_status' => $status,
         'amounts' => $amounts,
     );
+}
+
+function billing_credit_note_status_label($status)
+{
+    $status = strtolower(trim((string) $status));
+    if ($status === 'final') {
+        return 'Final';
+    }
+    if ($status === 'cancelled') {
+        return 'Cancelled';
+    }
+    return 'Draft';
+}
+
+function billing_credit_note_fetch_view($conn, $billing_note_id)
+{
+    $billing_note_id = (int) $billing_note_id;
+    $note = billing_get_credit_note($conn, $billing_note_id);
+    if (!$note) {
+        return array('ok' => false, 'message' => 'Credit note not found.');
+    }
+    $m = $note['master'];
+    $invoice_no = '—';
+    $customer_name = '—';
+    $gcn_label = '—';
+    $gst_label = '—';
+    $invoice_id = (int) ($m['against_invoice_id'] ?? 0);
+    if ($invoice_id > 0) {
+        $snap = billing_credit_note_invoice_snapshot($conn, $invoice_id, $billing_note_id);
+        if ($snap) {
+            $invoice_no = $snap['invoice_no'] ?? '—';
+            $customer_name = $snap['customer_name'] ?? '—';
+            $gcn_label = $snap['gcn_label'] !== '' ? $snap['gcn_label'] : '—';
+            $gst_label = $snap['gst_label'] ?? '—';
+        }
+    }
+    $note_no = trim((string) ($m['note_no'] ?? ''));
+    if ($note_no === '') {
+        $note_no = 'DRAFT-' . $billing_note_id;
+    }
+
+    return array(
+        'ok' => true,
+        'billing_note_id' => $billing_note_id,
+        'note_no' => $note_no,
+        'note_date' => $m['note_date'] ?? '',
+        'status' => $m['status'] ?? 'draft',
+        'status_label' => billing_credit_note_status_label($m['status'] ?? 'draft'),
+        'against_invoice_no' => $invoice_no,
+        'customer_name' => $customer_name,
+        'reason' => $m['reason'] ?? '',
+        'line_description' => $m['line_description'] ?? '',
+        'gcn_label' => $gcn_label,
+        'gst_label' => $gst_label,
+        'taxable_value' => billing_format_money($m['taxable_value'] ?? 0),
+        'gst_amount' => billing_format_money($m['gst_amount'] ?? 0),
+        'grand_total' => billing_format_money($m['grand_total'] ?? 0),
+        'total_words' => $m['total_words'] ?? '',
+    );
+}
+
+function billing_delete_credit_note($conn, $billing_note_id, $user_id)
+{
+    ensure_billing_note_tables($conn);
+    $billing_note_id = (int) $billing_note_id;
+    $user_id = (int) $user_id;
+    if ($billing_note_id <= 0) {
+        return array('status' => 1, 'message' => 'Invalid credit note.');
+    }
+    $note = billing_get_credit_note($conn, $billing_note_id);
+    if (!$note) {
+        return array('status' => 1, 'message' => 'Credit note not found.');
+    }
+    $st = $note['master']['status'] ?? '';
+    $now = date('Y-m-d H:i:s');
+    if ($st === 'cancelled') {
+        return array('status' => 1, 'message' => 'This credit note is already cancelled.');
+    }
+    if ($st === 'draft') {
+        mysqli_query($conn, "DELETE FROM billing_note_lines WHERE billing_note_id='$billing_note_id'");
+        $ok = mysqli_query($conn, "DELETE FROM billing_note_master WHERE billing_note_id='$billing_note_id' AND status='draft' LIMIT 1");
+        if (!$ok || mysqli_affected_rows($conn) < 1) {
+            return array('status' => 1, 'message' => 'Could not delete draft credit note.');
+        }
+        return array('status' => 0, 'message' => 'Draft credit note deleted.');
+    }
+    if ($st === 'final') {
+        $ok = mysqli_query($conn, "UPDATE billing_note_master SET
+            status='cancelled',
+            updated_at='$now',
+            updated_by='$user_id'
+            WHERE billing_note_id='$billing_note_id'
+            AND status='final'");
+        if (!$ok || mysqli_affected_rows($conn) < 1) {
+            return array('status' => 1, 'message' => 'Could not cancel credit note.');
+        }
+        return array(
+            'status' => 0,
+            'message' => 'Credit note cancelled. Invoice balance and GST claim have been updated.',
+            'billing_note_id' => $billing_note_id,
+        );
+    }
+    return array('status' => 1, 'message' => 'This credit note cannot be deleted.');
 }

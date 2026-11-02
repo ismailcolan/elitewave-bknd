@@ -1,6 +1,7 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+require_once('include/ew_master_usage_helpers.php');
 ew_geo_scope_ensure_column($conn, 'mode_of_transportation');
 ?>
 <!DOCTYPE html>
@@ -107,8 +108,15 @@ th.table-title.sorting_disabled {
                                     <?php
                                     $query = 'select * from mode_of_transportation';
                                     $result = mysqli_query($conn, $query);
+                                    $mode_rows = array();
+                                    if ($result) {
+                                        while ($row = mysqli_fetch_array($result)) {
+                                            $mode_rows[] = $row;
+                                        }
+                                    }
+                                    $mode_usage = ew_master_usage_map($conn, 'mode', array_column($mode_rows, 'mode_id'));
                                     $i = 1;
-                                    while ($row = mysqli_fetch_array($result)) {
+                                    foreach ($mode_rows as $row) {
                                         ?>
                                         <tr>
                                             <td class="text-center"><?php echo $i; ?></td>
@@ -117,7 +125,11 @@ th.table-title.sorting_disabled {
                                 <td><?php echo $row['sac_code']; ?></td>
                                             <td class="actions center-content ">
                                                 <div class="action-buttons">
-                                                    <a title="Edit" class="table-actions btn-edit" id="<?php echo $row['mode_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                    <?php echo ew_master_edit_action_html(array(
+                                                        'in_use' => !empty($mode_usage[(int) $row['mode_id']]),
+                                                        'button_id' => (int) $row['mode_id'],
+                                                        'button_class' => 'table-actions btn-edit',
+                                                    )); ?>
                                                     <?php
                                                     if ($row['status'] == 0) {
                                                         ?>

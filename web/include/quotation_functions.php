@@ -96,6 +96,9 @@ function quotation_ensure_schema_columns($conn)
 		'journey_hours' => "ADD COLUMN journey_hours VARCHAR(100) DEFAULT NULL AFTER flight_id",
 		'customer_approval_file' => "ADD COLUMN customer_approval_file VARCHAR(255) DEFAULT NULL AFTER rejection_remarks",
 		'letter_body' => "ADD COLUMN letter_body TEXT NULL AFTER subject",
+		'license_number' => "ADD COLUMN license_number VARCHAR(80) DEFAULT NULL AFTER part_number",
+		'aadhar_number' => "ADD COLUMN aadhar_number VARCHAR(20) DEFAULT NULL AFTER license_number",
+		'rc_number' => "ADD COLUMN rc_number VARCHAR(80) DEFAULT NULL AFTER aadhar_number",
 	);
 	foreach ($add as $col => $sql) {
 		$chk = mysqli_query($conn, "SHOW COLUMNS FROM rate_quotation_master LIKE '$col'");
@@ -134,16 +137,41 @@ function quotation_status_label($code)
 function quotation_list_customer_status($status, $tab = 'pending')
 {
 	$code = (string) $status;
-	if ($tab === 'approved' || in_array($code, array('customer_confirmed', 'converted'), true)) {
-		return array(
-			'class' => 'list_approved',
-			'label' => $code === 'converted' ? 'Converted' : 'Approved',
+
+	// Approved tab — customer confirmed / converted only (green chips).
+	if ($tab === 'approved') {
+		if ($code === 'converted') {
+			return array('class' => 'converted', 'label' => quotation_status_label('converted'));
+		}
+		if ($code === 'customer_confirmed') {
+			return array('class' => 'customer_confirmed', 'label' => quotation_status_label('customer_confirmed'));
+		}
+		return array('class' => 'list_approved', 'label' => 'Approved');
+	}
+
+	// Pending tab — in-progress workflow (amber chips; not final customer approval).
+	if ($tab === 'pending') {
+		$pending_labels = array(
+			'draft' => array('class' => 'draft', 'label' => 'Draft'),
+			'pending_approval' => array('class' => 'pending_approval', 'label' => 'Pending approval'),
+			'approved' => array('class' => 'awaiting_customer', 'label' => 'Awaiting customer'),
+			'sent' => array('class' => 'sent', 'label' => 'Sent to customer'),
+			'rejected' => array('class' => 'rejected', 'label' => 'Rejected'),
+			'expired' => array('class' => 'expired', 'label' => 'Expired'),
 		);
+		if (isset($pending_labels[$code])) {
+			return $pending_labels[$code];
+		}
 	}
-	if (in_array($code, array('rejected', 'expired', 'cancelled'), true)) {
-		return array('class' => $code, 'label' => quotation_status_label($code));
+
+	$safe_class = preg_replace('/[^a-z0-9_]/', '', $code);
+	if ($safe_class === '') {
+		$safe_class = 'draft';
 	}
-	return array('class' => 'list_pending', 'label' => 'Pending');
+	return array(
+		'class' => $safe_class,
+		'label' => quotation_status_label($code),
+	);
 }
 
 function quotation_list_status_chip_html($status, $tab = 'pending')
@@ -641,6 +669,11 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 	$existing = $quotation_id > 0 ? quotation_get($conn, $quotation_id) : null;
 	$current_status = $existing ? $existing['status'] : 'draft';
 
+	$force_draft_status = ($action === 'save_as_draft');
+	if ($force_draft_status) {
+		$action = 'save_draft';
+	}
+
 	$workflow_actions = array('approve', 'reject', 'mark_sent', 'customer_confirmed', 'customer_approve', 'cancel', 'resend_email');
 	if (in_array($action, $workflow_actions, true)) {
 		return quotation_workflow($conn, $existing, $action, $payload, $user_id);
@@ -685,6 +718,9 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 	$terms = trim((string) ($payload['terms_notes'] ?? ''));
 	$cfs_port_factory = trim((string) ($payload['cfs_port_factory'] ?? ''));
 	$part_number = trim((string) ($payload['part_number'] ?? ''));
+	$license_number = trim((string) ($payload['license_number'] ?? ''));
+	$aadhar_number = trim((string) ($payload['aadhar_number'] ?? ''));
+	$rc_number = trim((string) ($payload['rc_number'] ?? ''));
 	$quotation_approval = trim((string) ($payload['quotation_approval'] ?? ''));
 	$freight_paid_by = trim((string) ($payload['freight_paid_by'] ?? ''));
 	$payment_terms = trim((string) ($payload['payment_terms'] ?? ''));
@@ -832,7 +868,9 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 	};
 
 	$status = $existing ? $current_status : 'draft';
-	if ($action === 'submit' && quotation_is_editable($status)) {
+	if ($force_draft_status && quotation_form_editable($current_status)) {
+		$status = 'draft';
+	} elseif ($action === 'submit' && quotation_is_editable($status)) {
 		$status = 'draft';
 	}
 
@@ -863,6 +901,9 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 		"delivery_address='" . $esc($delivery_address) . "'",
 		"cfs_port_factory='" . $esc($cfs_port_factory) . "'",
 		"part_number='" . $esc($part_number) . "'",
+		"license_number='" . $esc($license_number) . "'",
+		"aadhar_number='" . $esc($aadhar_number) . "'",
+		"rc_number='" . $esc($rc_number) . "'",
 		"quotation_approval='" . $esc($quotation_approval) . "'",
 		"freight_paid_by='" . $esc($freight_paid_by) . "'",
 		"payment_terms='" . $esc($payment_terms) . "'",
@@ -929,11 +970,20 @@ function quotation_save($conn, $payload, $user_id, $action = 'save_draft')
 	if ($action === 'submit') {
 		mysqli_query($conn, "UPDATE rate_quotation_master SET status='pending_approval', updated_at='$now', updated_by='$user_id' WHERE quotation_id='$quotation_id' LIMIT 1");
 		quotation_log_status($conn, $quotation_id, $current_status, 'pending_approval', 'Submitted for approval', $user_id);
+	} elseif ($force_draft_status && $existing && $current_status !== 'draft') {
+		quotation_log_status($conn, $quotation_id, $current_status, 'draft', 'Saved as draft', $user_id);
+	}
+
+	$save_message = 'Saved successfully.';
+	if ($action === 'submit') {
+		$save_message = 'Submitted for approval.';
+	} elseif ($force_draft_status) {
+		$save_message = 'Saved as draft.';
 	}
 
 	return array(
 		'ok' => true,
-		'message' => ($action === 'submit') ? 'Submitted for approval.' : 'Saved successfully.',
+		'message' => $save_message,
 		'quotation_id' => $quotation_id,
 		'quote_no' => $quote_no,
 	);
@@ -1087,7 +1137,7 @@ function quotation_list_tab_statuses($tab)
 	if ($tab === 'approved') {
 		return array('customer_confirmed', 'converted');
 	}
-	return array('draft', 'pending_approval', 'approved', 'sent', 'rejected', 'expired', 'cancelled');
+	return array('draft', 'pending_approval', 'approved', 'sent', 'rejected', 'expired');
 }
 
 function quotation_can_customer_approve($status)
@@ -1162,8 +1212,18 @@ function quotation_list_tab_css()
 			padding-top: 16px;
 		}
 		.table-actions.btn-customer-approve { color:#166534; }
-		.ew-status-chip.list_pending { background: #fef3c7; color: #92400e; }
-		.ew-status-chip.list_approved { background: #dcfce7; color: #166534; }
+		.ew-status-chip { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; }
+		.ew-status-chip.draft { background: #e2e8f0; color: #334155; }
+		.ew-status-chip.pending_approval,
+		.ew-status-chip.approved,
+		.ew-status-chip.awaiting_customer,
+		.ew-status-chip.sent { background: #fef3c7; color: #92400e; }
+		.ew-status-chip.rejected { background: #fee2e2; color: #991b1b; }
+		.ew-status-chip.expired,
+		.ew-status-chip.cancelled { background: #f1f5f9; color: #64748b; }
+		.ew-status-chip.list_approved,
+		.ew-status-chip.customer_confirmed,
+		.ew-status-chip.converted { background: #dcfce7; color: #166534; }
 	';
 }
 
@@ -1203,7 +1263,7 @@ function quotation_list_approve_action_html($row)
 	}
 	$id = (int) ($row['quotation_id'] ?? 0);
 	$no = htmlspecialchars((string) ($row['quote_no'] ?? ''), ENT_QUOTES, 'UTF-8');
-	return '<a title="Approve" href="javascript:void(0);" class="table-actions btn-customer-approve" data-id="' . $id . '" data-quote="' . $no . '"><i class="fa fa-check-circle"></i></a>';
+	return '<a title="Record customer approval (upload reply)" href="javascript:void(0);" class="table-actions btn-customer-approve" data-id="' . $id . '" data-quote="' . $no . '"><i class="fa fa-check-circle"></i></a>';
 }
 
 function quotation_customer_approve_modal_html()
@@ -1399,6 +1459,22 @@ function quotation_list_rows($conn, $status_filter = '', $scope = 'all')
 		while ($row = mysqli_fetch_assoc($q)) {
 			$row['party_display'] = quotation_recipient_name($conn, $row);
 			$rows[] = $row;
+		}
+	}
+	return $rows;
+}
+
+function quotation_pdf_driver_id_rows($q)
+{
+	$rows = array();
+	$map = array(
+		'License number' => trim((string) ($q['license_number'] ?? '')),
+		'Aadhar number' => trim((string) ($q['aadhar_number'] ?? '')),
+		'RC number' => trim((string) ($q['rc_number'] ?? '')),
+	);
+	foreach ($map as $label => $val) {
+		if ($val !== '') {
+			$rows[] = array($label, htmlspecialchars($val, ENT_QUOTES, 'UTF-8'), '');
 		}
 	}
 	return $rows;

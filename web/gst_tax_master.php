@@ -2,6 +2,7 @@
 require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/gst_tax_functions.php');
+require_once('include/ew_master_usage_helpers.php');
 
 ensure_gst_tax_master_table($conn);
 
@@ -11,6 +12,7 @@ $tax_rows = gst_tax_fetch_list($conn, array(
     'gst_rate' => 'all',
     'deleted' => 'active',
 ));
+$gst_tax_usage = ew_master_usage_map($conn, 'gst_tax', array_column($tax_rows, 'gst_tax_id'));
 ?>
 <!DOCTYPE html>
 <html>
@@ -131,7 +133,12 @@ $tax_rows = gst_tax_fetch_list($conn, array(
                                                 <td class="actions center-content">
                                                     <div class="action-buttons">
                                                         <?php if (!$is_deleted) { ?>
-                                                            <a title="Edit" class="table-actions btn-edit" href="gst_tax_form.php?id=<?php echo (int) $row['gst_tax_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                            <?php echo ew_master_edit_action_html(array(
+                                                                'in_use' => !empty($gst_tax_usage[(int) $row['gst_tax_id']]),
+                                                                'mode' => 'link',
+                                                                'href' => 'gst_tax_form.php?id=' . (int) $row['gst_tax_id'],
+                                                                'link_class' => 'table-actions btn-edit',
+                                                            )); ?>
                                                             <?php if ($is_active) { ?>
                                                                 <a class="table-actions btn-active" style="color:red;" data-status="1" title="Deactivate" id="<?php echo (int) $row['gst_tax_id']; ?>"><i class="fa fa-times"></i></a>
                                                             <?php } else { ?>

@@ -1023,7 +1023,9 @@
      *   Datepicker
      * =============================================================================
      */
-    $('.datepicker').datepicker();
+    $('.datepicker').filter(function () {
+      return !$(this).closest('#dbk_range_dropdown').length;
+    }).datepicker();
     nowTemp = new Date();
     now = new Date(nowTemp.getFullYear(), nowTemp.getMonth(), nowTemp.getDate(), 0, 0, 0, 0);
     checkin = $("#dpd1").datepicker({

@@ -301,6 +301,9 @@ function quotation_pdf_shipment_detail_rows($q, $loading, $dims, $delivery, $mod
 	if ($part !== '') {
 		$detail_rows[] = array('Part number / article', htmlspecialchars($part, ENT_QUOTES, 'UTF-8'), '');
 	}
+	foreach (quotation_pdf_driver_id_rows($q) as $driver_row) {
+		$detail_rows[] = $driver_row;
+	}
 	$detail_rows[] = array('Delivery address', $delivery, quotation_pdf_addr_value_style());
 
 	return $detail_rows;
@@ -602,7 +605,9 @@ function quotation_build_pdf_pages($conn, $quotation_id)
 	$html .= quotation_pdf_delivery_assurance_html();
 	$html .= '</div>';
 	$page1 = $html . quotation_pdf_letterhead_close(false);
-	$page2_terms = elitewave_pdf_letterhead_css() . quotation_pdf_terms_body_html();
+	$page2_terms = elitewave_pdf_letterhead_css() . quotation_pdf_terms_body_html(array(
+		'single_quotation' => true,
+	));
 
 	return array('page1' => $page1, 'page2_terms' => $page2_terms);
 }

@@ -9,59 +9,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/../../web/include/connect.php';
-
-$table_name = 'feedback_ratings';
-$create_query = "CREATE TABLE IF NOT EXISTS `$table_name` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT,
-    `tracking_code` VARCHAR(255) NOT NULL,
-    `rating` TINYINT(1) NOT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `tracking_code` (`tracking_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-mysqli_query($conn, $create_query);
+require_once __DIR__ . '/../../web/include/shipment_rating_helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true);
-    $tracking_code = isset($input['tracking_code']) ? trim($input['tracking_code']) : '';
+    $tracking_code = isset($input['tracking_code']) ? $input['tracking_code'] : '';
     $rating = isset($input['rating']) ? (int) $input['rating'] : 0;
 
-    if (empty($tracking_code)) {
+    $normalized = ew_shipment_rating_normalize_code($tracking_code);
+    if ($normalized === '') {
         http_response_code(400);
         echo json_encode(['status' => 'error', 'message' => 'Tracking code is required.']);
         exit;
     }
 
-    if ($rating < 1 || $rating > 5) {
+    if ($rating < 1 || $rating > 10) {
         http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'Rating must be between 1 and 5.']);
+        echo json_encode(['status' => 'error', 'message' => 'Rating must be between 1 and 10.']);
         exit;
     }
 
-    $check = mysqli_query($conn, "SELECT id FROM `$table_name` WHERE tracking_code='$tracking_code'");
-    if (mysqli_num_rows($check) > 0) {
-        mysqli_query($conn, "UPDATE `$table_name` SET rating='$rating' WHERE tracking_code='$tracking_code'");
-    } else {
-        mysqli_query($conn, "INSERT INTO `$table_name` (tracking_code, rating) VALUES ('$tracking_code', '$rating')");
+    if (!ew_shipment_rating_save($tracking_code, $rating)) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => 'Could not save rating.']);
+        exit;
     }
 
-    echo json_encode(['status' => 'success', 'message' => 'Rating submitted successfully.']);
+    echo json_encode(['status' => 'success', 'message' => 'Rating submitted successfully.', 'rating' => $rating]);
     exit;
 }
 
-$tracking_code = isset($_GET['tracking_code']) ? trim($_GET['tracking_code']) : '';
-if (empty($tracking_code)) {
+$tracking_code = isset($_GET['tracking_code']) ? $_GET['tracking_code'] : '';
+$normalized = ew_shipment_rating_normalize_code($tracking_code);
+if ($normalized === '') {
     http_response_code(400);
     echo json_encode(['status' => 'error', 'message' => 'Tracking code is required.']);
     exit;
 }
 
-$result = mysqli_query($conn, "SELECT rating FROM `$table_name` WHERE tracking_code='$tracking_code' LIMIT 1");
-$row = mysqli_fetch_assoc($result);
-
-if ($row) {
-    echo json_encode(['status' => 'success', 'rating' => (int) $row['rating']]);
-} else {
-    echo json_encode(['status' => 'success', 'rating' => null]);
-}
+$rating = ew_shipment_rating_get($tracking_code);
+echo json_encode(['status' => 'success', 'rating' => $rating]);

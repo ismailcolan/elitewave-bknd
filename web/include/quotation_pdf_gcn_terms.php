@@ -47,22 +47,47 @@ function quotation_pdf_terms_section($inner_html, $padding = '12px 14px', $font_
 </table>';
 }
 
+/** Full door-to-door banner image (single-quotation.png) up to the signatory column. */
+function quotation_pdf_single_quotation_door_cells_html()
+{
+	return '
+	<td style="width:66%;border:0;padding:0 10px 0 0;vertical-align:middle;text-align:left;">
+		<img src="images/single-quotation.png" alt="" style="width:100%;height:auto;display:block;">
+	</td>';
+}
+
 /** Signatory block below the terms box, right-aligned (mPDF-safe table layout). */
-function quotation_pdf_terms_signatory_html()
+function quotation_pdf_terms_signatory_html($include_single_quotation_banner = false)
 {
 	$navy = quotation_pdf_terms_navy();
-	$cell = 'font-size:9.5pt;line-height:1.45;color:#000;text-align:right;vertical-align:top;padding:0;border:0;';
+	$sig_pt = $include_single_quotation_banner ? '11pt' : '9.5pt';
+	$sig_lh = $include_single_quotation_banner ? '1.28' : '1.2';
+	$logo_w = $include_single_quotation_banner ? '150px' : '130px';
+	$cell = 'font-size:' . $sig_pt . ';line-height:' . $sig_lh . ';color:#000;text-align:right;padding:0;border:0;';
+	$sign_v_align = $include_single_quotation_banner ? 'middle' : 'top';
 
-	$sig = 'font-size:9.5pt;line-height:1.2;color:#000;text-align:right;vertical-align:top;padding:0;border:0;';
+	$sig = 'font-size:' . $sig_pt . ';line-height:' . $sig_lh . ';color:#000;text-align:right;vertical-align:top;padding:0;border:0;';
+
+	$sign_w = $include_single_quotation_banner ? '34%' : '42%';
+
+	$door_cells = $include_single_quotation_banner ? quotation_pdf_single_quotation_door_cells_html() : '';
+
+	$leading_spacer = '';
+	if (!$include_single_quotation_banner) {
+		$leading_spacer = '<td style="width:58%;border:0;padding:0;">&nbsp;</td>';
+	}
+
+	$row_valign = $include_single_quotation_banner ? 'middle' : 'top';
 
 	return '
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:4px 0 2px;border:0;">
-<tr>
-	<td style="width:58%;border:0;padding:0;">&nbsp;</td>
-	<td style="width:42%;' . $cell . '">
+<tr style="vertical-align:' . $row_valign . ';">'
+		. $leading_spacer
+		. $door_cells . '
+	<td style="width:' . $sign_w . ';' . $cell . 'vertical-align:' . $sign_v_align . ';">
 		<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
 		<tr>
-			<td style="' . $sig . '">Thanks &amp; Regards,</td>
+			<td style="' . $sig . 'vertical-align:' . $sign_v_align . ';">Thanks &amp; Regards,</td>
 		</tr>
 		<tr>
 			<td style="' . $sig . 'font-weight:bold;color:' . $navy . ';">For EliteWave360 Logistics</td>
@@ -78,7 +103,7 @@ function quotation_pdf_terms_signatory_html()
 		</tr>
 		<tr>
 			<td style="' . $sig . 'padding-top:2px;text-align:right;">
-				<img src="images/elite-nav.png" alt="EliteWave360" style="width:130px;height:auto;display:block;margin-left:auto;">
+				<img src="images/elite-nav.png" alt="EliteWave360" style="width:' . $logo_w . ';height:auto;display:block;margin-left:auto;">
 			</td>
 		</tr>
 		</table>
@@ -204,9 +229,10 @@ function quotation_pdf_all_terms_inner_html()
 }
 
 /** Page 2: title, terms box, right signatory, navy/red bar, centered tagline. */
-function quotation_pdf_terms_body_html()
+function quotation_pdf_terms_body_html($opts = array())
 {
 	$navy = quotation_pdf_terms_navy();
+	$include_single_banner = !empty($opts['single_quotation']);
 
 	$terms_title = '
 	<div style="margin:0 0 0;">
@@ -219,7 +245,7 @@ function quotation_pdf_terms_body_html()
 <div class="ew-quote-page2-body" style="padding:0 2px;font-family:freesans;color:#000;">'
 		. $terms_title
 		. quotation_pdf_terms_section(quotation_pdf_all_terms_inner_html(), '6px 8px', '8.5pt', '1.25')
-		. quotation_pdf_terms_signatory_html()
+		. quotation_pdf_terms_signatory_html($include_single_banner)
 		. quotation_pdf_terms_brand_bar_html()
 		. quotation_pdf_terms_brand_footer_html()
 		. '
@@ -227,7 +253,7 @@ function quotation_pdf_terms_body_html()
 }
 
 /** Static HTML preview (email/HTML export). */
-function quotation_pdf_terms_page_html()
+function quotation_pdf_terms_page_html($opts = array())
 {
-	return quotation_pdf_terms_body_html();
+	return quotation_pdf_terms_body_html($opts);
 }

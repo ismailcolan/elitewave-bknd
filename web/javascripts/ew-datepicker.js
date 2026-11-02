@@ -48,7 +48,7 @@
 		if (startDate) {
 			opts.startDate = startDate;
 		}
-		if ($input.closest('.modal').length) {
+		if ($input.closest('.modal, .ew-v2-modal-backdrop, .ew-v2-modal').length) {
 			opts.container = 'body';
 		}
 		if ($input.attr('data-allow-future') === '1') {
@@ -98,6 +98,43 @@
 		fixMonthPickerGrid(dp.picker);
 	}
 
+	function repositionDropdown($input) {
+		var dp = $input.data('datepicker');
+		if (!dp || !dp.picker || dp.isInline || !dp.picker.is(':visible')) {
+			return;
+		}
+		var el = $input[0];
+		if (!el || !el.getBoundingClientRect) {
+			return;
+		}
+		var rect = el.getBoundingClientRect();
+		var $picker = dp.picker;
+		var pickerH = $picker.outerHeight() || 280;
+		var pickerW = $picker.outerWidth() || 280;
+		var gap = 6;
+		var margin = 8;
+		var spaceBelow = window.innerHeight - rect.bottom - margin;
+		var top;
+		if (spaceBelow >= pickerH || spaceBelow >= rect.top - margin) {
+			top = rect.bottom + gap;
+		} else {
+			top = Math.max(margin, rect.top - pickerH - gap);
+		}
+		var left = rect.left;
+		if (left + pickerW > window.innerWidth - margin) {
+			left = window.innerWidth - pickerW - margin;
+		}
+		if (left < margin) {
+			left = margin;
+		}
+		$picker.css({
+			position: 'fixed',
+			top: Math.round(top) + 'px',
+			left: Math.round(left) + 'px',
+			zIndex: 10160
+		});
+	}
+
 	function bindDayPickerHandlers($input) {
 		if (isMonthFormat($input) || $input.data('ew-day-bound')) {
 			return;
@@ -106,6 +143,11 @@
 			var dp = $input.data('datepicker');
 			if (dp && dp.picker) {
 				dp.picker.removeClass('ew-month-picker');
+			}
+			if ($input.closest('.ew-v2-modal-backdrop, .modal').length) {
+				window.setTimeout(function() {
+					repositionDropdown($input);
+				}, 0);
 			}
 		});
 		$input.data('ew-day-bound', true);
@@ -217,6 +259,15 @@
 		});
 	};
 
+	function repositionOpenModalDatepickers() {
+		$('.ew-v2-modal-backdrop.open input[data-ew-datepicker], .modal.in input[data-ew-datepicker]').each(function() {
+			repositionDropdown($(this));
+		});
+	}
+
+	$(window).on('resize.ewDatepickerModal', repositionOpenModalDatepickers);
+	$(document).on('scroll.ewDatepickerModal', '.ew-v2-modal-backdrop.open .ew-v2-modal-body, .modal.in', repositionOpenModalDatepickers);
+
 	$(document).on('click', '.date-input-inside .date-field-icon', function(e) {
 		e.preventDefault();
 		var $input = $(this).closest('.date-input-inside').find('input').first();
@@ -232,6 +283,10 @@
 		if (isMonthFormat($input)) {
 			window.setTimeout(function() {
 				refreshMonthPicker($input);
+			}, 0);
+		} else if ($input.closest('.ew-v2-modal-backdrop, .modal').length) {
+			window.setTimeout(function() {
+				repositionDropdown($input);
 			}, 0);
 		}
 	});

@@ -7,6 +7,7 @@ require_once('include/gcn_gst_invoice_helpers.php');
 require_once('include/quotation_functions.php');
 require_once('include/vehicle_type_helpers.php');
 require_once('include/cfs_master_helpers.php');
+require_once('include/transaction_list_query.php');
 ew_vehicle_type_ensure_schema($conn);
 ew_cfs_master_ensure_schema($conn);
 $booking_vehicle_type_dims = ew_vehicle_type_booking_dims_lookup($conn);
@@ -32,11 +33,21 @@ if ($booking_clients_json === false) {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
 	<?php include('include/title.php'); ?>
 	<?php include('include/css_js.php'); ?>
+	<script>
+	(function () {
+		try {
+			if (localStorage.getItem('ew-txn-theme') === 'dark') {
+				document.documentElement.classList.add('dark-theme');
+			}
+		} catch (e) {}
+	})();
+	</script>
+	<link href="stylesheets/ew-transactions-theme.css?v=20261026b" media="all" rel="stylesheet" type="text/css" />
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<style>
 		.form-horizontal .control-label {
@@ -106,10 +117,12 @@ if ($booking_clients_json === false) {
 
 		#grn_details.billing-only-edit .payment-charges-table input,
 		#grn_details.billing-only-edit .billing-generate-invoice-option input,
-		#grn_details.billing-only-edit #mode_of_consignment {
+		#grn_details.billing-only-edit #mode_of_consignment,
+		#grn_details.billing-only-edit #mode_of_trasport {
 			pointer-events: auto !important;
 			background-color: #fff !important;
 			opacity: 1 !important;
+			cursor: pointer;
 		}
 
 		#grn_details.billing-only-edit .ew-booking-section .party-card--consignor input,
@@ -941,6 +954,7 @@ if ($booking_clients_json === false) {
 		<!-- Navigation -->
 		<div class="navbar navbar-fixed-top scroll-hide">
 			<?php
+			$ew_show_theme_toggle = true;
 			require_once('include/header.php');
 			require_once('include/menu.php');
 			?>
@@ -980,7 +994,8 @@ if ($booking_clients_json === false) {
 							$gcn_billed = ($transaction_id > 0) && booking_is_gcn_billed($conn, $trans_table_name, $transaction_id);
 							// Billing-only lock applies only after delivery (status 8), not on submitted bookings.
 							$billing_only_edit = ($form_name === 'edit_consignment_details' && $booking_status === 8 && !$gcn_billed);
-							$form_fully_locked = ($form_name === 'edit_consignment_details' && $gcn_billed);
+							$form_fully_locked = ($form_name === 'edit_consignment_details' && $gcn_billed
+								&& !transaction_gcn_temporary_edit_allowed($row['grn_no'] ?? ''));
 							$booking_role = isset($_SESSION['role']) ? $_SESSION['role'] : '';
 							$grn_date_val = !empty($row['grn_date']) ? $row['grn_date'] : date('d-m-Y');
 							$date_keypress_attr = 'onkeypress="return (event.charCode == 8 || event.charCode == 0) ? null :event.charCode >= 96 && event.charCode <= 105 && event.charCode >= 48 && event.charCode <= 57" onpaste="return ewNumericPaste(event,this);"';
@@ -1033,11 +1048,12 @@ if ($booking_clients_json === false) {
 								<?php if ($form_fully_locked) { ?>
 								<div class="form-locked-banner"><i class="fa fa-lock"></i> This GCN is already invoiced. The booking form is locked and cannot be edited.</div>
 								<?php } elseif ($billing_only_edit) { ?>
-								<div class="form-locked-banner" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;"><i class="fa fa-info-circle"></i> Delivered consignment — payment, billing, consignment mode, consignor, pickup customer, consignee, and ship-to customer can be edited. GST settings stay locked.</div>
+								<div class="form-locked-banner" style="background:#eff6ff;border-color:#3b82f6;color:#1e40af;"><i class="fa fa-info-circle"></i> Delivered consignment — payment, billing, mode of transport, consignment mode, consignor, pickup customer, consignee, and ship-to customer can be edited. GST settings stay locked.</div>
 								<?php } ?>
 								<input type="hidden" name="truck_type" id="truck_type" value="<?php echo $ftl_type; ?>" />
 								<input type="hidden" name="form_name" value="<?php echo $form_name; ?>" id="form_name">
 								<input type="hidden" name="edit_id" id="edit_id" value="<?php echo $row['transaction_id'] ?? ''; ?>">
+								<input type="hidden" id="edit_trans_table" value="<?php echo htmlspecialchars($trans_table_name ?? '', ENT_QUOTES, 'UTF-8'); ?>">
 								<input type="hidden" name="grn_id" id="grn_id" value="<?php echo $row['grn_id'] ?? ''; ?>">
 								<input type="hidden" name="consignor_state_id" id="consignor_state_id" value="<?php echo (int) ($row['state'] ?? 0); ?>">
 								<input type="hidden" name="consignee_state_id" id="consignee_state_id" value="<?php echo (int) ($row['con_state'] ?? 0); ?>">
@@ -1915,7 +1931,7 @@ if ($booking_clients_json === false) {
 	</div>
 
 	<script src="include/calculation.js"></script>
-	<script src="javascripts/ew-attachment-upload.js?v=20260922"></script>
+	<script src="javascripts/ew-attachment-upload.js?v=20261029attachpreview"></script>
 	<script type="text/javascript">
 		window.PKG_OPTIONS_HTML = <?php echo json_encode($pkg_option ?? '<option value="">Select Package Type</option>'); ?>;
 		var PKG_MAX_ROWS = 5;
@@ -2084,7 +2100,7 @@ if ($booking_clients_json === false) {
 
 			$('#gst_tax_id, #gst_type').prop('disabled', true);
 			$('.gst-config-block').addClass('gst-locked');
-			$('#mode_of_consignment').prop('disabled', false);
+			$('#mode_of_consignment, #mode_of_trasport').prop('disabled', false);
 			['#consignor_name', '#pickup_client', '#consignor_branch', '#consignee_name', '#ship_to_client', '#bill_to_branch', '#consignee_branch'].forEach(function(sel) {
 				var $party = $(sel);
 				if (!$party.length) {
@@ -3425,15 +3441,20 @@ if ($booking_clients_json === false) {
 				var all_party_invoice = $('input[name^=party_invoice]').map(function(idx, elem) {
 					return $(elem).val();
 				}).get();
+				var partyInvPayload = {
+					cmd: cmd,
+					conr_id: conr_id,
+					all_party_invoice: all_party_invoice
+				};
+				if ($('#form_name').val() === 'edit_consignment_details') {
+					partyInvPayload.exclude_transaction_id = $('#edit_id').val() || '';
+					partyInvPayload.exclude_trans_table = $('#edit_trans_table').val() || '';
+				}
 				$.ajax({
 					url: 'fetch_details.php',
 					type: "GET",
 					dataType: "JSON",
-					data: {
-						cmd: cmd,
-						conr_id: conr_id,
-						all_party_invoice: all_party_invoice
-					},
+					data: partyInvPayload,
 					success: function(result_data) {
 						//console.log(result_data);
 						var form_name = $("#form_name").val();
@@ -4760,7 +4781,9 @@ $("input[name='file_receipt[]']").each(function () {
 								$(".form-data-saving").hide();
 								$('#save').prop('disabled', false);
 								var failMsg = 'Booking Failed';
-								if (result['sql_error']) {
+								if (result['message']) {
+									failMsg = result['message'];
+								} else if (result['sql_error']) {
 									failMsg = result['sql_error'];
 								}
 								ewFormToast(failMsg, 'error', 6000);
@@ -4797,7 +4820,7 @@ $("input[name='file_receipt[]']").each(function () {
 							}
 						});
 					} else {
-						ewFormToast('Invoice Already Exist', 'warning', 5000);
+						ewFormToast('This party invoice is already on another active booking. You may re-use it only if that booking was cancelled.', 'warning', 6500);
 					}
 
 				} else {
@@ -4935,6 +4958,7 @@ $("input[name='file_receipt[]']").each(function () {
 		</div>
 	</div>
 
+<script src="javascripts/ew-transactions-theme.js?v=20261026" type="text/javascript"></script>
 </body>
 
 </html>

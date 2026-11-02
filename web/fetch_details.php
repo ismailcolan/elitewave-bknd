@@ -254,6 +254,30 @@ if ($cmd == 'get_cfs_next_code') {
 	echo json_encode(ew_cfs_master_next_code($conn));
 	exit;
 }
+if ($cmd == 'get_state_options') {
+	$country_id = (int) ($_REQUEST['country_id'] ?? 0);
+	$selected_state = (int) ($_REQUEST['selected_state'] ?? 0);
+	$country_name = trim((string) ($_REQUEST['country_name'] ?? ''));
+	if ($country_name === '' && $country_id > 0) {
+		ew_country_ensure_table($conn);
+		$row = mysqli_fetch_assoc(mysqli_query($conn, "SELECT country_name FROM country WHERE country_id='$country_id' AND status=0 LIMIT 1"));
+		$country_name = trim((string) ($row['country_name'] ?? ''));
+	}
+	$out_put = '<option value="">Select State</option>';
+	$where = 'status=0 AND ' . ew_geo_scope_where($conn);
+	if ($country_name !== '') {
+		$cn_esc = mysqli_real_escape_string($conn, $country_name);
+		$where .= " AND country_name='$cn_esc'";
+	}
+	$query = "SELECT state_id, state_name FROM state WHERE $where ORDER BY state_name";
+	$result = mysqli_query($conn, $query);
+	while ($row = mysqli_fetch_array($result)) {
+		$sel = ($selected_state > 0 && (int) $row['state_id'] === $selected_state) ? ' selected' : '';
+		$out_put .= '<option value="' . (int) $row['state_id'] . '"' . $sel . '>' . htmlspecialchars($row['state_name']) . '</option>';
+	}
+	echo $out_put;
+	exit;
+}
 if ($cmd == 'get_branch_next_code') {
 	header('Content-Type: application/json; charset=utf-8');
 	echo json_encode(array('branch_code' => ew_branch_next_code($conn)));
@@ -286,15 +310,22 @@ if ($cmd == 'get_state_details') {
 	echo json_encode($row);
 }
 if ($cmd == 'get_city_name') {
-	$state_id = $_REQUEST['state_id'];
+	$state_id = (int) ($_REQUEST['state_id'] ?? 0);
+	$selected_city = (int) ($_REQUEST['selected_city'] ?? 0);
 
-	$out_put .= '<option value="">Select City</option>';
-	$query = "select * from city where status=0 and state='" . $state_id . "' order by city_name";
-	$result = mysqli_query($conn, $query);
-	while ($row = mysqli_fetch_array($result)) {
-		$out_put .= '<option value=' . $row['city_id'] . '>' . $row['city_name'] . '</option>';
+	$out_put = '<option value="">Select City</option>';
+	if ($state_id > 0) {
+		ew_geo_scope_ensure_column($conn, 'city');
+		$query = "SELECT city_id, city_name FROM city WHERE status=0 AND state='" . $state_id . "' AND "
+			. ew_geo_scope_where($conn) . ' ORDER BY city_name';
+		$result = mysqli_query($conn, $query);
+		while ($row = mysqli_fetch_array($result)) {
+			$sel = ($selected_city > 0 && (int) $row['city_id'] === $selected_city) ? ' selected' : '';
+			$out_put .= '<option value="' . (int) $row['city_id'] . '"' . $sel . '>' . htmlspecialchars($row['city_name']) . '</option>';
+		}
 	}
 	echo $out_put;
+	exit;
 }
 if ($cmd == 'get_mode_details') {
 	$tbl_id = $_REQUEST['tbl_id'];
@@ -1326,44 +1357,21 @@ if ($cmd == 'get_notification_rfp') {
 }
 
 if ($cmd == 'check_consginor_invoice_no') {
-	// print_r("CHECK");
 	$all_party_invoice = str_replace(["'", '"'], '', $_REQUEST['all_party_invoice']);
-	$conr_id = $_REQUEST['conr_id'];
+	$conr_id = (int) $_REQUEST['conr_id'];
+	$exclude_transaction_id = (int) ($_REQUEST['exclude_transaction_id'] ?? 0);
+	$exclude_trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) ($_REQUEST['exclude_trans_table'] ?? ''));
 
-	$all_Tables = $getDatas->query('SELECT * FROM transaction_tbls', 2);
-
-	$transaction_ = [];
-	$transaction_invoice_ = [];
-	$send_value = [];
-	$send_value_check = [];
-
+	$send_value = array();
 	for ($i = 0; $i < count($all_party_invoice); $i++) {
 		$inv_value = trim($all_party_invoice[$i], "'");
-
-		if ($inv_value != '' && $inv_value != null) {
-			if (count($all_Tables) > 0) {
-				for ($t = 0; $t < count($all_Tables); $t++) {
-					$transaction_[$t] = 'transaction_' . $all_Tables[$t]['table_name'];
-					$transaction_invoice_[$t] = 'transaction_invoice_' . $all_Tables[$t]['table_name'];
-					$find_all = $getDatas->query("SELECT count(transaction_id) as inv_count FROM `$transaction_[$t]` WHERE consigner = '$conr_id' and EXISTS (
-				\t SELECT * FROM `$transaction_invoice_[$t]` WHERE transaction_id = $transaction_[$t].transaction_id and party_invoice_no = '$inv_value'
-				\t   )", 2);
-					if ($find_all[0]['inv_count'] == 0) {
-						$send_value_check[$i][$t] = 'NO';
-					} else {
-						$send_value_check[$i][$t] = 'YES';
-					}
-				}
-			}
-
-			if (in_array('YES', $send_value_check[$i])) {
-				$send_value[$i] = 'YES';
-			} else {
-				$send_value[$i] = 'NO';
-			}
-		} else {
+		if ($inv_value === '') {
 			$send_value[$i] = 'EMPTY';
+			continue;
 		}
+		$send_value[$i] = ew_consignor_has_active_party_invoice($conn, $conr_id, $inv_value, $exclude_transaction_id, $exclude_trans_table)
+			? 'YES'
+			: 'NO';
 	}
 	echo json_encode($send_value);
 }
@@ -1419,6 +1427,32 @@ if ($cmd == 'check_grn_manual') {
 }
 // check manual grn duplicate end
 
+if ($cmd == 'get_quotation_dest_master_rows') {
+	require_once __DIR__ . '/include/ew_quotation_module_flag.php';
+	if (!ew_quotation_module_enabled()) {
+		header('Content-Type: application/json; charset=utf-8');
+		echo json_encode(array('ok' => false, 'message' => 'Rate Quotation module is not enabled.'));
+		exit;
+	}
+	require_once __DIR__ . '/include/quotation_destination_master.php';
+	$master_id = (int) ($_REQUEST['master_id'] ?? 0);
+	if ($master_id <= 0) {
+		$master_id = quotation_dest_master_singleton_id($conn);
+	}
+	$master = quotation_dest_master_get($conn, $master_id);
+	if (!$master || (int) ($master['status'] ?? 0) !== 0) {
+		header('Content-Type: application/json; charset=utf-8');
+		echo json_encode(array('ok' => false, 'message' => 'Master not found or inactive.'));
+		exit;
+	}
+	header('Content-Type: application/json; charset=utf-8');
+	echo json_encode(array(
+		'ok' => true,
+		'master_name' => $master['master_name'] ?? '',
+		'html' => quotation_dest_master_rows_html($conn, $master_id, true),
+	));
+	exit;
+}
 
 //delivery statuses
 if ($cmd == 'get_tracking_message') {

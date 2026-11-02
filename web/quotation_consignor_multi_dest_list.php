@@ -62,7 +62,6 @@ $rows = quotation_list_rows($conn, $tab, 'consignor_multi_dest');
 										<th style="width:9%">Date</th>
 										<th style="width:18%">Consignor</th>
 										<th class="col-destinations">Destinations</th>
-										<th class="num" style="width:10%">Total (₹)</th>
 										<th style="width:11%">Status</th>
 										<th class="text-center sorting_disabled" style="width:10%">Action</th>
 									</tr>
@@ -82,7 +81,6 @@ $rows = quotation_list_rows($conn, $tab, 'consignor_multi_dest');
 											<td class="col-destinations">
 												<span class="dest-summary"<?php echo $dest['title'] !== '' ? ' title="' . htmlspecialchars($dest['title'], ENT_QUOTES, 'UTF-8') . '"' : ''; ?>><?php echo htmlspecialchars($dest['label']); ?></span>
 											</td>
-											<td class="num"><?php echo htmlspecialchars(quotation_format_money_display($r['total_amount'])); ?></td>
 											<td><?php echo quotation_list_status_chip_html($st, $tab); ?></td>
 											<td class="actions center-content">
 												<div class="action-buttons">

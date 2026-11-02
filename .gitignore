@@ -13,6 +13,17 @@ error_log
 uploads/
 pod_uploads/
 
+# Generated QR label PNGs (Print QR Code)
+web/qrcode/
+
+# Runtime PDF outputs & uploads (GCN, tax invoice, e-way, receipt attachments, etc.)
+web/transaction_pdf/
+web/digital_invoice/
+web/receipt_attachments/
+web/**/*.pdf
+!web/tcpdf/**/*.pdf
+!web/icons/**/*.pdf
+
 # Composer dependencies
 **/vendor/
 

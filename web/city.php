@@ -1,6 +1,7 @@
 <?php
 require_once("include/connect.php");
 require_once("include/function.php");
+require_once("include/ew_master_usage_helpers.php");
 ew_geo_scope_ensure_column($conn, 'city');
 ew_geo_scope_ensure_column($conn, 'state');
 ew_area_ensure_country_name($conn, 'city');
@@ -112,8 +113,15 @@ div#dataTable1_length {
                                     <?php
                                     $query = "select * from city where " . ew_geo_scope_where($conn);
                                     $result = mysqli_query($conn, $query);
+                                    $city_rows = array();
+                                    if ($result) {
+                                        while ($row = mysqli_fetch_array($result)) {
+                                            $city_rows[] = $row;
+                                        }
+                                    }
+                                    $city_usage = ew_master_usage_map($conn, 'city', array_column($city_rows, 'city_id'));
                                     $i = 1;
-                                    while ($row = mysqli_fetch_array($result)) {
+                                    foreach ($city_rows as $row) {
                                         $state = get_state_name($conn, $row['state']);
 
                                     ?>
@@ -131,7 +139,11 @@ div#dataTable1_length {
 
                                             <td class="actions center-content ">
                                                 <div class="action-buttons">
-                                                    <a title="Edit" class="table-actions btn-edit" id="<?php echo $row['city_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                    <?php echo ew_master_edit_action_html(array(
+                                                        'in_use' => !empty($city_usage[(int) $row['city_id']]),
+                                                        'button_id' => (int) $row['city_id'],
+                                                        'button_class' => 'table-actions btn-edit',
+                                                    )); ?>
                                                     <?php
                                                     if ($row['status'] == 0) {
                                                     ?>

@@ -204,12 +204,17 @@ function tracking_template_air_train($status, $data)
         $reach = ($status >= 6) ? 'the consignee' : 'its destination';
         $hourLine = ' ' . tracking_hours_strong($step) . ' have been reduced from the transit time, and your consignment will reach ' . $reach . ' within ' . tracking_hours_strong($remaining) . '.';
     }
+    $isExpress = !empty($isExpressDelivery);
     $isTrain = ($carrierKind === 'train');
     $confirmWord = $isTrain ? 'train' : 'flight';
 
     switch ($status) {
 
     case 1:
+        if ($isExpress) {
+            return "Your consignment $grn has been booked from $fromPlace to $toPlace via $mode. Train or flight for the first leg can be confirmed at pickup.";
+        }
+
         return "Your consignment $grn has been booked from $fromPlace to $toPlace via $mode. The $confirmWord will be confirmed at pickup.";
 
     case 2:
@@ -226,6 +231,10 @@ function tracking_template_air_train($status, $data)
             }
 
             return "Your consignment $grn has been picked up from $fromPlace and is now in transit towards $toPlace on $carrier, via $mode.$within";
+        }
+
+        if ($isExpress) {
+            return "Your consignment $grn has been picked up from $fromPlace and is in transit towards $toPlace under $mode. Train or flight can be assigned for this leg when applicable.$within";
         }
 
         return "Your consignment $grn has been picked up from $fromPlace and is now in transit towards $toPlace via $mode.$within";
@@ -321,7 +330,7 @@ function tracking_template_air_train($status, $data)
 function tracking_template_road($status, $data)
 {
     $carrierKind = isset($data['carrierKind']) ? (string) $data['carrierKind'] : '';
-    if ($carrierKind === 'train' || $carrierKind === 'flight') {
+    if ($carrierKind === 'train' || $carrierKind === 'flight' || !empty($data['isExpressDelivery'])) {
         return tracking_template_air_train($status, $data);
     }
 

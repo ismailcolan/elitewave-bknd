@@ -1927,12 +1927,58 @@ div.dataTables_wrapper .dataTables_filter {
   background: #f9fafb;
 }
 
-/* Serial number column (S.No / Sl.No) — center aligned app-wide */
+/* List tables — cell padding so values are not flush to cell edges */
+.widget-content table.table thead th,
+.widget-content table.dataTable thead th,
+.widget-container table.table thead th,
+.widget-container table.dataTable thead th,
+.ew-page-v2 .ew-table-wrap table thead th,
+.ew-page-v2 .ew-table-wrap .dataTable thead th,
+.main-content table.table thead th,
+.main-content table.dataTable thead th {
+  padding: 12px 16px !important;
+  vertical-align: middle;
+}
+
+.widget-content table.table tbody td,
+.widget-content table.dataTable tbody td,
+.widget-container table.table tbody td,
+.widget-container table.dataTable tbody td,
+.main-content table.table tbody td,
+.main-content table.dataTable tbody td,
+.ew-page-v2 .ew-table-wrap table tbody td,
+.ew-page-v2 .ew-table-wrap .dataTable tbody td,
+table.dataTable tbody td {
+  padding: 12px 16px !important;
+  text-align: left;
+  vertical-align: middle;
+  line-height: 1.45;
+}
+
+.widget-content table.table tbody td.col-actions,
+.widget-content table.table tbody td.actions,
+.widget-content table.table tbody td.center-content,
+table.dataTable tbody td.col-actions,
+table.dataTable tbody td.actions {
+  padding: 8px 10px !important;
+}
+
+table.table tbody td.col-amount,
+table.dataTable tbody td.col-amount,
+.widget-content table.table tbody td.num,
+.widget-content table.dataTable tbody td.num {
+  text-align: right !important;
+}
+
+/* Serial number column (S.No / Sl.No) — center body cells only */
 table.table thead th.col-sno,
-table.table tbody td.col-sno,
 table.dataTable thead th.col-sno,
+.widget-content table thead th.col-sno {
+  text-align: left !important;
+}
+
+table.table tbody td.col-sno,
 table.dataTable tbody td.col-sno,
-.widget-content table thead th.col-sno,
 .widget-content table tbody td.col-sno {
   text-align: center !important;
   max-width: none !important;
@@ -1986,6 +2032,8 @@ th.table-title.sorting,
 th.table-title.sorting_asc,
 th.table-title.sorting_desc {
   position: relative !important;
+  text-align: left !important;
+  padding-left: 16px !important;
   padding-right: 28px !important;
   cursor: pointer;
 }
@@ -2002,7 +2050,8 @@ th.table-title.sorting:after,
 th.table-title.sorting:before,
 th.table-title.sorting_asc:after,
 th.table-title.sorting_desc:after {
-  right: 10px !important;
+  right: 12px !important;
+  left: auto !important;
   border-right-width: 4px !important;
   border-left-width: 4px !important;
 }
@@ -2037,7 +2086,8 @@ th.table-title.sorting:after {
   font-weight: normal !important;
   color: #94a3b8 !important;
   position: absolute !important;
-  right: 10px !important;
+  right: 12px !important;
+  left: auto !important;
   top: 50% !important;
   margin: 0 !important;
   transform: translateY(-50%) !important;
@@ -2058,7 +2108,8 @@ th.table-title.sorting_asc:after {
   font-weight: normal !important;
   color: var(--ew-text, #1A2332) !important;
   position: absolute !important;
-  right: 10px !important;
+  right: 12px !important;
+  left: auto !important;
   top: 50% !important;
   margin: 0 !important;
   transform: translateY(-50%) !important;
@@ -2079,7 +2130,8 @@ th.table-title.sorting_desc:after {
   font-weight: normal !important;
   color: var(--ew-text, #1A2332) !important;
   position: absolute !important;
-  right: 10px !important;
+  right: 12px !important;
+  left: auto !important;
   top: 50% !important;
   margin: 0 !important;
   transform: translateY(-50%) !important;
@@ -2136,14 +2188,96 @@ div.dataTables_wrapper .ew-table-scroll-inner table.dataTable {
 #cb_list_table td,
 #dataTable_exp_type td {
   vertical-align: middle !important;
-  padding: 8px 6px !important;
   text-align: left;
 }
 
 #egcn_list_table .num,
 #egen_list_table .num {
-  text-align: left !important;
+  text-align: right !important;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Unified list tables (override modern-ui centered headers + tight padding) ── */
+.ew-page-v2 .ew-table-wrap table thead th,
+.ew-page-v2 .ew-table-wrap .dataTable thead th,
+.widget-content.new_dept table thead th,
+.widget-content.new_dept table.dataTable thead th,
+#egcn_list_table thead th,
+#egen_list_table thead th,
+#dataTable1 thead th,
+#dataTable_exp_type thead th,
+#trip_list_table thead th,
+#tss_list_table thead th,
+#invoice_list_table thead th,
+#cb_list_table thead th,
+.trans_list_table thead th,
+.ew-data-table thead th,
+.widget-container .widget-content table.dataTable thead th {
+  text-align: left !important;
+  padding: 12px 16px !important;
+  border-right: none !important;
+  vertical-align: middle !important;
+}
+
+#egcn_list_table thead th.col-actions,
+#egen_list_table thead th.col-actions,
+#dataTable1 thead th.col-actions,
+.trans_list_table thead th.col-actions,
+.trans_list_table thead th.col-steps,
+#invoice_list_table thead th.col-actions,
+.ew-data-table thead th.col-actions,
+.widget-container .widget-content table thead th.col-actions {
+  text-align: center !important;
+}
+
+.ew-page-v2 .ew-table-wrap table tbody td,
+.ew-page-v2 .ew-table-wrap .dataTable tbody td,
+.widget-content.new_dept table tbody td,
+.widget-content.new_dept table.dataTable tbody td,
+#egcn_list_table tbody td,
+#egen_list_table tbody td,
+#dataTable1 tbody td,
+#dataTable_exp_type tbody td,
+#trip_list_table tbody td,
+#tss_list_table tbody td,
+#invoice_list_table tbody td,
+#cb_list_table tbody td,
+.trans_list_table tbody td,
+.ew-data-table tbody td,
+.widget-container .widget-content table.dataTable tbody td {
+  padding: 12px 16px !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+}
+
+#egcn_list_table tbody td.num,
+#egen_list_table tbody td.num,
+.trans_list_table tbody td.num,
+#dataTable1 tbody td.num,
+#invoice_list_table tbody td.col-amount,
+.ew-data-table tbody td.num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+#egcn_list_table tbody td.col-sno,
+#egen_list_table tbody td.col-sno,
+.trans_list_table tbody td.col-sno,
+#dataTable1 tbody td.col-sno,
+#invoice_list_table tbody td.col-sno,
+table.dataTable tbody td.col-sno {
+  text-align: center !important;
+}
+
+#egcn_list_table tbody td.col-actions,
+#egen_list_table tbody td.col-actions,
+.trans_list_table tbody td.col-actions,
+.trans_list_table tbody td.col-steps,
+#dataTable1 tbody td.col-actions,
+#invoice_list_table tbody td.col-actions {
+  text-align: center !important;
+  padding: 10px 12px !important;
 }
 
 /* Modals (shell) → modern-ui.css | button sizes here only */

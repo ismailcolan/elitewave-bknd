@@ -260,6 +260,158 @@ function dashboard_booking_row_amounts($row, $cols)
 	);
 }
 
+function dashboard_booking_mode_group($conn, $mode_id)
+{
+	$mode_id = (int) $mode_id;
+	if ($mode_id <= 0) {
+		return '';
+	}
+	static $cache = null;
+	if ($cache === null) {
+		$cache = array();
+		if (dashboard_ops_table_exists($conn, 'mode_of_transportation')) {
+			$has_group = false;
+			$chk = @mysqli_query($conn, "SHOW COLUMNS FROM mode_of_transportation LIKE 'mode_group'");
+			if ($chk && mysqli_num_rows($chk) > 0) {
+				$has_group = true;
+			}
+			$sql = $has_group
+				? 'SELECT mode_id, mode_group FROM mode_of_transportation'
+				: 'SELECT mode_id, mode_type AS mode_group FROM mode_of_transportation';
+			$q = mysqli_query($conn, $sql);
+			if ($q) {
+				while ($row = mysqli_fetch_assoc($q)) {
+					$cache[(int) $row['mode_id']] = trim((string) ($row['mode_group'] ?? ''));
+				}
+			}
+		}
+	}
+	return $cache[$mode_id] ?? '';
+}
+
+/**
+ * Map booking mode to freight card bucket (matches live mode master names).
+ */
+function dashboard_booking_freight_bucket($mode_label, $mode_group = '')
+{
+	$t = trim((string) $mode_label);
+	$g = trim((string) $mode_group);
+	if ($t === '' || $t === '—' || strcasecmp($t, 'Other') === 0) {
+		return '';
+	}
+	if (strcasecmp($t, 'Premium Train Cargo') === 0) {
+		return 'rail';
+	}
+	if (strcasecmp($t, 'Premium Air Cargo') === 0) {
+		return 'air';
+	}
+	if (strcasecmp($t, 'Ocean Cargo') === 0 || preg_match('/\b(sea|ocean|ship|vessel|marine)\b/i', $t)) {
+		return 'sea';
+	}
+	if (strcasecmp($g, 'Road Cargo') === 0) {
+		return 'road';
+	}
+	$road_types = array(
+		'Road Freight',
+		'Full Truck Load',
+		'Part Load',
+		'Full Container Load',
+		'Express Delivery',
+	);
+	foreach ($road_types as $road_type) {
+		if (strcasecmp($t, $road_type) === 0) {
+			return 'road';
+		}
+	}
+	return '';
+}
+
+function dashboard_booking_freight_counts_for_window($conn, array $active, ?DateTime $start = null, ?DateTime $end = null)
+{
+	$counts = array('road' => 0, 'rail' => 0, 'air' => 0, 'sea' => 0);
+	$filter_dates = ($start !== null && $end !== null);
+	if ($filter_dates) {
+		$start = clone $start;
+		$start->setTime(0, 0, 0);
+		$end = clone $end;
+		$end->setTime(23, 59, 59);
+	}
+	foreach ($active as $row) {
+		if ($filter_dates) {
+			$dt = dashboard_booking_row_date($row['grn_date'] ?? '');
+			if (!$dt || $dt < $start || $dt > $end) {
+				continue;
+			}
+		}
+		$mode_id = (int) ($row['mode_of_transportation'] ?? 0);
+		$mode_label = '';
+		if ($mode_id > 0 && function_exists('get_mode')) {
+			$mode_label = trim((string) get_mode($conn, $mode_id));
+		}
+		$mode_group = dashboard_booking_mode_group($conn, $mode_id);
+		$bucket = dashboard_booking_freight_bucket($mode_label, $mode_group);
+		if ($bucket === '' || !isset($counts[$bucket])) {
+			continue;
+		}
+		$counts[$bucket]++;
+	}
+	return $counts;
+}
+
+function dashboard_booking_freight_trend_pct($current, $previous)
+{
+	$current = (int) $current;
+	$previous = (int) $previous;
+	if ($previous <= 0) {
+		return $current > 0 ? 100.0 : 0.0;
+	}
+	return round(($current - $previous) * 100 / $previous, 0);
+}
+
+function dashboard_booking_freight_cards($conn, array $active, $range_all, ?DateTime $from, ?DateTime $to, DateTime $today)
+{
+	$meta = array(
+		'road' => array('title' => 'Road Freight', 'image' => 'road-freight-truck.png', 'tone' => 'road'),
+		'rail' => array('title' => 'Premium Train Cargo', 'image' => 'rail-freight-train.png', 'tone' => 'rail'),
+		'air' => array('title' => 'Premium Air Cargo', 'image' => 'air-freight-plane.png', 'tone' => 'air'),
+		'sea' => array('title' => 'Sea Freight', 'image' => 'sea-freight-ship.png', 'tone' => 'sea'),
+	);
+
+	if ($range_all || !$from || !$to) {
+		$cur = dashboard_booking_freight_counts_for_window($conn, $active, null, null);
+		$trend_end = clone $today;
+		$trend_start = (clone $today)->modify('-29 days');
+	} else {
+		$trend_start = clone $from;
+		$trend_end = clone $to;
+		$cur = dashboard_booking_freight_counts_for_window($conn, $active, $trend_start, $trend_end);
+	}
+	$span_days = max(1, (int) $trend_start->diff($trend_end)->format('%a') + 1);
+	$prev_end = (clone $trend_start)->modify('-1 day');
+	$prev_start = (clone $prev_end)->modify('-' . ($span_days - 1) . ' days');
+	$trend_cur = dashboard_booking_freight_counts_for_window($conn, $active, $trend_start, $trend_end);
+	$prev = dashboard_booking_freight_counts_for_window($conn, $active, $prev_start, $prev_end);
+
+	$cards = array();
+	foreach ($meta as $key => $m) {
+		$cnt = (int) ($cur[$key] ?? 0);
+		$trend = dashboard_booking_freight_trend_pct(
+			(int) ($trend_cur[$key] ?? 0),
+			(int) ($prev[$key] ?? 0)
+		);
+		$cards[] = array(
+			'key' => $key,
+			'title' => $m['title'],
+			'count' => $cnt,
+			'trend_pct' => abs($trend),
+			'trend_up' => $trend >= 0,
+			'image' => 'images/' . $m['image'],
+			'tone' => $m['tone'],
+		);
+	}
+	return $cards;
+}
+
 function dashboard_booking_load($conn, $params = array())
 {
 	$from_raw = $params['date_from'] ?? '';
@@ -572,6 +724,8 @@ function dashboard_booking_load($conn, $params = array())
 	}
 	$initials = substr($initials, 0, 2);
 
+	$freight_cards = dashboard_booking_freight_cards($conn, $active, $range_all, $range_all ? null : $from, $range_all ? null : $to, $today);
+
 	return array(
 		'ok' => true,
 		'range' => array(
@@ -601,6 +755,7 @@ function dashboard_booking_load($conn, $params = array())
 		'pipeline' => $pipeline,
 		'trend' => array_values($trend),
 		'modes' => $mode_slices,
+		'freight_cards' => $freight_cards,
 		'top_routes' => $top_routes,
 		'recent' => $recent,
 		'branches' => dashboard_booking_branch_options($conn),

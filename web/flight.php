@@ -1,6 +1,7 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+require_once('include/ew_master_usage_helpers.php');
 ew_geo_scope_ensure_column($conn, 'flight');
 $geo_scope = ew_geo_scope_from_request();
 ?>
@@ -111,8 +112,15 @@ th.table-title.sorting_disabled {
                                     <?php
                                     $query = 'select * from flight where ' . ew_geo_scope_where($conn);
                                     $result = mysqli_query($conn, $query);
+                                    $flight_rows = array();
+                                    if ($result) {
+                                        while ($row = mysqli_fetch_array($result)) {
+                                            $flight_rows[] = $row;
+                                        }
+                                    }
+                                    $flight_usage = ew_master_usage_map($conn, 'flight', array_column($flight_rows, 'flight_id'));
                                     $i = 1;
-                                    while ($row = mysqli_fetch_array($result)) {
+                                    foreach ($flight_rows as $row) {
                                         ?>
                                         <tr>
                                             <td class="text-center"><?php echo $i; ?></td>
@@ -122,7 +130,11 @@ th.table-title.sorting_disabled {
 
                                             <td class="actions center-content ">
                                                 <div class="action-buttons">
-                                                    <a title="Edit" class="table-actions btn-edit" id="<?php echo $row['flight_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                    <?php echo ew_master_edit_action_html(array(
+                                                        'in_use' => !empty($flight_usage[(int) $row['flight_id']]),
+                                                        'button_id' => (int) $row['flight_id'],
+                                                        'button_class' => 'table-actions btn-edit',
+                                                    )); ?>
                                                     <?php
                                                     if ($row['status'] == 0) {
                                                         ?>

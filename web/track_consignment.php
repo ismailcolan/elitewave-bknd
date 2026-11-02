@@ -3,8 +3,10 @@ require_once ('include/connect.php');
 require_once ('include/function.php');
 require_once ('include/city_transport_endpoint_helpers.php');
 require_once ('include/tracking_templates.php');
+require_once ('include/tracking_functions.php');
+require_once ('include/shipment_rating_helpers.php');
 
-$grn_no = trim($_REQUEST['grn_no'] ?? $_REQUEST['gcn_no'] ?? '');
+$grn_no = ew_normalize_track_consignment_query($_REQUEST['grn_no'] ?? $_REQUEST['gcn_no'] ?? $_REQUEST['code'] ?? '');
 $tracking_code = $grn_no;
 
 ?>
@@ -18,7 +20,7 @@ $tracking_code = $grn_no;
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="css/track-consignment.css">
+    <link rel="stylesheet" href="css/track-consignment.css?v=20261023nps9">
 </head>
 
 <body class="page-header-fixed bg-1">
@@ -103,6 +105,12 @@ $tracking_code = $grn_no;
                                                                 <small>GCN No. ' . htmlspecialchars($grn_no) . '</small>
                                                             </div>';
                                                     extract($grnr);
+
+                                                    $display_tracking_code = ew_transaction_tracking_code_for_grn($conn, $grn_no);
+                                                    $tracking_no_display = ew_format_public_tracking_no($display_tracking_code);
+                                                    $saved_customer_rating = $display_tracking_code !== ''
+                                                        ? ew_shipment_rating_get($display_tracking_code)
+                                                        : null;
 
                                                     $status = array();
                                                     array_push($status, 1);
@@ -518,7 +526,7 @@ if ($is_full_delivery) {
     <section class="track-main">
         <div class="track-main-top">
             <div>
-                <div class="track-no">Tracking No. <b>#<?php echo htmlspecialchars($grn_no); ?></b></div>
+                <div class="track-no">Tracking No. <b>#<?php echo $tracking_no_display !== '' ? htmlspecialchars($tracking_no_display) : '—'; ?></b></div>
                 <span class="track-hero-kicker">your order is</span>
                 <h2 class="track-hero-title <?php echo $hero_class; ?>"><?php echo htmlspecialchars($hero_status); ?></h2>
                 <div class="track-hero-sub">
@@ -528,15 +536,26 @@ if ($is_full_delivery) {
             </div>
             <img class="track-brand-logo" src="images/elite-nav.png" alt="EliteWave 360 Logistics">
         </div>
-        <?php if ($is_full_delivery || $is_partial_delivery) { ?>
-        <div class="track-feedback" data-tracking="<?php echo htmlspecialchars($grn_no); ?>">
-            <p>How was your delivery experience?</p>
-            <div class="faces">
-                <button type="button" class="face-btn" data-rating="1" title="Very bad">&#128544;</button>
-                <button type="button" class="face-btn" data-rating="2" title="Bad">&#128542;</button>
-                <button type="button" class="face-btn" data-rating="3" title="Okay">&#128533;</button>
-                <button type="button" class="face-btn" data-rating="4" title="Good">&#128578;</button>
-                <button type="button" class="face-btn" data-rating="5" title="Great">&#128513;</button>
+        <?php if (($is_full_delivery || $is_partial_delivery) && $display_tracking_code !== '') { ?>
+        <div class="track-feedback track-feedback--readonly"
+             data-tracking="<?php echo htmlspecialchars($display_tracking_code); ?>"
+             data-saved-rating="<?php echo $saved_customer_rating !== null ? (int) $saved_customer_rating : ''; ?>">
+            <h6 class="track-feedback-heading">Customer delivery experience rating</h6>
+            <div class="nps-scale" role="group" aria-label="Customer delivery rating from 1 to 10">
+                <span class="nps-floating-arrow" aria-hidden="true"></span>
+                <div class="nps-scale-row">
+                <?php for ($nps = 1; $nps <= 10; $nps++) { ?>
+                <div class="nps-cell">
+                    <button type="button" class="nps-btn nps-btn--<?php echo $nps; ?>" data-rating="<?php echo $nps; ?>" disabled tabindex="-1" aria-label="Customer rated <?php echo $nps; ?> out of 10"><?php echo $nps; ?></button>
+                    <span class="nps-selected-tip">Customer rated <?php echo $nps; ?> out of 10</span>
+                </div>
+                <?php } ?>
+                </div>
+            </div>
+            <div class="track-rating-saved-row">
+                <div class="track-rating-saved-inline">
+                    <span class="track-rating-saved-text"></span>
+                </div>
             </div>
         </div>
         <?php } ?>
@@ -604,7 +623,20 @@ if ($is_full_delivery) {
     </div>
 
     <script type="text/javascript">
+        function normalizeTrackInput(val) {
+            val = $.trim(String(val || ''));
+            if (/^[\d\s]+$/.test(val)) {
+                val = val.replace(/\s+/g, '');
+            }
+            return val;
+        }
+
         $(document).ready(function() {
+            $('#transaction_form').on('submit', function() {
+                var $in = $('#grn_no');
+                $in.val(normalizeTrackInput($in.val()));
+            });
+
             $(window).load(function() {
                 $(".loading-page").hide();
             });
@@ -631,17 +663,242 @@ if ($is_full_delivery) {
                 });
             });
 
-            $(document).on('click', '.face-btn', function() {
+            function positionNpsFloatingArrow($scale, $cell) {
+                var $arrow = $scale.find('.nps-floating-arrow');
+                if (!$cell || !$cell.length) {
+                    return;
+                }
+                var $row = $scale.find('.nps-scale-row');
+                var rowLeft = $row.offset().left;
+                var cellLeft = $cell.offset().left;
+                var center = cellLeft - rowLeft + ($cell.outerWidth() / 2);
+                $arrow.css({ left: center + 'px', opacity: 1 });
+            }
+
+            function hideNpsFloatingArrow($scale) {
+                $scale.find('.nps-floating-arrow').css({ opacity: 0 });
+            }
+
+            var trackRatingSaveInFlight = false;
+
+            function isReadonlyTrackFeedback($wrap) {
+                return $wrap.hasClass('track-feedback--readonly');
+            }
+
+            function updateTrackFeedbackSummary($wrap, rating, options) {
+                options = options || {};
+                rating = parseInt(rating, 10) || 0;
+                var readonly = isReadonlyTrackFeedback($wrap);
+                var $scale = $wrap.find('.nps-scale');
+                var locked = $scale.hasClass('is-locked');
+                var editing = !readonly && ($wrap.hasClass('is-editing') || !!options.editing);
+                var $heading = $wrap.find('.track-feedback-heading');
+                var $row = $wrap.find('.track-rating-saved-row');
+                var $saved = $wrap.find('.track-rating-saved-text');
+
+                if (readonly) {
+                    if (rating > 0 && locked) {
+                        $heading.text('Customer delivery experience rating');
+                        $row.addClass('is-visible');
+                        $saved.text('Customer rated this delivery ' + rating + '/10 (submitted on public tracking page)');
+                    } else {
+                        $heading.text('Customer delivery experience rating');
+                        $row.addClass('is-visible');
+                        $saved.text('No customer rating submitted yet.');
+                    }
+                    return;
+                }
+
+                if (rating > 0 && (locked || editing)) {
+                    $heading.text(editing ? 'Update your delivery experience rating' : 'Your delivery experience rating');
+                    $row.addClass('is-visible').toggleClass('is-editing', editing);
+                    $saved.text('You rated this delivery ' + rating + '/10');
+                } else {
+                    $heading.text('How was your delivery experience?');
+                    $row.removeClass('is-visible is-editing');
+                    $saved.text('');
+                }
+            }
+
+            function applyTrackFeedbackSelection($wrap, rating) {
+                rating = parseInt(rating, 10);
+                if (!rating || rating < 1 || rating > 10) {
+                    return;
+                }
+                var $scale = $wrap.find('.nps-scale');
+                $wrap.find('.nps-btn').removeClass('active');
+                $wrap.find('.nps-cell').removeClass('is-active is-hover-preview');
+                var $btn = $wrap.find('.nps-btn[data-rating="' + rating + '"]');
+                var $cell = $btn.closest('.nps-cell');
+                $btn.addClass('active');
+                $cell.addClass('is-active');
+                $wrap.addClass('has-selection').removeClass('is-editing');
+                $scale.addClass('is-locked').removeClass('is-hovering');
+                positionNpsFloatingArrow($scale, $cell);
+                updateTrackFeedbackSummary($wrap, rating, {});
+            }
+
+            function unlockTrackFeedbackForEdit($wrap) {
+                var rating = parseInt($wrap.find('.nps-btn.active').data('rating'), 10) || 0;
+                if (!rating) {
+                    return;
+                }
+                var $scale = $wrap.find('.nps-scale');
+                $scale.removeClass('is-locked');
+                $wrap.addClass('is-editing');
+                hideNpsFloatingArrow($scale);
+                updateTrackFeedbackSummary($wrap, rating, { editing: true });
+            }
+
+            function clearTrackFeedbackSelection($wrap) {
+                var $scale = $wrap.find('.nps-scale');
+                $wrap.removeClass('has-selection is-editing');
+                $scale.removeClass('is-locked is-hovering');
+                $wrap.find('.nps-btn').removeClass('active');
+                $wrap.find('.nps-cell').removeClass('is-active is-hover-preview');
+                hideNpsFloatingArrow($scale);
+                updateTrackFeedbackSummary($wrap, 0, {});
+            }
+
+            function initTrackFeedbackRating($wrap) {
+                if (isReadonlyTrackFeedback($wrap)) {
+                    var saved = parseInt($wrap.data('saved-rating'), 10);
+                    if (saved >= 1 && saved <= 10) {
+                        applyTrackFeedbackSelection($wrap, saved);
+                    } else {
+                        updateTrackFeedbackSummary($wrap, 0, {});
+                    }
+                    return;
+                }
+                var tracking = $wrap.data('tracking');
+                if (!tracking) {
+                    return;
+                }
+                $.getJSON('../api/public/rating.php', { tracking_code: tracking }, function(r) {
+                    if (r && r.status === 'success' && r.rating) {
+                        applyTrackFeedbackSelection($wrap, r.rating);
+                    }
+                });
+            }
+
+            $('.track-feedback').each(function() {
+                initTrackFeedbackRating($(this));
+            });
+
+            function npsCellAtPointer($scale, pageX) {
+                var $hit = null;
+                $scale.find('.nps-cell').each(function() {
+                    var $cell = $(this);
+                    var off = $cell.offset();
+                    var left = off.left;
+                    var right = left + $cell.outerWidth();
+                    if (pageX >= left && pageX <= right) {
+                        $hit = $cell;
+                        return false;
+                    }
+                });
+                return $hit;
+            }
+
+            $(document).on('mousemove', '.track-feedback .nps-scale', function(e) {
+                var $scale = $(this);
+                if ($(this).closest('.track-feedback--readonly').length) {
+                    return;
+                }
+                if ($scale.hasClass('is-locked')) {
+                    return;
+                }
+                var $cell = npsCellAtPointer($scale, e.pageX);
+                if (!$cell) {
+                    return;
+                }
+                $scale.addClass('is-hovering');
+                $scale.find('.nps-cell').removeClass('is-hover-preview');
+                $cell.addClass('is-hover-preview');
+                positionNpsFloatingArrow($scale, $cell);
+            });
+
+            $(document).on('mouseleave', '.track-feedback .nps-scale', function() {
+                var $scale = $(this);
+                if ($scale.hasClass('is-locked')) {
+                    return;
+                }
+                $scale.removeClass('is-hovering');
+                $scale.find('.nps-cell').removeClass('is-hover-preview');
+                hideNpsFloatingArrow($scale);
+            });
+
+            $(document).on('click', '.track-rating-edit-btn', function() {
                 var wrap = $(this).closest('.track-feedback');
-                var rating = $(this).data('rating');
+                if (isReadonlyTrackFeedback(wrap)) {
+                    return;
+                }
+                if (trackRatingSaveInFlight || !wrap.find('.nps-scale').hasClass('is-locked')) {
+                    return;
+                }
+                unlockTrackFeedbackForEdit(wrap);
+            });
+
+            $(document).on('click', '.nps-btn', function() {
+                var $btn = $(this);
+                var wrap = $btn.closest('.track-feedback');
+                if (isReadonlyTrackFeedback(wrap)) {
+                    return;
+                }
+                var $scale = wrap.find('.nps-scale');
+                if ($scale.hasClass('is-locked') || trackRatingSaveInFlight) {
+                    return;
+                }
+                var rating = parseInt($btn.data('rating'), 10);
                 var tracking = wrap.data('tracking');
-                wrap.find('.face-btn').removeClass('active');
-                $(this).addClass('active');
+                if (!tracking || rating < 1 || rating > 10) {
+                    return;
+                }
+                var previousCommitted = parseInt(wrap.find('.nps-btn.active').data('rating'), 10) || 0;
+                var wasEditing = wrap.hasClass('is-editing');
+                if (wasEditing && rating === previousCommitted) {
+                    wrap.removeClass('is-editing');
+                    applyTrackFeedbackSelection(wrap, rating);
+                    return;
+                }
+                trackRatingSaveInFlight = true;
+                applyTrackFeedbackSelection(wrap, rating);
                 $.ajax({
                     url: '../api/public/rating.php',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ tracking_code: tracking, rating: rating })
+                }).done(function(r) {
+                    if (!r || r.status !== 'success') {
+                        if (wasEditing && previousCommitted) {
+                            applyTrackFeedbackSelection(wrap, previousCommitted);
+                        } else {
+                            clearTrackFeedbackSelection(wrap);
+                        }
+                        wrap.find('.track-rating-saved-text').text('Could not save your rating. Please try again.');
+                    }
+                }).fail(function() {
+                    if (wasEditing && previousCommitted) {
+                        applyTrackFeedbackSelection(wrap, previousCommitted);
+                    } else {
+                        clearTrackFeedbackSelection(wrap);
+                    }
+                    wrap.find('.track-rating-saved-text').text('Could not save your rating. Please try again.');
+                    if (typeof ewFormToast === 'function') {
+                        ewFormToast('Could not save your rating. Please try again.', 'error', 4000);
+                    }
+                }).always(function() {
+                    trackRatingSaveInFlight = false;
+                });
+            });
+
+            $(window).on('resize', function() {
+                $('.track-feedback .nps-scale.is-locked').each(function() {
+                    var $scale = $(this);
+                    var $cell = $scale.find('.nps-cell.is-active');
+                    if ($cell.length) {
+                        positionNpsFloatingArrow($scale, $cell);
+                    }
                 });
             });
         });

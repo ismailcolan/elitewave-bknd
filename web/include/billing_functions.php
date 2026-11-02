@@ -38,6 +38,17 @@ function ensure_billing_tables($conn)
     if ($series_col && mysqli_num_rows($series_col) === 0) {
         mysqli_query($conn, "ALTER TABLE billing_invoice_master ADD COLUMN invoice_series VARCHAR(10) DEFAULT NULL AFTER billing_type");
     }
+    $active_col = mysqli_query($conn, "SHOW COLUMNS FROM billing_invoice_master LIKE 'is_active'");
+    if ($active_col && mysqli_num_rows($active_col) === 0) {
+        mysqli_query($conn, "ALTER TABLE billing_invoice_master ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER status");
+    }
+    $cancel_reason_col = mysqli_query($conn, "SHOW COLUMNS FROM billing_invoice_master LIKE 'cancel_reason'");
+    if ($cancel_reason_col && mysqli_num_rows($cancel_reason_col) === 0) {
+        mysqli_query($conn, "ALTER TABLE billing_invoice_master ADD COLUMN cancel_reason VARCHAR(255) DEFAULT NULL AFTER is_active");
+        mysqli_query($conn, "ALTER TABLE billing_invoice_master ADD COLUMN cancel_remarks TEXT DEFAULT NULL AFTER cancel_reason");
+        mysqli_query($conn, "ALTER TABLE billing_invoice_master ADD COLUMN cancelled_at DATETIME DEFAULT NULL AFTER cancel_remarks");
+        mysqli_query($conn, "ALTER TABLE billing_invoice_master ADD COLUMN cancelled_by INT DEFAULT NULL AFTER cancelled_at");
+    }
 
     mysqli_query($conn, "CREATE TABLE IF NOT EXISTS billing_invoice_series_seq (
         series_code VARCHAR(10) NOT NULL,
@@ -230,7 +241,8 @@ function billing_gcn_final_conflict($conn, $trans_table, $transaction_id, $exclu
         INNER JOIN billing_invoice_master m ON m.billing_invoice_id = d.billing_invoice_id
         WHERE d.trans_table='" . mysqli_real_escape_string($conn, $trans_table) . "'
         AND d.transaction_id='$transaction_id'
-        AND m.status='final'";
+        AND m.status='final'
+        AND COALESCE(m.is_active,1)=1";
     if ($exclude_invoice_id > 0) {
         $sql .= " AND m.billing_invoice_id!='$exclude_invoice_id'";
     }
@@ -1363,5 +1375,100 @@ function billing_save_invoice($conn, $payload, $user_id)
         'billing_invoice_id' => $billing_invoice_id,
         'invoice_no' => $invoice_no,
         'invoice_status' => $status,
+    );
+}
+
+function billing_invoice_is_active(array $master)
+{
+    if (($master['status'] ?? '') === 'cancelled') {
+        return false;
+    }
+    return (int) ($master['is_active'] ?? 1) === 1;
+}
+
+function billing_set_invoice_active($conn, $billing_invoice_id, $is_active, $user_id)
+{
+    $billing_invoice_id = (int) $billing_invoice_id;
+    $user_id = (int) $user_id;
+    $is_active = ((int) $is_active) === 1 ? 1 : 0;
+    if ($billing_invoice_id <= 0) {
+        return array('status' => 1, 'message' => 'Invalid invoice.');
+    }
+    $inv = billing_get_invoice($conn, $billing_invoice_id);
+    if (!$inv) {
+        return array('status' => 1, 'message' => 'Invoice not found.');
+    }
+    $st = $inv['master']['status'] ?? '';
+    if ($st === 'cancelled') {
+        return array('status' => 1, 'message' => 'This invoice cannot be activated or deactivated.');
+    }
+    if ($st !== 'final' && $st !== 'draft') {
+        return array('status' => 1, 'message' => 'This invoice cannot be updated.');
+    }
+    $now = date('Y-m-d H:i:s');
+    $ok = mysqli_query($conn, "UPDATE billing_invoice_master SET
+        is_active='$is_active',
+        updated_at='$now',
+        updated_by='$user_id'
+        WHERE billing_invoice_id='$billing_invoice_id'
+        AND status IN ('draft','final')");
+    if (!$ok || mysqli_affected_rows($conn) < 1) {
+        return array('status' => 1, 'message' => 'Could not update invoice status.');
+    }
+    return array(
+        'status' => 0,
+        'message' => $is_active ? 'Invoice activated.' : 'Invoice deactivated.',
+        'billing_invoice_id' => $billing_invoice_id,
+        'is_active' => $is_active,
+    );
+}
+
+function billing_cancel_invoice($conn, $billing_invoice_id, $reason, $remarks, $user_id)
+{
+    $billing_invoice_id = (int) $billing_invoice_id;
+    $user_id = (int) $user_id;
+    $reason = trim((string) $reason);
+    $remarks = trim((string) $remarks);
+    if ($billing_invoice_id <= 0) {
+        return array('status' => 1, 'message' => 'Invalid invoice.');
+    }
+    if ($reason === '') {
+        return array('status' => 1, 'message' => 'Please select a cancellation reason.');
+    }
+    if ($reason === 'Other' && $remarks === '') {
+        return array('status' => 1, 'message' => 'Please enter details for reason Other.');
+    }
+    $inv = billing_get_invoice($conn, $billing_invoice_id);
+    if (!$inv) {
+        return array('status' => 1, 'message' => 'Invoice not found.');
+    }
+    $st = $inv['master']['status'] ?? '';
+    if ($st === 'cancelled') {
+        return array('status' => 1, 'message' => 'This invoice is already cancelled.');
+    }
+    if ($st !== 'final' && $st !== 'draft') {
+        return array('status' => 1, 'message' => 'This invoice cannot be cancelled.');
+    }
+    $now = date('Y-m-d H:i:s');
+    $esc_reason = mysqli_real_escape_string($conn, $reason);
+    $esc_remarks = mysqli_real_escape_string($conn, $remarks);
+    $ok = mysqli_query($conn, "UPDATE billing_invoice_master SET
+        status='cancelled',
+        is_active=0,
+        cancel_reason='$esc_reason',
+        cancel_remarks='$esc_remarks',
+        cancelled_at='$now',
+        cancelled_by='$user_id',
+        updated_at='$now',
+        updated_by='$user_id'
+        WHERE billing_invoice_id='$billing_invoice_id'
+        AND status IN ('draft','final')");
+    if (!$ok || mysqli_affected_rows($conn) < 1) {
+        return array('status' => 1, 'message' => 'Could not cancel invoice.');
+    }
+    return array(
+        'status' => 0,
+        'message' => 'Invoice cancelled.',
+        'billing_invoice_id' => $billing_invoice_id,
     );
 }

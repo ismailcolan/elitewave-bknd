@@ -52,7 +52,6 @@ $rows = quotation_list_rows($conn, $tab, 'standard');
 										<th>Date</th>
 										<th>Customer</th>
 										<th>Route</th>
-										<th class="num">Total (₹)</th>
 										<th>Status</th>
 										<th>Action</th>
 									</tr>
@@ -70,7 +69,6 @@ $rows = quotation_list_rows($conn, $tab, 'standard');
 											<td><?php echo htmlspecialchars($r['quote_date']); ?></td>
 											<td><?php echo htmlspecialchars($r['party_display'] ?? ''); ?></td>
 											<td><?php echo htmlspecialchars($route); ?></td>
-											<td class="num"><?php echo htmlspecialchars(quotation_format_money_display($r['total_amount'])); ?></td>
 											<td><?php echo quotation_list_status_chip_html($st, $tab); ?></td>
 											<td class="actions center-content">
 												<div class="action-buttons">

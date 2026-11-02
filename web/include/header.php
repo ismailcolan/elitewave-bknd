@@ -351,6 +351,18 @@ body.page-header-fixed {
       echo '<span class="applicatoin-name" style="text-transform:uppercase;">' . $row33['client_company_name'] . '</span>';
     endif; ?>
 
+    <?php if (!empty($ew_show_theme_toggle)): ?>
+      <button type="button"
+              class="ew-theme-toggle notif-bell hidden-xs"
+              id="ewThemeToggle"
+              title="Toggle light/dark mode"
+              aria-label="Toggle light/dark mode"
+              aria-pressed="false">
+        <i class="fa fa-moon-o ew-theme-icon-dark" aria-hidden="true"></i>
+        <i class="fa fa-sun-o ew-theme-icon-light" aria-hidden="true" style="display:none;"></i>
+      </button>
+    <?php endif; ?>
+
     <div class="header-divider"></div>
 
     <div class="top-left" id="userMenuToggle">
@@ -530,6 +542,20 @@ $(document).ready(function(){
   setTimeout(ewHideIdleLoader, 1500);
   setTimeout(ewHideIdleLoader, 4000);
 
+  $(document).on('click', 'a.panel-link[href], a.ew-btn-v2[href]', function (e) {
+    if (e.which === 2 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+      return;
+    }
+    var href = $(this).attr('href') || '';
+    if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0) {
+      return;
+    }
+    if ($(this).attr('target') === '_blank') {
+      return;
+    }
+    $('.loading-page').show();
+  });
+
 });
-$(window).load(function(){ $('.loading-page').hide(); });
+$(window).on('load', function(){ $('.loading-page').hide(); });
 </script>

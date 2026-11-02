@@ -500,6 +500,9 @@
 			if (partVal !== '') {
 				html += '<div class="pv-kv"><b>Part number / article:</b> ' + escHtml(partVal) + '</div>';
 			}
+			html += previewKvOptional('License number', 'license_number');
+			html += previewKvOptional('Aadhar number', 'aadhar_number');
+			html += previewKvOptional('RC number', 'rc_number');
 		}
 
 		html += '<div class="pv-section">' + (multi ? 'Mode-wise charges' : 'Commercial summary') + '</div>';
@@ -638,7 +641,7 @@
 			renderPreview();
 		});
 
-		$(document).on('input change', '.pv-bind, .pv-bind-select, .pv-bind-city, .charge-amt, .charge-tax, .charge-label, .charge-remarks, .mm-amt, .mm-delivery-days, .mm-source, #gst_rate, #party_id, #party_name, #vehicle_type_id, #quotation_approval, #payment_terms, #freight_paid_by, #quote_type, #part_number, #cfs_port_factory, #quote_train_id, #quote_flight_id, #quote_journey_hours', function() {
+		$(document).on('input change', '.pv-bind, .pv-bind-select, .pv-bind-city, .charge-amt, .charge-tax, .charge-label, .charge-remarks, .mm-amt, .mm-delivery-days, .mm-source, #gst_rate, #party_id, #party_name, #vehicle_type_id, #quotation_approval, #payment_terms, #freight_paid_by, #quote_type, #part_number, #license_number, #aadhar_number, #rc_number, #cfs_port_factory, #quote_train_id, #quote_flight_id, #quote_journey_hours', function() {
 			if ($(this).is('#quote_type')) {
 				syncQuoteTypeUi();
 				return;

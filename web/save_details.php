@@ -1515,6 +1515,20 @@ if ($form_name == 'inacv_cfs_master') {
     exit;
 }
 
+if ($form_name == 'save_quotation_dest_master') {
+	require_once __DIR__ . '/include/ew_quotation_module_flag.php';
+	header('Content-Type: application/json; charset=utf-8');
+	if (!ew_quotation_module_enabled()) {
+		echo json_encode(array('ok' => false, 'message' => 'Rate Quotation module is not enabled.'));
+		exit;
+	}
+	require_once __DIR__ . '/include/quotation_destination_master.php';
+	$master_id = (int) ($_POST['master_id'] ?? 0);
+	$result = quotation_dest_master_save($conn, $_POST, $master_id, $created_by);
+	echo json_encode($result);
+	exit;
+}
+
 // rate quotation (door-to-door)
 if ($form_name == 'save_rate_quotation') {
     require_once __DIR__ . '/include/ew_quotation_module_flag.php';
@@ -2337,13 +2351,6 @@ if ($form_name == 'add_new_consignment') {
             ew_booking_apply_ship_to_route($conn, $ship_to_client_id, $consignee_branch_id, $_POST);
             $destination = $_POST['destination'];
         }
-        $pickup_client_id = ew_booking_normalize_pickup_client_id($_POST['pickup_client'] ?? 0, $consignor);
-        if ($pickup_client_id > 0) {
-            ew_booking_fill_party_address_from_client($conn, $pickup_client_id, $address1, $address2, $city, $state, $pincode, $phone, $gst_no);
-            ew_booking_apply_client_branch($conn, $consignor_branch_id, $address1, $address2, $city, $state, $pincode, $phone, $gst_no);
-            ew_booking_apply_pickup_route($conn, $pickup_client_id, $consignor_branch_id, $_POST);
-            $origin = $_POST['origin'];
-        }
         $ftl_type = $_POST['truck_type'];
 
         // Train type and Charges
@@ -2452,7 +2459,7 @@ vehicle_loading_unloading,other_train_name) values('" . $grn_num1 . "','" . $id_
         if ($insert_result && $transaction_id) {
             mysqli_query(
                 $conn,
-                "UPDATE $table0 SET consignor_branch_id='$consignor_branch_id', bill_to_branch_id='$bill_to_branch_id', consignee_branch_id='$consignee_branch_id', ship_to_client_id='$ship_to_client_id', pickup_client_id='$pickup_client_id' WHERE transaction_id='$transaction_id'"
+                "UPDATE $table0 SET consignor_branch_id='$consignor_branch_id', bill_to_branch_id='$bill_to_branch_id', consignee_branch_id='$consignee_branch_id', ship_to_client_id='$ship_to_client_id' WHERE transaction_id='$transaction_id'"
             );
         }
         if (!$insert_result) {
@@ -3909,10 +3916,6 @@ if ($form_name == 'edit_consignment_details') {
     if ($ship_to_client_id > 0) {
         ew_booking_fill_party_address_from_client($conn, $ship_to_client_id, $con_address1, $con_address2, $con_city, $con_state, $con_pincode, $con_phone, $con_gst);
     }
-    $pickup_client_id = ew_booking_normalize_pickup_client_id($_POST['pickup_client'] ?? 0, $consignor);
-    if ($pickup_client_id > 0) {
-        ew_booking_fill_party_address_from_client($conn, $pickup_client_id, $address1, $address2, $city, $state, $pincode, $phone, $gst_no);
-    }
     $grn_no = $_POST['grn_no'];
     $ftl_type = $_POST['truck_type'];
     $train_name = $_POST['train_name'];
@@ -3928,11 +3931,6 @@ if ($form_name == 'edit_consignment_details') {
         ew_booking_apply_ship_to_route($conn, $ship_to_client_id, $consignee_branch_id, $_POST);
         $destination = $_POST['destination'];
     }
-    if ($pickup_client_id > 0) {
-        ew_booking_apply_pickup_route($conn, $pickup_client_id, $consignor_branch_id, $_POST);
-        $origin = $_POST['origin'];
-    }
-
     // Volumetric Values
     $len = $_POST['length'] ? $_POST['length'] : null;
     $wid = $_POST['width'] ? $_POST['width'] : null;
@@ -4069,16 +4067,6 @@ if ($form_name == 'edit_consignment_details') {
             total='$total',
             balance='$total',
             total_words='$amount_in_words',
-            mode_of_consignment='" . mysqli_real_escape_string($conn, (string) ($mode_of_consignment ?? '')) . "',
-            consigner='" . (int) $consignor . "',
-            origin='" . (int) ($origin ?? 0) . "',
-            address1='" . mysqli_real_escape_string($conn, (string) $address1) . "',
-            address2='" . mysqli_real_escape_string($conn, (string) $address2) . "',
-            city='" . (int) $city . "',
-            state='" . (int) $state . "',
-            pincode='" . mysqli_real_escape_string($conn, (string) $pincode) . "',
-            phone='" . mysqli_real_escape_string($conn, (string) $phone) . "',
-            gst_no='" . mysqli_real_escape_string($conn, (string) $gst_no) . "',
             consignee='" . (int) $consignee . "',
             destination='" . (int) ($destination ?? 0) . "',
             con_address1='" . mysqli_real_escape_string($conn, (string) $con_address1) . "',
@@ -4091,8 +4079,6 @@ if ($form_name == 'edit_consignment_details') {
             bill_to_branch_id='" . (int) $bill_to_branch_id . "',
             consignee_branch_id='" . (int) $consignee_branch_id . "',
             ship_to_client_id='" . (int) $ship_to_client_id . "',
-            pickup_client_id='" . (int) $pickup_client_id . "',
-            consignor_branch_id='" . (int) $consignor_branch_id . "',
             updated_at='$updated_at',
             updated_by='$updated_by'
             WHERE transaction_id='" . mysqli_real_escape_string($conn, $edit_id) . "'";
@@ -4189,7 +4175,7 @@ cfs='$cfs',
 
 mamul_charge='$mamul_charge',
 vehicle_halting_charge='$vehicle_halting_charge',
-vehicle_loading_unloading='$vehicle_loading_unloading',consignor_branch_id='$consignor_branch_id',bill_to_branch_id='$bill_to_branch_id',consignee_branch_id='$consignee_branch_id',ship_to_client_id='$ship_to_client_id',pickup_client_id='$pickup_client_id',consigner_signature='" . $signature . "',updated_at = '" . $updated_at . "',updated_by ='" . $updated_by . "', eway_number = '$eway_number', eway_expirydate = '$eway_expiryDate', other_train_name = '$other_train_names' where transaction_id='$edit_id'";
+vehicle_loading_unloading='$vehicle_loading_unloading',consignor_branch_id='$consignor_branch_id',bill_to_branch_id='$bill_to_branch_id',consignee_branch_id='$consignee_branch_id',ship_to_client_id='$ship_to_client_id',consigner_signature='" . $signature . "',updated_at = '" . $updated_at . "',updated_by ='" . $updated_by . "', eway_number = '$eway_number', eway_expirydate = '$eway_expiryDate', other_train_name = '$other_train_names' where transaction_id='$edit_id'";
     $result = mysqli_query($conn, $query) or die(mysqli_error($conn));
 
     $package = array();
@@ -7444,18 +7430,6 @@ $total_packages = isset($_POST['total_packages'])
         }
         ew_road_transit_hours_save($conn, $grn_no, (float) $hours_raw);
         $txn_preview['road_transit_hours_override'] = $hours_raw;
-    }
-    $cargo_pickup_kind = $txn_preview ? ew_mode_offload_kind($conn, $txn_preview['mode_of_transportation'] ?? 0) : '';
-    if ((int) $status === 2 && $cargo_pickup_kind !== '') {
-        $carrier_id = (int) ($_POST['status_pickup_carrier'] ?? 0);
-        if (!ew_status_pickup_carrier_valid($conn, $cargo_pickup_kind, $carrier_id)) {
-            echo 0;
-            exit;
-        }
-        $carrier_sql = (int) $carrier_id;
-        $grn_sql = mysqli_real_escape_string($conn, $grn_no);
-        mysqli_query($conn, "UPDATE `$table_names` SET train_type='$carrier_sql' WHERE grn_no='$grn_sql' LIMIT 1");
-        $txn_preview['train_type'] = $carrier_sql;
     }
     if ($uses_transit_hours && !((int) $status === 8 && (isset($_POST['delivery_type']) ? $_POST['delivery_type'] : '') === 'partial')) {
         $txn_preview['active_status'] = $status;

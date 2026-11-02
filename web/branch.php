@@ -1,6 +1,7 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+require_once('include/ew_master_usage_helpers.php');
 ew_geo_scope_ensure_column($conn, 'branch');
 ew_geo_scope_ensure_column($conn, 'state');
 ew_geo_scope_ensure_column($conn, 'city');
@@ -89,8 +90,15 @@ th.table-title.sorting  {
                                     <?php
                                     $query = 'select * from branch where ' . ew_geo_scope_where($conn);
                                     $result = mysqli_query($conn, $query);
+                                    $branch_rows = array();
+                                    if ($result) {
+                                        while ($row = mysqli_fetch_array($result)) {
+                                            $branch_rows[] = $row;
+                                        }
+                                    }
+                                    $branch_usage = ew_master_usage_map($conn, 'branch', array_column($branch_rows, 'branch_id'));
                                     $i = 1;
-                                    while ($row = mysqli_fetch_array($result)) {
+                                    foreach ($branch_rows as $row) {
                                         ?>
                                         <tr>
                                             <td class="text-center"><?php echo $i; ?></td>
@@ -101,7 +109,11 @@ th.table-title.sorting  {
 
                                             <td class="actions center-content ">
                                                 <div class="action-buttons">
-                                                    <a title="Edit" class="table-actions btn-edit" id="<?php echo $row['branch_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                    <?php echo ew_master_edit_action_html(array(
+                                                        'in_use' => !empty($branch_usage[(int) $row['branch_id']]),
+                                                        'button_id' => (int) $row['branch_id'],
+                                                        'button_class' => 'table-actions btn-edit',
+                                                    )); ?>
                                                     <?php
                                                     if ($row['status'] == 0) {
                                                         ?>

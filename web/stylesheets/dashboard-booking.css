@@ -68,6 +68,10 @@ body.dash-booking-page .main-content.new_dpt_bottom.collapsed {
 	font-weight: 500;
 }
 
+.dash-booking-filters {
+	--dbk-filter-control-h: 38px;
+}
+
 .dash-booking-filters form {
 	display: flex;
 	flex-wrap: wrap;
@@ -76,19 +80,22 @@ body.dash-booking-page .main-content.new_dpt_bottom.collapsed {
 	margin: 0;
 }
 
-.dash-filter-pill {
+.dash-booking-filters .dash-filter-pill {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
+	box-sizing: border-box;
+	height: var(--dbk-filter-control-h);
+	min-height: var(--dbk-filter-control-h);
+	padding: 0 12px;
 	background: var(--card);
 	border: 1px solid var(--ew-border);
-	border-radius: 8px;
-	padding: 8px 12px;
-	font-size: 12px;
+	border-radius: 10px;
+	font-size: 13px;
 	font-weight: 600;
 	color: var(--ew-text);
-	min-height: 38px;
 	box-shadow: 0 1px 2px rgba(10, 30, 61, 0.04);
+	margin: 0;
 }
 
 .dash-filter-pill input,
@@ -101,133 +108,207 @@ body.dash-booking-page .main-content.new_dpt_bottom.collapsed {
 	min-width: 72px;
 }
 
-.dash-filter-pill.dash-filter-dates {
-	min-width: 0;
-	max-width: 232px;
-	padding: 7px 10px;
-	cursor: pointer;
+.dash-booking-filters .dash-filter-pill select {
+	height: auto;
+	line-height: 1.2;
+	padding: 0;
+	margin: 0;
 }
 
-.dash-filter-pill.dash-filter-dates #dash_date_range {
-	width: 168px;
-	max-width: 168px;
+/* Date range filter — reference-style field + Clear */
+.dbk-date-range-wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.dash-booking-filters .dbk-date-range-field {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	box-sizing: border-box;
+	height: var(--dbk-filter-control-h);
+	min-height: var(--dbk-filter-control-h);
+	min-width: 0;
+	width: 248px;
+	max-width: min(248px, 100%);
+	padding: 0 12px;
+	background: #fff;
+	border: 1px solid var(--ew-border, #d1d5db);
+	border-radius: 10px;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+	cursor: pointer;
+	margin: 0;
+}
+
+.dbk-date-range-field #dash_date_range {
+	flex: 1;
 	min-width: 0;
 	padding: 0;
 	border: none;
 	background: transparent;
-	font: inherit;
-	font-size: 12px;
-	font-weight: 600;
-	color: var(--ew-text);
+	font-family: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	color: #0f172a;
 	cursor: pointer;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.dash-filter-pill.dash-filter-dates .fa-calendar {
-	font-size: 14px;
+.dbk-date-range-field.is-empty #dash_date_range {
+	color: #94a3b8;
+}
+
+.dbk-date-range-field #dash_date_range::placeholder {
+	color: #94a3b8;
+	opacity: 1;
+}
+
+.dbk-date-range-ico {
 	flex-shrink: 0;
+	color: #64748b;
+	font-size: 15px;
+	line-height: 1;
 }
 
-/* Date range drag — Google-style band + endpoint circles */
-.datepicker table tr td.day.ew-range-single,
-.datepicker table tr td.day.ew-range-single:hover,
-.datepicker table tr td.day.ew-range-single.active {
-	background: #1a73e8 !important;
-	background-image: none !important;
-	color: #fff !important;
-	border-radius: 999px !important;
+.dash-booking-filters .dbk-date-range-clear {
+	display: none;
+	flex-shrink: 0;
+	box-sizing: border-box;
+	height: var(--dbk-filter-control-h);
+	min-height: var(--dbk-filter-control-h);
+	padding: 0 14px;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1;
+	color: #334155;
+	background: #fff;
+	border: 1px solid var(--ew-border, #cbd5e1);
+	border-radius: 10px;
+	cursor: pointer;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.datepicker table tr td.day.ew-range-mid,
-.datepicker table tr td.day.ew-range-mid:hover,
-.datepicker table tr td.day.ew-range-start,
-.datepicker table tr td.day.ew-range-start:hover,
-.datepicker table tr td.day.ew-range-end,
-.datepicker table tr td.day.ew-range-end:hover {
+.dbk-date-range-wrap.has-selection .dbk-date-range-clear {
+	display: inline-block;
+}
+
+.dbk-date-range-clear:hover {
+	background: #f8fafc;
+	border-color: #94a3b8;
+}
+
+/* Popover shell only — calendar grid uses global datepicker + modern-ui .datepicker-dropdown */
+#dbk_range_dropdown.dbk-range-dropdown{
+	position: absolute;
+	z-index: 2050;
+	padding: 0;
+	border-radius: 12px;
+	overflow: hidden;
+	background: #fff;
+	box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+.dbk-range-hint {
+	padding: 10px 14px 8px;
+	font-size: 11px;
+	line-height: 1.45;
+	color: #475569;
+	background: #f8fafc;
+	border-bottom: 1px solid #e2e8f0;
+}
+
+.dbk-range-hint strong {
+	color: #06416f;
+	font-weight: 700;
+}
+
+.dbk-range-hint .muted {
+	color: #64748b;
+	font-weight: 600;
+}
+
+#dbk_range_dropdown .datepicker.datepicker-dropdown,
+#dbk_range_dropdown .datepicker.datepicker-inline {
+	background: #fff !important;
+}
+
+#dbk_range_dropdown .datepicker-days{
+	background: #fff !important;
+}
+
+/* Plain days only — do not wipe bootstrap .range / .selected highlight */
+#dbk_range_dropdown .ew-dbk-range-cal .datepicker-days table tbody td.day:not(.range):not(.selected){
+	background: #fff !important;
+}
+
+#dbk_range_dropdown .ew-dbk-range-cal .datepicker-days table tbody tr:hover td.day:not(.range):not(.selected){
+	background: #fff !important;
+}
+
+.dbk-range-dropdown[hidden] {
+	display: none !important;
+}
+
+#dbk_range_dropdown .datepicker{
+	padding-left: 0 !important;
+	padding-right: 0 !important;
+}
+
+#dbk_range_dropdown .datepicker tfoot{
+	display: none !important;
+}
+
+/* One inline calendar — bootstrap .range / .selected (same while picking and after apply) */
+#dbk_range_dropdown .ew-dbk-range-cal table tr td.day.range {
 	background: #d2e3fc !important;
 	background-image: none !important;
-	color: #202124 !important;
+	color: #111827 !important;
+	-webkit-text-fill-color: #111827 !important;
 	border-radius: 0 !important;
-	position: relative;
 }
 
-.datepicker table tr td.day.ew-range-start:not(.ew-range-end),
-.datepicker table tr td.day.ew-range-end:not(.ew-range-start) {
-	color: #fff !important;
-	font-weight: 600;
-	z-index: 1;
-}
-
-.datepicker table tr td.day.ew-range-start:not(.ew-range-end)::before,
-.datepicker table tr td.day.ew-range-end:not(.ew-range-start)::before {
-	content: '';
-	position: absolute;
-	width: 34px;
-	height: 34px;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	background: #1a73e8;
-	border-radius: 50%;
-	z-index: -1;
-}
-
-.datepicker table tr td.day.ew-range-start.ew-range-wk-end:not(.ew-range-end) {
-	border-radius: 999px !important;
-}
-
-.datepicker table tr td.day.ew-range-end.ew-range-wk-start:not(.ew-range-start) {
-	border-radius: 999px !important;
-}
-
-.datepicker table tr td.day.ew-range-mid.ew-range-wk-start,
-.datepicker table tr td.day.ew-range-start.ew-range-wk-start:not(.ew-range-end) {
-	border-top-left-radius: 999px !important;
-	border-bottom-left-radius: 999px !important;
-}
-
-.datepicker table tr td.day.ew-range-mid.ew-range-wk-end,
-.datepicker table tr td.day.ew-range-end.ew-range-wk-end:not(.ew-range-start) {
-	border-top-right-radius: 999px !important;
-	border-bottom-right-radius: 999px !important;
-}
-
-.datepicker table tr td.day.ew-range-start.ew-range-end {
+#dbk_range_dropdown .ew-dbk-range-cal table tr td.day.selected {
 	background: #1a73e8 !important;
-	color: #fff !important;
+	background-image: none !important;
+	color: #ffffff !important;
+	-webkit-text-fill-color: #ffffff !important;
+	font-weight: 700;
 	border-radius: 999px !important;
 }
 
-.datepicker table tr td.day:not(.disabled) {
+#dbk_range_dropdown .ew-dbk-range-cal table tr td.day.old.range,
+#dbk_range_dropdown .ew-dbk-range-cal table tr td.day.new.range {
+	color: #111827 !important;
+	-webkit-text-fill-color: #111827 !important;
+}
+
+#dbk_range_dropdown .ew-dbk-range-cal table tr td.day.old.selected,
+#dbk_range_dropdown .ew-dbk-range-cal table tr td.day.new.selected {
+	color: #ffffff !important;
+	-webkit-text-fill-color: #ffffff !important;
+}
+
+#dbk_range_dropdown .ew-dbk-range-cal table tr td.day.range:hover {
+	background: #c5d9fa !important;
+	color: #111827 !important;
+	-webkit-text-fill-color: #111827 !important;
+}
+
+#dbk_range_dropdown .ew-dbk-range-cal table tr td.day.selected:hover {
+	background: #1558b0 !important;
+	color: #ffffff !important;
+}
+
+#dbk_range_dropdown .ew-dbk-range-cal table tr td.day:not(.disabled) {
 	cursor: pointer;
 }
 
-.datepicker table tr td.day.ew-range-mid.active,
-.datepicker table tr td.day.ew-range-start.active,
-.datepicker table tr td.day.ew-range-end.active,
-.datepicker table tr td.day.ew-range-mid.selected,
-.datepicker table tr td.day.ew-range-start.selected,
-.datepicker table tr td.day.ew-range-end.selected,
-.datepicker table tr td.day.ew-range-single.active,
-.datepicker table tr td.day.ew-range-single.selected {
-	background: #d2e3fc !important;
-}
-
-.datepicker table tr td.day.ew-range-single.active,
-.datepicker table tr td.day.ew-range-single.selected {
-	background: #1a73e8 !important;
-	color: #fff !important;
-}
-
-body.dbk-range-dragging {
-	user-select: none;
-	cursor: crosshair;
-}
-
-body.dbk-range-dragging .datepicker table tr td.day:not(.disabled) {
-	cursor: crosshair;
+#dbk_range_dropdown .ew-dbk-range-cal.datepicker-dropdown table tr td.day.active {
+	background: transparent !important;
+	color: inherit !important;
 }
 
 .dash-filter-pill .fa { color: var(--ew-muted); }
@@ -240,6 +321,179 @@ body.dbk-range-dragging .datepicker table tr td.day:not(.disabled) {
 	margin-bottom: 16px;
 	min-width: 0;
 }
+
+/* Freight mode hero cards (road / rail / air / sea) — mock spacing & type */
+.dash-freight-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-bottom: 20px;
+}
+
+.dash-freight-card {
+	position: relative;
+	flex: 1 1 calc(25% - 9px);
+	min-width: 0;
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	min-height: 148px;
+	border-radius: 16px;
+	border: 1px solid #d6e4f5;
+	overflow: hidden;
+	text-decoration: none;
+	color: inherit;
+	background: #f0f7ff;
+	box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dash-freight-card:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 8px 22px rgba(26, 59, 139, 0.1);
+	text-decoration: none;
+	color: inherit;
+}
+
+.dash-freight-card.tone-road {
+	background: linear-gradient(118deg, #f0f7ff 0%, #f7fbff 42%, #ffffff 100%);
+	border-color: #d6e4f5;
+}
+.dash-freight-card.tone-rail {
+	background: linear-gradient(118deg, #edfdf4 0%, #f6fef9 42%, #ffffff 100%);
+	border-color: #c9edd8;
+}
+.dash-freight-card.tone-air {
+	background: linear-gradient(118deg, #f0f2ff 0%, #f7f8ff 42%, #ffffff 100%);
+	border-color: #d8dcfa;
+}
+.dash-freight-card.tone-sea {
+	background: linear-gradient(118deg, #fff6ef 0%, #fffbf7 42%, #ffffff 100%);
+	border-color: #f5dcc8;
+}
+
+.dash-freight-go {
+	flex: 0 0 26px;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: #e8f1ff;
+	border: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #1a3b8b;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.dash-freight-card.tone-road .dash-freight-go { background: #e8f1ff; color: #1a3b8b; }
+.dash-freight-card.tone-rail .dash-freight-go { background: #e3f9ec; color: #15803d; }
+.dash-freight-card.tone-air .dash-freight-go { background: #ebeaff; color: #4338ca; }
+.dash-freight-card.tone-sea .dash-freight-go { background: #ffefe3; color: #c2410c; }
+
+.dash-freight-art {
+	flex: 1 1 50%;
+	min-width: 0;
+	max-width: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px;
+	box-sizing: border-box;
+}
+
+.dash-freight-art img {
+	display: block;
+	width: auto;
+	height: auto;
+	max-width: 100%;
+	max-height: 132px;
+	object-fit: contain;
+	object-position: center center;
+	margin: 0;
+}
+
+.dash-freight-body {
+	flex: 1 1 50%;
+	min-width: 0;
+	max-width: 50%;
+	padding: 8px 10px 8px 6px;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: center;
+	box-sizing: border-box;
+}
+
+.dash-freight-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 4px;
+	margin: 0 0 6px;
+	min-width: 0;
+}
+
+.dash-freight-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 14px;
+	font-weight: 700;
+	color: #1a3b8b;
+	line-height: 1.15;
+	margin: 0;
+	letter-spacing: -0.02em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.dash-freight-count {
+	font-size: 34px;
+	font-weight: 800;
+	line-height: 1;
+	color: #1a3b8b;
+	letter-spacing: -0.03em;
+	margin: 0 0 6px;
+}
+
+.dash-freight-foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-top: 0;
+	width: 100%;
+}
+
+.dash-freight-lbl {
+	font-size: 14px;
+	font-weight: 400;
+	color: #707070;
+	line-height: 1.2;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.dash-freight-trend {
+	font-size: 14px;
+	font-weight: 700;
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	line-height: 1.2;
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
+.dash-freight-trend.is-down { color: #dc2626; }
+
+.dash-freight-card.tone-road .dash-freight-trend.is-up { color: #2563eb; }
+.dash-freight-card.tone-rail .dash-freight-trend.is-up { color: #16a34a; }
+.dash-freight-card.tone-air .dash-freight-trend.is-up { color: #2563eb; }
+.dash-freight-card.tone-sea .dash-freight-trend.is-up { color: #16a34a; }
 
 .dash-kpi-card {
 	position: relative;
@@ -313,6 +567,16 @@ body.dbk-range-dragging .datepicker table tr td.day:not(.disabled) {
 .dash-kpi-card.k-ofd { --dbk-kpi-accent: #D97706; --dbk-kpi-ico-bg: #FEF3C7; }
 .dash-kpi-card.k-delivered { --dbk-kpi-accent: #15803D; --dbk-kpi-ico-bg: #DCFCE7; }
 .dash-kpi-card.k-cancel { --dbk-kpi-accent: #DC2626; --dbk-kpi-ico-bg: #FEE2E2; }
+
+/* Invoice dashboard KPI tones (same card component as bookings) */
+.dash-kpi-card.k-inv-total { --dbk-kpi-accent: #2563EB; --dbk-kpi-ico-bg: #DBEAFE; }
+.dash-kpi-card.k-inv-draft { --dbk-kpi-accent: #EA580C; --dbk-kpi-ico-bg: #FFEDD5; }
+.dash-kpi-card.k-inv-generated { --dbk-kpi-accent: #0284C7; --dbk-kpi-ico-bg: #E0F2FE; }
+.dash-kpi-card.k-inv-sent { --dbk-kpi-accent: #7C3AED; --dbk-kpi-ico-bg: #EDE9FE; }
+.dash-kpi-card.k-inv-partial { --dbk-kpi-accent: #6366F1; --dbk-kpi-ico-bg: #E0E7FF; }
+.dash-kpi-card.k-inv-paid { --dbk-kpi-accent: #16A34A; --dbk-kpi-ico-bg: #DCFCE7; }
+.dash-kpi-card.k-inv-overdue { --dbk-kpi-accent: #E11D48; --dbk-kpi-ico-bg: #FFE4E6; }
+.dash-kpi-card.k-inv-cancelled { --dbk-kpi-accent: #64748B; --dbk-kpi-ico-bg: #F1F5F9; }
 
 /* Booking Revenue Summary — mockup (peach left, mid columns, blue right) */
 .dash-revenue-card {
@@ -932,6 +1196,7 @@ table.dash-booking-tbl a.gcn-link:hover { text-decoration: underline; }
 }
 
 @media (max-width: 1280px) {
+	.dash-freight-card { flex: 1 1 calc(50% - 6px); }
 	.dash-kpi-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 	.dash-revenue-inner { grid-template-columns: 1fr; }
 	.dash-revenue-mid {
@@ -951,6 +1216,7 @@ table.dash-booking-tbl a.gcn-link:hover { text-decoration: underline; }
 }
 
 @media (max-width: 768px) {
+	.dash-freight-card { flex: 1 1 100%; }
 	.dash-kpi-row { grid-template-columns: repeat(2, 1fr); }
 	.dash-revenue-mid { grid-template-columns: 1fr 1fr; }
 }

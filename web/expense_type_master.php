@@ -2,6 +2,7 @@
 require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/expense_type_helpers.php');
+require_once('include/ew_master_usage_helpers.php');
 
 expense_type_ensure_schema($conn);
 expense_require_admin();
@@ -61,9 +62,15 @@ $expense_groups = expense_group_list($conn, true);
 											LEFT JOIN expense_group g ON g.group_id = c.expense_group_id
 											ORDER BY c.expense_code_id ASC, c.category_id ASC';
 										$result = mysqli_query($conn, $query);
-										$i = 1;
+										$expense_type_rows = array();
 										if ($result) {
 											while ($list = mysqli_fetch_array($result)) {
+												$expense_type_rows[] = $list;
+											}
+										}
+										$expense_type_usage = ew_master_usage_map($conn, 'expense_type', array_column($expense_type_rows, 'category_id'));
+										$i = 1;
+										foreach ($expense_type_rows as $list) {
 												?>
 												<tr>
 													<td class="text-center"><?php echo $i; ?></td>
@@ -77,7 +84,11 @@ $expense_groups = expense_group_list($conn, true);
 													?></td>
 													<td class="actions center-content">
 														<div class="action-buttons">
-															<a title="Edit" class="table-actions btn-edit-expense-type" id="<?php echo (int) $list['category_id']; ?>"><i class="fa fa-pencil"></i></a>
+															<?php echo ew_master_edit_action_html(array(
+																'in_use' => !empty($expense_type_usage[(int) $list['category_id']]),
+																'button_id' => (int) $list['category_id'],
+																'button_class' => 'table-actions btn-edit-expense-type',
+															)); ?>
 															<?php if ((int) $list['status'] === 0) { ?>
 																<a class="table-actions exp-type-active" data-status="0" title="InActive" id="<?php echo $list['category_id']; ?>"><i class="fa fa-check"></i></a>
 															<?php } else { ?>
@@ -89,7 +100,6 @@ $expense_groups = expense_group_list($conn, true);
 												</tr>
 												<?php
 												$i++;
-											}
 										}
 										?>
 									</tbody>

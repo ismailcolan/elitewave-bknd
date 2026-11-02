@@ -52,6 +52,16 @@ function dbk_num($n)
 	return number_format((int) $n);
 }
 
+function dbk_display_date($raw)
+{
+	$raw = trim((string) $raw);
+	if ($raw === '') {
+		return '';
+	}
+	$dt = DateTime::createFromFormat('d-m-Y', $raw);
+	return ($dt instanceof DateTime) ? $dt->format('d/m/Y') : $raw;
+}
+
 $pipe_steps = array(
 	array('key' => 'booked', 'label' => 'Booked', 'icon' => 'fa-file-text-o', 'tone' => 'blue'),
 	array('key' => 'picked_up', 'label' => 'Picked Up', 'icon' => 'fa-truck', 'tone' => 'green'),
@@ -63,9 +73,11 @@ $pipe_steps = array(
 );
 
 $trend_days = count($data['trend']);
-$date_range_display = !empty($data['range']['all'])
-	? 'All dates'
-	: ($data['range']['from'] . ' – ' . $data['range']['to']);
+$date_range_all = !empty($data['range']['all']);
+$date_range_display = $date_range_all
+	? ''
+	: (dbk_display_date($data['range']['from']) . ' – ' . dbk_display_date($data['range']['to']));
+$freight_cards = $data['freight_cards'] ?? array();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -75,7 +87,7 @@ $date_range_display = !empty($data['range']['all'])
 	<?php include('include/css_js.php'); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-	<link href="stylesheets/dashboard-booking.css?v=20261022e" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/dashboard-booking.css?v=20261028freight9" rel="stylesheet" type="text/css" />
 </head>
 
 <body class="page-header-fixed bg-1 dash-booking-page">
@@ -97,12 +109,15 @@ $date_range_display = !empty($data['range']['all'])
 					</div>
 					<div class="dash-booking-filters">
 						<form method="post" action="dashboard_booking.php" id="dash_booking_filter">
-							<label class="dash-filter-pill dash-filter-dates" for="dash_date_range">
-								<i class="fa fa-calendar" aria-hidden="true"></i>
-								<input type="text" id="dash_date_range" value="<?php echo dbk_h($date_range_display); ?>" readonly autocomplete="off" aria-label="Date range">
+							<div class="dbk-date-range-wrap<?php echo $date_range_all ? '' : ' has-selection'; ?>">
+								<label class="dbk-date-range-field<?php echo $date_range_all ? ' is-empty' : ''; ?>" for="dash_date_range">
+									<input type="text" id="dash_date_range" value="<?php echo dbk_h($date_range_display); ?>" placeholder="dd/mm/yyyy – dd/mm/yyyy" readonly autocomplete="off" aria-label="Date range" data-ew-skip-upgrade="1">
+									<span class="dbk-date-range-ico" aria-hidden="true"><i class="fa fa-calendar"></i></span>
+								</label>
+								<button type="button" class="dbk-date-range-clear" id="dash_date_clear"<?php echo $date_range_all ? ' hidden' : ''; ?> aria-label="Clear date range">Clear</button>
 								<input type="hidden" name="date_from" id="date_from" value="<?php echo dbk_h($data['range']['from']); ?>">
 								<input type="hidden" name="date_to" id="date_to" value="<?php echo dbk_h($data['range']['to']); ?>">
-							</label>
+							</div>
 							<label class="dash-filter-pill">
 								<i class="fa fa-building-o" aria-hidden="true"></i>
 								<select name="branch_id" id="branch_id" onchange="this.form.submit()">
@@ -149,6 +164,30 @@ $date_range_display = !empty($data['range']['all'])
 						<div class="dash-kpi-head"><span class="dash-kpi-lbl">Cancelled / Hold</span><span class="dash-kpi-ico"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span></div>
 						<div class="dash-kpi-val"><?php echo dbk_num($kpi['cancelled']); ?></div>
 					</div>
+				</div>
+
+				<div class="dash-freight-row" role="list" aria-label="Freight mode summary">
+					<?php foreach ($freight_cards as $fc): ?>
+						<a class="dash-freight-card tone-<?php echo dbk_h($fc['tone']); ?>" href="transaction_list.php" role="listitem">
+							<div class="dash-freight-art">
+								<img src="<?php echo dbk_h($fc['image']); ?>" alt="" loading="lazy" width="200" height="100">
+							</div>
+							<div class="dash-freight-body">
+								<div class="dash-freight-head">
+									<div class="dash-freight-title" title="<?php echo dbk_h($fc['title']); ?>"><?php echo dbk_h($fc['title']); ?></div>
+									<span class="dash-freight-go" aria-hidden="true"><i class="fa fa-angle-right"></i></span>
+								</div>
+								<div class="dash-freight-count"><?php echo dbk_num($fc['count']); ?></div>
+								<div class="dash-freight-foot">
+									<span class="dash-freight-lbl">Bookings</span>
+									<span class="dash-freight-trend <?php echo !empty($fc['trend_up']) ? 'is-up' : 'is-down'; ?>">
+										<i class="fa fa-caret-<?php echo !empty($fc['trend_up']) ? 'up' : 'down'; ?>" aria-hidden="true"></i>
+										<?php echo dbk_num($fc['trend_pct']); ?>%
+									</span>
+								</div>
+							</div>
+						</a>
+					<?php endforeach; ?>
 				</div>
 
 				<div class="dash-card dash-revenue-card">
@@ -308,8 +347,14 @@ $date_range_display = !empty($data['range']['all'])
 		<?php require_once('include/footer.php'); ?>
 	</div>
 
+	<div id="dbk_range_dropdown" class="dbk-range-dropdown" data-dbk-range-picker="1" hidden aria-hidden="true">
+		<div id="dbk_cal_main" class="dbk-cal-pane" data-dbk-cal-host="1"></div>
+	</div>
+
 	<script src="javascripts/highcharts.js"></script>
 	<script src="javascripts/apexcharts.min.js"></script>
+	<script src="javascripts/dashboard-charts-common.js?v=20261026"></script>
+	<script src="javascripts/dashboard-date-range.js?v=20261027range8"></script>
 	<script>
 	(function () {
 		var trendData = <?php echo json_encode($data['trend'], JSON_NUMERIC_CHECK); ?>;
@@ -550,166 +595,8 @@ $date_range_display = !empty($data['range']['all'])
 			}
 		}
 
-		if (typeof $.fn.datepicker !== 'undefined') {
-			function dbkParseDMY(s) {
-				var p = String(s || '').split('-');
-				if (p.length !== 3) return null;
-				var d = new Date(Date.UTC(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10)));
-				return isNaN(d.getTime()) ? null : d;
-			}
-			function dbkFmtDMY(d) {
-				if (!d) return '';
-				var dd = ('0' + d.getUTCDate()).slice(-2);
-				var mm = ('0' + (d.getUTCMonth() + 1)).slice(-2);
-				return dd + '-' + mm + '-' + d.getUTCFullYear();
-			}
-			function dbkDayTs(d) {
-				return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-			}
-
-			var rangeStart = dbkParseDMY($('#date_from').val());
-			var rangeEnd = dbkParseDMY($('#date_to').val());
-			var dbkRangeDragging = false;
-
-			function dbkSyncRangeDisplay() {
-				if (rangeStart && rangeEnd) {
-					$('#dash_date_range').val(dbkFmtDMY(rangeStart) + ' – ' + dbkFmtDMY(rangeEnd));
-					$('#date_from').val(dbkFmtDMY(rangeStart));
-					$('#date_to').val(dbkFmtDMY(rangeEnd));
-				}
-			}
-
-			function dbkNormalizeRange() {
-				if (!rangeStart || !rangeEnd) return;
-				if (dbkDayTs(rangeEnd) < dbkDayTs(rangeStart)) {
-					var tmp = rangeStart;
-					rangeStart = rangeEnd;
-					rangeEnd = tmp;
-				}
-			}
-
-			function dbkDateFromPickerCell($td) {
-				var picker = $rangeInput.data('datepicker');
-				if (!picker || !$td || !$td.length || !$td.hasClass('day') || $td.hasClass('disabled')) {
-					return null;
-				}
-				var day = parseInt($td.text(), 10) || 1;
-				var year = picker.viewDate.getUTCFullYear();
-				var month = picker.viewDate.getUTCMonth();
-				if ($td.hasClass('old')) {
-					if (month === 0) {
-						month = 11;
-						year -= 1;
-					} else {
-						month -= 1;
-					}
-				} else if ($td.hasClass('new')) {
-					if (month === 11) {
-						month = 0;
-						year += 1;
-					} else {
-						month += 1;
-					}
-				}
-				return new Date(Date.UTC(year, month, day));
-			}
-
-			function dbkRefreshRangeHighlight() {
-				var picker = $rangeInput.data('datepicker');
-				if (picker && typeof picker.fill === 'function') {
-					picker.fill();
-				} else {
-					$rangeInput.datepicker('update');
-				}
-			}
-
-			function dbkCommitRangeFilter() {
-				if (!rangeStart || !rangeEnd) return;
-				dbkNormalizeRange();
-				dbkSyncRangeDisplay();
-				$rangeInput.datepicker('hide');
-				$('#dash_booking_filter').submit();
-			}
-
-			var $rangeInput = $('#dash_date_range');
-			$rangeInput.datepicker({
-				format: 'dd-mm-yyyy',
-				autoclose: false,
-				todayHighlight: false,
-				container: 'body',
-				maxViewMode: 2,
-				beforeShowDay: function (date) {
-					if (!rangeStart || !rangeEnd) {
-						return true;
-					}
-					var t = dbkDayTs(date);
-					var from = Math.min(dbkDayTs(rangeStart), dbkDayTs(rangeEnd));
-					var to = Math.max(dbkDayTs(rangeStart), dbkDayTs(rangeEnd));
-					if (t < from || t > to) {
-						return true;
-					}
-					if (from === to) {
-						return { enabled: true, classes: 'ew-range-single' };
-					}
-					var cls = [];
-					if (t === from) {
-						cls.push('ew-range-start');
-					} else if (t === to) {
-						cls.push('ew-range-end');
-					} else {
-						cls.push('ew-range-mid');
-					}
-					var dow = date.getUTCDay();
-					if (dow === 0) {
-						cls.push('ew-range-wk-start');
-					}
-					if (dow === 6) {
-						cls.push('ew-range-wk-end');
-					}
-					return { enabled: true, classes: cls.join(' ') };
-				}
-			}).on('show', function () {
-				dbkRangeDragging = false;
-				$('body').removeClass('dbk-range-dragging');
-				if (rangeStart && rangeEnd) {
-					dbkRefreshRangeHighlight();
-				}
-			});
-
-			$('.dash-filter-dates').on('click', function (ev) {
-				if ($(ev.target).is('input[type="hidden"]')) return;
-				$rangeInput.datepicker('show');
-			});
-
-			$(document).on('mousedown', '.datepicker td.day:not(.disabled)', function (ev) {
-				if (ev.which !== 1) return;
-				ev.preventDefault();
-				ev.stopPropagation();
-				var d = dbkDateFromPickerCell($(this));
-				if (!d) return;
-				dbkRangeDragging = true;
-				$('body').addClass('dbk-range-dragging');
-				rangeStart = d;
-				rangeEnd = d;
-				$rangeInput.val(dbkFmtDMY(rangeStart) + ' – ' + dbkFmtDMY(rangeEnd));
-				dbkRefreshRangeHighlight();
-			});
-
-			$(document).on('mouseenter', '.datepicker td.day:not(.disabled)', function () {
-				if (!dbkRangeDragging) return;
-				var d = dbkDateFromPickerCell($(this));
-				if (!d) return;
-				rangeEnd = d;
-				$rangeInput.val(dbkFmtDMY(rangeStart) + ' – ' + dbkFmtDMY(rangeEnd));
-				dbkRefreshRangeHighlight();
-			});
-
-			$(document).on('mouseup', function () {
-				if (!dbkRangeDragging) return;
-				dbkRangeDragging = false;
-				$('body').removeClass('dbk-range-dragging');
-				dbkCommitRangeFilter();
-			});
+		if (typeof dbkInitDashboardDateRange === 'function') {
+			dbkInitDashboardDateRange('#dash_booking_filter');
 		}
 
 		function dbkInitCharts() {
@@ -733,71 +620,21 @@ $date_range_display = !empty($data['range']['all'])
 			credits: { enabled: false }
 		});
 
-		dbkDestroyChartById('dash_booking_modes');
-
-		var pieSeries = modeData.map(function (m, i) {
+		var modeSlices = modeData.map(function (m, i) {
 			return {
 				name: m.name,
-				y: m.count,
+				count: m.count,
+				pct: m.pct,
 				color: modeColors[i % modeColors.length]
 			};
 		});
-
-		var modeDonutSize = 120;
-		var legendEl = document.getElementById('dash_booking_modes_legend');
-		if (legendEl) {
-			legendEl.innerHTML = '';
-			if (!pieSeries.length) {
-				legendEl.innerHTML = '<li class="dbk-modes-empty">No mode data in this period.</li>';
-			} else {
-				pieSeries.forEach(function (pt, i) {
-					var pct = modeData[i] && modeData[i].pct != null
-						? modeData[i].pct
-						: pt.y;
-					var safeName = String(pt.name)
-						.replace(/&/g, '&amp;')
-						.replace(/</g, '&lt;')
-						.replace(/"/g, '&quot;');
-					var li = document.createElement('li');
-					li.innerHTML =
-						'<span class="dbk-mode-name-wrap">' +
-							'<span class="dbk-mode-swatch" style="background:' + pt.color + '"></span>' +
-							'<span class="dbk-mode-name" title="' + safeName + '">' + safeName + '</span>' +
-						'</span>' +
-						'<span class="dbk-mode-pct">' + Highcharts.numberFormat(pct, 0) + '%</span>';
-					legendEl.appendChild(li);
-				});
-			}
+		if (typeof dbkRenderDashboardDonut === 'function') {
+			dbkRenderDashboardDonut('dash_booking_modes', 'dash_booking_modes_legend', modeSlices, {
+				emptyText: 'No mode data in this period.',
+				seriesName: 'Bookings',
+				tooltipUnit: 'bookings'
+			});
 		}
-
-		Highcharts.chart('dash_booking_modes', {
-			chart: {
-				type: 'pie',
-				backgroundColor: 'transparent',
-				height: modeDonutSize,
-				width: modeDonutSize,
-				spacing: [0, 0, 0, 0],
-				margin: [0, 0, 0, 0]
-			},
-			title: { text: null },
-			credits: { enabled: false },
-			tooltip: {
-				pointFormat: '<b>{point.percentage:.1f}%</b> ({point.y} bookings)'
-			},
-			plotOptions: {
-				pie: {
-					innerSize: '58%',
-					center: ['50%', '50%'],
-					size: '100%',
-					borderWidth: 2,
-					borderColor: '#fff',
-					dataLabels: { enabled: false },
-					showInLegend: false
-				}
-			},
-			legend: { enabled: false },
-			series: [{ name: 'Bookings', data: pieSeries }]
-		});
 		}
 
 		function dbkReflowCharts() {

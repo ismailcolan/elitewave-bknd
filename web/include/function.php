@@ -219,6 +219,78 @@ function get_city_name($conn, $id)
 	return $row['city_name'] ?? '';
 }
 
+/** Display label: City, State, Country (for warehouse location dropdown / lists). */
+function ew_city_location_display_label($conn, $city_id)
+{
+	$city_id = (int) $city_id;
+	if ($city_id <= 0) {
+		return '';
+	}
+	$q = mysqli_query($conn, "SELECT c.city_name, s.state_name, s.country_name
+		FROM city c
+		LEFT JOIN state s ON s.state_id = c.state
+		WHERE c.city_id='$city_id'
+		LIMIT 1");
+	if (!$q || !($row = mysqli_fetch_assoc($q))) {
+		return get_city_name($conn, $city_id);
+	}
+	$parts = array();
+	$city = trim((string) ($row['city_name'] ?? ''));
+	$state = trim((string) ($row['state_name'] ?? ''));
+	$country = trim((string) ($row['country_name'] ?? ''));
+	if ($city !== '') {
+		$parts[] = $city;
+	}
+	if ($state !== '') {
+		$parts[] = $state;
+	}
+	if ($country !== '') {
+		$parts[] = $country;
+	} elseif ($parts !== array()) {
+		$parts[] = 'India';
+	}
+	return implode(', ', $parts);
+}
+
+function ew_hub_location_select_options_html($conn)
+{
+	ew_area_ensure_country_name($conn, 'state');
+	$html = '';
+	$sql = "SELECT c.city_id, c.city_name, s.state_name, s.country_name
+		FROM city c
+		LEFT JOIN state s ON s.state_id = c.state
+		WHERE c.status=0
+		ORDER BY s.state_name ASC, c.city_name ASC";
+	$q = mysqli_query($conn, $sql);
+	if (!$q) {
+		return $html;
+	}
+	while ($row = mysqli_fetch_assoc($q)) {
+		$city_id = (int) ($row['city_id'] ?? 0);
+		if ($city_id <= 0) {
+			continue;
+		}
+		$parts = array();
+		$city = trim((string) ($row['city_name'] ?? ''));
+		$state = trim((string) ($row['state_name'] ?? ''));
+		$country = trim((string) ($row['country_name'] ?? ''));
+		if ($city !== '') {
+			$parts[] = $city;
+		}
+		if ($state !== '') {
+			$parts[] = $state;
+		}
+		if ($country !== '') {
+			$parts[] = $country;
+		} elseif ($parts !== array()) {
+			$parts[] = 'India';
+		}
+		$label_esc = htmlspecialchars(implode(', ', $parts), ENT_QUOTES, 'UTF-8');
+		$html .= '<option value="' . $city_id . '">' . $label_esc . '</option>';
+	}
+	return $html;
+}
+
 function ew_city_dropdown_options_html($conn)
 {
 	$html = '';
@@ -1033,6 +1105,78 @@ function ew_sql_not_cancelled_booking($column = 'booking_status')
 	return "($column IS NULL OR $column = '' OR $column = '0' OR $column != '1')";
 }
 
+function ew_booking_is_cancelled($booking_status)
+{
+	return (string) $booking_status === '1';
+}
+
+/**
+ * Party invoice no on another active (non-cancelled) booking for the same consignor.
+ */
+function ew_consignor_has_active_party_invoice($conn, $consigner_id, $party_invoice_no, $exclude_transaction_id = 0, $exclude_trans_table = '')
+{
+	$consigner_id = (int) $consigner_id;
+	$party_invoice_no = trim((string) $party_invoice_no);
+	if ($consigner_id <= 0 || $party_invoice_no === '') {
+		return false;
+	}
+	$exclude_transaction_id = (int) $exclude_transaction_id;
+	$exclude_trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $exclude_trans_table);
+	$inv_esc = mysqli_real_escape_string($conn, $party_invoice_no);
+	$active_sql = ew_sql_not_cancelled_booking('t.booking_status');
+
+	$tables_q = mysqli_query($conn, 'SELECT table_name FROM transaction_tbls');
+	if (!$tables_q) {
+		return false;
+	}
+	while ($tbl = mysqli_fetch_assoc($tables_q)) {
+		$trans_table = 'transaction_' . preg_replace('/[^a-zA-Z0-9_]/', '', $tbl['table_name']);
+		if (!preg_match('/^transaction_[1-4]_\d{4}$/', $trans_table)) {
+			continue;
+		}
+		$inv_table = str_replace('transaction_', 'transaction_invoice_', $trans_table);
+		$exclude_sql = '';
+		if ($exclude_transaction_id > 0 && $exclude_trans_table !== '' && $exclude_trans_table === $trans_table) {
+			$exclude_sql = " AND t.transaction_id!='$exclude_transaction_id'";
+		}
+		$sql = "SELECT COUNT(*) AS c FROM `$trans_table` t
+			WHERE t.consigner='$consigner_id' AND $active_sql
+			AND EXISTS (
+				SELECT 1 FROM `$inv_table` ti
+				WHERE ti.transaction_id = t.transaction_id AND ti.party_invoice_no = '$inv_esc'
+			 ) $exclude_sql LIMIT 1";
+		$q = @mysqli_query($conn, $sql);
+		if ($q && ($row = mysqli_fetch_assoc($q)) && (int) $row['c'] > 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/** Validate party invoice lines for a consignor; ignores cancelled bookings. */
+function ew_validate_consignor_party_invoices($conn, $consigner_id, $party_invoices, $exclude_transaction_id = 0, $exclude_trans_table = '')
+{
+	if (!is_array($party_invoices)) {
+		return true;
+	}
+	$seen = array();
+	foreach ($party_invoices as $inv) {
+		$inv = trim((string) $inv);
+		if ($inv === '') {
+			continue;
+		}
+		$key = strtolower($inv);
+		if (isset($seen[$key])) {
+			return false;
+		}
+		$seen[$key] = true;
+		if (ew_consignor_has_active_party_invoice($conn, $consigner_id, $inv, $exclude_transaction_id, $exclude_trans_table)) {
+			return false;
+		}
+	}
+	return true;
+}
+
 /** Whether a stored type_of_pkge value matches a package master row (id or code label). */
 function ew_package_type_matches_stored($stored, $package_id, $package_code)
 {
@@ -1442,10 +1586,48 @@ function get_pod_status($conn, $grn_no)
 }
 
 
+function ew_mode_transport_row($conn, $mode_id)
+{
+	$mode_id = (int) $mode_id;
+	static $cache = array();
+	if ($mode_id <= 0) {
+		return null;
+	}
+	if (isset($cache[$mode_id])) {
+		return $cache[$mode_id];
+	}
+	$has_group = false;
+	$chk = @mysqli_query($conn, "SHOW COLUMNS FROM mode_of_transportation LIKE 'mode_group'");
+	if ($chk && mysqli_num_rows($chk) > 0) {
+		$has_group = true;
+	}
+	$sql = $has_group
+		? "SELECT mode_type, mode_group FROM mode_of_transportation WHERE mode_id='$mode_id' LIMIT 1"
+		: "SELECT mode_type FROM mode_of_transportation WHERE mode_id='$mode_id' LIMIT 1";
+	$q = @mysqli_query($conn, $sql);
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	$cache[$mode_id] = $row;
+
+	return $row;
+}
+
+function ew_mode_is_express_delivery($conn, $mode_id)
+{
+	$row = ew_mode_transport_row($conn, $mode_id);
+	if (!$row) {
+		return false;
+	}
+
+	return strcasecmp(trim((string) ($row['mode_type'] ?? '')), 'Express Delivery') === 0;
+}
+
 function ew_mode_is_road_freight($conn, $mode_id)
 {
 	$mode_id = (int) $mode_id;
 	if ($mode_id <= 0) {
+		return false;
+	}
+	if (ew_mode_is_express_delivery($conn, $mode_id)) {
 		return false;
 	}
 	$has_group = false;
@@ -1503,12 +1685,15 @@ function ew_mode_is_air_freight($conn, $mode_id)
 	return false;
 }
 
-/** @return string flight, train, or empty */
+/** @return string flight, train, express, or empty */
 function ew_mode_offload_kind($conn, $mode_id)
 {
 	$mode_id = (int) $mode_id;
 	if ($mode_id <= 0 || ew_mode_is_road_freight($conn, $mode_id)) {
 		return '';
+	}
+	if (ew_mode_is_express_delivery($conn, $mode_id)) {
+		return 'express';
 	}
 	if (ew_mode_is_air_freight($conn, $mode_id)) {
 		return 'flight';
@@ -1585,6 +1770,71 @@ function ew_status_pickup_carrier_options($conn)
 	return $out;
 }
 
+/** Decode train_type column for status pickup (train:ID, flight:ID, or legacy numeric). */
+function ew_status_carrier_storage_decode($stored)
+{
+	$stored = trim((string) $stored);
+	$out = array(
+		'kind' => '',
+		'id' => 0,
+		'train_id' => 0,
+		'flight_id' => 0,
+	);
+	if ($stored === '') {
+		return $out;
+	}
+	if (preg_match('/^train:(\d+)$/i', $stored, $m)) {
+		$out['kind'] = 'train';
+		$out['id'] = (int) $m[1];
+		$out['train_id'] = (int) $m[1];
+
+		return $out;
+	}
+	if (preg_match('/^flight:(\d+)$/i', $stored, $m)) {
+		$out['kind'] = 'flight';
+		$out['id'] = (int) $m[1];
+		$out['flight_id'] = (int) $m[1];
+
+		return $out;
+	}
+	if (ctype_digit($stored)) {
+		$out['id'] = (int) $stored;
+	}
+
+	return $out;
+}
+
+function ew_status_carrier_storage_encode($kind, $carrier_id)
+{
+	$kind = trim((string) $kind);
+	$carrier_id = (int) $carrier_id;
+	if ($carrier_id <= 0 || ($kind !== 'train' && $kind !== 'flight')) {
+		return '';
+	}
+
+	return strtolower($kind) . ':' . $carrier_id;
+}
+
+function ew_status_pickup_journey_hours($conn, $kind, $carrier_id)
+{
+	$carrier_id = (int) $carrier_id;
+	$kind = trim((string) $kind);
+	if ($carrier_id <= 0 || ($kind !== 'train' && $kind !== 'flight')) {
+		return 0.0;
+	}
+	if ($kind === 'train') {
+		$q = @mysqli_query($conn, "SELECT journey_hours FROM train WHERE train_id='$carrier_id' AND status=0 LIMIT 1");
+	} else {
+		$q = @mysqli_query($conn, "SELECT journey_hours FROM flight WHERE flight_id='$carrier_id' AND status=0 LIMIT 1");
+	}
+	$row = $q ? mysqli_fetch_assoc($q) : null;
+	if (!$row || !isset($row['journey_hours']) || !is_numeric($row['journey_hours'])) {
+		return 0.0;
+	}
+
+	return (float) $row['journey_hours'];
+}
+
 function ew_status_pickup_carrier_valid($conn, $kind, $carrier_id)
 {
 	$carrier_id = (int) $carrier_id;
@@ -1600,11 +1850,38 @@ function ew_status_pickup_carrier_valid($conn, $kind, $carrier_id)
 }
 
 /** Resolve booked train/flight label for tracking (train_type column stores train_id or flight_id). */
-function ew_tracking_carrier_label($conn, $mode_id, $carrier_id)
+function ew_tracking_carrier_label($conn, $mode_id, $carrier_stored)
 {
 	$kind = ew_mode_offload_kind($conn, $mode_id);
-	$carrier_id = (int) $carrier_id;
-	if ($kind === '' || $carrier_id <= 0) {
+	$stored = trim((string) $carrier_stored);
+	if ($kind === '') {
+		return array('kind' => '', 'label' => '');
+	}
+	if ($kind === 'express') {
+		$decoded = ew_status_carrier_storage_decode($stored);
+		if ($decoded['kind'] === 'train' && $decoded['train_id'] > 0) {
+			$q = @mysqli_query($conn, "SELECT train_name, train_number FROM train WHERE train_id='" . (int) $decoded['train_id'] . "' LIMIT 1");
+			$row = $q ? mysqli_fetch_assoc($q) : null;
+
+			return array(
+				'kind' => 'train',
+				'label' => $row ? ew_transport_carrier_option_label($row['train_name'] ?? '', $row['train_number'] ?? '') : '',
+			);
+		}
+		if ($decoded['kind'] === 'flight' && $decoded['flight_id'] > 0) {
+			$q = @mysqli_query($conn, "SELECT flight_name, flight_number FROM flight WHERE flight_id='" . (int) $decoded['flight_id'] . "' LIMIT 1");
+			$row = $q ? mysqli_fetch_assoc($q) : null;
+
+			return array(
+				'kind' => 'flight',
+				'label' => $row ? ew_transport_carrier_option_label($row['flight_name'] ?? '', $row['flight_number'] ?? '') : '',
+			);
+		}
+
+		return array('kind' => 'express', 'label' => '');
+	}
+	$carrier_id = (int) $stored;
+	if ($carrier_id <= 0) {
 		return array('kind' => $kind, 'label' => '');
 	}
 	if ($kind === 'train') {
@@ -1920,6 +2197,7 @@ $data = array(
 		$carrier = ew_tracking_carrier_label($conn, $mode_id, $row['train_type'] ?? 0);
 		$data['carrierKind'] = $carrier['kind'];
 		$data['carrierLabel'] = $carrier['label'];
+		$data['isExpressDelivery'] = ew_mode_is_express_delivery($conn, $mode_id);
 		if (ew_mode_is_road_freight($conn, $mode_id)) {
 			$breakdown = ew_road_breakdown_for_message($conn, $grn, $status);
 			$data['breakdownOpen'] = $breakdown['open'];
@@ -2394,6 +2672,48 @@ function ew_hub_next_code($conn)
 	ew_master_sync_menu_codes($conn);
 	$prefix = ew_master_code_prefix('Hub Details');
 	return ew_master_format_code($prefix, ew_master_max_code_number($conn, 'hub', 'hub_code', $prefix) + 1);
+}
+
+/** Shared cancellation reason lists (booking / tax invoice). */
+function ew_cancellation_reasons($context = 'booking')
+{
+	$context = strtolower(trim((string) $context));
+	if ($context === 'invoice') {
+		return array(
+			'Duplicate invoice',
+			'Wrong customer or GCN mapped',
+			'Amount or rate error',
+			'Invoice raised in error',
+			'Other',
+		);
+	}
+	if ($context === 'receipt') {
+		return array(
+			'Duplicate receipt',
+			'Wrong invoice or customer mapped',
+			'Amount or allocation error',
+			'Receipt entered in error',
+			'Other',
+		);
+	}
+	return array(
+		'Customer request',
+		'Wrong booking details',
+		'Duplicate booking',
+		'Operational / service issue',
+		'Other',
+	);
+}
+
+function ew_hub_ensure_location_city_column($conn)
+{
+	if (!ew_master_table_exists($conn, 'hub')) {
+		return;
+	}
+	$chk = mysqli_query($conn, "SHOW COLUMNS FROM hub LIKE 'location_city_id'");
+	if ($chk && mysqli_num_rows($chk) === 0) {
+		mysqli_query($conn, 'ALTER TABLE hub ADD COLUMN location_city_id INT NOT NULL DEFAULT 0 AFTER contact_no');
+	}
 }
 
 /** Normalize stored codes GE/GEC### → EW### (same numeric part). */

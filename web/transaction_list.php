@@ -6,11 +6,21 @@ require_once ('include/transaction_list_query.php');
 $logged_id = $_SESSION['user_id'];
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <?php include ('include/title.php'); ?>
     <?php include ('include/css_js.php'); ?>
+    <script>
+    (function () {
+        try {
+            if (localStorage.getItem('ew-txn-theme') === 'dark') {
+                document.documentElement.classList.add('dark-theme');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <link href="stylesheets/ew-transactions-theme.css?v=20261026b" media="all" rel="stylesheet" type="text/css" />
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 
 
@@ -557,6 +567,7 @@ $logged_id = $_SESSION['user_id'];
         <!-- Navigation -->
         <div class="navbar navbar-fixed-top scroll-hide">
             <?php
+            $ew_show_theme_toggle = true;
             require_once ('include/header.php');
             require_once ('include/menu.php');
 
@@ -755,11 +766,13 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                             <td class="actions center-content col-actions">
                                                 <div class="action-buttons txn-action-group">
                                                     <?php if ($booking == '1') { ?>
-                                                        <a title="Info" href="#cancel_grn_popup" class="table-actions show_info_popup"  data-toggle="modal" data-remarks="<?php echo $remarks; ?>" data-createdby="<?php echo $cancelled_by; ?>" data-createdat="<?php echo $updated_at; ?>" id="<?php echo $row['transaction_id']; ?>" ><i class="fa fa-exclamation-circle"></i></a>
+                                                        <a title="Cancellation details" href="javascript:void(0);" class="table-actions ew-booking-cancel-info" data-remarks="<?php echo htmlspecialchars((string) $remarks, ENT_QUOTES, 'UTF-8'); ?>" data-createdby="<?php echo htmlspecialchars((string) $cancelled_by, ENT_QUOTES, 'UTF-8'); ?>" data-createdat="<?php echo htmlspecialchars((string) $updated_at, ENT_QUOTES, 'UTF-8'); ?>" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-exclamation-circle"></i></a>
                                                         <a title="Edit" href="#" class="table-actions btn-edit edit_disabled disable_action" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a>
                                                         <?php echo transaction_list_track_action_html($row); ?>
                                                         <a class="table-actions disable_action" href="javascript:void(0);" data-status="<?php echo $row['status'] ?>" title="View" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-print"></i></a>
+                                                        <?php /* Invoice (GST) hidden for now
                                                         <a class="table-actions disable_action " href="javascript:void(0);" data-status="<?php echo $row['status'] ?>" title="Invoice" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-file"></i></a>
+                                                        */ ?>
                                                         <a title="Cancel" class="table-actions btn-edit disable_action" href="javascript:void(0);" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-ban"></i></a>
                                                         <a title="E-way Attachments" href="javascript:void(0);" class="table-actions btn-eway disable_action" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-paperclip"></i></a>
                                                         <?php
@@ -781,13 +794,13 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                         <?php
                                                         // Full edit for submitted bookings (status 1–7). Pay-at-Booking mode (3) stays locked.
                                                         // After delivery (status 8): payment/billing edit only until invoiced.
-                                                        if ($consignment_mode == '3') {
+                                                        if ($consignment_mode == '3' && !transaction_gcn_temporary_edit_allowed($row['grn_no'] ?? '')) {
                                                             ?>
                                                         <a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="<?php echo $row['transaction_id']; ?>" readonly><i class="fa fa-pencil"></i></a>
                                                             <!-- <a title="Pay at Booking" href="#" class="table-actions btn-edit edit_disabled" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-pencil"></i></a> -->
 
                                                         <?php
-                                                        } elseif ($gcn_billed) {
+                                                        } elseif ($gcn_billed && !transaction_gcn_temporary_edit_allowed($row['grn_no'] ?? '')) {
                                                             ?>
                                                         <a title="Invoiced — edit locked" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="<?php echo $row['transaction_id']; ?>" readonly><i class="fa fa-pencil"></i></a>
                                                         <?php
@@ -810,7 +823,9 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                         
                                                         <a class="table-actions" target="_blank" href="transaction_pdf.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>&copy=original" data-status="<?php echo $row['status'] ?>" title="GCN Copy" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-print"></i></a>
 
+                                                        <?php /* Invoice (GST) hidden for now — was gst_invoice_page.php
                                                         <a class="table-actions " target="BLANK" href="gst_invoice_page.php?month=<?php echo $m1; ?>&year=<?php echo $y; ?>&id=<?php echo $row['transaction_id']; ?>" data-status="<?php echo $row['status'] ?>" title="Invoice" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-file"></i></a>
+                                                        */ ?>
                                                         <?php
                                                         if ($consignment_mode == '1' || $consignment_mode == '4') {
                                                             $restricted = check_invoice_restricted($conn, $row['consignee']);
@@ -824,7 +839,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                         }
                                                         if ($status < 6) {  // disable if consignment status is above in transit 3
                                                             ?>
-                                                        	<a title="Cancel" class="table-actions btn-edit cancel_booking" href="#cancel_grn_popup" id="<?php echo $row['transaction_id']; ?>"  data-toggle="modal" data-grnid="<?php echo $row['grn_no']; ?>" data-tabid="<?php echo $trans_name; ?>" ><i class="fa fa-ban"></i></a>
+                                                        	<a title="Cancel" class="table-actions btn-edit cancel_booking" href="javascript:void(0);" id="<?php echo $row['transaction_id']; ?>" data-grnid="<?php echo $row['grn_no']; ?>" data-tabid="<?php echo $trans_name; ?>"><i class="fa fa-ban"></i></a>
                                                     	<?php } else { ?>
                                                             <a class="table-actions disable_action" href="javascript:void(0)"><i class="fa fa-ban"></i></a>
                                                         <?php } ?>
@@ -1085,114 +1100,21 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             //Cancel Grn Popup Script 
 
             //open popup
-            $(document).on('click', '.cancel_booking', function() {
-                var user_id = '<?php echo $logged_id; ?>';
-                var id = $(this).attr('id');
-                var grn_no = $(this).data('grnid');
-                var table_name = $(this).data('tabid');;
-                $("#transaction_id").val(id);
-                $("#table_names").val(table_name);
-                $("#grn_no").val(grn_no);
-                $("#logged_id").val(user_id);
-                $("#cancel_grn").show();
-				$("#show_cancel_grn").hide();
-
-            });
-
-
-            $(document).on('click', '.show_info_popup', function() {
-
-                var remarkss = $(this).data('remarks');
-                var created_by = $(this).data('createdby');
-                var created_at = $(this).data('createdat');
-                $('#show_remarks').val(remarkss);
-                $('#show_client_id').html(created_by);
-                $('#show_created_at').html(created_at);
-                $("#show_cancel_grn").show();
-                $("#cancel_grn").hide();
-
-            });
-
-
-
-            //close pop
-
-            $(document).on('click', '#close_booking_cancel', function() {
-                $("#cancel_grn_popup").modal('hide');
-            });
-
-            //end close pop
-
-            //Save Cancel Grn Booking
-
-            $(document).on('click', '#save_cancel_booking', function() {
-                //alert("You are in");
-
-                var remarks = $('#remarks').val();
-                if (remarks == '') {
-                    var message = 'Please Enter Remarks';
-                    var show = $('#error_msg').show();
-                    var display_msg = $('#error_msg').html(message);
-
-                } else {
-                    if (!confirm("Once Booking Cancelled can not be Revised!")) {
-                        return false;
-                    }
-                    var show = $('#error_msg').hide();
-                    $("#cancel_grn_popup").modal('hide');
-                    $(".form-data-saving").show();
-                    var form = $("#cancel_booking_form");
-                    $.ajax({
-                        url: "save_details.php",
-                        type: "post",
-                        data: form.serialize(),
-                        success: function(response) {
-                            console.log(response);
-                            if (response == 1) {
-                                $(".form-data-saving").hide();
-                                $("#alert-status").text("");
-                                $("#alert-message").text("Booking Cancelled Successfully, please wait until page refresh");
-                                $("#alert-container").addClass("alert-success").slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
-                                    $("#alert-container").hide();
-                                    $("#alert-container").removeClass("alert-success");
-                                    //location.reload();
-                                });
-
-                            } else if (response == 2) {
-                                $(".form-data-saving").hide();
-                                $("#cancel_grn_popup").modal('hide');
-                                $("#alert-status").text("");
-                                $("#alert-message").text("Booking Already Cancelled");
-                                $("#alert-container").addClass("alert-danger").slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
-                                    $("#alert-container").hide();
-                                    $("#alert-container").removeClass("alert-danger");
-                                    // location.reload();
-                                });
-                            } else {
-                                $(".form-data-saving").hide();
-
-                                $("#cancel_grn_popup").modal('hide');
-
-                                $("#alert-status").text("");
-                                $("#alert-message").text("Booking Cancel Failed! Try Again");
-                                $("#alert-container").addClass("alert-danger").slideDown(800).fadeTo(1000, 500).slideUp(800, function() {
-                                    $("#alert-container").hide();
-                                    $("#alert-container").removeClass("alert-danger");
-                                    // location.reload();
-                                });
-
-                            }
-
-
-                        }
-                    })
+            $(document).on('click', '.cancel_booking', function(e) {
+                e.preventDefault();
+                if (typeof ewOpenCancelModal !== 'function') {
+                    return;
                 }
-
-
-
-
+                ewOpenCancelModal({
+                    mode: 'booking',
+                    transactionId: $(this).attr('id'),
+                    grnNo: $(this).data('grnid'),
+                    tableNames: $(this).data('tabid'),
+                    loggedId: '<?php echo $logged_id; ?>',
+                    title: 'Cancel booking',
+                    message: 'Once cancelled, this consignment cannot be revised.'
+                });
             });
-
 
             //End
 
@@ -1853,68 +1775,6 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
     </div>
 
 
-    <div class="modal fade " id="cancel_grn_popup" style="display:none">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button aria-hidden="true" class="close" data-dismiss="modal" type="button">&times;</button>
-                    <h4 class="modal-title" style="color:#fff">
-                        Cancel Booking
-                    </h4>
-                </div>
-                <div class="modal-body" id="old_cancel_grn">
-
-                </div>
-
-                <!--- Cancel Booking / GRN Model -->
-                <div class="modal-body" style="display: none" id="cancel_grn">
-                    <form id="cancel_booking_form" enctype="multipart/form-data">
-                        
-                        <input type="hidden" name="form_name" value="cancel_booking_consignment">
-                        <input type="hidden" name="logged_id" id="logged_id" value="">
-                        <input type="hidden" name="transaction_id" id="transaction_id" value="">
-                        <input type="hidden" name="table_names" id="table_names" value="">
-                        <input type="hidden" name="grn_no" id="grn_no" value="">
-
-                        <label class="control-label">Remarks:</label>
-                        <textarea class="form-control" name="remarks" id="remarks" rows="4" required="required"></textarea>
-                        <small name="error_msg" id="error_msg" style="display:none; color:red;"></small>
-                        <br>
-                        <div class="modal-footer" style="text-align: center;">
-                            <button class="btn btn-danger btn-cancel" type="button" id="close_booking_cancel">Cancel</button>
-                            <button class="btn btn-primary btn-submit" type="button" id="save_cancel_booking">Submit</button>
-                        </div>
-                </div>
-
-
-                <!--- Cancel Booking / GRN Model -->
-
-                <!--Show Remarks Popup -->
-                <div class="modal-body" style="display: none" id="show_cancel_grn">
-					<form id="cancel_booking_form" enctype="multipart/form-data">
-
-						<label class="control-label">Remarks:</label>
-						<textarea class="form-control" name="show_remarks" id="show_remarks" rows="4" required="required" readonly></textarea>
-						<!-- <small name="show_client_id" id="show_client_id" >Cancelled By : <span id="admin_id"></span></small></br>
-						<small name="show_created_at" id="show_created_at" >Cancelled at : <span id="created_at"></span></small> -->
-						<small>Cancelled by : </small><small name="show_client_id" id="show_client_id" ><span id="span_d"></span></small></br>
-						<small>Cancelled at : </small><small name="show_created_at" id="show_created_at" ></small>
-						
-						<br>
-						<div class="modal-footer" style="text-align: center;">
-							<button class="btn btn-info btn-cancel" type="button" id="close_booking_cancel">Close</button>
-						</div>
-				</div>
-                <!---End-->
-
-
-            </div>
-            </form>
-
-        </div>
-    </div>
-
-
     <!-- Import Consignment Modal -->
     <div class="modal fade" id="import_modal" tabindex="-1" role="dialog">
         <div class="modal-dialog">
@@ -1979,6 +1839,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
     </div>
 </div>
 
+<script src="javascripts/ew-transactions-theme.js?v=20261026" type="text/javascript"></script>
 </body>
 
 </html>

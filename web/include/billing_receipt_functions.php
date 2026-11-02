@@ -32,6 +32,13 @@ function ensure_billing_receipt_tables($conn)
     if ($col_q && mysqli_num_rows($col_q) === 0) {
         mysqli_query($conn, "ALTER TABLE billing_receipt_master ADD COLUMN payment_ref_date VARCHAR(20) DEFAULT NULL AFTER payment_ref");
     }
+    $cancel_reason_col = mysqli_query($conn, "SHOW COLUMNS FROM billing_receipt_master LIKE 'cancel_reason'");
+    if ($cancel_reason_col && mysqli_num_rows($cancel_reason_col) === 0) {
+        mysqli_query($conn, "ALTER TABLE billing_receipt_master ADD COLUMN cancel_reason VARCHAR(255) DEFAULT NULL AFTER status");
+        mysqli_query($conn, "ALTER TABLE billing_receipt_master ADD COLUMN cancel_remarks TEXT DEFAULT NULL AFTER cancel_reason");
+        mysqli_query($conn, "ALTER TABLE billing_receipt_master ADD COLUMN cancelled_at DATETIME DEFAULT NULL AFTER cancel_remarks");
+        mysqli_query($conn, "ALTER TABLE billing_receipt_master ADD COLUMN cancelled_by INT DEFAULT NULL AFTER cancelled_at");
+    }
 
     mysqli_query($conn, "CREATE TABLE IF NOT EXISTS billing_receipt_lines (
         line_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -110,6 +117,51 @@ function billing_receipt_tds_percent_options($conn)
     return $out;
 }
 
+/** Total GST % on invoice (e.g. CGST 9% + SGST 9% → 18). Returns 0 when no GST. */
+function billing_invoice_effective_gst_rate_percent(array $master)
+{
+    $taxable = (float) ($master['taxable_value'] ?? 0);
+    if ($taxable <= 0) {
+        return 0.0;
+    }
+    $gst = (float) ($master['gst_amount'] ?? 0);
+    if ($gst <= 0) {
+        $igst = (float) ($master['igst_amount'] ?? 0);
+        $cgst = (float) ($master['cgst_amount'] ?? 0);
+        $sgst = (float) ($master['sgst_amount'] ?? 0);
+        $gst = $igst > 0 ? $igst : ($cgst + $sgst);
+    }
+    if ($gst <= 0) {
+        return 0.0;
+    }
+    return round($gst / $taxable * 100, 4);
+}
+
+/** Pre-GST amount from a GST-inclusive invoice total (÷ 1.18 for 18%, etc.). */
+function billing_receipt_amount_before_gst($grand_total_inclusive, $gst_rate_percent)
+{
+    $amt = (float) $grand_total_inclusive;
+    $rate = (float) $gst_rate_percent;
+    if ($amt <= 0) {
+        return 0.0;
+    }
+    if ($rate <= 0) {
+        return round($amt, 2);
+    }
+    return round($amt / (1 + $rate / 100), 2);
+}
+
+/** TDS on full invoice total: (grand ÷ (1+GST%)) × TDS%. */
+function billing_receipt_calc_tds_on_invoice($grand_total_inclusive, $gst_rate_percent, $tds_rate_percent)
+{
+    $base = billing_receipt_amount_before_gst($grand_total_inclusive, $gst_rate_percent);
+    $tds = (float) $tds_rate_percent;
+    if ($base <= 0 || $tds <= 0) {
+        return 0.0;
+    }
+    return round($base * $tds / 100, 2);
+}
+
 function billing_invoice_received_total($conn, $invoice_id, $exclude_receipt_id = 0)
 {
     $invoice_id = (int) $invoice_id;
@@ -164,12 +216,14 @@ function billing_invoice_settlement_snapshot($conn, $invoice_id, $exclude_receip
     $dn = billing_invoice_note_total($conn, $invoice_id, 'DN', 0);
     $tds_prior = billing_invoice_tds_total($conn, $invoice_id, $exclude_receipt_id);
     $balance = round(max(0, $inv_amt - $paid - $cn + $dn - $tds_prior), 2);
+    $gst_rate = billing_invoice_effective_gst_rate_percent($m);
 
     return array(
         'billing_invoice_id' => $invoice_id,
         'invoice_no' => $m['invoice_no'],
         'invoice_date' => $m['invoice_date'],
         'customer_id' => (int) $m['customer_id'],
+        'gst_rate' => billing_format_money($gst_rate),
         'invoice_amount' => billing_format_money($inv_amt),
         'already_received' => billing_format_money($paid),
         'credit_note' => billing_format_money($cn),
@@ -181,19 +235,24 @@ function billing_invoice_settlement_snapshot($conn, $invoice_id, $exclude_receip
 
 function billing_next_receipt_seq($conn)
 {
-    $q = mysqli_query($conn, "SELECT COALESCE(MAX(CAST(SUBSTRING(receipt_no, 8) AS UNSIGNED)),0) AS n
-        FROM billing_receipt_master
-        WHERE receipt_no LIKE 'EW-RCP/%'");
-    $n = 0;
-    if ($q && ($row = mysqli_fetch_assoc($q))) {
-        $n = (int) $row['n'];
+    $max = 0;
+    $q = mysqli_query($conn, "SELECT receipt_no FROM billing_receipt_master WHERE receipt_no IS NOT NULL AND receipt_no != ''");
+    if ($q) {
+        while ($row = mysqli_fetch_assoc($q)) {
+            $no = trim((string) ($row['receipt_no'] ?? ''));
+            if (preg_match('/^EW-RV(\d+)/i', $no, $m)) {
+                $max = max($max, (int) $m[1]);
+            } elseif (preg_match('#^EW-RCP/(\d+)#i', $no, $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
     }
-    return $n + 1;
+    return $max + 1;
 }
 
 function billing_format_receipt_no($seq)
 {
-    return 'EW-RCP/' . sprintf('%05d', (int) $seq);
+    return 'EW-RV' . sprintf('%04d', (int) $seq);
 }
 
 function billing_preview_receipt_number($conn)
@@ -464,11 +523,71 @@ function billing_save_receipt($conn, $payload, $user_id, $files = null)
     );
 }
 
+function billing_receipt_is_active(array $master)
+{
+    return ($master['status'] ?? '') === 'final';
+}
+
+function billing_cancel_receipt($conn, $billing_receipt_id, $reason, $remarks, $user_id)
+{
+    $billing_receipt_id = (int) $billing_receipt_id;
+    $user_id = (int) $user_id;
+    $reason = trim((string) $reason);
+    $remarks = trim((string) $remarks);
+    ensure_billing_receipt_tables($conn);
+    if ($billing_receipt_id <= 0) {
+        return array('status' => 1, 'message' => 'Invalid receipt.');
+    }
+    if ($reason === '') {
+        return array('status' => 1, 'message' => 'Please select a cancellation reason.');
+    }
+    if ($reason === 'Other' && $remarks === '') {
+        return array('status' => 1, 'message' => 'Please enter details for reason Other.');
+    }
+    $rec = billing_get_receipt($conn, $billing_receipt_id);
+    if (!$rec) {
+        return array('status' => 1, 'message' => 'Receipt not found.');
+    }
+    $st = $rec['master']['status'] ?? '';
+    if ($st === 'cancelled') {
+        return array('status' => 1, 'message' => 'This receipt is already cancelled.');
+    }
+    if ($st !== 'final') {
+        return array('status' => 1, 'message' => 'This receipt cannot be cancelled.');
+    }
+    $now = date('Y-m-d H:i:s');
+    $esc_reason = mysqli_real_escape_string($conn, $reason);
+    $esc_remarks = mysqli_real_escape_string($conn, $remarks);
+    $ok = mysqli_query($conn, "UPDATE billing_receipt_master SET
+        status='cancelled',
+        cancel_reason='$esc_reason',
+        cancel_remarks='$esc_remarks',
+        cancelled_at='$now',
+        cancelled_by='$user_id',
+        updated_at='$now',
+        updated_by='$user_id'
+        WHERE billing_receipt_id='$billing_receipt_id'
+        AND status='final'");
+    if (!$ok || mysqli_affected_rows($conn) < 1) {
+        return array('status' => 1, 'message' => 'Could not cancel receipt.');
+    }
+    return array(
+        'status' => 0,
+        'message' => 'Receipt cancelled. Invoice balances have been updated.',
+        'billing_receipt_id' => $billing_receipt_id,
+        'receipt_no' => $rec['master']['receipt_no'] ?? '',
+    );
+}
+
 function billing_receipt_fetch_view($conn, $billing_receipt_id)
 {
     $billing_receipt_id = (int) $billing_receipt_id;
     $rec = billing_get_receipt($conn, $billing_receipt_id);
-    if (!$rec || ($rec['master']['status'] ?? '') !== 'final') {
+    if (!$rec) {
+        return array('ok' => false, 'message' => 'Receipt not found.');
+    }
+    $st = $rec['master']['status'] ?? '';
+    if ($st !== 'final' && $st !== 'cancelled') {
         return array('ok' => false, 'message' => 'Receipt not found.');
     }
     $m = $rec['master'];
@@ -511,6 +630,11 @@ function billing_receipt_fetch_view($conn, $billing_receipt_id)
         );
     }
 
+    $cancelled_by_label = '—';
+    if ($st === 'cancelled' && (int) ($m['cancelled_by'] ?? 0) > 0 && function_exists('get_user')) {
+        $cancelled_by_label = get_user($conn, $m['cancelled_by']);
+    }
+
     return array(
         'ok' => true,
         'billing_receipt_id' => $billing_receipt_id,
@@ -518,6 +642,11 @@ function billing_receipt_fetch_view($conn, $billing_receipt_id)
         'receipt_date' => $m['receipt_date'] ?? '',
         'receipt_type' => billing_receipt_type_label($m['receipt_type'] ?? ''),
         'receipt_type_key' => $m['receipt_type'] ?? '',
+        'status' => $st,
+        'cancel_reason' => $m['cancel_reason'] ?? '',
+        'cancel_remarks' => $m['cancel_remarks'] ?? '',
+        'cancelled_at' => $m['cancelled_at'] ?? '',
+        'cancelled_by_label' => $cancelled_by_label,
         'party_label' => $party,
         'payment_mode' => $m['payment_mode'] ?? '',
         'payment_ref' => $m['payment_ref'] ?? '',

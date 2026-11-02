@@ -137,6 +137,121 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 			min-width: 300px;
 		}
 
+		.egcn-toolbar-meta-col {
+			flex: 1 1 320px;
+			min-width: 260px;
+			margin-left: auto;
+		}
+
+		.egcn-toolbar-meta-empty {
+			min-height: 36px;
+			padding: 8px 12px;
+			border: 1px dashed #cbd5e1;
+			border-radius: 8px;
+			background: #f8fafc;
+			color: #64748b;
+			font-size: 12px;
+			line-height: 1.4;
+			display: flex;
+			align-items: center;
+		}
+
+		.egcn-toolbar-meta {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			grid-template-rows: auto auto;
+			gap: 8px 14px;
+			margin: 0;
+			padding: 10px 14px;
+			background: linear-gradient(135deg, #0A1E3D 0%, #06416F 100%);
+			border-radius: 8px;
+			border: 1px solid rgba(255, 255, 255, .15);
+			font-size: 12px;
+		}
+
+		.egcn-toolbar-meta dt {
+			font-weight: 700;
+			font-size: 10px;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			color: rgba(255, 255, 255, .72);
+			margin: 0 0 2px;
+		}
+
+		.egcn-toolbar-meta dd {
+			margin: 0;
+			color: #fff;
+			font-weight: 700;
+			font-size: 13px;
+			line-height: 1.3;
+			overflow-wrap: anywhere;
+		}
+
+		.egcn-group-bar {
+			padding: 0 28px 12px;
+			background: linear-gradient(180deg, var(--panel-head-bg, #F3F7FB) 0%, #fff 100%);
+			border-bottom: 1px solid var(--panel-border, #C5D3E0);
+		}
+
+		.egcn-kpi-strip {
+			display: none;
+			flex-wrap: wrap;
+			align-items: stretch;
+			gap: 12px;
+			padding: 16px 28px;
+			background: #fff;
+			border-bottom: 1px solid var(--panel-border, #C5D3E0);
+		}
+
+		.egcn-kpi-strip.is-visible {
+			display: flex;
+		}
+
+		.egcn-kpi-strip .kpi-inline {
+			flex: 1 1 140px;
+			min-width: 120px;
+			background: var(--panel-bg, #FAFCFE);
+			border: 1px solid var(--panel-border, #C5D3E0);
+			border-radius: 10px;
+			padding: 12px 14px;
+			text-align: center;
+			box-sizing: border-box;
+		}
+
+		.egcn-kpi-strip .kpi-inline.kpi-gst {
+			border-style: dashed;
+		}
+
+		.egcn-kpi-strip .kpi-inline .kpi-label {
+			font-size: 11px;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: .04em;
+			color: var(--ew-text-muted, #6B7A8D);
+			margin-bottom: 6px;
+		}
+
+		.egcn-kpi-strip .kpi-inline .kpi-value {
+			font-size: clamp(14px, 0.35vw + 12px, 18px);
+			font-weight: 800;
+			color: var(--ew-navy, #06416F);
+			font-variant-numeric: tabular-nums;
+			white-space: nowrap;
+		}
+
+		.egcn-kpi-strip .kpi-inline.kpi-profit-positive {
+			background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+			border-color: #86efac;
+		}
+
+		.egcn-kpi-strip .kpi-inline.kpi-profit-negative {
+			background: linear-gradient(180deg, #fef2f2 0%, #fecaca 100%);
+			border-color: #fca5a5;
+		}
+
+		.egcn-kpi-strip .kpi-inline.kpi-profit-positive .kpi-value { color: #14532d; }
+		.egcn-kpi-strip .kpi-inline.kpi-profit-negative .kpi-value { color: #b91c1c; }
+
 		.egcn-gcn-control { width: 100%; }
 
 		.egcn-gcn-col #gcn_hint {
@@ -725,6 +840,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 		@media (max-width: 1200px) {
 			.egcn-gcn-col { max-width: 100%; flex: 1 1 100%; min-width: 0; }
+			.egcn-toolbar-meta-col { flex: 1 1 100%; margin-left: 0; max-width: 100%; }
 			.egcn-gcn-col .select2-container,
 			#gcn_key.select2-container { max-width: 100%; }
 
@@ -757,6 +873,8 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 		}
 
 		@media (max-width: 768px) {
+			.egcn-toolbar-meta { grid-template-columns: 1fr; }
+			.egcn-kpi-strip .kpi-inline { flex: 1 1 100%; }
 			.gcn-route-panel .route-inline { flex-direction: column; align-items: flex-start; gap: 6px; }
 			.gcn-route-panel .route-meta-sep { display: none; }
 			.egcn-summary-panel .gcn-kpi-strip,
@@ -827,56 +945,48 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 										<?php echo $gcn_count > 0 ? ($gcn_count . ' GCN(s) loaded. Type to search.') : 'No GCNs found.'; ?>
 									</small>
 								</div>
+								<div class="egcn-toolbar-col egcn-toolbar-meta-col">
+									<label class="egcn-field-label">GCN details</label>
+									<div id="gcn_toolbar_meta_empty" class="egcn-toolbar-meta-empty">
+										<span id="gcn_empty_msg">Select a GCN to view shipment details.</span>
+									</div>
+									<dl class="egcn-toolbar-meta" id="gcn_toolbar_meta" style="display:none;">
+										<div><dt>GCN No</dt><dd id="card_grn_no"></dd></div>
+										<div><dt>GCN date</dt><dd id="card_grn_date"></dd></div>
+										<div><dt>Route</dt><dd id="card_route"></dd></div>
+										<div><dt>Mode of transport</dt><dd id="card_mode"></dd></div>
+										<div><dt>Consignor</dt><dd id="card_consignor"></dd></div>
+										<div><dt>Consignee</dt><dd id="card_consignee"></dd></div>
+									</dl>
+								</div>
+							</div>
+						</div>
+
+						<div id="egcn_group_bar" class="egcn-group-bar" style="display:none;">
+							<div id="gcn_group_cards" class="gcn-group-cards"></div>
+						</div>
+
+						<div id="egcn_kpi_strip" class="egcn-kpi-strip">
+							<div class="kpi-inline">
+								<div class="kpi-label">Revenue</div>
+								<div class="kpi-value" id="sum_revenue">0.00</div>
+							</div>
+							<div class="kpi-inline">
+								<div class="kpi-label">Expenses</div>
+								<div class="kpi-value" id="sum_expenses">0.00</div>
+							</div>
+							<div class="kpi-inline" id="sum_profit_kpi">
+								<div class="kpi-label">Profit</div>
+								<div class="kpi-value" id="sum_profit">0.00</div>
+							</div>
+							<div class="kpi-inline kpi-gst">
+								<div class="kpi-label">GST Amount</div>
+								<div class="kpi-value" id="sum_gst_tracking">0.00</div>
 							</div>
 						</div>
 
 						<div class="egcn-layout">
 							<div class="egcn-split">
-								<section class="egcn-summary-panel">
-									<div class="egcn-panel-title"><i class="fa fa-truck"></i> GCN Summary</div>
-									<div class="egcn-summary-zone">
-										<div id="gcn_card_empty" class="gcn-summary-empty">
-											<i class="fa fa-truck"></i>
-											<span id="gcn_empty_msg">Select a GCN above to load route details and profit summary.</span>
-										</div>
-										<div id="gcn_summary_loaded" style="display:none;">
-											<div id="gcn_group_cards" class="gcn-group-cards" style="display:none;"></div>
-											<div class="egcn-summary-loaded-wrap">
-												<div id="gcn_card" class="gcn-summary-loaded">
-													<dl class="egcn-side-meta">
-														<div><dt>GCN No</dt><dd id="card_grn_no"></dd></div>
-														<div><dt>GCN date</dt><dd id="card_grn_date"></dd></div>
-														<div><dt>Route</dt><dd id="card_route"></dd></div>
-														<div><dt>Mode of transport</dt><dd id="card_mode"></dd></div>
-														<div><dt>Consignor</dt><dd id="card_consignor"></dd></div>
-														<div><dt>Consignee</dt><dd id="card_consignee"></dd></div>
-													</dl>
-												</div>
-												<div class="egcn-summary-metrics">
-													<div class="egcn-side-kpi">
-														<div class="kpi">
-															<div class="kpi-label">Revenue</div>
-															<div class="kpi-value" id="sum_revenue">0.00</div>
-														</div>
-														<div class="kpi">
-															<div class="kpi-label">Expenses</div>
-															<div class="kpi-value" id="sum_expenses">0.00</div>
-														</div>
-														<div class="kpi" id="sum_profit_kpi">
-															<div class="kpi-label">Profit</div>
-															<div class="kpi-value" id="sum_profit">0.00</div>
-														</div>
-													</div>
-													<div class="egcn-gst-tracking">
-														<span class="label">GST spent (tracking only)</span>
-														<strong id="sum_gst_tracking">0.00</strong>
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</section>
-
 								<div class="egcn-lines-panel">
 									<div class="egcn-lines-section">
 										<div class="egcn-panel-title"><i class="fa fa-list"></i> Expense Lines</div>
@@ -1277,10 +1387,11 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 
 		function clearSummary() {
 			gcnContext = null;
-			$('#gcn_summary_loaded').hide();
-			$('#gcn_card_empty').show();
-			$('#gcn_card').hide();
-			$('#gcn_group_cards').hide().empty();
+			$('#gcn_toolbar_meta').hide();
+			$('#gcn_toolbar_meta_empty').show();
+			$('#egcn_kpi_strip').removeClass('is-visible');
+			$('#egcn_group_bar').hide();
+			$('#gcn_group_cards').empty();
 		}
 
 		function buildGroupCardsHtml(ctx) {
@@ -1298,16 +1409,17 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 				clearSummary();
 				return;
 			}
-			$('#gcn_card_empty').hide();
-			$('#gcn_summary_loaded').show();
-			$('#gcn_card').show();
-			$('#gcn_group_cards').hide().empty();
+			$('#gcn_toolbar_meta_empty').hide();
+			$('#gcn_toolbar_meta').show();
+			$('#egcn_group_bar').hide();
+			$('#gcn_group_cards').empty();
+			$('#egcn_kpi_strip').addClass('is-visible');
 			$('#card_grn_no').text(ctx.grn_no || '');
 			$('#card_grn_date').text(ctx.grn_date || '');
 			$('#card_route').text(ctx.route_label || '—');
+			$('#card_mode').text(ctx.mode_of_transport || '—');
 			$('#card_consignor').text(ctx.consignor || '—');
 			$('#card_consignee').text(ctx.consignee || '—');
-			$('#card_mode').text(ctx.mode_of_transport || '—');
 			updateSummary();
 		}
 
@@ -1316,10 +1428,11 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 				clearSummary();
 				return;
 			}
-			$('#gcn_card_empty').hide();
-			$('#gcn_summary_loaded').show();
-			$('#gcn_card').hide();
-			$('#gcn_group_cards').html(buildGroupCardsHtml(ctx)).show();
+			$('#gcn_toolbar_meta_empty').hide();
+			$('#gcn_toolbar_meta').hide();
+			$('#egcn_kpi_strip').addClass('is-visible');
+			$('#gcn_group_cards').html(buildGroupCardsHtml(ctx));
+			$('#egcn_group_bar').show();
 			updateSummary();
 		}
 

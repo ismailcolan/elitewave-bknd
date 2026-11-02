@@ -6,6 +6,8 @@ require_once('include/expense_type_helpers.php');
 expense_type_ensure_schema($conn);
 expense_require_admin();
 $group_rows = expense_group_list($conn, false);
+require_once('include/ew_master_usage_helpers.php');
+$expense_group_usage = ew_master_usage_map($conn, 'expense_group', array_column($group_rows, 'group_id'));
 ?>
 <!DOCTYPE html>
 <html>
@@ -62,7 +64,11 @@ $group_rows = expense_group_list($conn, false);
 												<td><?php echo htmlspecialchars($list['group_name']); ?></td>
 												<td class="actions center-content">
 													<div class="action-buttons">
-														<a title="Edit" class="table-actions btn-edit-expense-group" id="<?php echo (int) $list['group_id']; ?>"><i class="fa fa-pencil"></i></a>
+														<?php echo ew_master_edit_action_html(array(
+															'in_use' => !empty($expense_group_usage[(int) $list['group_id']]),
+															'button_id' => (int) $list['group_id'],
+															'button_class' => 'table-actions btn-edit-expense-group',
+														)); ?>
 														<?php if ((int) $list['status'] === 0) { ?>
 															<a class="table-actions exp-group-active" data-status="0" title="InActive" id="<?php echo (int) $list['group_id']; ?>"><i class="fa fa-check"></i></a>
 														<?php } else { ?>

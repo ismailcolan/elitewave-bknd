@@ -1,6 +1,7 @@
 <?php
 require_once("include/connect.php");
-require_once("include/function.php"); 
+require_once("include/function.php");
+ew_hub_ensure_location_city_column($conn);
 ?>
 <!DOCTYPE html>
 <html>
@@ -11,6 +12,33 @@ require_once("include/function.php");
 <style>
 #contact_no:invalid {
   color: red;
+}
+/* Let Location (Select2) and Cities multiselect menus escape the modal box */
+#hubModal .ew-v2-modal {
+  overflow: visible;
+}
+#hubModal .ew-v2-modal-body {
+  overflow: visible;
+  overflow-y: visible;
+}
+#hubModal .btn-group.multi-select-list {
+  position: relative;
+}
+#hubModal .btn-group.multi-select-list.dropup .multiselect-container.dropdown-menu {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+#hubModal .multiselect-container.dropdown-menu {
+  z-index: 10160 !important;
+  position: absolute;
+}
+body:has(#hubModal.open) .multiselect-container.dropdown-menu {
+  z-index: 10160 !important;
+}
+.ew-hub-location-field .select2-container {
+  z-index: 1;
 }
 .hub_table {
     margin: 0 auto;
@@ -81,7 +109,7 @@ div#dataTable1_length {
 			  </div>
 			  <div class="ew-card">
 				<div class="ew-card-toolbar">
-				  <h2>Hub List</h2>
+				  <h2>Warehouse List</h2>
 				  <div class="ew-toolbar-right">
 					<button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreateHub">
 					  Create <i class="fa fa-plus"></i>
@@ -92,11 +120,15 @@ div#dataTable1_length {
                     <table class="table table-bordered table-striped hub_table" id="dataTable1">
 							<thead>
 								<th class="table-title hub_th" style="width:10%">S.No</th>
-								<th class="table-title hub_th" style="width:20%!important">Hub Code</th>
-								<th class="table-title hub_th" style="width:15%">Hub Name</th>
+								<th class="table-title hub_th" style="width:20%!important">Warehouse Code</th>
+								<th class="table-title hub_th" style="width:15%">Warehouse Name</th>
+								<th class="table-title hub_th" style="width:15%">Contact Person</th>
 								<th class="table-title hub_th" style="width:15%">Contact No</th>
-								<th class="table-title hub_th" style="width:20%">Cities Coverd By Hub</th>
+								<th class="table-title hub_th" style="width:18%">Location</th>
+								<th class="table-title hub_th" style="width:18%">Cities Covered By Hub</th>
+								<?php /* Via Main Hub column hidden for now
 								<th class="table-title hub_th" style="width:15%">Via Main Hub</th>
+								*/ ?>
 							
 								<th class="table-title hub_th" style="width:15%">Action</th>              
 							</thead>
@@ -107,23 +139,25 @@ div#dataTable1_length {
 									$i=1;
 								while($row = mysqli_fetch_array($result))
 								{
-									$city_names="";
-									$cities=explode(",",$row['covered_cities']);
-									for($ci=0;$ci<count($cities);$ci++)
-									{
-										
-										$city_names .=get_city_name($conn,$cities[$ci]).",";
+									$city_names = "";
+									$cities = explode(",", $row['covered_cities']);
+									for ($ci = 0; $ci < count($cities); $ci++) {
+										$city_names .= get_city_name($conn, $cities[$ci]) . ",";
 									}
-									$city_names=rtrim($city_names,",");
+									$city_names = rtrim($city_names, ",");
+									$location_label = ew_city_location_display_label($conn, (int) ($row['location_city_id'] ?? 0));
 							?>
 								<tr>
 									<td class="text-center"><?php echo $i; ?></td>
 									<td class="text-center"><?php echo $row['hub_code']; ?></td>
 									<td><?php echo $row['name']; ?></td>
-									<td><?php echo $row['contact_no']; ?></td>
-									<td><?php echo $city_names; ?></td>
+									<td><?php echo trim((string) ($row['contact_person'] ?? '')) !== '' ? htmlspecialchars($row['contact_person']) : '—'; ?></td>
+									<td><?php echo trim((string) ($row['contact_no'] ?? '')) !== '' ? htmlspecialchars($row['contact_no']) : '—'; ?></td>
+									<td><?php echo $location_label !== '' ? htmlspecialchars($location_label) : '—'; ?></td>
+									<td><?php echo htmlspecialchars($city_names); ?></td>
+									<?php /* Via Main Hub hidden
 									<td><?php if($row['main_hubs']> 0) echo get_hub_name($conn,$row['main_hubs']); else echo "-"; ?></td>
-									
+									*/ ?>
 									<td class="actions center-content ">
 										<div class="action-buttons">
 											<a title="Edit" class="table-actions btn-edit" id="<?php echo $row['hub_id']; ?>"><i class="fa fa-pencil"></i></a>
@@ -167,29 +201,78 @@ div#dataTable1_length {
 		<script type="text/javascript">
 		$(document).ready(function(){
 
-			$('#cities').multiselect({
-				buttonWidth: '100%',
-				buttonClass: 'btn btn-default',
-				maxHeight: 250
-			});
-			$('#cities').multiselect('rebuild');
+			function hubModalCleanupLocationSelect() {
+				var $loc = $('#warehouse_location');
+				if ($loc.length && $loc.data('select2')) {
+					try {
+						$loc.select2('close');
+					} catch (e) {}
+					$loc.select2('destroy');
+				}
+				$('#select2-drop, #select2-drop-mask').remove();
+			}
 
-			function syncMainHubRoute() {
-				var isVia = $('#route_via').is(':checked');
-				var $mainHub = $('#main_hub');
-				if (isVia) {
-					$mainHub.prop('required', true);
-					$('#main_hub_required').show();
-					$('#main_hub_group').show();
-				} else {
-					$mainHub.prop('required', false).val('');
-					$('#main_hub_required').hide();
-					$('#main_hub_group').show();
+			function initWarehouseLocationSelect() {
+				hubModalCleanupLocationSelect();
+				var $loc = $('#warehouse_location');
+				if (!$loc.length) {
+					return;
+				}
+				$loc.select2({
+					width: '100%',
+					placeholder: 'Search city, state, country',
+					allowClear: true,
+					minimumResultsForSearch: 0
+				});
+			}
+
+			function syncHubCitiesMultiselectDirection() {
+				var $select = $('#cities');
+				var ms = $select.data('multiselect');
+				if (!ms || !ms.$container) {
+					return;
+				}
+				var $container = ms.$container;
+				var $btn = $container.find('button.multiselect');
+				if (!$btn.length) {
+					return;
+				}
+				var rect = $btn[0].getBoundingClientRect();
+				var vh = window.innerHeight || document.documentElement.clientHeight;
+				var menuNeed = 280;
+				var spaceBelow = vh - rect.bottom - 16;
+				var spaceAbove = rect.top - 16;
+				var openUp = spaceBelow < menuNeed && spaceAbove > spaceBelow;
+				$container.toggleClass('dropup', openUp);
+				if (ms.$ul && ms.$ul.length) {
+					ms.$ul.css('margin-top', '');
 				}
 			}
 
-			$(document).on('change', '.route', syncMainHubRoute);
-			syncMainHubRoute();
+			$('#cities').multiselect({
+				buttonWidth: '100%',
+				buttonClass: 'btn btn-default',
+				maxHeight: 250,
+				dropUp: false,
+				enableFiltering: true,
+				enableCaseInsensitiveFiltering: true,
+				filterPlaceholder: 'Search city',
+				onDropdownShow: syncHubCitiesMultiselectDirection,
+				onDropdownShown: syncHubCitiesMultiselectDirection
+			});
+			$('#cities').multiselect('rebuild');
+			$(window).on('resize scroll', function() {
+				if ($('#hubModal').hasClass('open') && $('#cities').closest('.btn-group').hasClass('open')) {
+					syncHubCitiesMultiselectDirection();
+				}
+			});
+
+			$(document).on('click', '#hubModal [data-ew-v2-close], #hubModal .ew-v2-modal-close', hubModalCleanupLocationSelect);
+			$(document).on('click', '#hubModal.ew-v2-modal-backdrop.open', function(e) {
+				if (e.target === this) {
+					hubModalCleanupLocationSelect();
+				}
+			});
 
 			var dup_chk = true;
 			function duplicate_check(){
@@ -263,6 +346,7 @@ div#dataTable1_length {
                 .fadeTo(1000,500)
                 .slideUp(800,function(){
                     $("#alert-container").hide().removeClass("alert-success");
+                    hubModalCleanupLocationSelect();
                     location.reload();
                 });
         }else{
@@ -381,12 +465,11 @@ div#dataTable1_length {
 				$('#hub_name').val('');
 				$('#contact_name').val('');
 				$('#contact_no').val('');
-				$('#route_main').prop('checked', true);
-				$('#main_hub').val('');
+				$('#warehouse_location').val('');
 				$('#cities').val([]);
 				$('#cities').multiselect('refresh');
-				syncMainHubRoute();
-				$('#hubModalTitle').text('Create Hub');
+				initWarehouseLocationSelect();
+				$('#hubModalTitle').text('Create Warehouse');
 				ewV2OpenModal('hubModal');
 			});
 
@@ -410,21 +493,21 @@ div#dataTable1_length {
 						$("#contact_name").val(result['contact_person']);
 						$("#contact_no").val(result['contact_no']);
 						
-						if(result['route']=="Via"){
-							$("#route_via").prop("checked",true);
-							$("#main_hub").val(result['main_hubs']);
+						initWarehouseLocationSelect();
+						if (result['location_city_id']) {
+							$('#warehouse_location').select2('val', String(result['location_city_id']));
 						} else {
-							$("#route_main").prop("checked",true);
-							$("#main_hub").val("");
+							$('#warehouse_location').select2('val', '');
 						}
-						syncMainHubRoute();
-
-						if(result['covered_cities']){
+						if (result['covered_cities']) {
 							var cityIds = result['covered_cities'].split(',');
 							$('#cities').val(cityIds);
 							$('#cities').multiselect('refresh');
+						} else {
+							$('#cities').val([]);
+							$('#cities').multiselect('refresh');
 						}
-						$('#hubModalTitle').text('Edit Hub');
+						$('#hubModalTitle').text('Edit Warehouse');
 						ewV2OpenModal('hubModal');
 					},
 					error: function(jqxhr) {
@@ -442,11 +525,10 @@ div#dataTable1_length {
 				$('#hub_name').val('');
 				$('#contact_name').val('');
 				$('#contact_no').val('');
-				$('#route_main').prop('checked', true);
-				$('#main_hub').val('');
+				$('#warehouse_location').val('');
 				$('#cities').val([]);
 				$('#cities').multiselect('refresh');
-				syncMainHubRoute();
+				hubModalCleanupLocationSelect();
 				ewV2CloseModal('hubModal');
 			});
 
@@ -501,7 +583,7 @@ div#dataTable1_length {
 		<div class="ew-v2-modal-backdrop" id="hubModal">
 		  <div class="ew-v2-modal ew-v2-modal--lg">
 			<div class="ew-v2-modal-head">
-			  <h3 id="hubModalTitle">Create Hub</h3>
+			  <h3 id="hubModalTitle">Create Warehouse</h3>
 			  <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
 			</div>
 			<div class="ew-v2-modal-body">
@@ -512,22 +594,25 @@ div#dataTable1_length {
 				  <div class="message" style="text-align:center"></div>
 				</div>
 				<div class="form-group">
-				  <label class="control-label">Hub Code <span style="color:red;">*</span> :</label>
+				  <label class="control-label">Warehouse Code <span style="color:red;">*</span> :</label>
 				  <input type="text" id="hub_code" name="hub_code" placeholder="<?php echo htmlspecialchars(ew_master_format_code(ew_master_code_prefix('Hub Details'), 1)); ?>" class="form-control" disabled/>
 				</div>
 				<div class="form-group">
-				  <label class="control-label">Hub Name <span style="color:red;">*</span> :</label>
+				  <label class="control-label">Warehouse Name <span style="color:red;">*</span> :</label>
 				  <input type="text" name="hub_name" id="hub_name" class="form-control" required/>
 				  <span class="dup-check"></span>
 				</div>
 				<div class="form-group">
-				  <label class="control-label">Hub Contact Person:</label>
+				  <label class="control-label">Warehouse Contact Person:</label>
 				  <input type="text" name="contact_name" id="contact_name" class="form-control" />
 				</div>
 				<div class="form-group">
-				  <label class="control-label">Hub Contact Number:</label>
+				  <label class="control-label">Warehouse Contact Number:</label>
 				  <input type="text" name="contact_no" id="contact_no" class="form-control" pattern="\d{10}" minlength=10 maxlength=10 inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9\.]+/g, '');" onpaste="return ewNumericPaste(event,this);" autocomplete="off"/>
 				</div>
+				<input type="hidden" name="route" value="Main" />
+				<input type="hidden" name="main_hub" value="" />
+				<?php /* Hub Route / Via Main Hub — hidden for now
 				<div class="form-group">
 				  <label class="control-label">Hub Route:</label>
 				  <input type="radio" name="route" class="route" id="route_main" value="Main" checked /> Main Hub
@@ -537,28 +622,25 @@ div#dataTable1_length {
 				  <label class="control-label">If Via Main Hub <span id="main_hub_required" style="color:red;display:none;">*</span> :</label>
 				  <select name="main_hub" class="form-control" id="main_hub">
 					<option value="">Select Main Hub</option>
-					<?php 
-						$state_query ="select * from hub where status=0 order by name";
-						$state_result = mysqli_query($conn,$state_query);
-						while($state_row= mysqli_fetch_array($state_result)){
-					?>
-					<option value="<?php echo $state_row['hub_id'] ?>"><?php echo $state_row['name']; ?></option>
-					<?php
-					}
-					?>
 				  </select>
+				</div>
+				*/ ?>
+				<div class="form-group ew-hub-location-field">
+				  <label class="control-label">Location <span style="color:red;">*</span> :</label>
+				  <select name="location_city_id" class="form-control" id="warehouse_location" required>
+					<option value=""></option>
+					<?php echo ew_hub_location_select_options_html($conn); ?>
+				  </select>
+				  <p class="help-block" style="margin-top:6px;font-size:12px;color:#6B7A8D;">City, State, Country — searchable dropdown.</p>
 				</div>
 				<div class="form-group">
 				  <label class="control-label">Cities Covered By Hub:</label>
-				  <select name="cities[]" class="form-control" id="cities" multiple required />
-					<?php 
-						$state_query ="select * from city where status=0 order by city_name";
-						$state_result = mysqli_query($conn,$state_query);
-						while($state_row= mysqli_fetch_array($state_result)){
-					?>
-					<option value="<?php echo $state_row['city_id'] ?>"><?php echo $state_row['city_name']; ?></option>
+				  <select name="cities[]" class="form-control" id="cities" multiple="multiple">
 					<?php
-					}
+						$city_list_q = mysqli_query($conn, 'SELECT city_id, city_name FROM city WHERE status=0 ORDER BY city_name');
+						while ($city_list_row = mysqli_fetch_array($city_list_q)) {
+							echo '<option value="' . (int) $city_list_row['city_id'] . '">' . htmlspecialchars($city_list_row['city_name']) . '</option>';
+						}
 					?>
 				  </select>
 				</div>

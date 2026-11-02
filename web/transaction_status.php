@@ -296,6 +296,14 @@ $status_pickup_carriers = ew_status_pickup_carrier_options($conn);
         body:not(:has(#status_popup_modal.open)) .ui-timepicker-wrapper {
             display: none !important;
         }
+        /* Select2 appends to body; mask must sit above modal backdrop so outside click closes */
+        body:has(#status_popup_modal.open) #select2-drop-mask {
+            z-index: 10140 !important;
+        }
+        body:not(:has(#status_popup_modal.open)) .select2-drop,
+        body:not(:has(#status_popup_modal.open)) #select2-drop-mask {
+            display: none !important;
+        }
         @media (max-width: 767px) {
             .txn-page-wrap { padding: 0 12px 24px; }
         }
@@ -530,6 +538,15 @@ if ($delivery_type == 'partial') {
 } else {
     $display_status = get_trans_status($row['status']);
 }
+$ts_mode_id = (int) ($row['mode_of_transportation'] ?? 0);
+$ts_cargo_kind = ew_mode_offload_kind($conn, $ts_mode_id);
+$ts_carrier_dec = ew_status_carrier_storage_decode($row['train_type'] ?? '');
+$ts_cargo_id = 0;
+if ($ts_cargo_kind === 'train' || $ts_cargo_kind === 'flight') {
+    $ts_cargo_id = (int) ($ts_carrier_dec['id'] > 0 ? $ts_carrier_dec['id'] : ($row['train_type'] ?? 0));
+}
+$ts_express_train = (int) ($ts_carrier_dec['train_id'] ?? 0);
+$ts_express_flight = (int) ($ts_carrier_dec['flight_id'] ?? 0);
                                             ?>
                                             <tr>
                                                 <td class="text-center" data-label="S.No" data-order="<?php echo (int) transaction_gcn_serial_no($row); ?>"><?php echo (int) transaction_gcn_serial_no($row); ?></td>
@@ -546,7 +563,7 @@ if ($delivery_type == 'partial') {
                                                     'total_packages' => $total_packages,
                                                 )); ?></td>
 
-                                                <td class="col-steps actions center-content" data-label="Change Status" data-road="<?php echo ew_mode_is_road_freight($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0'; ?>" data-transit-hours="<?php echo ew_mode_uses_transit_hours($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0'; ?>" data-cargo-kind="<?php echo htmlspecialchars(ew_mode_offload_kind($conn, $row['mode_of_transportation'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>" data-cargo-id="<?php echo (int) ($row['train_type'] ?? 0); ?>" data-breakdown-open="<?php echo ew_road_breakdown_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>" data-offload-open="<?php echo ew_air_offload_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>">
+                                                <td class="col-steps actions center-content" data-label="Change Status" data-road="<?php echo ew_mode_is_road_freight($conn, $ts_mode_id) ? '1' : '0'; ?>" data-transit-hours="<?php echo ew_mode_uses_transit_hours($conn, $ts_mode_id) ? '1' : '0'; ?>" data-cargo-kind="<?php echo htmlspecialchars($ts_cargo_kind, ENT_QUOTES, 'UTF-8'); ?>" data-cargo-id="<?php echo (int) $ts_cargo_id; ?>" data-express-train="<?php echo (int) $ts_express_train; ?>" data-express-flight="<?php echo (int) $ts_express_flight; ?>" data-breakdown-open="<?php echo ew_road_breakdown_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>" data-offload-open="<?php echo ew_air_offload_is_open($conn, $row['grn_no']) ? '1' : '0'; ?>">
                                                     <div>
                                                         <button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>
                                                         <button class="border picked-up <?php if ($row['status'] >= 2) { echo 'show_info_popup'; } ?>" <?php if ($row['status'] >= 2) { echo 'readonly'; } else { ?> id="status_popup" <?php } ?> data-status="2" data-tabid="<?php echo $trans_name; ?>" data-grnid="<?php echo $row['grn_id']; ?>" data-grnno="<?php echo $row['grn_no']; ?>" <?php if ($row['status'] >= 2) { echo 'data-remarks="' . get_cong_remarks($conn, 2, $row['grn_no']) . '"'; } ?> data-consignment="<?php echo $row['transaction_id']; ?>" title="Consignment Picked Up"><?php if ($row['status'] >= 2) { echo "<i class='fa fa-check'></i>"; } else { echo '2'; } ?></button>
@@ -772,6 +789,28 @@ if ($delivery_type == 'partial') {
             $('.ui-timepicker-wrapper').hide();
         }
 
+        function scrollStatusModalFieldForPicker(inputId, dropdownHeight) {
+            var body = document.querySelector('#status_popup_modal .ew-v2-modal-body');
+            var input = document.getElementById(inputId);
+            if (!body || !input) {
+                return;
+            }
+            var footerGap = 72;
+            var inputBottom = input.getBoundingClientRect().bottom;
+            var roomNeeded = inputBottom + dropdownHeight + footerGap - window.innerHeight;
+            if (roomNeeded > 0) {
+                body.scrollTop += roomNeeded;
+            }
+        }
+
+        function scrollStatusDateFieldForPicker() {
+            scrollStatusModalFieldForPicker('status_date', 290);
+        }
+
+        function scrollStatusTimeFieldForPicker() {
+            scrollStatusModalFieldForPicker('status_time', 170);
+        }
+
         function initStatusTimePicker() {
             var $time = $('#status_time');
             if (!$time.length || $time.data('ew-time-init')) {
@@ -795,6 +834,10 @@ if ($delivery_type == 'partial') {
                     return;
                 }
                 hideStatusDatePicker();
+                window.setTimeout(function() {
+                    scrollStatusTimeFieldForPicker();
+                    $time.timepicker('reposition');
+                }, 0);
             });
             $time.data('ew-time-init', true);
         }
@@ -819,14 +862,37 @@ if ($delivery_type == 'partial') {
             }, 40);
         }
 
+        function closeAllStatusPickupSelect2() {
+            if (!$.fn.select2) {
+                return;
+            }
+            ['#status_pickup_train', '#status_pickup_flight', '#status_pickup_carrier'].forEach(function(sel) {
+                var $el = $(sel);
+                if (!$el.length || !$el.data('select2')) {
+                    return;
+                }
+                try {
+                    $el.select2('close');
+                } catch (err) {}
+            });
+        }
+
+        function cleanupStatusPickupSelect2Dom() {
+            closeAllStatusPickupSelect2();
+            $('.select2-drop').hide().removeClass('select2-drop-active select2-drop-above');
+            $('#select2-drop-mask').hide();
+        }
+
         function closeStatusChangeModal() {
             hideStatusDatePicker();
             hideStatusTimePicker();
+            cleanupStatusPickupSelect2Dom();
             if (typeof ewV2CloseModal === 'function') {
                 ewV2CloseModal('status_popup_modal');
             } else {
                 $('#status_popup_modal').removeClass('open');
             }
+            cleanupStatusPickupSelect2Dom();
         }
 
         $(document).ready(function() {
@@ -864,6 +930,7 @@ if ($delivery_type == 'partial') {
 
             $(document).on('focus click', '#status_date', function() {
                 hideStatusTimePicker();
+                scrollStatusDateFieldForPicker();
             });
 
             $(document).on('focus click', '#status_time', function() {
@@ -872,11 +939,33 @@ if ($delivery_type == 'partial') {
 
             $(document).on('click', '#status_popup_modal .date-field-icon', function() {
                 hideStatusTimePicker();
+                scrollStatusDateFieldForPicker();
             });
 
             $(document).on('click', '#status_popup_modal [data-ew-v2-close]', function() {
                 hideStatusDatePicker();
                 hideStatusTimePicker();
+                cleanupStatusPickupSelect2Dom();
+            });
+
+            $(document).on('mousedown touchstart', function(e) {
+                if (!$('#status_popup_modal').hasClass('open')) {
+                    return;
+                }
+                var $target = $(e.target);
+                if ($target.closest('.select2-container, .select2-drop, #select2-drop-mask').length) {
+                    return;
+                }
+                if ($target.closest('#status_pickup_train, #status_pickup_flight, #status_pickup_carrier').length) {
+                    return;
+                }
+                closeAllStatusPickupSelect2();
+            });
+
+            $(document).on('click', '#status_popup_modal.ew-v2-modal-backdrop', function(e) {
+                if (e.target === this) {
+                    cleanupStatusPickupSelect2Dom();
+                }
             });
 
             $(document).on('click', '.close-popup', function() {
@@ -892,13 +981,22 @@ if ($delivery_type == 'partial') {
                 if ($('#road_transit_hours_group').is(':visible')) {
                     var transitHours = parseFloat($.trim($('#road_transit_hours').val()));
                     if (!transitHours || transitHours <= 0) {
+                        var cargoKind = $('#status_popup_modal').attr('data-cargo-kind') || '';
+                        if (cargoKind === 'express') {
+                            var trainJh = $('#status_pickup_train').find('option:selected').data('journeyHours');
+                            var flightJh = $('#status_pickup_flight').find('option:selected').data('journeyHours');
+                            transitHours = parseFloat(trainJh || flightJh || '');
+                        }
+                    }
+                    if (!transitHours || transitHours <= 0) {
                         if (typeof ewToast === 'function') {
-                            ewToast('Enter the transit hours from pickup to delivery.', 'warning');
+                            ewToast('Enter transit hours from pickup to delivery, or select a train/flight with journey time.', 'warning');
                         } else {
-                            alert('Enter the transit hours from pickup to delivery.');
+                            alert('Enter transit hours from pickup to delivery, or select a train/flight with journey time.');
                         }
                         return;
                     }
+                    $('#road_transit_hours').val(transitHours);
                 }
                 if ($('#status_cargo_pickup_group').is(':visible')) {
                     var carrierVal = $.trim($('#status_pickup_carrier').val() || '');
@@ -912,6 +1010,7 @@ if ($delivery_type == 'partial') {
                         return;
                     }
                 }
+                /* Express Delivery: train and flight dropdowns are optional */
                 var $saveBtn = $(this);
                 function proceedStatusSave() {
                         $saveBtn.attr('disabled', true);
@@ -1049,10 +1148,19 @@ if (parseInt($("#status").val()) === 8) {
            return String(flag) === '1';
        }
 
-       function syncTransitHoursField(status, usesTransitHours) {
+       function syncTransitHoursField(status, usesTransitHours, cargoKind) {
+           cargoKind = cargoKind || '';
            var show = parseInt(status, 10) === 2 && usesTransitHours;
            $('#road_transit_hours_group').toggle(show);
            $('#road_transit_hours').prop('disabled', !show);
+           var $hoursLabel = $('#road_transit_hours_group > label').first();
+           if (show && cargoKind === 'express') {
+               $hoursLabel.html('Transit hours (pickup to delivery) <span class="req-star">*</span>');
+               $('#road_transit_hours_hint').text('Enter total transit hours, or select a train or flight above to fill from its journey time.');
+           } else if (show) {
+               $hoursLabel.html('Transit hours (pickup to delivery) <span class="req-star">*</span>');
+               $('#road_transit_hours_hint').text('These hours are divided by 6 and rounded to the nearest hour. Transit-1 subtracts one part, then each next status subtracts the same part through Out for Delivery. Example: 73 hours rounds to a 12-hour step, so Transit-1 shows 61.');
+           }
            if (!show) {
                $('#road_transit_hours').val('');
            }
@@ -1077,37 +1185,74 @@ if (parseInt($("#status").val()) === 8) {
            return isNaN(id) ? 0 : id;
        }
 
-       function destroyStatusPickupCarrierSelect2() {
-           var $sel = $('#status_pickup_carrier');
+       function statusRowExpressTrain($el) {
+           var id = $el.attr('data-express-train');
+           if (id === undefined) {
+               var $wrap = $el.closest('[data-express-train]');
+               id = $wrap.length ? $wrap.attr('data-express-train') : '';
+           }
+           id = parseInt(id, 10);
+           return isNaN(id) ? 0 : id;
+       }
+
+       function statusRowExpressFlight($el) {
+           var id = $el.attr('data-express-flight');
+           if (id === undefined) {
+               var $wrap = $el.closest('[data-express-flight]');
+               id = $wrap.length ? $wrap.attr('data-express-flight') : '';
+           }
+           id = parseInt(id, 10);
+           return isNaN(id) ? 0 : id;
+       }
+
+       function destroyStatusPickupSelect2($selectors) {
+           if (!$.fn.select2) {
+               return;
+           }
+           $.each($selectors, function(i, sel) {
+               var $sel = $(sel);
+               if (!$sel.length) {
+                   return;
+               }
+               try {
+                   if ($sel.data('select2')) {
+                       $sel.select2('close');
+                       $sel.select2('destroy');
+                   }
+               } catch (e) {}
+           });
+           if (!$('#status_popup_modal').hasClass('open')) {
+               cleanupStatusPickupSelect2Dom();
+           }
+       }
+
+       function initStatusPickupSelect2($sel) {
            if (!$sel.length || !$.fn.select2) {
                return;
            }
-           try {
-               if ($sel.data('select2')) {
-                   $sel.select2('destroy');
-               }
-           } catch (e) {}
+           $sel.select2({
+               width: '100%',
+               placeholder: 'Select (optional)',
+               allowClear: true,
+               minimumResultsForSearch: 0
+           });
        }
 
-       function fillStatusPickupCarrierSelect(kind, selectedId) {
-           var $sel = $('#status_pickup_carrier');
+       function fillStatusPickupSelect($sel, kind, selectedId) {
            var rows = (statusPickupCarrierLists && statusPickupCarrierLists[kind]) ? statusPickupCarrierLists[kind] : [];
-           var html = '<option value="">Select</option>';
+           var html = '<option value="">Select (optional)</option>';
            $.each(rows, function(i, row) {
                var sel = (selectedId && String(selectedId) === String(row.id)) ? ' selected' : '';
                var jh = row.journey_hours ? String(row.journey_hours).replace(/"/g, '&quot;') : '';
                html += '<option value="' + row.id + '" data-journey-hours="' + jh + '"' + sel + '>' + $('<div>').text(row.label || '').html() + '</option>';
            });
-           destroyStatusPickupCarrierSelect2();
+           try {
+               if ($sel.data('select2')) {
+                   $sel.select2('destroy');
+               }
+           } catch (e) {}
            $sel.html(html);
-           if ($sel.length && $.fn.select2) {
-               $sel.select2({
-                   width: '100%',
-                   placeholder: 'Select',
-                   allowClear: false,
-                   minimumResultsForSearch: 0
-               });
-           }
+           initStatusPickupSelect2($sel);
            if (selectedId) {
                $sel.val(String(selectedId));
                if ($sel.data('select2')) {
@@ -1116,25 +1261,60 @@ if (parseInt($("#status").val()) === 8) {
            }
        }
 
-       function syncPickupCarrierField(status, cargoKind, preselectId) {
+       function syncPickupCarrierField(status, cargoKind, preselectId, expressTrainId, expressFlightId) {
            cargoKind = cargoKind || '';
-           var show = parseInt(status, 10) === 2 && (cargoKind === 'train' || cargoKind === 'flight');
-           $('#status_cargo_pickup_group').toggle(show);
-           if (!show) {
-               destroyStatusPickupCarrierSelect2();
+           var showExpress = parseInt(status, 10) === 2 && cargoKind === 'express';
+           var showSingle = parseInt(status, 10) === 2 && (cargoKind === 'train' || cargoKind === 'flight');
+           $('#status_express_pickup_group').toggle(showExpress);
+           $('#status_cargo_pickup_group').toggle(showSingle);
+           destroyStatusPickupSelect2(['#status_pickup_carrier', '#status_pickup_train', '#status_pickup_flight']);
+           if (showExpress) {
+               fillStatusPickupSelect($('#status_pickup_train'), 'train', expressTrainId || 0);
+               fillStatusPickupSelect($('#status_pickup_flight'), 'flight', expressFlightId || 0);
+               $('#status_pickup_carrier').html('<option value="">Select</option>').prop('disabled', true);
+               return;
+           }
+           $('#status_pickup_train, #status_pickup_flight').html('<option value="">Select (optional)</option>').prop('disabled', true);
+           if (!showSingle) {
                $('#status_pickup_carrier').html('<option value="">Select</option>').prop('disabled', true);
                return;
            }
            var label = cargoKind === 'flight' ? 'Flight' : 'Train';
-           $('#status_cargo_pickup_label').text(label);
+           $('#status_cargo_pickup_label').html(label + ' <span class="req-star">*</span>');
            $('#status_pickup_carrier').prop('disabled', false);
-           fillStatusPickupCarrierSelect(cargoKind, preselectId || 0);
+           fillStatusPickupSelect($('#status_pickup_carrier'), cargoKind, preselectId || 0);
+       }
+
+       function applyPickupCarrierJourneyHours($option) {
+           var jh = $option.data('journeyHours');
+           if (jh && $('#road_transit_hours_group').is(':visible') && !$.trim($('#road_transit_hours').val())) {
+               $('#road_transit_hours').val(jh);
+               loadStatusTrackingMessage();
+           }
        }
 
        $(document).on('change', '#status_pickup_carrier', function() {
-           var jh = $(this).find('option:selected').data('journeyHours');
-           if (jh && $('#road_transit_hours_group').is(':visible') && !$.trim($('#road_transit_hours').val())) {
-               $('#road_transit_hours').val(jh);
+           applyPickupCarrierJourneyHours($(this).find('option:selected'));
+       });
+
+       $(document).on('change', '#status_pickup_train', function() {
+           var val = $.trim($(this).val() || '');
+           if (val) {
+               $('#status_pickup_flight').val('').trigger('change.select2');
+           }
+           applyPickupCarrierJourneyHours($(this).find('option:selected'));
+           if ($('#status_express_pickup_group').is(':visible')) {
+               loadStatusTrackingMessage();
+           }
+       });
+
+       $(document).on('change', '#status_pickup_flight', function() {
+           var val = $.trim($(this).val() || '');
+           if (val) {
+               $('#status_pickup_train').val('').trigger('change.select2');
+           }
+           applyPickupCarrierJourneyHours($(this).find('option:selected'));
+           if ($('#status_express_pickup_group').is(':visible')) {
                loadStatusTrackingMessage();
            }
        });
@@ -1352,11 +1532,15 @@ if (parseInt($("#status").val()) === 8) {
     var pickedTransitHours = statusRowUsesTransitHours($(this));
     var pickedCargoKind = statusRowCargoKind($(this));
     var pickedCargoId = statusRowCargoId($(this));
+    var pickedExpressTrain = statusRowExpressTrain($(this));
+    var pickedExpressFlight = statusRowExpressFlight($(this));
     $('#status_popup_modal').attr('data-transit-hours', pickedTransitHours ? '1' : '0');
     $('#status_popup_modal').attr('data-cargo-kind', pickedCargoKind);
     $('#status_popup_modal').attr('data-cargo-id', pickedCargoId ? String(pickedCargoId) : '');
-    syncTransitHoursField(status, pickedTransitHours);
-    syncPickupCarrierField(status, pickedCargoKind, pickedCargoId);
+    $('#status_popup_modal').attr('data-express-train', pickedExpressTrain ? String(pickedExpressTrain) : '');
+    $('#status_popup_modal').attr('data-express-flight', pickedExpressFlight ? String(pickedExpressFlight) : '');
+    syncTransitHoursField(status, pickedTransitHours, pickedCargoKind);
+    syncPickupCarrierField(status, pickedCargoKind, pickedCargoId, pickedExpressTrain, pickedExpressFlight);
 
     // =====================================
 // Delivery status handling for Status 8
@@ -1541,19 +1725,29 @@ $(document).on('click','.mobile-update-status',function(){
     var mobileTransitHours = statusRowUsesTransitHours($(this));
     var mobileCargoKind = statusRowCargoKind($(this));
     var mobileCargoId = statusRowCargoId($(this));
+    var mobileExpressTrain = statusRowExpressTrain($(this));
+    var mobileExpressFlight = statusRowExpressFlight($(this));
     $('#status_popup_modal').attr('data-transit-hours', mobileTransitHours ? '1' : '0');
     $('#status_popup_modal').attr('data-cargo-kind', mobileCargoKind);
     $('#status_popup_modal').attr('data-cargo-id', mobileCargoId ? String(mobileCargoId) : '');
-    syncTransitHoursField($("#status").val(), mobileTransitHours);
-    syncPickupCarrierField($("#status").val(), mobileCargoKind, mobileCargoId);
+    $('#status_popup_modal').attr('data-express-train', mobileExpressTrain ? String(mobileExpressTrain) : '');
+    $('#status_popup_modal').attr('data-express-flight', mobileExpressFlight ? String(mobileExpressFlight) : '');
+    syncTransitHoursField($("#status").val(), mobileTransitHours, mobileCargoKind);
+    syncPickupCarrierField($("#status").val(), mobileCargoKind, mobileCargoId, mobileExpressTrain, mobileExpressFlight);
     loadStatusTrackingMessage();
 
 });
 $(document).on("change","#mobile_status_select",function(){
     $("#status").val($(this).val());
     var modal = $('#status_popup_modal');
-    syncTransitHoursField($(this).val(), modal.attr('data-transit-hours') === '1');
-    syncPickupCarrierField($(this).val(), modal.attr('data-cargo-kind') || '', parseInt(modal.attr('data-cargo-id') || '0', 10) || 0);
+    syncTransitHoursField($(this).val(), modal.attr('data-transit-hours') === '1', modal.attr('data-cargo-kind') || '');
+    syncPickupCarrierField(
+        $(this).val(),
+        modal.attr('data-cargo-kind') || '',
+        parseInt(modal.attr('data-cargo-id') || '0', 10) || 0,
+        parseInt(modal.attr('data-express-train') || '0', 10) || 0,
+        parseInt(modal.attr('data-express-flight') || '0', 10) || 0
+    );
     loadStatusTrackingMessage();
 });
     </script>
@@ -1588,18 +1782,34 @@ $(document).on("change","#mobile_status_select",function(){
 
                         <div id="status_remarks" class="ts-modal-remarks-panel"></div>
 
+                        <div id="status_express_pickup_group" style="display:none;">
+                            <div class="form-group">
+                                <label for="status_pickup_train">Train</label>
+                                <select class="form-control" id="status_pickup_train" name="status_pickup_train">
+                                    <option value="">Select (optional)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="status_pickup_flight">Flight</label>
+                                <select class="form-control" id="status_pickup_flight" name="status_pickup_flight">
+                                    <option value="">Select (optional)</option>
+                                </select>
+                            </div>
+                            <p class="ew-field-hint" style="margin:0 0 16px;">Express Delivery: choose a train or a flight for this pickup (optional). If you pick one, the other is cleared.</p>
+                        </div>
+
                         <div class="form-group" id="status_cargo_pickup_group" style="display:none;">
                             <label id="status_cargo_pickup_label">Train <span class="req-star">*</span></label>
                             <select class="form-control" id="status_pickup_carrier" name="status_pickup_carrier">
                                 <option value="">Select</option>
                             </select>
-                            <p class="ew-field-hint" style="margin:6px 0 0;">Choose the train or flight this consignment is picked up on. Road consignments do not use this field.</p>
+                            <p class="ew-field-hint" style="margin:6px 0 0;">Choose the train or flight this consignment is picked up on.</p>
                         </div>
 
                         <div class="form-group" id="road_transit_hours_group" style="display:none;">
                             <label>Transit hours (pickup to delivery) <span class="req-star">*</span></label>
                             <input type="text" class="form-control" id="road_transit_hours" name="road_transit_hours" placeholder="Example: 72" autocomplete="off" inputmode="decimal">
-                            <p class="ew-field-hint" style="margin:6px 0 0;">These hours are divided by 6 and rounded to the nearest hour. Transit-1 subtracts one part, then each next status subtracts the same part through Out for Delivery. Example: 73 hours rounds to a 12-hour step, so Transit-1 shows 61.</p>
+                            <p class="ew-field-hint" id="road_transit_hours_hint" style="margin:6px 0 0;">These hours are divided by 6 and rounded to the nearest hour. Transit-1 subtracts one part, then each next status subtracts the same part through Out for Delivery. Example: 73 hours rounds to a 12-hour step, so Transit-1 shows 61.</p>
                         </div>
 
                         <div id="delivery_options" style="display:none;">

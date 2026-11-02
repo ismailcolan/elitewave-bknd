@@ -1,6 +1,7 @@
 <?php
 require_once("include/connect.php");
 require_once("include/function.php");
+require_once("include/ew_master_usage_helpers.php");
 ew_geo_scope_ensure_column($conn, 'state');
 ew_area_ensure_country_name($conn, 'state');
 $geo_scope = ew_geo_scope_from_request();
@@ -64,14 +65,18 @@ $state_page_title = 'State Master';
 								<th class="table-title" style="width:12%">Action</th>              
 							</thead>
 							<tbody>
-							<?php 
+							<?php
 								$query = "select * from state where " . ew_geo_scope_where($conn);
-								$result = mysqli_query($conn,$query);
-									$i=1;
-								while($row = mysqli_fetch_array($result))
-								{
-									
-									
+								$result = mysqli_query($conn, $query);
+								$state_rows = array();
+								if ($result) {
+									while ($row = mysqli_fetch_array($result)) {
+										$state_rows[] = $row;
+									}
+								}
+								$state_usage = ew_master_usage_map($conn, 'state', array_column($state_rows, 'state_id'));
+								$i = 1;
+								foreach ($state_rows as $row) {
 							?>
 								<tr>
 									<td class="text-center"><?php echo $i; ?></td>
@@ -81,7 +86,11 @@ $state_page_title = 'State Master';
 									
 									<td class="actions center-content ">
 										<div class="action-buttons">
-											<a title="Edit" class="table-actions btn-edit" id="<?php echo $row['state_id']; ?>"><i class="fa fa-pencil"></i></a>
+											<?php echo ew_master_edit_action_html(array(
+												'in_use' => !empty($state_usage[(int) $row['state_id']]),
+												'button_id' => (int) $row['state_id'],
+												'button_class' => 'table-actions btn-edit',
+											)); ?>
 											<?php 
 											if($row['status'] == 0)
 											{

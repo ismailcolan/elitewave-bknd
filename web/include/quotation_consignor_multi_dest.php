@@ -177,14 +177,27 @@ function quotation_parse_destination_rows_from_post($conn, $payload)
 		$f = quotation_parse_money_field($freight[$i] ?? 0);
 		$tempo_amt = quotation_parse_money_field($tempo[$i] ?? 0);
 		$row_total = quotation_destination_row_total($f, 0, 0, $tempo_amt);
-		if ($city_id <= 0 && $mode_id <= 0 && $row_total <= 0) {
+		if ($city_id <= 0 && $mode_id <= 0) {
 			continue;
 		}
+		$row_no = $i + 1;
 		if ($city_id <= 0) {
-			return array('ok' => false, 'message' => 'Select destination (city — state) for each row with charges.');
+			return array('ok' => false, 'message' => 'Select destination (city — state) for row ' . $row_no . '.');
 		}
 		if ($mode_id <= 0) {
-			return array('ok' => false, 'message' => 'Select mode of transport for each destination row.');
+			return array('ok' => false, 'message' => 'Select mode of transport for row ' . $row_no . '.');
+		}
+		$day_val = trim((string) ($days[$i] ?? ''));
+		if ($day_val === '') {
+			return array('ok' => false, 'message' => 'Select delivery days for row ' . $row_no . '.');
+		}
+		$freight_raw = trim((string) ($freight[$i] ?? ''));
+		if ($freight_raw === '') {
+			return array('ok' => false, 'message' => 'Enter freight charges for row ' . $row_no . '.');
+		}
+		$tempo_raw = trim((string) ($tempo[$i] ?? ''));
+		if ($tempo_raw === '') {
+			return array('ok' => false, 'message' => 'Enter pickup & delivery charges for row ' . $row_no . '.');
 		}
 		$mode_group = $mode_groups[$mode_id] ?? '';
 		$kind = quotation_mode_source_kind($mode_group);
@@ -213,17 +226,7 @@ function quotation_parse_destination_rows_from_post($conn, $payload)
 		);
 	}
 	if ($rows === array()) {
-		return array('ok' => false, 'message' => 'Add at least one destination row with city, mode, and charges.');
-	}
-	$has_charge = false;
-	foreach ($rows as $row) {
-		if ((float) ($row['row_total'] ?? 0) > 0) {
-			$has_charge = true;
-			break;
-		}
-	}
-	if (!$has_charge) {
-		return array('ok' => false, 'message' => 'Enter freight charges for at least one destination.');
+		return array('ok' => false, 'message' => 'Add at least one complete destination row.');
 	}
 	return array('ok' => true, 'rows' => $rows);
 }
@@ -400,7 +403,7 @@ function quotation_render_destination_row_html($conn, $row, $city_catalog, $mode
 			<?php echo quotation_source_selects_html($conn, 'md', $row, $vehicle_types, $trains, $flights, $form_editable, $mode_group); ?>
 		</td>
 		<td>
-			<select name="md_delivery_days[]" class="form-control md-days" <?php echo $form_editable ? '' : 'disabled'; ?>>
+			<select name="md_delivery_days[]" class="form-control md-days md-req" <?php echo $form_editable ? 'required' : 'disabled'; ?>>
 				<option value="">Days</option>
 				<?php foreach ($delivery_days_opts as $dk => $dl) {
 					$sel = (($row['delivery_days'] ?? '') === $dk) ? ' selected' : '';
@@ -408,8 +411,8 @@ function quotation_render_destination_row_html($conn, $row, $city_catalog, $mode
 				} ?>
 			</select>
 		</td>
-		<td><input type="text" name="md_freight[]" class="form-control md-amt" value="<?php echo htmlspecialchars($row['freight_charges'] ?? ''); ?>" onpaste="return ewNumericPaste(event,this);" <?php echo $form_editable ? '' : 'readonly'; ?> /></td>
-		<td><input type="text" name="md_tempo[]" class="form-control md-amt md-tempo" value="<?php echo htmlspecialchars($row['tempo_charges'] ?? ''); ?>" onpaste="return ewNumericPaste(event,this);" <?php echo $form_editable ? '' : 'readonly'; ?> /></td>
+		<td><input type="text" name="md_freight[]" class="form-control md-amt md-req" value="<?php echo htmlspecialchars($row['freight_charges'] ?? ''); ?>" onpaste="return ewNumericPaste(event,this);" <?php echo $form_editable ? 'required' : 'readonly'; ?> /></td>
+		<td><input type="text" name="md_tempo[]" class="form-control md-amt md-tempo md-req" value="<?php echo htmlspecialchars($row['tempo_charges'] ?? ''); ?>" onpaste="return ewNumericPaste(event,this);" <?php echo $form_editable ? 'required' : 'readonly'; ?> /></td>
 		<?php if ($form_editable) { ?>
 			<td class="md-row-actions text-center">
 				<div class="md-row-action">

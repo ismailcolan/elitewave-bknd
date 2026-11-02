@@ -4,6 +4,9 @@
 if (file_exists(__DIR__ . '/ew_delete_modal.php')) {
 	include __DIR__ . '/ew_delete_modal.php';
 }
+if (file_exists(__DIR__ . '/ew_cancel_modal.php')) {
+	include __DIR__ . '/ew_cancel_modal.php';
+}
 ?>
 
 <footer class="ew-footer">

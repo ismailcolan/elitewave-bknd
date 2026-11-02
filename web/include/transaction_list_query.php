@@ -13,6 +13,13 @@ function transaction_gcn_serial_no($row)
 	return 0;
 }
 
+/** Temporary: allow list + form edit for one GCN while invoiced/locked rules stay for all others. */
+function transaction_gcn_temporary_edit_allowed($grn_no)
+{
+	$g = strtoupper(trim((string) $grn_no));
+	return ($g === 'EW360/0187');
+}
+
 function transaction_list_track_action_html($row)
 {
 	$grn = trim((string) ($row['grn_no'] ?? ''));
@@ -239,28 +246,28 @@ function transaction_list_render_row($conn, $row, $i)
 			$edit_btn = '<a title="Edit Payment / Billing" href="transactions.php?key=' . md5($row['transaction_id']) . '&m=' . $m1 . '&y=' . $y . '" class="table-actions btn-edit" id="' . $row['transaction_id'] . '"><i class="fa fa-pencil"></i></a>';
 		}
 	}
-	if (booking_is_gcn_billed($conn, $trans_name, $row['transaction_id'])) {
+	if (booking_is_gcn_billed($conn, $trans_name, $row['transaction_id'])
+		&& !transaction_gcn_temporary_edit_allowed($row['grn_no'] ?? '')) {
 		$edit_btn = '<a title="Invoiced — edit locked" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>';
 	}
 	$track_btn = transaction_list_track_action_html($row);
 	if ($booking == '1') {
 		$out_put .= "
-			\t    <a title=\"Info\" href=\"#cancel_grn_popup\" class=\"table-actions show_info_popup\"  data-toggle=\"modal\" data-remarks=\"" . htmlspecialchars((string) $remarks, ENT_QUOTES, 'UTF-8') . '" data-createdby="' . htmlspecialchars((string) $cancelled_by, ENT_QUOTES, 'UTF-8') . '" data-createdat="' . htmlspecialchars((string) $updated_at, ENT_QUOTES, 'UTF-8') . '" id="' . $row['transaction_id'] . '" ><i class="fa fa-exclamation-circle"></i></a>
+			\t    <a title=\"Cancellation details\" href=\"javascript:void(0);\" class=\"table-actions ew-booking-cancel-info\" data-remarks=\"" . htmlspecialchars((string) $remarks, ENT_QUOTES, 'UTF-8') . '" data-createdby="' . htmlspecialchars((string) $cancelled_by, ENT_QUOTES, 'UTF-8') . '" data-createdat="' . htmlspecialchars((string) $updated_at, ENT_QUOTES, 'UTF-8') . '" id="' . $row['transaction_id'] . '" ><i class="fa fa-exclamation-circle"></i></a>
                     <a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>
                     ' . $track_btn . '
                     <a class="table-actions disable_action"  href="javascript:void(0)" ><i class="fa fa-print"></i></a>
-                    <a class="table-actions disable_action" href="javascript:void(0)" data-status="' . $row['status'] . '" title="Invoice" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-file"></i></a>
                     <a title="Cancel" href="javascript:void(0) disable_action" class="table-actions cancel_booking disable_action" id="' . $row['transaction_id'] . '" ><i  class="fa fa-ban"></i></a>
                     <a title="E-way Attachments" href="javascript:void(0) disable_action" class="table-actions btn-eways disable_action" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
 	} else {
-		if ($consignment_mode == '3') {
+		if ($consignment_mode == '3' && !transaction_gcn_temporary_edit_allowed($row['grn_no'] ?? '')) {
 			$out_put .= '<a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>';
 		} else {
 			$out_put .= $edit_btn;
 		}
 		$out_put .= $track_btn;
 		$out_put .= '<a class="table-actions" target="_blank" href="transaction_pdf.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '&copy=original" data-status="' . $row['status'] . '" title="GCN Copy" id="' . $row['transaction_id'] . '"><i class="fa fa-print"></i></a>';
-		$out_put .= '<a class="table-actions " target="BLANK" href="gst_invoice_page.php?month=' . $m1 . '&year=' . $y . '&id=' . $row['transaction_id'] . '" data-status="' . $row['status'] . '" title="Invoice" id="' . $row['transaction_id'] . '"><i class="fa fa-file"></i></a>';
+		// Invoice (GST) hidden for now — gst_invoice_page.php
 	}
 	if ($consignment_mode == '1' || $consignment_mode == '4') {
 		$restricted = check_invoice_restricted($conn, $row['consignee']);
@@ -273,7 +280,7 @@ function transaction_list_render_row($conn, $row, $i)
 		$pay_at_book = 1;
 	}
 	if ($status < 6) {
-		$out_put .= '<a title="Cancel" href="#cancel_grn_popup" class="table-actions cancel_booking" id="' . $row['transaction_id'] . '" data-toggle="modal" data-grnid="' . htmlspecialchars($row['grn_no'], ENT_QUOTES, 'UTF-8') . '" data-tabid="' . $trans_name . '"  ><i class="fa fa-ban "></i></a>';
+		$out_put .= '<a title="Cancel" href="javascript:void(0);" class="table-actions cancel_booking" id="' . $row['transaction_id'] . '" data-grnid="' . htmlspecialchars($row['grn_no'], ENT_QUOTES, 'UTF-8') . '" data-tabid="' . $trans_name . '"><i class="fa fa-ban"></i></a>';
 	} else {
 		$out_put .= '<a class="table-actions disable_action" href="javascript:void(0)"><i class="fa fa-ban"></i></a>';
 	}
@@ -381,6 +388,15 @@ function transaction_status_list_render_row($conn, $row, $i)
 	$delivered_packages = $badge_opts['delivered_packages'];
 
 	$sno = transaction_gcn_serial_no($row);
+	$ts_mode_id = (int) ($row['mode_of_transportation'] ?? 0);
+	$ts_cargo_kind = ew_mode_offload_kind($conn, $ts_mode_id);
+	$ts_carrier_dec = ew_status_carrier_storage_decode($row['train_type'] ?? '');
+	$ts_cargo_id = 0;
+	if ($ts_cargo_kind === 'train' || $ts_cargo_kind === 'flight') {
+		$ts_cargo_id = (int) ($ts_carrier_dec['id'] > 0 ? $ts_carrier_dec['id'] : ($row['train_type'] ?? 0));
+	}
+	$ts_express_train = (int) ($ts_carrier_dec['train_id'] ?? 0);
+	$ts_express_flight = (int) ($ts_carrier_dec['flight_id'] ?? 0);
 	$out = '<tr>
 		<td class="text-center" data-label="S.No" data-order="' . $sno . '">' . $sno . '</td>
 		<td data-label="GCN No"><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
@@ -391,7 +407,7 @@ function transaction_status_list_render_row($conn, $row, $i)
 		<td data-label="Destination">' . htmlspecialchars(get_city_name($conn, $row['destination'])) . '</td>
 		<td data-label="Mode">' . htmlspecialchars((string) get_mode($conn, $row['mode_of_transportation'] ?? 0)) . '</td>
 		<td data-label="Status">' . transaction_status_badge($booking, $status, $badge_opts) . '</td>
-		<td class="col-steps actions center-content" data-label="Change Status" data-road="' . (ew_mode_is_road_freight($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0') . '" data-transit-hours="' . (ew_mode_uses_transit_hours($conn, $row['mode_of_transportation'] ?? 0) ? '1' : '0') . '" data-cargo-kind="' . htmlspecialchars(ew_mode_offload_kind($conn, $row['mode_of_transportation'] ?? 0), ENT_QUOTES, 'UTF-8') . '" data-cargo-id="' . (int) ($row['train_type'] ?? 0) . '" data-breakdown-open="' . (ew_road_breakdown_is_open($conn, $row['grn_no'] ?? '') ? '1' : '0') . '" data-offload-open="' . (ew_air_offload_is_open($conn, $row['grn_no'] ?? '') ? '1' : '0') . '"><div>';
+		<td class="col-steps actions center-content" data-label="Change Status" data-road="' . (ew_mode_is_road_freight($conn, $ts_mode_id) ? '1' : '0') . '" data-transit-hours="' . (ew_mode_uses_transit_hours($conn, $ts_mode_id) ? '1' : '0') . '" data-cargo-kind="' . htmlspecialchars($ts_cargo_kind, ENT_QUOTES, 'UTF-8') . '" data-cargo-id="' . (int) $ts_cargo_id . '" data-express-train="' . (int) $ts_express_train . '" data-express-flight="' . (int) $ts_express_flight . '" data-breakdown-open="' . (ew_road_breakdown_is_open($conn, $row['grn_no'] ?? '') ? '1' : '0') . '" data-offload-open="' . (ew_air_offload_is_open($conn, $row['grn_no'] ?? '') ? '1' : '0') . '"><div>';
 	$out .= '<button class="border booked" disabled title="Consignment Booked"><i class="fa fa-check"></i></button>';
 	$out .= transaction_status_step_button($status, $booking, 2, 'picked-up', 'Consignment Picked Up', $trans_name, $row);
 	$out .= transaction_status_step_button($status, $booking, 3, 'transit-1', 'In Transit-1', $trans_name, $row);

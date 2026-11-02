@@ -1,6 +1,7 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
+require_once('include/ew_master_usage_helpers.php');
 ?>
 <!DOCTYPE html>
 <html>
@@ -107,8 +108,15 @@ th.table-title.sorting_disabled {
                                     <?php
                                     $query = 'select * from package';
                                     $result = mysqli_query($conn, $query);
+                                    $package_rows = array();
+                                    if ($result) {
+                                        while ($row = mysqli_fetch_array($result)) {
+                                            $package_rows[] = $row;
+                                        }
+                                    }
+                                    $package_usage = ew_master_usage_map($conn, 'package', array_column($package_rows, 'package_id'));
                                     $i = 1;
-                                    while ($row = mysqli_fetch_array($result)) {
+                                    foreach ($package_rows as $row) {
                                         ?>
                                         <tr>
                                             <td class="text-center"><?php echo $i; ?></td>
@@ -117,7 +125,11 @@ th.table-title.sorting_disabled {
 
                                             <td class="actions center-content ">
                                                 <div class="action-buttons">
-                                                    <a title="Edit" class="table-actions btn-edit" id="<?php echo $row['package_id']; ?>"><i class="fa fa-pencil"></i></a>
+                                                    <?php echo ew_master_edit_action_html(array(
+                                                        'in_use' => !empty($package_usage[(int) $row['package_id']]),
+                                                        'button_id' => (int) $row['package_id'],
+                                                        'button_class' => 'table-actions btn-edit',
+                                                    )); ?>
                                                 </div>
                                             </td>
                                         </tr>

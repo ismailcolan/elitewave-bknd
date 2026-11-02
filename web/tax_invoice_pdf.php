@@ -11,7 +11,8 @@ if ($id <= 0) {
 }
 
 $data = billing_get_invoice($conn, $id);
-if (!$data || $data['master']['status'] !== 'final') {
+$inv_status = $data['master']['status'] ?? '';
+if (!$data || ($inv_status !== 'final' && $inv_status !== 'cancelled')) {
     die('Invoice not available.');
 }
 
@@ -35,6 +36,13 @@ $mpdf = new \Mpdf\Mpdf(array(
 ));
 $mpdf->SetTitle('Tax Invoice - ' . $data['master']['invoice_no']);
 $mpdf->SetAuthor('EliteWave360 Logistics');
+if ($inv_status === 'cancelled') {
+    $wm = __DIR__ . '/images/pdf/cancel2.png';
+    if (is_file($wm)) {
+        $mpdf->SetWatermarkImage($wm, 0.35, '', array(60, 110));
+        $mpdf->showWatermarkImage = true;
+    }
+}
 $mpdf->WriteHTML($html);
 $filename = 'Tax_Invoice_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $data['master']['invoice_no']) . '.pdf';
 $download = isset($_GET['download']) && $_GET['download'] === '1';

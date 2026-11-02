@@ -6,6 +6,7 @@ require_once('include/function.php');
 require_once('include/quotation_functions.php');
 require_once('include/vehicle_type_helpers.php');
 require_once('include/quotation_consignor_multi_dest.php');
+require_once('include/quotation_destination_master.php');
 
 ensure_rate_quotation_tables($conn);
 ew_vehicle_type_ensure_schema($conn);
@@ -92,6 +93,8 @@ $city_catalog = quotation_city_state_catalog($conn);
 $dest_rows_form = quotation_hydrate_destination_rows_for_form($conn, $id > 0 ? $id : 0);
 $delivery_days_opts = quotation_delivery_days_options();
 $empty_row = quotation_default_destination_rows_for_form()[0];
+$dest_masters = ($id <= 0 && $is_create) ? quotation_dest_master_list_for_picker($conn) : array();
+$dest_master_singleton_id = $dest_masters ? (int) ($dest_masters[0]['master_id'] ?? 0) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -126,7 +129,11 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 		.md-row-action .md-row-btn.is-remove { color: #dc2626; border-color: #fca5a5; }
 		.md-row-action .md-row-btn.is-remove:hover { background: #fef2f2; }
 		.quotation-readonly .form-control:not([readonly]) { pointer-events: none; background: #f8fafc; }
-		.ew-form-footer--quotation { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+		#md_dest_table .md-field-error { border-color: #dc2626 !important; background-color: #fef2f2 !important; }
+		#md_dest_table select.md-field-error.select2-hidden-accessible + .select2-container .select2-selection--single {
+			border-color: #dc2626 !important;
+			background-color: #fef2f2 !important;
+		}
 	</style>
 </head>
 <body class="page-header-fixed bg-1">
@@ -211,7 +218,20 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 
 								<div class="ew-card ew-invoice-details-card">
 									<h2 class="ew-card-section-title">Destinations &amp; charges</h2>
-									<p class="ew-field-hint" style="margin:0 0 10px;"></p>
+									<?php if ($id <= 0 && $is_create && $form_editable) { ?>
+									<input type="hidden" id="md_dest_master_id" value="<?php echo (int) $dest_master_singleton_id; ?>" />
+									<div class="ew-form-body" style="padding-bottom:12px;">
+										<div class="ew-form-grid ew-form-grid--invoice ew-form-grid--quotation">
+											<div class="ew-field span-4">
+												<label>How to fill destination rows</label>
+												<div class="ew-yesno-row" style="margin-top:4px;">
+													<label><input type="radio" name="md_dest_entry_mode" value="manual" checked> Enter new rows manually</label>
+													<label><input type="radio" name="md_dest_entry_mode" value="master"> Pre-filled from Quotation Master</label>
+												</div>
+											</div>
+										</div>
+									</div>
+									<?php } ?>
 									<div class="ew-table-wrap">
 										<table class="table table-bordered table-condensed" id="md_dest_table">
 											<thead>
@@ -219,9 +239,9 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 													<th style="min-width:180px;">Destination (City — State)</th>
 													<th style="min-width:120px;">Mode</th>
 													<th style="min-width:180px;">Source of transport</th>
-													<th style="min-width:110px;">Delivery days</th>
-													<th>Freight charges</th>
-													<th>Pickup &amp; Delivery</th>
+													<th style="min-width:110px;">Delivery days <span class="req">*</span></th>
+													<th>Freight charges <span class="req">*</span></th>
+													<th>Pickup &amp; Delivery <span class="req">*</span></th>
 													<?php if ($form_editable) { ?><th class="text-center md-row-actions"> </th><?php } ?>
 												</tr>
 											</thead>
@@ -262,36 +282,7 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 											<div class="ew-field span-4"><label>Terms &amp; notes</label><textarea name="terms_notes" id="terms_notes" class="form-control pv-bind" rows="2"><?php echo htmlspecialchars($master['terms_notes'] ?? ''); ?></textarea></div>
 										</div>
 									</div>
-									<div class="ew-form-footer ew-form-footer--quotation">
-										<?php if ($editable) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-action" data-action="save_draft">Save draft</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_quotation_preview"><i class="fa fa-eye"></i> Preview</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-action" data-action="submit">Submit for approval</button>
-										<?php } elseif ($form_editable) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-action" data-action="save_draft">Save changes</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_quotation_preview"><i class="fa fa-eye"></i> Preview</button>
-										<?php } else { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_quotation_preview"><i class="fa fa-eye"></i> Preview</button>
-										<?php } ?>
-										<?php if ($status === 'pending_approval') { ?>
-											<p class="ew-field-hint" style="width:100%;margin:0 0 6px;text-align:right;">Approving emails the PDF from athar@elitewave360.in to the customer address above, with a copy to info@elitewave360.in.</p>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-workflow" data-action="approve">Approve &amp; email PDF</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="reject">Reject</button>
-										<?php } ?>
-										<?php if ($status === 'approved') { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-workflow" data-action="mark_sent">Mark sent</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="resend_email">Resend email</button>
-										<?php } ?>
-										<?php if (in_array($status, array('sent', 'customer_confirmed'), true)) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="resend_email">Resend email</button>
-										<?php } ?>
-										<?php if (quotation_can_customer_approve($status)) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-customer-approve" data-id="<?php echo (int) $id; ?>" data-quote="<?php echo htmlspecialchars($master['quote_no'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">Approve (upload reply)</button>
-										<?php } ?>
-										<?php if (!in_array($status, array('converted', 'cancelled'), true)) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="cancel">Cancel</button>
-										<?php } ?>
-									</div>
+									<?php require __DIR__ . '/include/quotation_form_footer.php'; ?>
 								</div>
 							</div>
 							<aside class="ew-letter-preview ew-letter-preview-host" id="letter_preview" aria-hidden="true"></aside>
@@ -335,8 +326,9 @@ window.QUOTATION_VEHICLE_MAP = <?php echo json_encode($vehicle_json); ?>;
 window.QUOTATION_PAYMENT_LABELS = <?php echo json_encode(quotation_payment_terms_options()); ?>;
 window.QUOTATION_PREVIEW_IN_MODAL = true;
 window.QUOTATION_RETURN_PAGE = 'quotation_consignor_multi_dest.php';
+window.QUOTATION_DEST_MASTER_SINGLETON_ID = <?php echo (int) $dest_master_singleton_id; ?>;
 </script>
-<script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261020letter"></script>
+<script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261102inline"></script>
 <?php echo quotation_customer_approve_modal_html(); ?>
 <?php echo quotation_customer_approve_script('quotation_consignor_multi_dest_list.php?tab=approved'); ?>
 </body>

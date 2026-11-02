@@ -23,6 +23,10 @@ if ($is_view || $is_edit) {
 		header('Location: receipt_list.php');
 		exit;
 	}
+	if ($is_edit && ($receipt['master']['status'] ?? '') === 'cancelled') {
+		header('Location: create_receipt.php?id=' . (int) $receipt_id);
+		exit;
+	}
 	$preview_no = $receipt['master']['receipt_no'];
 	$c_date = $receipt['master']['receipt_date'];
 }
@@ -36,7 +40,7 @@ $view_against_amount = '0.00';
 if ($is_view && !empty($receipt['lines'])) {
 	$view_inv_sum = 0.0;
 	foreach ($receipt['lines'] as $vl) {
-		$view_inv_sum += (float) ($vl['balance_amount'] ?? 0);
+		$view_inv_sum += (float) ($vl['receive_now'] ?? 0);
 	}
 	$view_against_amount = billing_format_money($view_inv_sum);
 }
@@ -48,7 +52,13 @@ if ($is_view && !empty($receipt['lines'])) {
 	<?php include('include/css_js.php'); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<style>
-		.ew-page-v2--invoice .ew-remarks-compact { max-width: 100%; }
+		.ew-page-v2--invoice .ew-receipt-remarks-full {
+			width: 100%;
+			min-height: 120px;
+			resize: vertical;
+		}
+		#block_against .select2-drop .select2-result-label { white-space: nowrap; }
+		#block_against .select2-container-multi .select2-choices .select2-search-choice { max-width: none; }
 	</style>
 </head>
 <body class="page-header-fixed bg-1">
@@ -80,7 +90,7 @@ if ($is_view && !empty($receipt['lines'])) {
 								<?php if (!$is_view) { ?>
 								<div class="ew-field span-2">
 									<label>Receipt type <span class="req">*</span></label>
-									<select id="receipt_type" class="form-control"<?php echo $is_edit ? ' disabled' : ''; ?>>
+									<select id="receipt_type" class="form-control">
 										<?php
 										$cur_type = $is_edit ? ($receipt['master']['receipt_type'] ?? 'against_invoice') : 'against_invoice';
 										foreach ($type_opts as $k => $label) {
@@ -123,16 +133,44 @@ if ($is_view && !empty($receipt['lines'])) {
 										?>
 									</select>
 								</div>
-								<div class="ew-field span-2">
+								<?php if (!$is_view) { ?>
+								<div class="ew-field span-2" id="invoice_picker_wrap">
 									<label>Invoice No <span class="req">*</span></label>
-									<select id="invoice_ids" class="form-control" multiple="multiple" <?php echo $is_view ? 'disabled' : ''; ?>></select>
-									<p class="ew-field-hint">Select final invoice(s) with outstanding balance.</p>
+									<select id="invoice_ids" class="form-control" multiple="multiple"></select>
+									<p class="ew-field-hint">Select one or more invoices (invoice no. · remaining Bal). Tags stay in this field; balance 0 is not listed.</p>
 								</div>
-								<div class="ew-field span-2">
+								<?php } ?>
+								<div class="ew-field">
 									<label>Amount</label>
 									<input type="text" class="form-control" id="total_amount_against" readonly value="<?php echo $is_view ? htmlspecialchars($view_against_amount) : '0.00'; ?>" />
-									<p class="ew-field-hint">Auto total: sum of selected invoice outstanding balance (TDS is separate).</p>
+									<p class="ew-field-hint">Total cash receiving on this receipt (sum of Receiving column).</p>
 								</div>
+								<?php if (!$is_view) { ?>
+								<div class="ew-field" id="against_tds_pct_wrap">
+									<label>TDS %</label>
+									<select id="tds_percent" class="form-control">
+										<?php
+										$default_tds = 2.0;
+										if ($is_edit && (float) ($receipt['master']['tds_total'] ?? 0) < 0.009) {
+											$default_tds = 0.0;
+										}
+										$sel_zero = ($default_tds < 0.009) ? ' selected' : '';
+										?>
+										<option value="0"<?php echo $sel_zero; ?>>No TDS (0%)</option>
+										<?php
+										foreach ($tds_percent_options as $opt) {
+											$rate = (float) $opt['rate'];
+											$sel = ($default_tds >= 0.009 && abs($rate - $default_tds) < 0.001) ? ' selected' : '';
+											echo '<option value="' . htmlspecialchars((string) $rate, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>'
+												. htmlspecialchars($opt['label'], ENT_QUOTES, 'UTF-8') . '</option>';
+										}
+										?>
+									</select>
+									<p class="ew-field-hint ew-field-hint--compact">Auto TDS on pre-GST base; edit in allocation.</p>
+								</div>
+								<?php } elseif ($is_view) { ?>
+								<div class="ew-field ew-field--spacer" aria-hidden="true"></div>
+								<?php } ?>
 							</div>
 					</div>
 
@@ -177,22 +215,36 @@ if ($is_view && !empty($receipt['lines'])) {
 							<div class="ew-table-wrap ew-invoice-table-wrap">
 									<div class="ew-invoice-table-scroll">
 										<table class="table" id="alloc_table">
+											<colgroup>
+												<col class="alloc-col-inv">
+												<col class="alloc-col-date">
+												<col span="3" class="alloc-col-amount">
+												<col span="2" class="alloc-col-input">
+												<col class="alloc-col-amount">
+												<?php if (!$is_view) { ?><col class="alloc-col-action"><?php } ?>
+											</colgroup>
 											<thead>
 												<tr>
 													<th>Inv. No</th><th>Inv. Date</th>
-													<th class="num">Inv. Receipt</th>
+													<th class="num">Inv. Value</th>
 													<th class="num">Already Received</th><th class="num">Credit Note</th>
-													<th class="num">TDS</th><th class="num" title="Outstanding cash receivable after TDS on this line">Balance</th>
+													<th class="num">TDS</th><th class="num">Receiving</th><th class="num" title="Remaining invoice balance after this receipt">Balance</th>
+													<?php if (!$is_view) { ?><th class="ew-alloc-remove-col" aria-label="Remove"></th><?php } ?>
 												</tr>
 											</thead>
 											<tbody id="alloc_body">
-												<tr class="ew-receipt-alloc-empty" id="alloc_empty_row"><td colspan="7">Select customer and invoice(s) to load allocation.</td></tr>
+												<tr class="ew-receipt-alloc-empty" id="alloc_empty_row"><td colspan="<?php echo $is_view ? 8 : 9; ?>"><?php echo $is_edit ? 'Loading invoice allocation…' : 'Select customer and invoice(s) to load allocation.'; ?></td></tr>
 											</tbody>
 											<tfoot>
 												<tr class="totals-row">
-													<td colspan="5" class="num"><strong>Total</strong></td>
-													<td class="num" id="foot_tds">0.00</td>
-													<td class="num" id="foot_balance">0.00</td>
+													<td colspan="2" class="ew-alloc-foot-label"><strong>Total</strong></td>
+													<td class="num ew-alloc-foot-spacer"></td>
+													<td class="num ew-alloc-foot-spacer"></td>
+													<td class="num ew-alloc-foot-spacer"></td>
+													<td class="num ew-alloc-foot-num-cell"><span class="ew-alloc-total-num" id="foot_tds">0.00</span></td>
+													<td class="num ew-alloc-foot-num-cell"><span class="ew-alloc-total-num" id="foot_receiving">0.00</span></td>
+													<td class="num ew-alloc-foot-num-cell"><span class="ew-alloc-total-num" id="foot_balance">0.00</span></td>
+													<?php if (!$is_view) { ?><td class="ew-alloc-remove-col"></td><?php } ?>
 												</tr>
 											</tfoot>
 										</table>
@@ -231,10 +283,6 @@ if ($is_view && !empty($receipt['lines'])) {
 									echo ew_date_input(array('id' => 'payment_ref_date', 'value' => $ref_date_val, 'required' => false, 'readonly' => $is_view));
 									?>
 								</div>
-								<div class="ew-field" id="payment_remarks_wrap">
-									<label>Remarks</label>
-									<input type="text" class="form-control ew-remarks-compact" id="remarks" maxlength="500" value="<?php echo ($is_view || $is_edit) ? htmlspecialchars($receipt['master']['remarks']) : ''; ?>" <?php echo $is_view ? 'readonly' : ''; ?> placeholder="Optional notes" />
-								</div>
 								<div class="ew-field span-4 ew-section-label" id="payment_bank_section_label" style="display:none;">Debited to EliteWave360 bank</div>
 								<div class="ew-field span-2" id="payment_bank_wrap" style="display:none;">
 									<label>Bank account <span class="req">*</span></label>
@@ -249,29 +297,17 @@ if ($is_view && !empty($receipt['lines'])) {
 										?>
 									</select>
 								</div>
-								<div class="ew-field" id="payment_tds_pct_wrap">
-									<label>TDS %</label>
-									<?php if ($is_view) { ?>
-									<input type="text" class="form-control" readonly value="—" />
-									<?php } else { ?>
-									<select id="tds_percent" class="form-control">
-										<option value="0">No TDS (0%)</option>
-										<?php
-										$default_tds = 2.0;
-										foreach ($tds_percent_options as $opt) {
-											$rate = (float) $opt['rate'];
-											$sel = (abs($rate - $default_tds) < 0.001) ? ' selected' : '';
-											echo '<option value="' . htmlspecialchars((string) $rate, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>'
-												. htmlspecialchars($opt['label'], ENT_QUOTES, 'UTF-8') . '</option>';
-										}
-										?>
-									</select>
-									<p class="ew-field-hint">Rates from GST Tax Master (TDS1, TDS2, …). Choosing a rate fills TDS on each line; you can edit TDS. Cash = balance − TDS.</p>
-									<?php } ?>
-								</div>
-								<div class="ew-field" id="payment_tds_wrap">
-									<label>TDS deduction</label>
-									<input type="text" class="form-control" id="tds_total_display" readonly value="<?php echo ($is_view || $is_edit) ? htmlspecialchars(billing_format_money($receipt['master']['tds_total'])) : '0.00'; ?>" />
+							</div>
+						</div>
+					</div>
+
+					<div class="ew-card ew-invoice-details-card ew-receipt-remarks-card">
+						<h2 class="ew-card-section-title">Narration</h2>
+						<div class="ew-form-body">
+							<div class="ew-form-grid ew-form-grid--invoice">
+								<div class="ew-field span-4">
+									<label for="remarks">Notes</label>
+									<textarea class="form-control ew-receipt-remarks-full" id="remarks" name="remarks" maxlength="500" rows="5" <?php echo $is_view ? 'readonly' : ''; ?> placeholder="Optional notes for this receipt"><?php echo ($is_view || $is_edit) ? htmlspecialchars($receipt['master']['remarks']) : ''; ?></textarea>
 								</div>
 							</div>
 						</div>
@@ -286,11 +322,17 @@ if ($is_view && !empty($receipt['lines'])) {
 							$ew_upload_readonly = $is_view;
 							if (($is_view || $is_edit) && !empty($receipt['attachments'])) {
 								foreach ($receipt['attachments'] as $att) {
+									$att_name = $att['original_name'] ?: basename($att['file_path']);
+									$att_ext = strtolower(pathinfo($att_name, PATHINFO_EXTENSION));
+									$att_is_image = in_array($att_ext, array('jpg', 'jpeg', 'png', 'gif', 'webp'), true);
+									$att_url = 'receipt_attachment.php?id=' . (int) $att['attachment_id'];
 									$ew_upload_existing_items[] = array(
-										'name' => $att['original_name'] ?: basename($att['file_path']),
+										'name' => $att_name,
 										'sub' => 'Saved attachment',
 										'readonly' => true,
-										'download_url' => 'receipt_attachment.php?id=' . (int) $att['attachment_id'],
+										'download_url' => $att_url,
+										'preview_src' => ($att_is_image || $att_ext === 'pdf') ? ($att_url . '&inline=1') : null,
+										'preview_type' => $att_is_image ? 'image' : ($att_ext === 'pdf' ? 'pdf' : ''),
 									);
 								}
 							}
@@ -315,10 +357,11 @@ if ($is_view && !empty($receipt['lines'])) {
 		<?php require_once('include/footer.php'); ?>
 	</div>
 </div>
-<script src="javascripts/ew-attachment-upload.js?v=20260922"></script>
+<script src="javascripts/ew-attachment-upload.js?v=20261029attachpreview"></script>
 <script>
 var isView = <?php echo $is_view ? 'true' : 'false'; ?>;
 var isEdit = <?php echo $is_edit ? 'true' : 'false'; ?>;
+var allocTableColspan = <?php echo $is_view ? 8 : 9; ?>;
 var editReceiptId = <?php echo $is_edit ? (int) $receipt_id : 0; ?>;
 var editReceiptType = <?php echo $is_edit ? json_encode($receipt['master']['receipt_type']) : 'null'; ?>;
 var editLines = <?php echo $is_edit ? json_encode($receipt['lines']) : '[]'; ?>;
@@ -329,14 +372,198 @@ function excludeReceiptIdParam() {
 	return (isEdit && editReceiptId) ? editReceiptId : 0;
 }
 
+/** Server invoice list for customer; options rebuilt from this + live balances. */
+var invoiceCatalog = {};
+/** Live remaining balance per invoice row in allocation table. */
+var invoiceLiveBalances = {};
+var suppressInvoiceSelectChange = false;
+/** Last Invoice No multiselect value (create); used to sync table on add/remove tags. */
+var lastInvoicePickerIds = [];
+
+function effectiveInvoiceBalance(id) {
+	id = String(id);
+	var live = invoiceLiveBalances[id];
+	if (live && live.bal !== undefined && live.bal !== '') {
+		return parseFloat(String(live.bal).replace(/,/g, '')) || 0;
+	}
+	var cat = invoiceCatalog[id];
+	if (!cat) {
+		return 0;
+	}
+	return parseFloat(String(cat.balance).replace(/,/g, '')) || 0;
+}
+
+function receiptInvoiceSelect2DropdownLabel(item) {
+	if (!item || !item.id) {
+		return item && item.text ? item.text : '';
+	}
+	var id = String(item.id);
+	var live = invoiceLiveBalances[id];
+	var $opt = $('#invoice_ids option[value="' + id + '"]');
+	var no = (live && live.no) ? live.no : ($opt.attr('data-inv-no') || $.trim(String(item.text || '').split('\u00b7')[0]));
+	var bal = (live && live.bal !== undefined) ? live.bal : ($opt.attr('data-bal') || fmt(effectiveInvoiceBalance(id)));
+	if (!no) {
+		return item.text || id;
+	}
+	return no + ' \u00b7 Bal ' + bal;
+}
+
+function getAllocationTableInvoiceIds() {
+	var ids = [];
+	$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+		var id = $(this).data('invoice-id');
+		if (id) {
+			ids.push(String(id));
+		}
+	});
+	return ids;
+}
+
+function invoicePickerSelectedIds() {
+	var ids = normalizeInvoicePickerIds($('#invoice_ids').val());
+	if (!ids.length) {
+		ids = lastInvoicePickerIds.slice();
+	}
+	return ids;
+}
+
+function rebuildInvoiceSelectOptions() {
+	var pinned = {};
+	$.each(invoicePickerSelectedIds(), function(i, id) {
+		pinned[String(id)] = true;
+	});
+	var html = '';
+	$.each(invoiceCatalog, function(id, row) {
+		var balNum = effectiveInvoiceBalance(id);
+		if (balNum <= 0.009 && !pinned[id]) {
+			return;
+		}
+		var balStr = invoiceLiveBalances[id] ? invoiceLiveBalances[id].bal : fmt(balNum);
+		var no = row.invoice_no || '';
+		var noEsc = String(no).replace(/"/g, '&quot;');
+		html += '<option value="' + id + '" data-inv-no="' + noEsc + '" data-bal="' + balStr + '">'
+			+ no + ' \u00b7 Bal ' + balStr + '</option>';
+	});
+	$('#invoice_ids').html(html);
+}
+
+function setInvoicePickerVal(ids, reinitSelect2) {
+	var $sel = $('#invoice_ids');
+	if (!$sel.length) {
+		return;
+	}
+	ids = filterInvoiceIdsWithOptions(normalizeInvoicePickerIds(ids));
+	suppressInvoiceSelectChange = true;
+	if (reinitSelect2 && $sel.data('select2')) {
+		$sel.select2('destroy');
+		initInvoiceSelect2();
+	}
+	if ($sel.data('select2')) {
+		$sel.select2('val', ids);
+	} else {
+		$sel.val(ids);
+	}
+	suppressInvoiceSelectChange = false;
+	lastInvoicePickerIds = ids.slice();
+}
+
+function rebuildInvoicePickerAfterCatalogChange() {
+	rebuildInvoiceSelectOptions();
+	setInvoicePickerVal(invoicePickerSelectedIds(), true);
+}
+
+function normalizeInvoicePickerIds(val) {
+	if (!val) {
+		return [];
+	}
+	if (!$.isArray(val)) {
+		val = [val];
+	}
+	var out = [];
+	$.each(val, function(i, id) {
+		id = String(id);
+		if (id && $.inArray(id, out) < 0) {
+			out.push(id);
+		}
+	});
+	return out;
+}
+
+function filterInvoiceIdsWithOptions(ids) {
+	var allowed = {};
+	$('#invoice_ids option').each(function() {
+		allowed[String($(this).val())] = true;
+	});
+	var out = [];
+	$.each(ids || [], function(i, id) {
+		id = String(id);
+		if (allowed[id] && $.inArray(id, out) < 0) {
+			out.push(id);
+		}
+	});
+	return out;
+}
+
+function initInvoiceSelect2() {
+	var $sel = $('#invoice_ids');
+	if (!$sel.length) {
+		return;
+	}
+	if ($sel.data('select2')) {
+		$sel.select2('destroy');
+	}
+	$sel.select2({
+		width: '100%',
+		placeholder: 'Select invoice(s)',
+		closeOnSelect: false,
+		formatResult: receiptInvoiceSelect2DropdownLabel,
+		formatSelection: receiptInvoiceSelect2DropdownLabel,
+		matcher: function(term, text, option) {
+			term = $.trim(String(term || '')).toUpperCase();
+			if (term === '') {
+				return true;
+			}
+			var $opt = option ? $(option) : null;
+			var no = ($opt && $opt.attr('data-inv-no')) ? String($opt.attr('data-inv-no')).toUpperCase() : '';
+			var hay = (no || String(text || '')).toUpperCase();
+			return hay.indexOf(term) >= 0;
+		}
+	});
+}
+
+function refreshInvoiceSelect2Display(selectedIds) {
+	var $sel = $('#invoice_ids');
+	if (!$sel.length) {
+		return;
+	}
+	var val = selectedIds !== undefined ? selectedIds : ($sel.val() || []);
+	if (!$.isArray(val)) {
+		val = val ? [val] : [];
+	}
+	suppressInvoiceSelectChange = true;
+	if ($sel.data('select2')) {
+		$sel.select2('destroy');
+	}
+	initInvoiceSelect2();
+	if (val.length) {
+		$sel.select2('val', val);
+	}
+	suppressInvoiceSelectChange = false;
+}
+
 function toast(msg, type) {
 	if (typeof ewFormToast === 'function') ewFormToast(msg, type || 'error', 5000);
 }
 
+function currentReceiptType() {
+	if (isView && viewReceiptType) {
+		return viewReceiptType;
+	}
+	return $('#receipt_type').val() || 'against_invoice';
+}
+
 function isAgainst() {
-	if (isView && viewReceiptType) return viewReceiptType === 'against_invoice';
-	if (isEdit && editReceiptType) return editReceiptType === 'against_invoice';
-	return $('#receipt_type').val() === 'against_invoice';
+	return currentReceiptType() === 'against_invoice';
 }
 
 function syncBlocks() {
@@ -368,18 +595,44 @@ function rowOpenBalance($row) {
 	return parseFloat(v) || 0;
 }
 
-/** Cash for this line: full outstanding balance, minus TDS when entered. */
-function calcRowReceive($row) {
-	var openBal = rowOpenBalance($row);
-	var tds = parseFloat($row.find('.tds-input').val()) || 0;
-	if (openBal <= 0) {
+function rowInvoiceGrandTotal($row) {
+	var v = $row.data('invoiceAmount');
+	if (v === undefined || v === null || v === '') {
+		v = $row.attr('data-invoice-amount');
+	}
+	return parseFloat(v) || 0;
+}
+
+function rowGstRate($row) {
+	var v = $row.data('gstRate');
+	if (v === undefined || v === null || v === '') {
+		v = $row.attr('data-gst-rate');
+	}
+	return parseFloat(v) || 0;
+}
+
+/** Pre-GST base from full invoice total (GST 0% → no division). */
+function amountBeforeGst(inclusiveAmount, gstRatePercent) {
+	inclusiveAmount = parseFloat(inclusiveAmount) || 0;
+	gstRatePercent = parseFloat(gstRatePercent) || 0;
+	if (inclusiveAmount <= 0) {
 		return 0;
 	}
-	if (tds <= 0) {
-		return openBal;
+	if (gstRatePercent <= 0) {
+		return inclusiveAmount;
 	}
-	var recv = Math.round((openBal - tds) * 100) / 100;
-	return recv > 0 ? recv : 0;
+	return Math.round(inclusiveAmount / (1 + gstRatePercent / 100) * 100) / 100;
+}
+
+function calcRowReceive($row) {
+	return parseFloat($row.find('.receiving-input').val()) || 0;
+}
+
+function rowMaxReceiving($row) {
+	var openBal = rowOpenBalance($row);
+	var tds = parseFloat($row.find('.tds-input').val()) || 0;
+	var max = Math.round((openBal - tds) * 100) / 100;
+	return max > 0 ? max : 0;
 }
 
 function calcTdsFromPercent(taxableAmount) {
@@ -392,18 +645,25 @@ function calcTdsFromPercent(taxableAmount) {
 }
 
 function rowTdsTaxableAmount($row) {
-	return rowOpenBalance($row);
+	return amountBeforeGst(rowInvoiceGrandTotal($row), rowGstRate($row));
 }
 
 function updateRowBalance($row) {
 	var openBal = rowOpenBalance($row);
 	var tds = parseFloat($row.find('.tds-input').val()) || 0;
-	// Cash receivable on this line (invoice due minus TDS); not “zero because cash+TDS clears the bill”.
-	var remain = Math.round((openBal - tds) * 100) / 100;
+	var recv = calcRowReceive($row);
+	var touched = $row.data('receivingTouched') === 1 || recv > 0.009;
+	var remain;
+	if (!touched) {
+		remain = openBal;
+	} else {
+		remain = Math.round((openBal - tds - recv) * 100) / 100;
+	}
 	if (remain < 0) {
 		remain = 0;
 	}
-	if (tds - openBal > 0.009) {
+	var over = tds - openBal > 0.009 || recv + tds - openBal > 0.009;
+	if (over) {
 		$row.find('.bal-display').addClass('text-danger');
 	} else {
 		$row.find('.bal-display').removeClass('text-danger');
@@ -412,19 +672,32 @@ function updateRowBalance($row) {
 	return remain;
 }
 
+/** Keep cash receiving within open balance after TDS (recv + TDS ≤ balance). */
+function syncReceivingAfterTdsChange($row) {
+	var openBal = rowOpenBalance($row);
+	var tds = parseFloat($row.find('.tds-input').val()) || 0;
+	var recv = calcRowReceive($row);
+	var maxRecv = Math.max(0, Math.round((openBal - tds) * 100) / 100);
+	if (recv + tds - openBal > 0.009) {
+		$row.find('.receiving-input').val(fmt(maxRecv));
+		$row.data('receivingTouched', 1);
+	}
+}
+
 function applyTdsPercentToRow($row) {
 	if (!$row || !$row.length || $row.hasClass('ew-receipt-alloc-empty')) {
 		return;
 	}
-	if ($row.data('tdsManual') === 1) {
+	if ($row.data('tdsManual') === 1 || $row.data('allocContinuation') === 1) {
 		return;
 	}
 	var pct = tdsPercentValue();
 	if (pct <= 0) {
 		$row.find('.tds-input').val(fmt(0));
-		return;
+	} else {
+		$row.find('.tds-input').val(fmt(calcTdsFromPercent(rowTdsTaxableAmount($row))));
 	}
-	$row.find('.tds-input').val(fmt(calcTdsFromPercent(rowTdsTaxableAmount($row))));
+	syncReceivingAfterTdsChange($row);
 }
 
 function applyTdsPercentToAllRows() {
@@ -434,71 +707,393 @@ function applyTdsPercentToAllRows() {
 	recalcAlloc();
 }
 
-function recalcAlloc() {
-	var remainSum = 0, tdsSum = 0, invBalSum = 0;
-	$('#alloc_body tr').each(function() {
-		if ($(this).hasClass('ew-receipt-alloc-empty')) {
+function refreshInvoiceLiveBalancesFromTable() {
+	if (isEdit) {
+		return;
+	}
+	invoiceLiveBalances = {};
+	$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+		var $row = $(this);
+		var id = String($row.data('invoice-id') || '');
+		if (!id) {
 			return;
 		}
-		var tds = parseFloat($(this).find('.tds-input').val()) || 0;
-		invBalSum += rowOpenBalance($(this));
-		remainSum += updateRowBalance($(this));
-		tdsSum += tds;
+		var invNo = $row.data('invoice-no') || $.trim($row.find('td:first').text());
+		var rowBal = parseFloat(String($row.find('.bal-display').text()).replace(/,/g, '')) || 0;
+		if (!invoiceLiveBalances[id]) {
+			invoiceLiveBalances[id] = { no: invNo, balNum: 0 };
+		}
+		invoiceLiveBalances[id].balNum += rowBal;
 	});
-	$('#foot_balance').text(fmt(remainSum));
-	$('#foot_tds').text(fmt(tdsSum));
-	$('#total_amount_against').val(fmt(invBalSum));
-	$('#tds_total_display').val(fmt(tdsSum));
+	$.each(invoiceLiveBalances, function(id, o) {
+		o.bal = fmt(o.balNum);
+	});
 }
 
-function renderAllocLines(lines) {
-	var html = '';
-	$.each(lines || [], function(i, r) {
-		var openBal = parseFloat(String(r.balance).replace(/,/g, '')) || 0;
-		var invAmt = parseFloat(String(r.invoice_amount).replace(/,/g, '')) || 0;
-		var tdsVal = r.tds_amount !== undefined ? r.tds_amount : 0;
-		html += '<tr data-invoice-id="' + r.billing_invoice_id + '" data-open-balance="' + openBal + '" data-invoice-amount="' + invAmt + '">';
-		html += '<td>' + (r.invoice_no || '') + '</td><td>' + (r.invoice_date || '') + '</td>';
-		html += '<td class="num">' + fmt(r.invoice_amount) + '</td>';
-		html += '<td class="num">' + fmt(r.already_received) + '</td>';
-		html += '<td class="num">' + fmt(r.credit_note) + '</td>';
-		html += '<td class="num"><input type="number" step="0.01" min="0" class="form-control tds-input" value="' + fmt(tdsVal) + '" /></td>';
-		html += '<td class="num bal-display">' + fmt(openBal) + '</td>';
-		html += '</tr>';
+function tablePriorAppliedForInvoice(invoiceId) {
+	var recv = 0;
+	var tds = 0;
+	var rowCount = 0;
+	var lastRemain = null;
+	$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+		if (String($(this).data('invoice-id')) !== String(invoiceId)) {
+			return;
+		}
+		rowCount++;
+		var $row = $(this);
+		recv += calcRowReceive($row);
+		tds += parseFloat($row.find('.tds-input').val()) || 0;
+		lastRemain = parseFloat(String($row.find('.bal-display').text()).replace(/,/g, '')) || 0;
 	});
-	if (!html) {
-		html = '<tr class="ew-receipt-alloc-empty" id="alloc_empty_row"><td colspan="7">Select customer and invoice(s) to load allocation.</td></tr>';
+	return { recv: recv, tds: tds, rowCount: rowCount, lastRemain: lastRemain };
+}
+
+function adjustLineForTableAppend(r) {
+	var invoiceId = String(r.billing_invoice_id);
+	var prior = tablePriorAppliedForInvoice(invoiceId);
+	if (prior.rowCount <= 0) {
+		return r;
 	}
-	$('#alloc_body').html(html);
+	var snapAlready = parseFloat(String(r.already_received).replace(/,/g, '')) || 0;
+	var openSnap = parseFloat(String(r.balance).replace(/,/g, '')) || 0;
+	var remain = prior.lastRemain;
+	if (remain === null || remain === undefined) {
+		remain = Math.max(0, Math.round((openSnap - prior.recv - prior.tds) * 100) / 100);
+	}
+	r.already_received = snapAlready + prior.recv;
+	r.balance = remain;
+	r.tds_amount = 0;
+	r.receive_now = '';
+	r._allocContinuation = true;
+	r._baseAlreadyReceived = snapAlready;
+	return r;
+}
+
+function lastTableRowForInvoice(invoiceId) {
+	var $last = null;
+	$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+		if (String($(this).data('invoice-id')) === String(invoiceId)) {
+			$last = $(this);
+		}
+	});
+	return $last;
+}
+
+function buildAllocRowHtml(r, opts) {
+	opts = opts || {};
+	var openBal = parseFloat(String(r.balance).replace(/,/g, '')) || 0;
+	var invAmt = parseFloat(String(r.invoice_amount).replace(/,/g, '')) || 0;
+	var gstRate = parseFloat(String(r.gst_rate || '0').replace(/,/g, '')) || 0;
+	var tdsVal = r.tds_amount !== undefined ? r.tds_amount : 0;
+	var recvVal = r.receive_now !== undefined ? r.receive_now : '';
+	var invNoEsc = (r.invoice_no || '').replace(/"/g, '&quot;');
+	var baseAlready = r._baseAlreadyReceived !== undefined
+		? parseFloat(r._baseAlreadyReceived) || 0
+		: (parseFloat(String(r.already_received).replace(/,/g, '')) || 0);
+	var cont = r._allocContinuation ? ' data-alloc-continuation="1"' : '';
+	var html = '<tr data-invoice-id="' + r.billing_invoice_id + '" data-invoice-no="' + invNoEsc + '" data-open-balance="' + openBal + '" data-invoice-amount="' + invAmt + '" data-gst-rate="' + gstRate + '" data-base-already-received="' + baseAlready + '"' + cont + '>';
+	html += '<td>' + (r.invoice_no || '') + '</td><td>' + (r.invoice_date || '') + '</td>';
+	html += '<td class="num">' + fmt(r.invoice_amount) + '</td>';
+	html += '<td class="num ew-already-received">' + fmt(r.already_received) + '</td>';
+	html += '<td class="num">' + fmt(r.credit_note) + '</td>';
+	html += '<td class="num"><input type="number" step="0.01" min="0" class="form-control tds-input" value="' + fmt(tdsVal) + '" /></td>';
+	html += '<td class="num"><input type="number" step="0.01" min="0" class="form-control receiving-input" value="' + (recvVal === '' ? '' : fmt(recvVal)) + '" placeholder="0.00" /></td>';
+	html += '<td class="num bal-display">' + fmt(openBal) + '</td>';
+	if (!isView && opts.removable !== false) {
+		html += '<td class="ew-alloc-remove-col"><button type="button" class="ew-alloc-row-remove" title="Remove row" aria-label="Remove row"><i class="fa fa-times"></i></button></td>';
+	}
+	html += '</tr>';
+	return html;
+}
+
+function insertAllocRow(r) {
+	var invoiceId = String(r.billing_invoice_id);
+	r = adjustLineForTableAppend(r);
+	var $row = $(buildAllocRowHtml(r));
+	var $anchor = lastTableRowForInvoice(invoiceId);
+	if ($anchor && $anchor.length) {
+		$anchor.after($row);
+	} else {
+		$('#alloc_body').append($row);
+	}
+	if (r._allocContinuation) {
+		$row.data('allocContinuation', 1);
+		$row.data('tdsManual', 1);
+		if (r._baseAlreadyReceived !== undefined) {
+			$row.data('baseAlreadyReceived', r._baseAlreadyReceived);
+		}
+	}
+	return $row;
+}
+
+function syncSameInvoiceAlreadyReceived() {
+	var accum = {};
+	$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+		var id = String($(this).data('invoice-id'));
+		var $row = $(this);
+		var base = $row.data('baseAlreadyReceived');
+		if (base === undefined || base === null) {
+			base = parseFloat(String($row.attr('data-base-already-received')).replace(/,/g, '')) || 0;
+			$row.data('baseAlreadyReceived', base);
+		}
+		if (!accum[id]) {
+			accum[id] = { base: base, recvPrior: 0 };
+		}
+		if ($row.data('allocContinuation') === 1) {
+			$row.find('.ew-already-received').text(fmt(accum[id].base + accum[id].recvPrior));
+		}
+		accum[id].recvPrior += calcRowReceive($row);
+	});
+}
+
+function appendAllocLinesToTable(lines) {
+	if (!lines || !lines.length) {
+		return;
+	}
+	$('#alloc_empty_row').remove();
+	$.each(lines, function(i, r) {
+		insertAllocRow(r);
+	});
 	syncAllocEmptyState();
 	applyTdsPercentToAllRows();
 }
 
-function loadInvoices() {
-	var cid = $('#party_id_against').val();
-	if (!cid) {
-		$('#invoice_ids').empty().trigger('change');
+function bootstrapInvoiceCatalogForCustomer(customerId, done) {
+	if (!customerId) {
+		invoiceCatalog = {};
+		invoiceLiveBalances = {};
+		lastInvoicePickerIds = [];
+		rebuildInvoiceSelectOptions();
+		setInvoicePickerVal([], true);
+		if (done) {
+			done();
+		}
 		return;
 	}
-	$.getJSON('create_receipt_data.php', { cmd: 'fetch_invoices', customer_id: cid, exclude_receipt_id: excludeReceiptIdParam() }, function(r) {
-		if (!r || r.status !== 0) return;
-		var opts = '';
+	$.getJSON('create_receipt_data.php', {
+		cmd: 'fetch_invoices',
+		customer_id: customerId,
+		exclude_receipt_id: excludeReceiptIdParam()
+	}, function(r) {
+		if (!r || r.status !== 0) {
+			if (done) {
+				done();
+			}
+			return;
+		}
+		invoiceCatalog = {};
+		invoiceLiveBalances = {};
 		$.each(r.data || [], function(i, row) {
-			opts += '<option value="' + row.billing_invoice_id + '">' + row.invoice_no + ' · Bal ' + row.balance + '</option>';
+			var id = String(row.billing_invoice_id);
+			invoiceCatalog[id] = {
+				billing_invoice_id: row.billing_invoice_id,
+				invoice_no: row.invoice_no || '',
+				balance: row.balance || '0.00'
+			};
 		});
-		$('#invoice_ids').html(opts).trigger('change');
+		if (done) {
+			done();
+		}
 	});
 }
 
-function loadAllocation() {
-	var ids = $('#invoice_ids').val() || [];
+function ensureEditLinesInCatalog() {
+	$.each(editLines || [], function(i, l) {
+		var id = String(l.billing_invoice_id || '');
+		if (!id) {
+			return;
+		}
+		if (!invoiceCatalog[id]) {
+			invoiceCatalog[id] = {
+				billing_invoice_id: l.billing_invoice_id,
+				invoice_no: l.invoice_no || '',
+				balance: l.balance_amount || '0.00'
+			};
+		}
+	});
+}
+
+function addAllocLinesFromFetch(lines) {
+	if (!lines || !lines.length) {
+		return;
+	}
+	$('#alloc_empty_row').remove();
+	$.each(lines, function(i, r) {
+		var openBal = parseFloat(String(r.balance).replace(/,/g, '')) || 0;
+		if (r.receive_now === undefined || r.receive_now === '') {
+			r.receive_now = openBal;
+		}
+		var $row = $(buildAllocRowHtml(r));
+		$row.data('receivingTouched', 1);
+		$('#alloc_body').append($row);
+	});
+	syncAllocEmptyState();
+	applyTdsPercentToAllRows();
+}
+
+function syncInvoicePickerToTable() {
+	var ids = normalizeInvoicePickerIds($('#invoice_ids').val());
+	var prev = lastInvoicePickerIds.slice();
+	var added = [];
+	var removed = [];
+	$.each(ids, function(i, id) {
+		if ($.inArray(id, prev) < 0) {
+			added.push(id);
+		}
+	});
+	$.each(prev, function(i, id) {
+		if ($.inArray(id, ids) < 0) {
+			removed.push(id);
+		}
+	});
+	lastInvoicePickerIds = ids.slice();
+
+	$.each(removed, function(i, id) {
+		$('#alloc_body tr[data-invoice-id="' + id + '"]').remove();
+	});
+
 	if (!ids.length) {
+		if (removed.length) {
+			syncAllocEmptyState();
+			if (!$('#alloc_body tr').not('.ew-receipt-alloc-empty').length) {
+				renderAllocLines([]);
+			}
+			recalcAlloc();
+		}
+		return;
+	}
+
+	if (!added.length) {
+		if (removed.length) {
+			recalcAlloc();
+		}
+		return;
+	}
+
+	$.getJSON('create_receipt_data.php', {
+		cmd: 'fetch_allocation',
+		invoice_ids: added,
+		exclude_receipt_id: excludeReceiptIdParam()
+	}, function(r) {
+		if (!r || r.status !== 0 || !r.lines || !r.lines.length) {
+			toast('Could not load invoice.', 'error');
+			lastInvoicePickerIds = prev.slice();
+			suppressInvoiceSelectChange = true;
+			if ($('#invoice_ids').data('select2')) {
+				$('#invoice_ids').select2('val', prev);
+			} else {
+				$('#invoice_ids').val(prev);
+			}
+			suppressInvoiceSelectChange = false;
+			rebuildInvoicePickerAfterCatalogChange();
+			return;
+		}
+		addAllocLinesFromFetch(r.lines);
+		rebuildInvoicePickerAfterCatalogChange();
+		recalcAlloc();
+	});
+}
+
+function recalcAlloc() {
+	var remainSum = 0, tdsSum = 0, recvSum = 0;
+	var lastRemainByInv = {};
+	$('#alloc_body tr').each(function() {
+		if ($(this).hasClass('ew-receipt-alloc-empty')) {
+			return;
+		}
+		var $row = $(this);
+		var invId = String($row.data('invoice-id') || '');
+		if (invId && lastRemainByInv[invId] !== undefined) {
+			$row.attr('data-open-balance', lastRemainByInv[invId]);
+			$row.data('openBalance', lastRemainByInv[invId]);
+		}
+		var tds = parseFloat($row.find('.tds-input').val()) || 0;
+		var recv = calcRowReceive($row);
+		var remain = updateRowBalance($row);
+		if (invId) {
+			lastRemainByInv[invId] = remain;
+		}
+		remainSum += remain;
+		tdsSum += tds;
+		recvSum += recv;
+	});
+	syncSameInvoiceAlreadyReceived();
+	$('#foot_balance').text(fmt(remainSum));
+	$('#foot_tds').text(fmt(tdsSum));
+	$('#foot_receiving').text(fmt(recvSum));
+	$('#total_amount_against').val(fmt(recvSum));
+	refreshInvoiceLiveBalancesFromTable();
+}
+
+function renderAllocLines(lines, opts) {
+	opts = opts || {};
+	var html = '';
+	$.each(lines || [], function(i, r) {
+		html += buildAllocRowHtml(r);
+	});
+	if (!html) {
+		html = '<tr class="ew-receipt-alloc-empty" id="alloc_empty_row"><td colspan="' + allocTableColspan + '">Select customer, then pick an invoice above to add a row.</td></tr>';
+	}
+	$('#alloc_body').html(html);
+	syncAllocEmptyState();
+	if (opts.preserveTds) {
+		$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+			$(this).data('tdsManual', 1);
+		});
+		recalcAlloc();
+	} else {
+		applyTdsPercentToAllRows();
+	}
+}
+
+function loadInvoices() {
+	var cid = $('#party_id_against').val();
+	var hadAlloc = $('#alloc_body tr').not('.ew-receipt-alloc-empty').length > 0;
+	if (!cid) {
+		invoiceCatalog = {};
+		invoiceLiveBalances = {};
+		lastInvoicePickerIds = [];
+		$('#invoice_ids').empty();
+		setInvoicePickerVal([], true);
 		renderAllocLines([]);
 		return;
 	}
-	$.getJSON('create_receipt_data.php', { cmd: 'fetch_allocation', invoice_ids: ids, exclude_receipt_id: excludeReceiptIdParam() }, function(r) {
-		if (!r || r.status !== 0) return;
-		renderAllocLines(r.lines);
+	bootstrapInvoiceCatalogForCustomer(cid, function() {
+		lastInvoicePickerIds = [];
+		rebuildInvoicePickerAfterCatalogChange();
+		renderAllocLines([]);
+		if (isEdit && hadAlloc) {
+			toast('Customer changed — select invoice(s) again for allocation.', 'warning');
+		}
+	});
+}
+
+function editReceiptUniqueInvoiceIds() {
+	var seen = {};
+	var ids = [];
+	$.each(editLines || [], function(i, l) {
+		var id = String(l.billing_invoice_id || '');
+		if (id && !seen[id]) {
+			seen[id] = true;
+			ids.push(id);
+		}
+	});
+	return ids;
+}
+
+function initEditReceiptWithInvoices() {
+	if (!isEdit || !editReceiptId || !isAgainst()) {
+		return;
+	}
+	var partyId = $('#party_id_against').val();
+	var pickerIds = editReceiptUniqueInvoiceIds();
+	bootstrapInvoiceCatalogForCustomer(partyId, function() {
+		ensureEditLinesInCatalog();
+		rebuildInvoiceSelectOptions();
+		initInvoiceSelect2();
+		setInvoicePickerVal(pickerIds, false);
+		lastInvoicePickerIds = pickerIds.slice();
+		initEditReceipt();
 	});
 }
 
@@ -555,27 +1150,6 @@ function syncPaymentDetailsFields() {
 	if (isCash || isUpi) {
 		$('#bank_account_id').val('');
 	}
-
-	var $remarks = $('#payment_remarks_wrap');
-	if (instrument) {
-		$remarks.insertAfter('#payment_ref_date_wrap');
-		$('#payment_tds_pct_wrap').insertAfter('#payment_bank_wrap');
-		$('#payment_tds_wrap').insertAfter('#payment_tds_pct_wrap');
-	} else if (isUpi) {
-		$remarks.insertAfter('#payment_upi_ref_wrap');
-		$('#payment_tds_pct_wrap').insertAfter('#payment_remarks_wrap');
-		$('#payment_tds_wrap').insertAfter('#payment_tds_pct_wrap');
-	} else {
-		$remarks.insertAfter($('#payment_mode').closest('.ew-field'));
-		$('#payment_tds_pct_wrap').insertAfter('#payment_remarks_wrap');
-		$('#payment_tds_wrap').insertAfter('#payment_tds_pct_wrap');
-	}
-	if (isView) {
-		$('#payment_tds_pct_wrap').hide();
-		$('#payment_tds_wrap').toggle(isAgainst());
-	} else {
-		$('#payment_tds_pct_wrap, #payment_tds_wrap').toggle(isAgainst());
-	}
 }
 
 function collectPaymentRef() {
@@ -623,14 +1197,13 @@ function submitReceipt() {
 			return;
 		}
 		if (over) {
-			toast('TDS cannot exceed the invoice balance on a line.', 'warning');
+			toast('Receiving plus TDS cannot exceed the invoice balance on a line.', 'warning');
 			return;
 		}
 	}
 	var fd = new FormData();
-	if (!(isEdit && editReceiptType)) {
-		fd.append('receipt_type', against ? 'against_invoice' : $('#receipt_type').val());
-	}
+	var receiptType = currentReceiptType();
+	fd.append('receipt_type', receiptType);
 	fd.append('receipt_date', against ? $('#receipt_date_against').val() : $('#receipt_date_simple').val());
 	if (against) {
 		fd.append('party_id', $('#party_id_against').val() || '0');
@@ -647,9 +1220,6 @@ function submitReceipt() {
 	fd.append('remarks', $('#remarks').val());
 	if (isEdit && editReceiptId) {
 		fd.append('billing_receipt_id', String(editReceiptId));
-	}
-	if (isEdit && editReceiptType) {
-		fd.append('receipt_type', editReceiptType);
 	}
 	$('input[name="attachments[]"]').each(function() {
 		if (this.files && this.files[0]) fd.append('attachments[]', this.files[0]);
@@ -684,8 +1254,16 @@ function editLineTdsMap() {
 	return m;
 }
 
+function editLineReceiveMap() {
+	var m = {};
+	$.each(editLines || [], function(i, l) {
+		m[l.billing_invoice_id] = parseFloat(l.receive_now) || 0;
+	});
+	return m;
+}
+
 function initEditReceipt() {
-	if (!isEdit || !editReceiptId || editReceiptType !== 'against_invoice') {
+	if (!isEdit || !editReceiptId || !isAgainst()) {
 		return;
 	}
 	var ids = [];
@@ -697,32 +1275,45 @@ function initEditReceipt() {
 	if (!ids.length) {
 		return;
 	}
-	var cid = $('#party_id_against').val();
-	var tdsMap = editLineTdsMap();
-	$.getJSON('create_receipt_data.php', { cmd: 'fetch_invoices', customer_id: cid, exclude_receipt_id: editReceiptId }, function(r) {
-		if (!r || r.status !== 0) {
-			return;
-		}
-		var opts = '';
-		$.each(r.data || [], function(i, row) {
-			opts += '<option value="' + row.billing_invoice_id + '">' + row.invoice_no + ' · Bal ' + row.balance + '</option>';
-		});
-		$('#invoice_ids').html(opts).val(ids);
-		$.getJSON('create_receipt_data.php', { cmd: 'fetch_allocation', invoice_ids: ids, exclude_receipt_id: editReceiptId }, function(ar) {
-			if (!ar || ar.status !== 0) {
-				return;
+	var snapById = {};
+	$.getJSON('create_receipt_data.php', {
+		cmd: 'fetch_allocation',
+		invoice_ids: ids,
+		exclude_receipt_id: editReceiptId
+	}, function(ar) {
+			if (ar && ar.status === 0 && ar.lines) {
+				$.each(ar.lines, function(i, row) {
+					snapById[row.billing_invoice_id] = row;
+				});
 			}
-			$.each(ar.lines || [], function(i, row) {
-				if (tdsMap[row.billing_invoice_id] !== undefined) {
-					row.tds_amount = tdsMap[row.billing_invoice_id];
+			var lines = [];
+			$.each(editLines || [], function(i, l) {
+				var invId = parseInt(l.billing_invoice_id, 10);
+				if (!invId) {
+					return;
+				}
+				var snap = snapById[invId] || {};
+				lines.push({
+					billing_invoice_id: invId,
+					invoice_no: l.invoice_no || snap.invoice_no || '',
+					invoice_date: l.invoice_date || snap.invoice_date || '',
+					invoice_amount: l.invoice_amount || snap.invoice_amount,
+					already_received: snap.already_received !== undefined ? snap.already_received : l.already_received,
+					credit_note: l.credit_note_amount !== undefined ? l.credit_note_amount : snap.credit_note,
+					balance: snap.balance !== undefined ? snap.balance : l.balance_amount,
+					gst_rate: snap.gst_rate || '0',
+					tds_amount: l.tds_amount,
+					receive_now: l.receive_now
+				});
+			});
+			renderAllocLines(lines, { preserveTds: true });
+			$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
+				if (calcRowReceive($(this)) > 0.009) {
+					$(this).data('receivingTouched', 1);
 				}
 			});
-			renderAllocLines(ar.lines);
-			$('#alloc_body tr').not('.ew-receipt-alloc-empty').each(function() {
-				$(this).data('tdsManual', 1);
-			});
+			recalcAlloc();
 		});
-	});
 }
 
 $(function() {
@@ -733,14 +1324,52 @@ $(function() {
 		$('#receipt_type').on('change', function() {
 			syncBlocks();
 			syncPaymentDetailsFields();
+			if (isEdit && isAgainst() && !$('#alloc_body tr').not('.ew-receipt-alloc-empty').length) {
+				initEditReceipt();
+			}
 		});
 		$('#party_id_against').select2({ width: '100%', placeholder: 'Select customer' });
-		$('#invoice_ids').select2({ width: '100%', placeholder: 'Select invoice(s)', closeOnSelect: false });
+		if ($('#invoice_ids').length) {
+			initInvoiceSelect2();
+			$('#party_id_against').on('change', loadInvoices);
+			$('#invoice_ids').on('change', function() {
+				if (suppressInvoiceSelectChange) {
+					return;
+				}
+				syncInvoicePickerToTable();
+			});
+		}
 		$('#party_id_simple').select2({ width: '100%', allowClear: true, placeholder: 'Optional client' });
-		$('#party_id_against').on('change', loadInvoices);
-		$('#invoice_ids').on('change', loadAllocation);
 		$(document).on('input', '.tds-input', function() {
-			$(this).closest('tr').data('tdsManual', 1);
+			var $row = $(this).closest('tr');
+			$row.data('tdsManual', 1);
+			syncReceivingAfterTdsChange($row);
+			recalcAlloc();
+		});
+		$(document).on('input', '.receiving-input', function() {
+			$(this).closest('tr').data('receivingTouched', 1);
+			recalcAlloc();
+		});
+		$(document).on('click', '.ew-alloc-row-remove', function() {
+			var id = String($(this).closest('tr').data('invoice-id') || '');
+			$(this).closest('tr').remove();
+			if (!isView && id && $('#invoice_ids').length) {
+				var ids = normalizeInvoicePickerIds($('#invoice_ids').val()).filter(function(x) {
+					return x !== id;
+				});
+				suppressInvoiceSelectChange = true;
+				if ($('#invoice_ids').data('select2')) {
+					$('#invoice_ids').select2('val', ids);
+				} else {
+					$('#invoice_ids').val(ids);
+				}
+				suppressInvoiceSelectChange = false;
+				lastInvoicePickerIds = ids.slice();
+			}
+			syncAllocEmptyState();
+			if (!$('#alloc_body tr').not('.ew-receipt-alloc-empty').length) {
+				$('#alloc_body').html('<tr class="ew-receipt-alloc-empty" id="alloc_empty_row"><td colspan="' + allocTableColspan + '">Select customer, then pick an invoice above to add a row.</td></tr>');
+			}
 			recalcAlloc();
 		});
 		$('#tds_percent').on('change', function() {
@@ -757,7 +1386,7 @@ $(function() {
 			});
 		}
 		if (isEdit) {
-			initEditReceipt();
+			initEditReceiptWithInvoices();
 		}
 	} else {
 		if (viewReceiptType) {
@@ -766,7 +1395,7 @@ $(function() {
 		syncBlocks();
 		if (viewReceiptType === 'against_invoice' && viewLines.length) {
 			$('#alloc_body').empty();
-			var footTds = 0, footBal = 0;
+			var footTds = 0, footBal = 0, footRecv = 0;
 			$.each(viewLines, function(i, l) {
 				var openBal = parseFloat(l.balance_amount) || 0;
 				var recv = parseFloat(l.receive_now) || 0;
@@ -774,13 +1403,16 @@ $(function() {
 				var remain = Math.round((openBal - recv - tds) * 100) / 100;
 				footTds += tds;
 				footBal += remain;
+				footRecv += recv;
 				var row = '<tr><td>' + l.invoice_no + '</td><td>' + l.invoice_date + '</td>';
 				row += '<td class="num">' + fmt(l.invoice_amount) + '</td>';
 				row += '<td class="num">' + fmt(l.already_received) + '</td><td class="num">' + fmt(l.credit_note_amount) + '</td>';
-				row += '<td class="num">' + fmt(l.tds_amount) + '</td><td class="num">' + fmt(remain) + '</td></tr>';
+				row += '<td class="num">' + fmt(l.tds_amount) + '</td>';
+				row += '<td class="num">' + fmt(recv) + '</td><td class="num">' + fmt(remain) + '</td></tr>';
 				$('#alloc_body').append(row);
 			});
 			$('#foot_tds').text(fmt(footTds));
+			$('#foot_receiving').text(fmt(footRecv));
 			$('#foot_balance').text(fmt(footBal));
 			syncAllocEmptyState();
 		}

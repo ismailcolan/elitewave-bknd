@@ -54,7 +54,7 @@ if ($cmd === 'fetch_invoices') {
     $rows = array();
     $q = mysqli_query($conn, "SELECT billing_invoice_id, invoice_no, invoice_date, grand_total
         FROM billing_invoice_master
-        WHERE status='final' AND customer_id='$customer_id'
+        WHERE status='final' AND COALESCE(is_active,1)=1 AND customer_id='$customer_id'
         ORDER BY billing_invoice_id DESC
         LIMIT 200");
     if ($q) {
@@ -77,6 +77,18 @@ if ($cmd === 'fetch_invoices') {
         }
     }
     billing_receipt_json(array('status' => 0, 'data' => $rows));
+}
+
+$user_id = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
+
+if ($cmd === 'cancel_receipt') {
+    if ($user_id <= 0) {
+        billing_receipt_json(array('status' => 1, 'message' => 'Session expired. Please login again.'));
+    }
+    $id = (int) ($_POST['billing_receipt_id'] ?? $_REQUEST['billing_receipt_id'] ?? 0);
+    $reason = trim($_POST['cancel_reason'] ?? $_REQUEST['cancel_reason'] ?? '');
+    $remarks = trim($_POST['cancel_remarks'] ?? $_REQUEST['cancel_remarks'] ?? '');
+    billing_receipt_json(billing_cancel_receipt($conn, $id, $reason, $remarks, $user_id));
 }
 
 if ($cmd === 'view') {

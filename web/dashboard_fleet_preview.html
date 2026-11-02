@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Fleet &amp; Routes — Preview | EliteWave360</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+	<style>
+		:root {
+			--bg: #0f1419;
+			--panel: #1a222d;
+			--panel-deep: #121820;
+			--border: #2a3544;
+			--text: #e8edf4;
+			--muted: #8b9cb3;
+			--orange: #f97316;
+			--green: #22c55e;
+			--red: #ef4444;
+			--accent: #3b82f6;
+			--navy: #06416f;
+		}
+		* { box-sizing: border-box; }
+		body {
+			margin: 0;
+			font-family: Inter, "Segoe UI", sans-serif;
+			background: var(--bg);
+			color: var(--text);
+			min-height: 100vh;
+		}
+		.preview-banner {
+			background: #1e293b;
+			color: #cbd5e1;
+			padding: 10px 20px;
+			font-size: 12px;
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px;
+			border-bottom: 1px solid var(--border);
+		}
+		.preview-banner strong { color: #f8fafc; }
+		.page-head {
+			padding: 16px 20px 12px;
+			display: flex;
+			flex-wrap: wrap;
+			align-items: flex-start;
+			justify-content: space-between;
+			gap: 12px;
+		}
+		.page-head h1 {
+			margin: 0;
+			font-size: 22px;
+			font-weight: 800;
+			color: #f1f5f9;
+			letter-spacing: -0.02em;
+		}
+		.page-head p {
+			margin: 6px 0 0;
+			font-size: 13px;
+			color: var(--muted);
+			max-width: 520px;
+			line-height: 1.45;
+		}
+		.head-tabs {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+		}
+		.head-tabs a {
+			padding: 7px 12px;
+			border-radius: 999px;
+			font-size: 11px;
+			font-weight: 700;
+			text-decoration: none;
+			color: var(--muted);
+			background: var(--panel);
+			border: 1px solid var(--border);
+		}
+		.head-tabs a:hover { color: var(--text); border-color: #475569; }
+		.head-tabs a.active {
+			background: var(--orange);
+			color: #111;
+			border-color: var(--orange);
+		}
+		.shell {
+			display: grid;
+			grid-template-columns: minmax(280px, 320px) minmax(0, 1fr) minmax(260px, 300px);
+			grid-template-rows: 1fr auto;
+			gap: 12px;
+			padding: 0 20px 20px;
+			min-height: calc(100vh - 120px);
+		}
+		.panel {
+			background: var(--panel);
+			border: 1px solid var(--border);
+			border-radius: 14px;
+			overflow: hidden;
+			display: flex;
+			flex-direction: column;
+		}
+		.panel-head {
+			padding: 12px 14px;
+			border-bottom: 1px solid var(--border);
+			font-weight: 700;
+			font-size: 13px;
+			color: #f1f5f9;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px;
+		}
+		.panel-head small {
+			font-weight: 600;
+			font-size: 10px;
+			color: var(--muted);
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+		}
+		.tabs {
+			display: flex;
+			gap: 6px;
+			padding: 10px 12px;
+			flex-wrap: wrap;
+			border-bottom: 1px solid var(--border);
+		}
+		.tab {
+			padding: 6px 11px;
+			border-radius: 999px;
+			font-size: 11px;
+			font-weight: 600;
+			background: #243044;
+			color: var(--muted);
+			border: none;
+			cursor: pointer;
+			font-family: inherit;
+		}
+		.tab.active {
+			background: var(--orange);
+			color: #111;
+		}
+		.list {
+			overflow-y: auto;
+			flex: 1;
+			padding: 8px;
+			min-height: 200px;
+		}
+		.unit-card {
+			background: var(--panel-deep);
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			padding: 10px 11px;
+			margin-bottom: 8px;
+			cursor: pointer;
+			transition: border-color 0.15s, box-shadow 0.15s;
+		}
+		.unit-card:hover { border-color: #475569; }
+		.unit-card.active {
+			border-color: var(--orange);
+			box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.35);
+		}
+		.unit-id { font-size: 11px; color: var(--muted); font-weight: 600; }
+		.unit-title { font-weight: 700; font-size: 13px; margin: 4px 0 6px; line-height: 1.3; }
+		.unit-thumb {
+			height: 52px;
+			margin: 6px 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #0d1117;
+			border-radius: 8px;
+			font-size: 30px;
+			line-height: 1;
+		}
+		.unit-route { font-size: 11px; color: var(--muted); line-height: 1.4; }
+		.unit-meta {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 10px;
+			margin-top: 8px;
+			font-size: 11px;
+			font-weight: 600;
+		}
+		.unit-meta .late { color: var(--red); }
+		.unit-meta .ok { color: var(--green); }
+		.map-col {
+			grid-row: 1;
+			min-height: 420px;
+		}
+		.map-body { flex: 1; position: relative; min-height: 340px; }
+		#map { height: 100%; width: 100%; min-height: 340px; background: #0d1117; }
+		.progress-foot {
+			padding: 10px 14px 12px;
+			border-top: 1px solid var(--border);
+			font-size: 11px;
+			color: var(--muted);
+		}
+		.progress-foot strong { color: var(--text); }
+		.bar {
+			height: 6px;
+			background: #243044;
+			border-radius: 999px;
+			margin-top: 8px;
+			overflow: hidden;
+		}
+		.bar > i {
+			display: block;
+			height: 100%;
+			width: 45%;
+			background: linear-gradient(90deg, var(--green), var(--orange));
+			border-radius: 999px;
+			transition: width 0.35s ease;
+		}
+		.side-col {
+			grid-row: 1;
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+		.load-block { padding: 16px 14px; text-align: center; }
+		.load-block .val {
+			font-size: 26px;
+			font-weight: 800;
+			color: var(--green);
+			margin-top: 8px;
+		}
+		.load-block .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+		.detail-block { padding: 12px 14px 16px; font-size: 12px; line-height: 1.55; flex: 1; }
+		.detail-block dt { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 10px; }
+		.detail-block dd { margin: 4px 0 0; font-weight: 600; }
+		.bottom-col { grid-column: 1 / -1; }
+		.dash-tbl {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 12px;
+		}
+		.dash-tbl th,
+		.dash-tbl td {
+			padding: 10px 14px;
+			border-bottom: 1px solid var(--border);
+			text-align: left;
+		}
+		.dash-tbl th {
+			color: var(--muted);
+			font-size: 10px;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			background: #243044;
+		}
+		.dash-tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+		.pill {
+			display: inline-block;
+			padding: 3px 8px;
+			border-radius: 999px;
+			font-size: 10px;
+			font-weight: 700;
+		}
+		.pill-transit { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+		.pill-late { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+		.pill-ok { background: rgba(34, 197, 94, 0.15); color: #86efac; }
+		.note {
+			margin: 0 20px 16px;
+			padding: 10px 14px;
+			border-radius: 10px;
+			background: rgba(59, 130, 246, 0.08);
+			border: 1px solid rgba(59, 130, 246, 0.25);
+			font-size: 11px;
+			color: var(--muted);
+			line-height: 1.45;
+		}
+		.note strong { color: #93c5fd; }
+		@media (max-width: 1100px) {
+			.shell {
+				grid-template-columns: 1fr;
+				grid-template-rows: auto;
+				min-height: 0;
+			}
+			.map-col, .side-col { grid-row: auto; }
+			.bottom-col { grid-column: 1; }
+		}
+	</style>
+</head>
+<body>
+	<div class="preview-banner">
+		<div><strong>HTML preview only</strong> — Fleet &amp; Routes (sample data). Live version: bookings + status milestones + city routes (not GPS unless added later).</div>
+		<span>Dashboard concept · Fleet board</span>
+	</div>
+
+	<div class="page-head">
+		<div>
+			<h1>Fleet &amp; Routes Command Center</h1>
+			<p>Track consignments by mode — surface, air, and rail — with status-based route progress, ETAs, and load summary.</p>
+		</div>
+		<nav class="head-tabs" aria-label="Dashboard suite">
+			<a href="dashboard_booking_preview.html">Bookings</a>
+			<a href="dashboard_invoice_preview.html">Invoices</a>
+			<a href="dashboard_payments_preview.html">Payments</a>
+			<a href="dashboard_pl_preview.html">Expenses &amp; P&amp;L</a>
+			<a class="active" href="dashboard_fleet_preview.html">Fleet &amp; Routes</a>
+		</nav>
+	</div>
+
+	<p class="note">
+		<strong>Live data mapping (planned):</strong> GCN list from in-transit bookings · route from origin/destination cities ·
+		map marker position from <code>transaction_status_log</code> step ÷ total steps · vehicle/mode art from
+		<code>vehicle_type_master</code> / mode of transport · late/on-time from expected delivery rules.
+	</p>
+
+	<div class="shell">
+		<div class="panel">
+			<div class="panel-head">Active consignments <small>Sample</small></div>
+			<div class="tabs" role="tablist">
+				<button type="button" class="tab active" data-filter="all">All</button>
+				<button type="button" class="tab" data-filter="transit">In transit</button>
+				<button type="button" class="tab" data-filter="hub">At hub</button>
+				<button type="button" class="tab" data-filter="done">Delivered</button>
+			</div>
+			<div class="list" id="fleetList" aria-live="polite"></div>
+		</div>
+
+		<div class="panel map-col">
+			<div class="panel-head">Route map <small>Status progress</small></div>
+			<div class="map-body"><div id="map" role="img" aria-label="Route map preview"></div></div>
+			<div class="progress-foot">
+				<span id="progLabel"><strong>Checkpoint 3 of 7</strong> · Chennai → New Delhi</span>
+				<div class="bar"><i id="progBar"></i></div>
+			</div>
+		</div>
+
+		<div class="side-col">
+			<div class="panel">
+				<div class="panel-head">Load summary</div>
+				<div class="load-block">
+					<div class="hint">Total chargeable weight (invoice packages)</div>
+					<div class="val" id="loadWt">266 Kg</div>
+				</div>
+			</div>
+			<div class="panel" style="flex:1">
+				<div class="panel-head">Operation detail</div>
+				<dl class="detail-block">
+					<dt>Vehicle / carrier</dt>
+					<dd id="opVehicle">—</dd>
+					<dt>Driver / contact</dt>
+					<dd id="opDriver">—</dd>
+					<dt>Mode</dt>
+					<dd id="opMode">—</dd>
+					<dt>Expected delivery</dt>
+					<dd id="opEta">—</dd>
+					<dt>Status</dt>
+					<dd id="opStatus">—</dd>
+				</dl>
+			</div>
+		</div>
+
+		<div class="panel bottom-col">
+			<div class="panel-head">Cargo on selected movement</div>
+			<table class="dash-tbl">
+				<thead>
+					<tr>
+						<th>GCN</th>
+						<th>Category</th>
+						<th>Description</th>
+						<th class="num">Weight</th>
+						<th>Progress</th>
+					</tr>
+				</thead>
+				<tbody id="cargoTbl"></tbody>
+			</table>
+		</div>
+	</div>
+
+	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+	<script>
+	(function () {
+		'use strict';
+
+		var units = [
+			{
+				id: 'EW360/0209',
+				filter: 'transit',
+				vehicle: 'TN 09 AB 1234 · HCV Open Body',
+				driver: 'R. Kumar · +91 98400 12345',
+				mode: 'Surface / Road',
+				icon: '🚛',
+				from: [13.0827, 80.2707],
+				to: [28.6139, 77.209],
+				fromL: 'Chennai',
+				toL: 'New Delhi',
+				progress: 0.45,
+				checkpoint: 3,
+				checkpoints: 7,
+				late: true,
+				minLate: 35,
+				wt: 266,
+				eta: '28 Oct 2026',
+				status: 'In transit — late',
+				cargo: [
+					{ cat: 'General', desc: 'Footwear cartons', wt: '180 kg' },
+					{ cat: 'General', desc: 'Accessories', wt: '86 kg' }
+				]
+			},
+			{
+				id: 'EW360/0217',
+				filter: 'transit',
+				vehicle: 'AI 502 · Air cargo',
+				driver: 'Airline ops · MAWB linked',
+				mode: 'Air',
+				icon: '✈️',
+				from: [19.076, 72.8777],
+				to: [13.0827, 80.2707],
+				fromL: 'Mumbai',
+				toL: 'Chennai',
+				progress: 0.72,
+				checkpoint: 5,
+				checkpoints: 7,
+				late: false,
+				minLate: -20,
+				wt: 112,
+				eta: '28 Oct 2026 · 18:40',
+				status: 'In transit — on time',
+				cargo: [
+					{ cat: 'Electronics', desc: 'Chennai → hub connect', wt: '112 kg' }
+				]
+			},
+			{
+				id: 'EW360/0221',
+				filter: 'hub',
+				vehicle: 'Train 12639 · SLR',
+				driver: 'Rail consignment · RR booked',
+				mode: 'Rail',
+				icon: '🚆',
+				from: [12.9716, 77.5946],
+				to: [13.0827, 80.2707],
+				fromL: 'Bangalore',
+				toL: 'Chennai',
+				progress: 0.88,
+				checkpoint: 6,
+				checkpoints: 7,
+				late: false,
+				minLate: -15,
+				wt: 840,
+				eta: '27 Oct 2026 · arrived hub',
+				status: 'At destination hub',
+				cargo: [
+					{ cat: 'Industrial', desc: 'Machinery parts', wt: '620 kg' },
+					{ cat: 'General', desc: 'Mixed cartons', wt: '220 kg' }
+				]
+			},
+			{
+				id: 'EW360/0198',
+				filter: 'done',
+				vehicle: 'TN 14 CD 8899 · LCV',
+				driver: 'S. Velu · +91 97890 55432',
+				mode: 'Express',
+				icon: '🚐',
+				from: [11.0168, 76.9558],
+				to: [12.9716, 77.5946],
+				fromL: 'Coimbatore',
+				toL: 'Bangalore',
+				progress: 1,
+				checkpoint: 7,
+				checkpoints: 7,
+				late: false,
+				minLate: 0,
+				wt: 48,
+				eta: 'Delivered 26 Oct 2026',
+				status: 'Delivered',
+				cargo: [
+					{ cat: 'Documents', desc: 'Samples', wt: '48 kg' }
+				]
+			}
+		];
+
+		var map, routeLine, marker, selected = 0;
+		var currentFilter = 'all';
+
+		function filteredUnits() {
+			if (currentFilter === 'all') {
+				return units;
+			}
+			return units.filter(function (u) { return u.filter === currentFilter; });
+		}
+
+		function statusPill(u) {
+			if (u.late) {
+				return '<span class="pill pill-late">Late</span>';
+			}
+			if (u.filter === 'done') {
+				return '<span class="pill pill-ok">Delivered</span>';
+			}
+			return '<span class="pill pill-transit">En route</span>';
+		}
+
+		function renderList() {
+			var list = document.getElementById('fleetList');
+			var rows = filteredUnits();
+			list.innerHTML = '';
+			if (!rows.length) {
+				list.innerHTML = '<p style="padding:12px;color:#8b9cb3;font-size:12px;">No consignments in this filter.</p>';
+				return;
+			}
+			rows.forEach(function (u, idx) {
+				var globalIdx = units.indexOf(u);
+				var el = document.createElement('div');
+				el.className = 'unit-card' + (globalIdx === selected ? ' active' : '');
+				el.setAttribute('role', 'button');
+				el.setAttribute('tabindex', '0');
+				var lateLbl = u.late ? (u.minLate + ' min late') : (u.filter === 'done' ? 'Completed' : (Math.abs(u.minLate) + ' min early'));
+				var lateCls = u.late ? 'late' : 'ok';
+				el.innerHTML =
+					'<div class="unit-id">' + u.id + '</div>' +
+					'<div class="unit-title">' + u.vehicle + '</div>' +
+					'<div class="unit-thumb" aria-hidden="true">' + u.icon + '</div>' +
+					'<div class="unit-route">' + u.fromL + ' → ' + u.toL + '</div>' +
+					'<div class="unit-meta">' +
+						'<span>' + Math.round(u.progress * 420) + ' km est.</span>' +
+						'<span class="' + lateCls + '">' + lateLbl + '</span>' +
+						statusPill(u) +
+					'</div>';
+				el.addEventListener('click', function () { pick(globalIdx); });
+				el.addEventListener('keydown', function (e) {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						pick(globalIdx);
+					}
+				});
+				list.appendChild(el);
+			});
+		}
+
+		function pick(i) {
+			selected = i;
+			var u = units[i];
+			renderList();
+
+			document.getElementById('progBar').style.width = (u.progress * 100) + '%';
+			document.getElementById('progLabel').innerHTML =
+				'<strong>Checkpoint ' + u.checkpoint + ' of ' + u.checkpoints + '</strong> · ' + u.fromL + ' → ' + u.toL;
+			document.getElementById('loadWt').textContent = u.wt + ' Kg';
+			document.getElementById('opVehicle').textContent = u.vehicle;
+			document.getElementById('opDriver').textContent = u.driver;
+			document.getElementById('opMode').textContent = u.mode;
+			document.getElementById('opEta').textContent = u.eta;
+			document.getElementById('opStatus').textContent = u.status;
+
+			var tbody = document.getElementById('cargoTbl');
+			tbody.innerHTML = u.cargo.map(function (c) {
+				return '<tr><td>' + u.id + '</td><td>' + c.cat + '</td><td>' + c.desc + '</td><td class="num">' + c.wt + '</td><td>' + Math.round(u.progress * 100) + '%</td></tr>';
+			}).join('');
+
+			if (!map) {
+				return;
+			}
+			if (routeLine) {
+				map.removeLayer(routeLine);
+			}
+			if (marker) {
+				map.removeLayer(marker);
+			}
+			routeLine = L.polyline([u.from, u.to], { color: '#f97316', weight: 4, opacity: 0.9 }).addTo(map);
+			var lat = u.from[0] + (u.to[0] - u.from[0]) * u.progress;
+			var lng = u.from[1] + (u.to[1] - u.from[1]) * u.progress;
+			marker = L.marker([lat, lng]).addTo(map);
+			map.fitBounds(routeLine.getBounds(), { padding: [48, 48], maxZoom: 7 });
+		}
+
+		function initMap() {
+			map = L.map('map', { zoomControl: true, attributionControl: true }).setView([20.5, 78.5], 5);
+			L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+				attribution: '&copy; OpenStreetMap &copy; CARTO',
+				subdomains: 'abcd',
+				maxZoom: 19
+			}).addTo(map);
+			pick(0);
+		}
+
+		document.querySelectorAll('.tab').forEach(function (btn) {
+			btn.addEventListener('click', function () {
+				document.querySelectorAll('.tab').forEach(function (b) { b.classList.remove('active'); });
+				btn.classList.add('active');
+				currentFilter = btn.getAttribute('data-filter') || 'all';
+				renderList();
+			});
+		});
+
+		initMap();
+		window.addEventListener('resize', function () {
+			if (map) {
+				map.invalidateSize();
+			}
+		});
+	})();
+	</script>
+</body>
+</html>

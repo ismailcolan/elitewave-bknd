@@ -556,6 +556,18 @@ function ew_vendor_is_linked($conn, $vendor_id)
 			return true;
 		}
 	}
+	if (ew_vendor_table_exists($conn, 'general_expense_header')) {
+		$res = @mysqli_query($conn, "SELECT general_expense_id FROM general_expense_header WHERE vendor_id='$vendor_id' LIMIT 1");
+		if ($res && mysqli_num_rows($res) > 0) {
+			return true;
+		}
+	}
+	if (ew_vendor_table_exists($conn, 'gcn_expense_lines')) {
+		$res = @mysqli_query($conn, "SELECT line_id FROM gcn_expense_lines WHERE vendor_id='$vendor_id' LIMIT 1");
+		if ($res && mysqli_num_rows($res) > 0) {
+			return true;
+		}
+	}
 	return false;
 }
 

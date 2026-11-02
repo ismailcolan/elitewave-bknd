@@ -188,24 +188,50 @@
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: .04em !important;
-  padding: 10px 12px !important;
-  text-align: center !important;
-  border-bottom: none !important;
-  border-right: 1px solid var(--panel-border, #C5D3E0) !important;
+  padding: 12px 16px !important;
+  text-align: left !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 2px solid var(--panel-border, #C5D3E0) !important;
   white-space: nowrap;
   vertical-align: middle !important;
 }
 
-.ew-page-v2 .ew-table-wrap table thead th:last-child,
-.ew-page-v2 .ew-table-wrap .dataTable thead th:last-child {
-  border-right: none !important;
+.ew-page-v2 .ew-table-wrap table thead th.col-actions,
+.ew-page-v2 .ew-table-wrap .dataTable thead th.col-actions,
+.ew-page-v2 .ew-table-wrap table.dataTable thead th.col-actions {
+  text-align: center !important;
 }
 
-.ew-page-v2 .ew-table-wrap table tbody td.col-actions,
-.ew-page-v2 .ew-table-wrap table tbody td.actions,
-.ew-page-v2 .ew-table-wrap .dataTable tbody td.col-actions,
-.ew-page-v2 .ew-table-wrap .dataTable tbody td.actions {
-  border-left: 1px solid var(--panel-border, #C5D3E0) !important;
+.ew-page-v2 .ew-table-wrap table.dataTable thead th.sorting,
+.ew-page-v2 .ew-table-wrap table.dataTable thead th.sorting_asc,
+.ew-page-v2 .ew-table-wrap table.dataTable thead th.sorting_desc,
+.ew-page-v2 .ew-table-wrap .dataTable thead th.sorting,
+.ew-page-v2 .ew-table-wrap .dataTable thead th.sorting_asc,
+.ew-page-v2 .ew-table-wrap .dataTable thead th.sorting_desc,
+.ew-page-v2 .ew-table-wrap table thead th.sorting,
+.ew-page-v2 .ew-table-wrap table thead th.sorting_asc,
+.ew-page-v2 .ew-table-wrap table thead th.sorting_desc {
+  text-align: left !important;
+  padding-left: 16px !important;
+  padding-right: 28px !important;
+}
+
+/* Header label and body text share the same left start (reference list tables) */
+.ew-page-v2 .ew-table-wrap table thead th:not(.col-actions):not(.sorting):not(.sorting_asc):not(.sorting_desc),
+.ew-page-v2 .ew-table-wrap .dataTable thead th:not(.col-actions):not(.sorting):not(.sorting_asc):not(.sorting_desc),
+.ew-page-v2 .ew-table-wrap table.dataTable thead th:not(.col-actions):not(.sorting):not(.sorting_asc):not(.sorting_desc) {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  text-align: left !important;
+}
+
+.ew-page-v2 .ew-table-wrap table tbody td:not(.col-actions):not(.col-sno):not(.col-amount):not(.num),
+.ew-page-v2 .ew-table-wrap .dataTable tbody td:not(.col-actions):not(.col-sno):not(.col-amount):not(.num) {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  text-align: left !important;
 }
 
 .ew-page-v2 .ew-table-wrap table tbody td,
@@ -213,11 +239,33 @@
   text-align: left !important;
   vertical-align: middle !important;
   font-size: 13px;
-  padding: 10px 12px !important;
+  line-height: 1.45;
+  padding: 12px 16px !important;
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
   border-bottom: 1px solid var(--ew-border-light, #E9ECF0) !important;
+}
+
+.ew-page-v2 .ew-table-wrap table tbody td.col-sno,
+.ew-page-v2 .ew-table-wrap .dataTable tbody td.col-sno {
+  text-align: center !important;
+}
+
+.ew-page-v2 .ew-table-wrap table tbody td.col-amount,
+.ew-page-v2 .ew-table-wrap .dataTable tbody td.col-amount,
+.ew-page-v2 .ew-table-wrap table tbody td.num,
+.ew-page-v2 .ew-table-wrap .dataTable tbody td.num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.ew-page-v2 .ew-table-wrap table tbody td.col-actions,
+.ew-page-v2 .ew-table-wrap table tbody td.actions,
+.ew-page-v2 .ew-table-wrap .dataTable tbody td.col-actions,
+.ew-page-v2 .ew-table-wrap .dataTable tbody td.actions {
+  text-align: center !important;
+  padding: 10px 12px !important;
 }
 
 /* Quotation multi-mode & multi-destination row dropdowns — left-aligned labels/options */
@@ -367,6 +415,17 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.table-actions.ew-master-edit-locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: not-allowed;
+  color: #94a3b8 !important;
+  background: #f1f5f9;
+  border-radius: 4px;
+  opacity: 0.95;
 }
 
 .ew-erp-list .ew-list-toolbar__tools .dataTables_filter input[type="search"],
@@ -1620,15 +1679,20 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   background: var(--rail-bg, #DDE7F0) !important;
   color: var(--ew-text, #1A2332) !important;
   font-weight: 700 !important;
-  border-right: 1px solid var(--panel-border, #C5D3E0) !important;
+  text-align: left !important;
+  padding: 12px 16px !important;
+  border-right: none !important;
   border-bottom: none !important;
 }
 
-.txn-page-wrap .trans_list_table thead th:last-child {
-  border-right: none !important;
+.txn-page-wrap .trans_list_table thead th.col-actions,
+.txn-page-wrap .trans_list_table thead th.col-steps {
+  text-align: center !important;
 }
 
 .txn-page-wrap .trans_list_table tbody td {
+  padding: 12px 16px !important;
+  text-align: left !important;
   border-left: none !important;
   border-right: none !important;
   border-bottom: 1px solid var(--ew-border-light, #E9ECF0) !important;
@@ -1636,7 +1700,8 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 
 .txn-page-wrap .trans_list_table tbody td.col-actions,
 .txn-page-wrap .trans_list_table tbody td.col-steps {
-  border-left: 1px solid var(--panel-border, #C5D3E0) !important;
+  text-align: center !important;
+  border-left: none !important;
 }
 
 .txn-page-wrap .txn-table-card.ew-list-layout-ready .dataTables_wrapper > .txn-dt-top,
@@ -2102,6 +2167,75 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   gap: 10px;
 }
 
+/* Quotation form footer — invoice-style single toolbar */
+.ew-page-v2 .ew-card > .ew-form-footer.ew-quote-footer-clean {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: stretch;
+  gap: 0;
+  width: 100%;
+  padding-top: 12px;
+  padding-bottom: 18px;
+}
+.ew-page-v2 .ew-quote-footer-clean .ew-quote-footer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  width: 100%;
+}
+.ew-page-v2 .ew-quote-footer-clean .ew-btn-v2 {
+  min-width: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+.ew-page-v2 .ew-quote-footer-start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.ew-page-v2 .ew-quote-footer-end {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+.ew-page-v2 .ew-quote-footer-sep {
+  display: inline-block;
+  width: 1px;
+  height: 26px;
+  background: #e2e8f0;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+.ew-page-v2 .ew-quote-btn-muted {
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+.ew-page-v2 .ew-quote-btn-muted:hover {
+  color: #334155;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+@media (max-width: 767px) {
+  .ew-page-v2 .ew-quote-footer-clean .ew-quote-footer-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ew-page-v2 .ew-quote-footer-end {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+  .ew-page-v2 .ew-quote-footer-sep {
+    display: none;
+  }
+}
+
 .ew-page-v2 .ew-btn-v2-draft {
   background: #FFFBEB;
   color: #B45309;
@@ -2466,6 +2600,55 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   opacity: 0 !important;
   pointer-events: none;
 }
+.ew-cancel-modal .ew-cancel-modal__lead {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--ew-text-secondary, #475569);
+}
+
+#ewCancelModal .ew-v2-modal,
+#ewBookingCancelledModal .ew-v2-modal {
+  max-width: 520px;
+}
+
+.ew-booking-cancelled-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.ew-booking-cancelled-meta > div {
+  padding: 10px 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.ew-booking-cancelled-meta dt {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ew-text-muted, #6B7A8D);
+}
+
+.ew-booking-cancelled-meta dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ew-navy, #06416F);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .ew-booking-cancelled-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
 #ewConfirmModal {
   z-index: 10120;
 }
@@ -2577,8 +2760,8 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   background: #fff;
 }
 .ew-page-v2 .upload-item-preview {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   flex-shrink: 0;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
@@ -2587,6 +2770,14 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.ew-page-v2 .upload-item-preview.ew-preview-openable {
+  cursor: zoom-in;
+  border-color: #cbd5e1;
+}
+.ew-page-v2 .upload-item-preview.ew-preview-openable:hover {
+  border-color: #64748b;
+  box-shadow: 0 0 0 2px rgba(2, 22, 89, 0.08);
 }
 .ew-page-v2 .upload-item-preview img {
   width: 100%;
@@ -2627,6 +2818,93 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   height: 0;
   opacity: 0;
   overflow: hidden;
+}
+
+.ew-attachment-preview-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+}
+.ew-attachment-preview-modal.is-open {
+  display: block;
+}
+body.ew-attachment-preview-open {
+  overflow: hidden;
+}
+.ew-attachment-preview-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+}
+.ew-attachment-preview-dialog {
+  position: relative;
+  z-index: 1;
+  max-width: min(960px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  margin: 16px auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ew-attachment-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+.ew-attachment-preview-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ew-attachment-preview-close {
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.ew-attachment-preview-close:hover {
+  color: #0f172a;
+}
+.ew-attachment-preview-body {
+  padding: 12px;
+  overflow: auto;
+  flex: 1;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111827;
+}
+.ew-attachment-preview-img {
+  max-width: 100%;
+  max-height: calc(100vh - 120px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #fff;
+}
+.ew-attachment-preview-frame {
+  width: 100%;
+  min-height: min(70vh, 720px);
+  height: calc(100vh - 120px);
+  border: 0;
+  background: #fff;
+  border-radius: 4px;
 }
 /* Receipt — same shell as tax invoice / credit note (ew-page-v2--invoice) */
 .ew-page-v2--invoice .ew-receipt-form-block {
@@ -2670,8 +2948,29 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   font-size: 12px;
   margin-bottom: 0;
   border-collapse: collapse;
+  table-layout: fixed;
   width: 100%;
   min-width: 960px;
+}
+
+.ew-page-v2--invoice #alloc_table col.alloc-col-inv {
+  width: 11%;
+}
+
+.ew-page-v2--invoice #alloc_table col.alloc-col-date {
+  width: 9%;
+}
+
+.ew-page-v2--invoice #alloc_table col.alloc-col-amount {
+  width: 11%;
+}
+
+.ew-page-v2--invoice #alloc_table col.alloc-col-input {
+  width: 12%;
+}
+
+.ew-page-v2--invoice #alloc_table col.alloc-col-action {
+  width: 40px;
 }
 
 .ew-page-v2--invoice #alloc_table th {
@@ -2683,6 +2982,11 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   padding: 10px 8px;
   border: none !important;
   border-bottom: 2px solid var(--panel-border, #C5D3E0) !important;
+  text-align: left;
+}
+
+.ew-page-v2--invoice #alloc_table th.num {
+  text-align: right;
 }
 
 .ew-page-v2--invoice #alloc_table td {
@@ -2705,17 +3009,47 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   border-top: 2px solid var(--panel-border, #C5D3E0) !important;
 }
 
-.ew-page-v2--invoice #alloc_table .num {
+.ew-page-v2--invoice #alloc_table tfoot .ew-alloc-foot-label {
+  text-align: left;
+  font-weight: 700;
+}
+
+.ew-page-v2--invoice #alloc_table tfoot .ew-alloc-foot-spacer {
+  padding: 8px;
+}
+
+.ew-page-v2--invoice #alloc_table td.num,
+.ew-page-v2--invoice #alloc_table th.num {
   text-align: right;
 }
 
-.ew-page-v2--invoice #alloc_table .num input.form-control {
-  max-width: 108px;
+.ew-page-v2--invoice #alloc_table tfoot td.ew-alloc-foot-num-cell {
+  text-align: right;
+  vertical-align: middle;
+}
+
+.ew-page-v2--invoice #alloc_table .ew-alloc-total-num,
+.ew-page-v2--invoice #alloc_table td.num .bal-display {
+  display: block;
+  width: 100%;
+  max-width: 120px;
   margin-left: auto;
+  margin-right: 0;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.ew-page-v2--invoice #alloc_table .num input.form-control {
+  width: 100%;
+  max-width: 120px;
+  margin-left: auto;
+  margin-right: 0;
+  display: block;
   text-align: right;
   height: 34px;
   padding: 4px 8px;
   font-size: 12px;
+  box-sizing: border-box;
 }
 
 .ew-page-v2--invoice #alloc_table .ew-receipt-alloc-empty td {
@@ -2725,4 +3059,32 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   padding: 24px 16px;
   background: #FAFBFC !important;
   white-space: normal;
+}
+
+.ew-page-v2--invoice #alloc_table .ew-alloc-remove-col {
+  width: 40px;
+  text-align: center;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.ew-page-v2--invoice #alloc_table .ew-alloc-row-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--ew-border-light, #E9ECF0);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ew-text-muted, #6B7A8D);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.ew-page-v2--invoice #alloc_table .ew-alloc-row-remove:hover {
+  color: #c0392b;
+  border-color: #e8b4b0;
+  background: #fdf5f4;
 }

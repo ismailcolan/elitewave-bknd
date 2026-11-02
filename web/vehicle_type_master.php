@@ -5,6 +5,8 @@ require_once('include/vehicle_type_helpers.php');
 
 ew_vehicle_type_ensure_schema($conn);
 $rows = ew_vehicle_type_list($conn, false);
+require_once('include/ew_master_usage_helpers.php');
+$vehicle_type_usage = ew_master_usage_map($conn, 'vehicle_type', array_column($rows, 'vehicle_type_id'));
 ?>
 <!DOCTYPE html>
 <html>
@@ -83,7 +85,12 @@ $rows = ew_vehicle_type_list($conn, false);
 												<td><?php echo ((int) $list['status'] === 0) ? 'Active' : 'Inactive'; ?></td>
 												<td class="actions center-content">
 													<div class="action-buttons">
-														<a title="Edit" class="table-actions" href="vehicle_type.php?key=<?php echo urlencode($key); ?>"><i class="fa fa-pencil"></i></a>
+														<?php echo ew_master_edit_action_html(array(
+															'in_use' => !empty($vehicle_type_usage[(int) $list['vehicle_type_id']]),
+															'mode' => 'link',
+															'href' => 'vehicle_type.php?key=' . urlencode($key),
+															'link_class' => 'table-actions',
+														)); ?>
 														<?php if ((int) $list['status'] === 0) { ?>
 															<a class="table-actions vt-type-active" data-status="0" title="Mark inactive" id="<?php echo (int) $list['vehicle_type_id']; ?>"><i class="fa fa-check"></i></a>
 														<?php } else { ?>

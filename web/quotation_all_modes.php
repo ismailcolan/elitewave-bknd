@@ -151,7 +151,6 @@ function ew_quotation_all_modes_status_pill_class($status)
 		.ew-letter-preview .pv-section { margin: 12px 0 6px; font-size: 12px; font-weight: 700; color: #021659; border-bottom: 2px solid #021659; padding-bottom: 3px; }
 		.ew-letter-preview .pv-kv { margin: 4px 0; font-size: 12px; }
 		.ew-letter-preview .pv-kv b { color: #021659; }
-		.ew-form-footer--quotation { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 		.quotation-readonly .form-control:not([readonly]) { pointer-events: none; background: #f8fafc; }
 		#multi_mode_table input.form-control, #multi_mode_table select.form-control { height: 34px; font-size: 12px; padding: 4px 8px; }
 		#multi_mode_table .mm-row-total { background: #f1f5f9; font-weight: 700; text-align: right; }
@@ -390,36 +389,7 @@ function ew_quotation_all_modes_status_pill_class($status)
 											</div>
 										</div>
 									</div>
-									<div class="ew-form-footer ew-form-footer--quotation">
-										<?php if ($editable) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-action" data-action="save_draft">Save draft</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_quotation_preview"><i class="fa fa-eye"></i> Preview</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-action" data-action="submit">Submit for approval</button>
-										<?php } elseif ($form_editable) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-action" data-action="save_draft">Save changes</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_quotation_preview"><i class="fa fa-eye"></i> Preview</button>
-										<?php } else { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_quotation_preview"><i class="fa fa-eye"></i> Preview</button>
-										<?php } ?>
-										<?php if ($status === 'pending_approval') { ?>
-											<p class="ew-field-hint" style="width:100%;margin:0 0 6px;text-align:right;">Approving emails the PDF from athar@elitewave360.in to the customer address above, with a copy to info@elitewave360.in.</p>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-workflow" data-action="approve">Approve &amp; email PDF</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="reject">Reject</button>
-										<?php } ?>
-										<?php if ($status === 'approved') { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-quotation-workflow" data-action="mark_sent">Mark sent to customer</button>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="resend_email">Resend email</button>
-										<?php } ?>
-										<?php if (in_array($status, array('sent', 'customer_confirmed'), true)) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="resend_email">Resend quotation email</button>
-										<?php } ?>
-										<?php if (quotation_can_customer_approve($status)) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-customer-approve" data-id="<?php echo (int) $id; ?>" data-quote="<?php echo htmlspecialchars($master['quote_no'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">Approve (upload reply)</button>
-										<?php } ?>
-										<?php if (!in_array($status, array('converted', 'cancelled'), true)) { ?>
-											<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-quotation-workflow" data-action="cancel">Cancel quotation</button>
-										<?php } ?>
-									</div>
+									<?php require __DIR__ . '/include/quotation_form_footer.php'; ?>
 								</div>
 							</div>
 

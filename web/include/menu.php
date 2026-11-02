@@ -9,6 +9,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $page_module_map = array(
   'dashboard.php' => 'dashboard',
   'dashboard_booking.php' => 'consignment',
+  'dashboard_invoice.php' => 'invoice',
+  'dashboard_payments.php' => 'invoice',
+  'dashboard_pl.php' => 'expense',
   'company.php' => 'setup', 'company_bank.php' => 'setup', 'company_bank_form.php' => 'setup',
   'branch.php' => 'setup',
   'state.php' => 'setup', 'city.php' => 'setup', 'country.php' => 'setup', 'hub.php' => 'setup',
@@ -21,6 +24,7 @@ $page_module_map = array(
   'quotation_list.php' => 'marketing', 'quotation.php' => 'marketing', 'quotation_pdf.php' => 'marketing',
   'quotation_all_modes_list.php' => 'marketing', 'quotation_all_modes.php' => 'marketing',
   'quotation_consignor_multi_dest_list.php' => 'marketing', 'quotation_consignor_multi_dest.php' => 'marketing',
+  'quotation_destination_master_list.php' => 'marketing', 'quotation_destination_master.php' => 'marketing',
   'client.php' => 'party', 'client_list.php' => 'party',
   'client_branch.php' => 'party', 'client_branch_list.php' => 'party',
   'vendor.php' => 'party', 'vendor_list.php' => 'party',
@@ -669,6 +673,15 @@ function ew_panel_head($title) {
       <div class="panel-scroll">
         <a class="panel-link<?php echo ew_menu_active('dashboard.php', $current_page); ?>" href="dashboard.php">Operations Dashboard</a>
         <a class="panel-link<?php echo ew_menu_active('dashboard_booking.php', $current_page); ?>" href="dashboard_booking.php">Consignment Bookings</a>
+        <?php if (EW_INVOICE_DASHBOARD_LIVE): ?>
+        <a class="panel-link<?php echo ew_menu_active('dashboard_invoice.php', $current_page); ?>" href="dashboard_invoice.php">Invoice Dashboard</a>
+        <?php endif; ?>
+        <?php if (defined('EW_PAYMENTS_DASHBOARD_LIVE') && EW_PAYMENTS_DASHBOARD_LIVE): ?>
+        <a class="panel-link<?php echo ew_menu_active('dashboard_payments.php', $current_page); ?>" href="dashboard_payments.php">Payments Dashboard</a>
+        <?php endif; ?>
+        <?php if (defined('EW_PL_DASHBOARD_LIVE') && EW_PL_DASHBOARD_LIVE): ?>
+        <a class="panel-link<?php echo ew_menu_active('dashboard_pl.php', $current_page); ?>" href="dashboard_pl.php">Expenses &amp; P&amp;L Dashboard</a>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -685,7 +698,7 @@ function ew_panel_head($title) {
           <div class="panel-accordion-body">
             <a class="panel-link panel-link--nested<?php echo ew_menu_active('company.php', $current_page); ?>" href="company.php">Company Details</a>
             <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('company_bank.php', 'company_bank_form.php'), $current_page); ?>" href="company_bank.php">Bank Details</a>
-            <a class="panel-link panel-link--nested<?php echo ew_menu_active('hub.php', $current_page); ?>" href="hub.php">Hub Details</a>
+            
           </div>
         </div>
         <?php $area_master_open = in_array($current_page, array('state.php', 'city.php', 'branch.php', 'cfs_master.php', 'cfs.php'), true); ?>
@@ -699,6 +712,7 @@ function ew_panel_head($title) {
             <a class="panel-link panel-link--nested<?php echo ew_menu_active_scope('city.php', 'domestic', $current_page); ?>" href="city.php?scope=domestic">City Master</a>
             <a class="panel-link panel-link--nested<?php echo ew_menu_active_scope('branch.php', 'domestic', $current_page); ?>" href="branch.php?scope=domestic">Branch Master</a>
             <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('cfs_master.php', 'cfs.php'), $current_page); ?>" href="cfs_master.php">CFS Master</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('hub.php', $current_page); ?>" href="hub.php">Warehouse Details</a>
           </div>
         </div>
         <a class="panel-link<?php echo ew_menu_active('package_type.php', $current_page); ?>" href="package_type.php">Package Type Master</a>
@@ -808,6 +822,7 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active_any(array('quotation_list.php', 'quotation.php'), $current_page); ?>" href="quotation_list.php">Single Quotation</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('quotation_all_modes_list.php', 'quotation_all_modes.php'), $current_page); ?>" href="quotation_all_modes_list.php">Multi Mode Quotation</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('quotation_consignor_multi_dest_list.php', 'quotation_consignor_multi_dest.php'), $current_page); ?>" href="quotation_consignor_multi_dest_list.php">Multi Destination Quotation</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('quotation_destination_master_list.php', 'quotation_destination_master.php'), $current_page); ?>" href="quotation_destination_master.php">Master Quotation</a>
       </div>
     </div>
     <div class="panel-module<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice">

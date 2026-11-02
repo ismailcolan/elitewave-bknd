@@ -18,323 +18,227 @@ if (isset($_COOKIE['persistID'])) {
 }
 
 ?>
-
 <!DOCTYPE html>
-<html lang="en" >
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="shortcut icon" href="<?php print_r(site_path); ?>images/elw_360_32_32-1.png">
-<title>Elite Wave 360</title>
-
-  <script>
-  window.console = window.console || function(t) {};
-  if (document.location.search.match(/type=embed/gi)) {
-    window.parent.postMessage("resize", "*");
-  }
-</script>
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="shortcut icon" href="<?php print_r(site_path); ?>images/elw_360_32_32-1.png">
+  <title>Elite Wave 360</title>
 <style>
   :root{
-    /* Logo-extracted palette */
-    --navy:#0B1437;
-    --navy-2:#0D1A4A;
-    --navy-3:#111E5C;
+    --blue:#0A6EF5;
+    --blue-hover:#0858C7;
+    --blue-soft:#D9E8FA;
     --red:#C8232A;
-    --red-dim:#A81C22;
-    --red-glow:rgba(200,35,42,0.22);
-
-    /* Form side */
-    --form-bg:#F2F4FA;
-    --tint:#EBEEf8;
-    --ink:#0B1437;
-    --muted:#6E7491;
-    --line:#DDE0EF;
+    --ink:#111827;
+    --muted:#64748B;
+    --line:#CBD5E1;
     --error:#D8455A;
     --error-bg:#FCEAEC;
     --success:#1D9E75;
     --success-bg:#E8F8F1;
+    --glass-fill:rgba(255,255,255,0.5);
+    --glass-border:rgba(255,255,255,0.92);
+    --glass-outer:rgba(255,255,255,0.38);
+    --glass-highlight:rgba(255,255,255,0.98);
+    /* Outer glass ring + light lift (no heavy drop shade) */
+    --glass-shadow:
+      0 0 0 1px var(--glass-outer),
+      0 0 0 3px rgba(255,255,255,0.14),
+      0 8px 24px rgba(15,23,42,0.06),
+      inset 0 1px 0 var(--glass-highlight),
+      inset 1px 0 0 rgba(255,255,255,0.45);
+    --label-ink:#0F172A;
   }
 
   *, *::before, *::after{ box-sizing:border-box; margin:0; padding:0; }
-  html{ height:100%; }
-
-  body{
-    min-height:100vh;
-    width:100%;
-    font-family:'Inter', sans-serif !important;
-    color: var(--ink);
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    line-height:1.5;
-  }
-
-  body *{ font-family:'Inter', sans-serif !important; }
-  ul, li{ list-style:none; }
-
-  /* ===== Left panel — logo-based gradient ===== */
-  .panel-visual{
-    position:relative;
-    grid-column: 1;
-    min-width:0;
-    min-height:100vh;
-    /* navy core with red warmth from logo */
-    background:
-      radial-gradient(ellipse at 80% 5%,  rgba(200,35,42,0.28), transparent 45%),
-      radial-gradient(ellipse at 15% 90%, rgba(200,35,42,0.18), transparent 40%),
-      radial-gradient(ellipse at 50% 50%, rgba(17,30,92,0.9),   transparent 80%),
-      linear-gradient(165deg, var(--navy) 0%, var(--navy-2) 45%, var(--navy-3) 100%);
-    overflow:hidden;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    padding:64px;
-    color:#F4F5FC;
-  }
-
-  /* subtle dot-grid texture */
-  .panel-visual::before{
-    content:"";
-    position:absolute;
-    inset:0;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px);
-    background-size: 28px 28px;
-    pointer-events:none;
-    z-index:1;
-  }
-
-  .route-stage{
-    position:absolute;
-    inset:0;
-    z-index:2;
-  }
-
-  .route-stage svg{
-    position:absolute;
+  html, body{
     width:100%;
     height:100%;
+    overflow:hidden;
+    background:#040B14;
   }
 
-  .panel-inner{
-    position:relative;
-    z-index:3;
-    max-width:480px;
+  body{
+    font-family:'Inter', sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
   }
 
-  .eyebrow{
-    display:inline-flex;
+  .login-stage{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100dvh;
+    overflow:hidden;
+  }
+
+  .login-banner-frame{
+    position:absolute;
+    inset:0;
+    background:#0a1a32;
+    overflow:hidden;
+    display:flex;
     align-items:center;
-    gap:8px;
-    font-size:12px;
-    font-weight:600;
-    letter-spacing:1.4px;
-    text-transform:uppercase;
-    color: var(--red);
-    margin-bottom:22px;
-    filter: brightness(1.3);
+    justify-content:center;
+    perspective:1400px;
+    perspective-origin:58% 78%;
   }
 
-  .eyebrow::before{
-    content:"";
-    width:18px;
-    height:1.5px;
-    background: var(--red);
-    filter: brightness(1.3);
+  /* Full aspect ratio — no stretch; fills viewport as large as possible */
+  .login-banner-frame img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    object-position:center center;
   }
 
-  .visual-copy h2{
-    font-family:'Space Grotesk', sans-serif;
-    font-weight:700;
-    font-size:44px;
-    line-height:1.15;
-    margin:0 0 18px;
-    letter-spacing:-0.6px;
+  /* City row below the “Reliable Deliveries” icon strip (under the footer labels in the banner) */
+  .marquee-bar{
+    position:absolute;
+    z-index:2;
+    left:5%;
+    right:34%;
+    bottom:1.8%;
+    top:auto;
+    height:auto;
+    pointer-events:none;
   }
 
-  .visual-copy h2 em{
-    font-style:normal;
-    background: linear-gradient(90deg, #F4606A, #FF9B6A);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .visual-copy p{
-    font-size:15.5px;
-    line-height:1.65;
-    color: rgba(244,245,252,0.65);
-    margin:0 0 40px;
-    max-width:400px;
-  }
-
-  /* ===== City ticker ===== */
   .ticker{
-    position:relative;
     width:100%;
     overflow:hidden;
-    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-    padding:16px 0;
-    border-top:1px solid rgba(255,255,255,0.1);
-    border-bottom:1px solid rgba(255,255,255,0.1);
+    mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    -webkit-mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    padding:0;
+    border:none;
   }
 
   .ticker-track{
     display:flex;
+    flex-direction:row;
+    align-items:center;
     width:max-content;
-    animation: scrollTicker 32s linear infinite;
+    animation:scrollTicker 34s linear infinite;
+    will-change:transform;
   }
 
   @keyframes scrollTicker{
-    from{ transform: translateX(0); }
-    to{ transform: translateX(-50%); }
+    from{ transform:translate3d(0, 0, 0); }
+    to{ transform:translate3d(-50%, 0, 0); }
   }
 
   .ticker-item{
     display:flex;
     align-items:center;
     gap:10px;
-    font-size:13.5px;
+    font-size:12px;
     font-weight:500;
-    color: rgba(244,245,252,0.8);
+    color:rgba(244,245,252,0.92);
     white-space:nowrap;
-    padding:0 22px;
+    padding:0 18px;
+    line-height:1.2;
   }
 
   .ticker-item .dot{
+    flex-shrink:0;
     width:4px;
     height:4px;
     border-radius:50%;
-    background: var(--red);
-    filter: brightness(1.5);
-    flex:0 0 auto;
+    background:var(--red);
   }
 
-  .ticker-count{
-    margin-top:16px;
-    font-size:12.5px;
-    color: rgba(244,245,252,0.45);
-  }
-
-  .ticker-count strong{
-    color: rgba(244,245,252,0.8);
-    font-weight:600;
-  }
-
-  .panel-foot{
+  .login-glass-panel{
     position:absolute;
-    bottom:32px;
-    left:64px;
-    z-index:3;
-    font-size:12px;
-    color: rgba(244,245,252,0.35);
-    letter-spacing:0.3px;
-  }
-
-  /* ===== Right form panel ===== */
-  .panel-form{
-    grid-column: 2;
-    min-width:0;
-    min-height:100vh;
-    background: var(--form-bg);
+    z-index:5;
+    top:0;
+    right:clamp(20px, 3.5vw, 52px);
+    width:clamp(300px, 34vw, 430px);
+    height:100%;
     display:flex;
+    flex-direction:column;
     align-items:center;
     justify-content:center;
-    padding:40px;
+    padding:16px 0;
+    overflow-y:auto;
+    isolation:isolate;
   }
 
-  .form-card{
+  .glass-card{
+    position:relative;
     width:100%;
     max-width:400px;
-    background:#fff;
+    padding:30px 28px 18px;
     border-radius:24px;
-    padding:44px 40px;
-    box-shadow:
-      0 24px 60px rgba(11,20,55,0.08),
-      0 2px 8px rgba(11,20,55,0.04);
+    background:var(--glass-fill);
+    backdrop-filter:blur(20px) saturate(1.35);
+    -webkit-backdrop-filter:blur(20px) saturate(1.35);
+    border:1px solid var(--glass-border);
+    box-shadow:var(--glass-shadow);
+  }
+
+  /* Soft top-left inner bevel — no full-card gradient shade */
+  .glass-card::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    background:linear-gradient(145deg, rgba(255,255,255,0.28) 0%, transparent 42%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .glass-card > *{
+    position:relative;
+    z-index:1;
+  }
+
+  .login-card-header{
+    margin-bottom:20px;
   }
 
   .form-logo{
+    width:85%;
+    max-width:280px;
     height:auto;
-    width:80%;
     display:block;
-    margin:0 auto 24px;
+    margin:0 auto 14px;
   }
-
-  .login-page-home{
-    position:fixed;
-    top:20px;
-    right:24px;
-    z-index:300;
-  }
-  .login-home-btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    height:38px;
-    padding:0 14px;
-    border-radius:10px;
-    border:1.5px solid var(--line);
-    background:#fff;
-    color: var(--ink);
-    font-size:13px;
-    font-weight:600;
-    font-family:'Space Grotesk', sans-serif;
-    text-decoration:none !important;
-    box-shadow: 0 4px 16px rgba(11,20,55,0.06);
-    transition: border-color .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease;
-  }
-  .login-home-btn svg{
-    width:15px;
-    height:15px;
-    flex-shrink:0;
-    color: var(--red);
-  }
-  .login-home-btn:hover{
-    border-color: rgba(200,35,42,0.35);
-    background: rgba(200,35,42,0.04);
-    color: var(--red);
-    box-shadow: 0 6px 18px rgba(200,35,42,0.12);
-  }
-
-  #login{ width:100%; }
-  #login form{ width:100%; display:block; }
 
   #login h1{
-    font-family:'Space Grotesk', sans-serif;
+    font-size:23px;
     font-weight:700;
-    font-size:24px;
-    line-height:1.3;
-    margin:0 0 6px;
-    color: var(--ink);
-    text-align:center;
+    text-align:left;
+    margin:0 0 8px;
+    color:var(--ink);
   }
 
   .subtitle{
-    font-size:13.5px;
-    color: var(--muted);
-    margin-bottom:28px;
-    text-align:center;
-  }
-
-  #logo{ display:none; }
-
-  .input{ margin-bottom:18px; }
-
-  .input label{
-    display:block;
     font-size:12.5px;
-    font-weight:600;
-    color: var(--ink);
-    margin-bottom:7px;
-    letter-spacing:0.2px;
+    color:#475569;
+    text-align:left;
+    margin:0;
+    line-height:1.55;
+    max-width:36em;
   }
 
-  .input .field-wrap{
+  .input{ margin-bottom:14px; }
+
+  .field-label{
+    display:block;
+    font-size:13px;
+    font-weight:700;
+    margin-bottom:7px;
+    color:var(--label-ink);
+  }
+
+  .field-wrap{
     position:relative;
-    width:100%;
     display:flex;
     align-items:center;
   }
@@ -343,106 +247,88 @@ if (isset($_COOKIE['persistID'])) {
     position:absolute;
     left:14px;
     top:50%;
-    transform: translateY(-50%);
-    width:18px;
-    height:18px;
-    color:#9CA1BD;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    transform:translateY(-50%);
+    color:#475569;
     pointer-events:none;
-    transition: color .15s ease;
+    z-index:1;
   }
 
-  /* icon turns red on focus */
-  .input input:focus ~ .field-icon,
-  .field-wrap:focus-within .field-icon{
-    color: var(--red);
+  .field-icon svg{
+    display:block;
+    width:18px;
+    height:18px;
+    stroke-width:2.25;
   }
+
+  .field-wrap:focus-within .field-icon{ color:var(--blue); }
 
   .input input{
     width:100%;
-    height:50px;
-    padding:0 52px 0 42px;
-    border-radius:12px;
-    border:1.5px solid var(--line);
-    background: var(--tint);
-    color: var(--ink);
+    height:46px;
+    padding:0 44px 0 42px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,0.65);
+    background:#fff;
+    color:var(--ink);
     font-size:14px;
     font-family:'Inter', sans-serif;
     outline:none;
-    display:block;
-    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    transition:border-color .15s ease, box-shadow .15s ease;
   }
 
-  .input input::placeholder{ color:#A4A8C0; }
+  .input.input-password input{ padding-right:46px; }
 
-  /* red focus ring matching logo */
+  .input input::placeholder{ color:#94A3B8; }
+
   .input input:focus{
-    border-color: var(--red);
-    background:#fff;
-    box-shadow: 0 0 0 4px rgba(200,35,42,0.1);
+    border-color:var(--blue);
+    background:rgba(255,255,255,0.95);
+    box-shadow:0 0 0 3px rgba(10,110,245,0.15);
   }
 
   .input.input-error input{
-    border-color: var(--error);
-    box-shadow: 0 0 0 4px rgba(216,69,90,0.08);
+    border-color:var(--error);
+    box-shadow:0 0 0 3px rgba(216,69,90,0.1);
   }
 
-  /* red arrow button matching logo */
-  .btn{
+  .toggle-password{
     position:absolute;
-    right:6px;
+    right:10px;
     top:50%;
-    transform: translateY(-50%);
-    width:38px;
-    height:38px;
-    border-radius:9px;
-    cursor:pointer;
+    transform:translateY(-50%);
+    width:32px;
+    height:32px;
     border:none;
-    background: var(--red);
+    background:transparent;
+    color:#94A3B8;
+    cursor:pointer;
     display:flex;
     align-items:center;
     justify-content:center;
-    transition: background .15s ease, transform .1s ease, box-shadow .15s ease;
-    box-shadow: 0 4px 14px rgba(200,35,42,0.35);
-  }
-  .btn:hover{
-    background: var(--red-dim);
-    transform: translateY(-50%);
-    box-shadow: 0 6px 18px rgba(200,35,42,0.45);
-  }
-  .btn:active{ transform: translateY(-50%) scale(0.92); }
-
-  .btn::before{
-    content:"";
-    width:8px;
-    height:8px;
-    border-top:2px solid #fff;
-    border-right:2px solid #fff;
-    transform: rotate(45deg) translateX(-1px);
+    border-radius:6px;
   }
 
-  #response{ display:none; width:100%; }
+  .toggle-password:hover{ color:var(--blue); }
+
+  #response{ display:none; margin-bottom:12px; }
   #response.show{ display:block; }
 
   .message{
-    font-size:13px;
-    padding:10px 14px;
-    border-radius:10px;
-    margin-bottom:14px;
-    width:100%;
+    font-size:12.5px;
+    padding:10px 12px;
+    border-radius:8px;
+    text-align:center;
   }
-  .message.error{ background: var(--error-bg); color: var(--error); }
-  .message.success{ background: var(--success-bg); color: var(--success); }
+
+  .message.error{ background:var(--error-bg); color:var(--error); }
+  .message.success{ background:var(--success-bg); color:var(--success); }
 
   .si-remember-password{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:12px;
-    width:100%;
-    margin: 6px 0 24px;
+    gap:10px;
+    margin:4px 0 16px;
     flex-wrap:wrap;
   }
 
@@ -450,167 +336,423 @@ if (isset($_COOKIE['persistID'])) {
     display:flex;
     align-items:center;
     gap:8px;
-    min-width:0;
+  }
+
+  .si-remember-password input[type="checkbox"]{
+    width:16px;
+    height:16px;
+    accent-color:var(--blue);
+    cursor:pointer;
+  }
+
+  .si-remember-password .form-label{
+    font-size:13px;
+    color:var(--muted);
+    cursor:pointer;
   }
 
   .forgot-link{
     font-size:13px;
     font-weight:600;
-    color: var(--red);
+    color:var(--blue);
     text-decoration:none;
-    white-space:nowrap;
   }
 
-  .forgot-link:hover{
-    color: var(--red-dim);
-    text-decoration:underline;
-  }
+  .forgot-link:hover{ text-decoration:underline; }
 
-  .si-remember-password input[type="checkbox"]{
-    width:15px;
-    height:15px;
-    margin:0;
-    accent-color: var(--red);
-    cursor:pointer;
-    flex:0 0 auto;
-  }
-
-  .si-remember-password .form-label{
-    color: var(--muted);
-    font-size:13px;
-    cursor:pointer;
-    flex:0 1 auto;
-  }
-
-  .separator{
-    height:1px;
+  .btn-login-primary{
     width:100%;
-    background: var(--line);
-    margin:8px 0 0;
+    height:46px;
+    margin:0;
+    border:none;
+    border-radius:8px;
+    background:var(--blue);
+    color:#fff;
+    font-size:15px;
+    font-weight:600;
+    font-family:'Inter', sans-serif;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    box-shadow:0 6px 16px rgba(10,110,245,0.25);
+    transition:background .15s ease;
   }
 
-  .home-link{
+  .btn-login-primary:hover{ background:var(--blue-hover); }
+
+  .divider-or{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:16px 0;
+    color:var(--muted);
+    font-size:12px;
+    font-weight:500;
+  }
+
+  .divider-or::before,
+  .divider-or::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:rgba(148,163,184,0.45);
+  }
+
+  .btn-microsoft{
+    width:100%;
+    height:46px;
+    border:1px solid rgba(203,213,225,0.9);
+    border-radius:10px;
+    background:rgba(255,255,255,0.92);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    color:var(--ink);
     font-size:14px;
     font-weight:600;
-    color: var(--red);
-    text-decoration:none;
-    white-space:nowrap;
-    text-align:center;
-    display:block;
-    margin-top:10px;
+    font-family:'Inter', sans-serif;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
   }
 
-  @media (max-width: 980px){
-    body{ grid-template-columns: 1fr; }
-    .panel-visual{ display:none; }
-    .form-card{ box-shadow:none; padding:20px; }
+  .btn-microsoft:hover{ background:rgba(255,255,255,0.72); }
+
+  .support-box{
+    margin-top:18px;
+    padding:12px 12px;
+    border-radius:12px;
+    background:linear-gradient(145deg, rgba(255,255,255,0.62) 0%, rgba(217,232,250,0.45) 100%);
+    backdrop-filter:blur(16px) saturate(1.25);
+    -webkit-backdrop-filter:blur(16px) saturate(1.25);
+    border:1px solid rgba(255,255,255,0.72);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.28),
+      inset 0 1px 0 rgba(255,255,255,0.75);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .support-box-icon{
+    width:36px;
+    height:36px;
+    border-radius:8px;
+    background:rgba(255,255,255,0.85);
+    color:var(--blue);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+
+  .support-box-text{
+    flex:1;
+    min-width:120px;
+  }
+
+  .support-box-text h3{
+    font-size:14px;
+    font-weight:700;
+    margin:0 0 2px;
+  }
+
+  .support-box-text p{
+    font-size:11px;
+    color:var(--muted);
+    margin:0;
+    line-height:1.35;
+  }
+
+  .btn-support{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    height:32px;
+    padding:0 12px;
+    border-radius:7px;
+    border:1px solid rgba(255,255,255,0.55);
+    background:rgba(255,255,255,0.75);
+    backdrop-filter:blur(8px);
+    color:var(--blue);
+    font-size:12px;
+    font-weight:600;
+    text-decoration:none;
+  }
+
+  .login-page-footer{
+    width:100%;
+    margin-top:10px;
+    padding-top:10px;
+    border-top:1px solid rgba(148,163,184,0.35);
+    text-align:center;
+    font-size:12px;
+    color:#64748B;
+    line-height:1.65;
+  }
+
+  .login-page-footer a{
+    color:#475569;
+    text-decoration:none;
+    font-weight:600;
+    font-size:12px;
+  }
+
+  .login-page-footer a:hover{ text-decoration:underline; }
+
+  .footer-sep{ margin:0 6px; opacity:0.55; }
+
+  .footer-links{
+    display:block;
+    white-space:nowrap;
+    margin-bottom:8px;
+    font-size:12px;
+  }
+
+  .footer-copy{
+    display:block;
+    font-size:11.5px;
+    color:#64748B;
+  }
+
+  /* Tablet landscape & small laptop — keep side card, tune banner + ticker */
+  @media (max-width: 1200px) and (min-width: 901px){
+    .login-glass-panel{
+      width:clamp(300px, 36vw, 400px);
+      right:clamp(12px, 2vw, 28px);
+    }
+    .marquee-bar{
+      right:38%;
+      left:4%;
+      bottom:2%;
+    }
+    .login-banner-frame img{
+      object-position:42% center;
+    }
+    .glass-card{
+      padding:26px 24px 16px;
+    }
+  }
+
+  /* Tablet portrait & narrow — banner strip on top, login below */
+  @media (max-width: 900px){
+    html, body{
+      overflow:auto;
+      height:auto;
+      min-height:100%;
+    }
+
+    .login-stage{
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      min-height:100dvh;
+      min-height:100svh;
+      height:auto;
+      overflow:visible;
+    }
+
+    .login-banner-frame{
+      position:relative;
+      width:100%;
+      height:clamp(260px, 42vh, 400px);
+      min-height:260px;
+      flex-shrink:0;
+      perspective:none;
+    }
+
+    .login-banner-frame img{
+      object-fit:cover;
+      object-position:center 22%;
+    }
+
+    .marquee-bar{
+      left:3%;
+      right:3%;
+      bottom:2.5%;
+    }
+
+    .ticker-item{
+      font-size:11px;
+      padding:0 14px;
+    }
+
+    .login-glass-panel{
+      position:relative;
+      top:auto;
+      right:auto;
+      width:100%;
+      min-width:0;
+      height:auto;
+      min-height:0;
+      flex:1;
+      justify-content:center;
+      padding:20px 20px max(28px, env(safe-area-inset-bottom));
+      background:linear-gradient(180deg, #e8eef6 0%, #f1f5f9 28%, #f8fafc 100%);
+    }
+
+    .glass-card{
+      max-width:440px;
+      margin:0 auto;
+      padding:28px 24px 20px;
+      box-shadow:var(--glass-shadow);
+    }
+
+    .login-page-footer{ color:var(--muted); text-shadow:none; }
+    .login-page-footer a{ color:var(--muted); }
+
+    .footer-links{
+      white-space:normal;
+      line-height:1.5;
+    }
+  }
+
+  /* Large phones & small tablets in landscape */
+  @media (max-width: 900px) and (max-height: 520px){
+    .login-banner-frame{
+      height:clamp(200px, 38vh, 280px);
+      min-height:200px;
+    }
+    .login-glass-panel{
+      padding:12px 16px max(16px, env(safe-area-inset-bottom));
+    }
+    .glass-card{
+      padding:20px 18px 14px;
+    }
+    .form-logo{
+      max-width:220px;
+      margin-bottom:10px;
+    }
+    #login h1{ font-size:20px; }
+    .subtitle{ font-size:12px; margin-bottom:0; }
+    .login-card-header{ margin-bottom:14px; }
+    .input{ margin-bottom:10px; }
+  }
+
+  @media (max-width: 480px){
+    .login-banner-frame{
+      height:clamp(220px, 36vh, 320px);
+    }
+    .login-glass-panel{
+      padding:16px 14px max(24px, env(safe-area-inset-bottom));
+    }
+    .glass-card{
+      padding:24px 18px 16px;
+      border-radius:20px;
+    }
+    #login h1{ font-size:21px; }
+    .si-remember-password{
+      flex-direction:column;
+      align-items:flex-start;
+      gap:8px;
+    }
   }
 </style>
-
 </head>
+<body>
 
-<body translate="no" >
-
-  <a href="https://elitewave360.in/" class="login-home-btn login-page-home" target="_blank" rel="noopener noreferrer" title="Go to Elite Wave 360 website">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z"/></svg>
-    Home
-  </a>
-
-  <div class="panel-visual">
-    <div class="route-stage">
-      <svg viewBox="0 0 700 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <!-- top dashed route — red tint -->
-        <path d="M -50 120 C 120 90, 220 180, 380 130 S 650 60, 760 140"
-              stroke="rgba(200,35,42,0.35)" stroke-width="1.5" fill="none" stroke-dasharray="2 6"/>
-        <!-- bottom dashed route — navy lighter -->
-        <path d="M -50 780 C 120 740, 250 820, 400 760 S 620 700, 760 770"
-              stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none" stroke-dasharray="2 6"/>
-        <!-- glowing node dots — red -->
-        <circle cx="120" cy="100" r="3" fill="rgba(200,35,42,0.7)"/>
-        <circle cx="120" cy="100" r="7" fill="rgba(200,35,42,0.12)"/>
-        <circle cx="380" cy="130" r="3" fill="rgba(200,35,42,0.7)"/>
-        <circle cx="380" cy="130" r="7" fill="rgba(200,35,42,0.12)"/>
-        <circle cx="650" cy="80"  r="3" fill="rgba(200,35,42,0.7)"/>
-        <circle cx="650" cy="80"  r="7" fill="rgba(200,35,42,0.12)"/>
-        <!-- subtle bottom nodes — white -->
-        <circle cx="250" cy="800" r="2.5" fill="rgba(255,255,255,0.25)"/>
-        <circle cx="500" cy="730" r="2.5" fill="rgba(255,255,255,0.25)"/>
-      </svg>
+  <div class="login-stage">
+    <div class="login-banner-frame">
+      <img src="images/without-full-logo-banner.png" width="1821" height="864" alt="">
+      <div class="marquee-bar">
+        <div class="ticker">
+          <div class="ticker-track" id="cityTicker"></div>
+        </div>
+      </div>
     </div>
 
-    <div class="panel-inner">
-      <div class="eyebrow">Pan-India Logistics Network</div>
+    <aside class="login-glass-panel">
+      <div class="glass-card">
+        <div id="login">
+          <div class="login-card-header">
+            <img src="images/elitewave-light.png" alt="Elite Wave 360" class="form-logo" />
+            <h1>Welcome Back</h1>
+            <p class="subtitle">Login to your EliteWave360 portal to manage your shipments, invoices, payments and more.</p>
+          </div>
+          <form class="login100-form validate-form" method="post" id="login_form">
+            <input type="hidden" name="form_name" id="from_name" value="login">
 
-      <div class="visual-copy">
-        <h2>Every shipment.<br/>On <em>time</em>, every time.</h2>
-        <p>From dispatch to doorstep, track your fleet, routes, and deliveries across India in one connected platform built for speed and certainty.</p>
+            <div id="response">
+              <div class="message"></div>
+            </div>
+
+            <div class="input" id="mail">
+              <label for="email" class="field-label">Username or Email</label>
+              <div class="field-wrap">
+                <span class="field-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>
+                </span>
+                <input type="email" name="email" id="email" placeholder="Enter your username or email" autocomplete="username" autofocus />
+              </div>
+            </div>
+
+            <div class="input input-password" id="pass">
+              <label for="password" class="field-label">Password</label>
+              <div class="field-wrap">
+                <span class="field-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                </span>
+                <input type="password" name="password" id="password" placeholder="Enter your password" autocomplete="current-password" />
+                <button type="button" class="toggle-password" id="togglePassword" aria-label="Show password">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="si-remember-password">
+              <div class="remember-wrap">
+                <input type="checkbox" name="remember" id="remember-me" value="1">
+                <label class="form-label" for="remember-me">Remember me</label>
+              </div>
+              <a href="forgot_password.php" class="forgot-link">Forgot Password?</a>
+            </div>
+
+            <button type="button" class="btn-login-primary" id="loginBtn">
+              Login
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+
+            <!-- Microsoft SSO + support — re-enable when ready
+            <div class="divider-or">OR</div>
+
+            <button type="button" class="btn-microsoft" id="microsoftLogin">
+              <svg width="20" height="20" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+              Login with Microsoft
+            </button>
+
+            <div class="support-box">
+              <div class="support-box-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z"/><path d="M21 11h-3a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-5z"/><path d="M12 3a4 4 0 0 0-4 4v1h8V7a4 4 0 0 0-4-4z"/></svg>
+              </div>
+              <div class="support-box-text">
+                <h3>Need Help?</h3>
+                <p>Contact our support team for assistance.</p>
+                <a href="https://elitewave360.in/" class="btn-support" target="_blank" rel="noopener noreferrer">Get Support →</a>
+              </div>
+            </div>
+            -->
+          </form>
+
+          <footer class="login-page-footer">
+            <span class="footer-links">
+              <a href="https://elitewave360.in/" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+              <span class="footer-sep">|</span>
+              <a href="https://elitewave360.in/" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+              <span class="footer-sep">|</span>
+              <a href="https://elitewave360.in/" target="_blank" rel="noopener noreferrer">Support</a>
+            </span>
+            <span class="footer-copy">&copy; <?php echo date('Y'); ?> EliteWave360 Logistics. All rights reserved.</span>
+          </footer>
+        </div>
       </div>
-
-      <div class="ticker">
-        <div class="ticker-track" id="cityTicker"></div>
-      </div>
-
-      <div class="ticker-count"><strong>70+</strong> cities served across India</div>
-    </div>
-
-    <div class="panel-foot">&copy; <?php echo date('Y'); ?> Elite Wave 360 Logistics. All rights reserved.</div>
+    </aside>
   </div>
 
-  <div class="panel-form">
-    <div class="form-card">
-      <div id="login">
-        <img src="images/elitewave-light.png" alt="Elite Wave 360" class="form-logo" />
-        <h1>Welcome back</h1>
-        <div class="subtitle">Sign in to your Elite Wave 360 account</div>
-        <form class="login100-form validate-form" method="post" id="login_form">
-          <input type="hidden" name="form_name" id="from_name" value="login">
-          <div id="logo"></div>
-
-          <div class="input" id="mail">
-            <label for="email">Email</label>
-            <div class="field-wrap">
-              <span class="field-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
-              </span>
-              <input type="email" name="email" id="email" placeholder="Enter your email" autocomplete="off" autofocus="" />
-              <div class="btn" id="next" type="button"></div>
-            </div>
-          </div>
-
-          <div class="input" id="pass" style="display: none;">
-            <label for="password">Password</label>
-            <div class="field-wrap">
-              <span class="field-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-              </span>
-              <input type="password" name="password" id="password" placeholder="Enter your password" autocomplete="off"/>
-              <div class="btn" id="save" type="button"></div>
-            </div>
-          </div>
-
-          <div id="response" class="alert alert-danger">
-            <div class="message" style="text-align:center"></div>
-          </div>
-
-          <div class="si-remember-password">
-            <div class="remember-wrap">
-              <input type="checkbox" name="remember" id="remember-me" class="form-choice form-choice-checkbox" value="1">
-              <label id="remember-me-label" class="form-label" for="remember-me">Keep me signed in</label>
-            </div>
-            <a href="forgot_password.php" class="forgot-link">Forgot password?</a>
-          </div>
-          <div class="separator"></div>
-            <a href="https://elitewave360.in/" class="home-link">www.elitewave360.in</a>
-          
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <script src="javascripts/jquery-1.10.2.min.js" type="text/javascript"></script>
-  <script src="javascripts/jquery.validate.js" type="text/javascript"></script>
   <script type="text/javascript">
-
     (function(){
       var cities = [
         "New Delhi","Mumbai","Bangalore","Chennai","Hyderabad","Pune","Ahmedabad",
@@ -619,99 +761,99 @@ if (isset($_COOKIE['persistID'])) {
         "Patna","Noida","Gurgaon","Rajkot"
       ];
       var track = document.getElementById('cityTicker');
+      if (!track) return;
       var html = '';
-      for(var rep=0; rep<2; rep++){
-        for(var i=0;i<cities.length;i++){
-          html += '<span class="ticker-item"><span class="dot"></span>'+cities[i]+'</span>';
+      for (var rep = 0; rep < 2; rep++) {
+        for (var i = 0; i < cities.length; i++) {
+          html += '<span class="ticker-item"><span class="dot"></span>' + cities[i] + '</span>';
         }
       }
       track.innerHTML = html;
     })();
-
+  </script>
+  <script src="javascripts/jquery-1.10.2.min.js"></script>
+  <script src="javascripts/jquery.validate.js"></script>
+  <script type="text/javascript">
     jQuery(function($) {
+      var emailVerified = false;
+      var emailFilter = /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
 
       function showMessage(text, type){
         $("#response").addClass("show");
         $(".message").removeClass("error success").addClass(type).html(text);
       }
 
-      $(document).on('click', '#next', function(event){
-        event.preventDefault();
+      function clearMessage(){
+        $("#response").removeClass("show");
+        $(".message").removeClass("error success").html('');
+      }
+
+      $('#togglePassword').on('click', function(){
+        var $pw = $('#password');
+        var show = $pw.attr('type') === 'password';
+        $pw.attr('type', show ? 'text' : 'password');
+        $(this).attr('aria-label', show ? 'Hide password' : 'Show password');
+      });
+
+      $('#email').on('input', function(){ emailVerified = false; $("#mail").removeClass("input-error"); });
+
+      function submitLogin(){
+        if (!$("#login_form").valid()) return;
+        $.post('save_details.php', $("#login_form").serialize(), function(data){
+          if ($.trim(String(data)) === '1') {
+            showMessage('<img src="images/btn-ajax-loader.gif" height="10" width="10" alt=""/> Loading…', 'success');
+            setTimeout(function(){ window.location.href = 'dashboard.php'; }, 2000);
+          } else if (data == 2) {
+            showMessage('Your password has already been changed using this url', 'success');
+          } else {
+            $("#pass").addClass("input-error");
+            showMessage('Invalid Password !!!', 'error');
+          }
+        });
+      }
+
+      function verifyEmailThenLogin(){
         var email = $("#email").val();
-        var filter = /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
-        if (!filter.test(email)) {
+        if (!emailFilter.test(email)) {
           $("#mail").addClass("input-error");
           showMessage('Please provide a valid email address', 'error');
-          $("#email").focus();
-          return false;
-        } else {
-          $.ajax({
-            url:'fetch_details.php',
-            type:"post",
-            data:{cmd:"chck_users_email",email:email},
-            success:function(result){
-
-    console.log("Response:", result);
-    console.log("Type:", typeof result);
-    console.log("Trim:", $.trim(result));
-
-    if($.trim(result) === "1"){
-
-        $("#mail").hide(100);
-        $("#pass").show().fadeIn(1000);
-        $("#password").focus();
-
-        $("#mail").removeClass("input-error");
-
-        $("#response").removeClass("show");
-        $(".message").removeClass("error").html('');
-
-    }else{
-
-        $("#mail").addClass("input-error");
-        showMessage("Incorrect Email Id ..!!","error");
-
-    }
-
-}
-          });
+          return;
         }
-      });
-
-      $(document).on('keyup', '#email', function(event){
-        event.preventDefault();
-        if (event.keyCode === 13){ $("#next").trigger("click"); }
-      });
-
-      $(document).on('keyup', '#password', function(event){
-        event.preventDefault();
-        if (event.keyCode === 13){ $("#save").trigger("click"); }
-      });
-
-      $(document).on('click submit', '#save', function(ev){
-        if($("#login_form").valid() == true){
-          var data = $("#login_form").serialize();
-          $.post('save_details.php', data, function(data) {
-            console.log(data);
-            if($.trim(String(data)) === '1'){
-              $("#pass").removeClass("input-error");
-              showMessage('<img src="images/btn-ajax-loader.gif" height="10px" width="10px"/> &nbsp; Loading Please Wait ...', 'success');
-              setTimeout(function(){ window.location.href='dashboard.php'; }, 2000);
-            } else if(data==2){
-              showMessage('<strong>Your Password has been already changed using this url</strong>', 'success');
-              $('.message').fadeIn('slow').delay(200000).fadeOut('slow');
+        if (!$("#password").val()) {
+          $("#pass").addClass("input-error");
+          showMessage('Please enter your password', 'error');
+          return;
+        }
+        if (emailVerified) {
+          submitLogin();
+          return;
+        }
+        $.ajax({
+          url: 'fetch_details.php',
+          type: 'post',
+          data: { cmd: 'chck_users_email', email: email },
+          success: function(result){
+            if ($.trim(result) === '1') {
+              emailVerified = true;
+              $("#mail").removeClass("input-error");
+              clearMessage();
+              submitLogin();
             } else {
-              $("#pass").addClass("input-error");
-              showMessage('Invalid Password !!!', 'error');
-              $('.message').fadeIn('slow').delay(200000).fadeOut('slow');
+              $("#mail").addClass("input-error");
+              showMessage('Incorrect Email Id ..!!', 'error');
             }
-          });
-        }
+          }
+        });
+      }
+
+      $('#loginBtn').on('click', function(e){ e.preventDefault(); verifyEmailThenLogin(); });
+      $('#login_form input').on('keydown', function(e){
+        if (e.keyCode === 13) { e.preventDefault(); verifyEmailThenLogin(); }
       });
-
+      /* $('#microsoftLogin').on('click', function(){
+        showMessage('Microsoft sign-in is not configured yet. Please use email and password.', 'error');
+      }); */
     });
-
   </script>
 </body>
-
 </html>
