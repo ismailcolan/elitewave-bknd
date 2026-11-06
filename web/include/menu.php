@@ -8,10 +8,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
 $page_module_map = array(
   'dashboard.php' => 'dashboard',
-  'dashboard_booking.php' => 'consignment',
-  'dashboard_invoice.php' => 'invoice',
-  'dashboard_payments.php' => 'invoice',
-  'dashboard_pl.php' => 'expense',
+  'dashboard_booking.php' => 'dashboard',
+  'dashboard_invoice.php' => 'dashboard',
+  'dashboard_payments.php' => 'dashboard',
+  'dashboard_pl.php' => 'dashboard',
   'company.php' => 'setup', 'company_bank.php' => 'setup', 'company_bank_form.php' => 'setup',
   'branch.php' => 'setup',
   'state.php' => 'setup', 'city.php' => 'setup', 'country.php' => 'setup', 'hub.php' => 'setup',
@@ -25,6 +25,8 @@ $page_module_map = array(
   'quotation_all_modes_list.php' => 'marketing', 'quotation_all_modes.php' => 'marketing',
   'quotation_consignor_multi_dest_list.php' => 'marketing', 'quotation_consignor_multi_dest.php' => 'marketing',
   'quotation_destination_master_list.php' => 'marketing', 'quotation_destination_master.php' => 'marketing',
+  'marketing_bulk_email.php' => 'marketing',
+  'marketing_bulk_email_list.php' => 'marketing',
   'client.php' => 'party', 'client_list.php' => 'party',
   'client_branch.php' => 'party', 'client_branch_list.php' => 'party',
   'vendor.php' => 'party', 'vendor_list.php' => 'party',
@@ -57,6 +59,7 @@ $page_module_map = array(
   'cargo_booking_report.php' => 'mis', 'gst_tax_report.php' => 'mis',
   'invoice_register.php' => 'mis',
   'pending_payments.php' => 'invoice',
+  'pending_payments_ledger_pdf.php' => 'invoice',
   'client_payment_transactions.php' => 'mis',
   'customer_mapping.php' => 'party',
   'customer_mapping_form.php' => 'party',
@@ -823,6 +826,7 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active_any(array('quotation_all_modes_list.php', 'quotation_all_modes.php'), $current_page); ?>" href="quotation_all_modes_list.php">Multi Mode Quotation</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('quotation_consignor_multi_dest_list.php', 'quotation_consignor_multi_dest.php'), $current_page); ?>" href="quotation_consignor_multi_dest_list.php">Multi Destination Quotation</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('quotation_destination_master_list.php', 'quotation_destination_master.php'), $current_page); ?>" href="quotation_destination_master.php">Master Quotation</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('marketing_bulk_email_list.php', 'marketing_bulk_email.php'), $current_page); ?>" href="marketing_bulk_email_list.php">Bulk Email</a>
       </div>
     </div>
     <div class="panel-module<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice">
@@ -830,8 +834,7 @@ function ew_panel_head($title) {
       <div class="panel-scroll">
         <a class="panel-link<?php echo ew_menu_active_any(array('proforma_invoice_list.php', 'create_proforma_invoice.php'), $current_page); ?>" href="proforma_invoice_list.php">Proforma Invoice</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('invoice_list.php', 'create_invoice.php'), $current_page); ?>" href="invoice_list.php">Tax Invoice</a>
-        <a class="panel-link<?php echo ew_menu_active('pending_payments.php', $current_page); ?>" href="pending_payments.php">Bill Wise</a>
-        <span class="panel-link" title="Screen coming soon">Ledger Statement</span>
+        <a class="panel-link<?php echo ew_menu_active_any(array('pending_payments.php', 'pending_payments_ledger_pdf.php'), $current_page); ?>" href="pending_payments.php">Bill Wise</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('credit_note_list.php', 'create_credit_note.php'), $current_page); ?>" href="credit_note_list.php">Credit Note</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('receipt_list.php', 'create_receipt.php'), $current_page); ?>" href="receipt_list.php">Payment Receipt</a>
         <span class="panel-link" title="Screen coming soon">Payment History</span>

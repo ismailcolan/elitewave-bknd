@@ -68,7 +68,7 @@ function expense_general_ensure_schema($conn)
 function expense_general_next_no($conn, $general_expense_id)
 {
 	$id = (int) $general_expense_id;
-	return 'GEN' . sprintf('%05d', $id);
+	return 'EMPV' . sprintf('%05d', $id);
 }
 
 function expense_general_preview_next_no($conn)
@@ -357,6 +357,24 @@ function expense_general_load($conn, $general_expense_id)
 		return null;
 	}
 	return expense_general_format_record($conn, $header);
+}
+
+function expense_general_view_data($conn, $general_expense_id)
+{
+	$record = expense_general_load($conn, $general_expense_id);
+	if (!$record) {
+		return null;
+	}
+	$modes = ew_company_bank_payment_modes();
+	$pm = strtoupper(trim((string) ($record['payment_mode'] ?? '')));
+	$record['payment_mode_label'] = $modes[$pm] ?? ($pm !== '' ? $pm : '—');
+	$gp = (float) ($record['gst_percent_raw'] ?? 0);
+	if ($gp <= 0) {
+		$record['gst_percent_display'] = '0%';
+	} else {
+		$record['gst_percent_display'] = rtrim(rtrim(number_format($gp, 2, '.', ''), '0'), '.') . '%';
+	}
+	return $record;
 }
 
 function expense_general_save($conn, $payload, $user_id)

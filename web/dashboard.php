@@ -15,7 +15,7 @@ $dataPoints2 = [];
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link rel="stylesheet" type="text/css" href="fonts/font/flaticon.css" />
-<link href="stylesheets/cargo-ops-dashboard.css?v=20260930donuts" rel="stylesheet" type="text/css" />
+<link href="stylesheets/cargo-ops-dashboard.css?v=20261106tableveh" rel="stylesheet" type="text/css" />
 <style>
 :root{
 --sidebar-width:260px;
@@ -374,13 +374,13 @@ font-size:20px; flex-shrink:0;
 <div class="ew-page-head">
 	<div class="ew-page-head-left">
 		<div>
-			<h1 class="ew-page-title">Dashboard</h1>
-			<p class="ew-page-desc">Bookings, billing, collections and delivery for the selected year</p>
+			<h1 class="ew-page-title">Live tracking</h1>
+			<p class="ew-page-desc">Where your latest consignments are right now</p>
 		</div>
 	</div>
 	<div class="ew-page-head-actions cld-year-head">
-		<div class="cld-date" id="cldAsOf"></div>
-		<div class="year-toggle" id="cldYears"></div>
+		<div class="cld-date" id="cldAsOfLegacy"></div>
+		<div class="year-toggle" id="cldYearsLegacy"></div>
 	</div>
 </div>
 
@@ -929,7 +929,7 @@ $.ajax({
 </div><!-- /modal-shiftfix -->
 
 <script src="https://code.highcharts.com/highcharts.js"></script>
-<script src="javascripts/cargo-ops-dashboard.js?v=20260930donuts"></script>
+<script src="javascripts/cargo-ops-dashboard.js?v=20261106kmleft"></script>
 <script>
 // ── Sync main-content margin with sidebar ────────────────────────────────────
 (function(){

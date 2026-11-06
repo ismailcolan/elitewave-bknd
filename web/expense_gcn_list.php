@@ -217,15 +217,12 @@ $list_rows = expense_gcn_fetch_list($conn);
 								<h2>GCN Expense List</h2>
 								<div class="ew-toolbar-right">
 									<div class="ew-list-toolbar__tools"></div>
-									<a href="expense_gcn.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
 								</div>
 							</div>
 							<div class="ew-table-wrap widget-content padded clearfix new_dept">
 							<?php if (empty($list_rows)) { ?>
 								<div class="egcn-empty" style="padding:24px;text-align:center;color:#64748b;">
-									No GCN expenses saved yet.
-									<br><br>
-									<a href="expense_gcn.php?create=1" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-plus"></i> Add Expense against GCN</a>
+									No GCN expenses saved yet. Add new entries from <strong>General Expense</strong> → Create, and choose <strong>Expense against GCN</strong>.
 								</div>
 							<?php } else { ?>
 									<table class="table table-bordered table-striped egcn_list_tab" id="egcn_list_table">

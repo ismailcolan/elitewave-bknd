@@ -1558,6 +1558,22 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   margin: 0;
 }
 
+.ew-page-v2--consignment .payment-charges-table .freight-rate-dash {
+  display: none;
+  text-align: right;
+  color: #94a3b8;
+}
+
+.ew-page-v2--consignment .payment-charges-table .freight-rate-cell.is-manual #frieght_rate {
+  display: none !important;
+}
+
+.ew-page-v2--consignment .payment-charges-table .freight-rate-cell.is-manual .freight-rate-dash {
+  display: block;
+  text-align: right;
+  line-height: 34px;
+}
+
 .ew-page-v2--consignment .pak_info_tblee .table.tabs > thead > tr > th.pkg-action-col,
 .ew-page-v2--consignment .pak_info_tblee .table.tabs > tbody > tr > td.pkg-row-action {
   border-left: 1px solid var(--panel-border, #C5D3E0) !important;

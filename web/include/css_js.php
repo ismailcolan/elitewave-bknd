@@ -35,7 +35,7 @@
 	<link href="stylesheets/modern-ui.css?v=20261023list-align" media="all" rel="stylesheet" type="text/css" />
 	<link href="stylesheets/ew-datepicker.css?v=20260918datefield" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-design-system.css?v=20261023list-align" media="all" rel="stylesheet" type="text/css" />
-<link href="stylesheets/ew-pages-v2.css?v=20261031quotefoot3" media="all" rel="stylesheet" type="text/css" />
+<link href="stylesheets/ew-pages-v2.css?v=20261106freight1" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-form-validation.css?v=20260911valfix" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-skeleton.css?v=20261013loader2" media="all" rel="stylesheet" type="text/css" />
 	

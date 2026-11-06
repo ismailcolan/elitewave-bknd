@@ -65,6 +65,7 @@ function dashboard_ops_empty_day($year, $monthIndex, $day)
 		'delayed' => 0,
 		'inTransit' => 0,
 		'pending' => 0,
+		'cancelled' => 0,
 	);
 }
 
@@ -119,6 +120,7 @@ function dashboard_ops_agg_days($days, $idx, $name)
 		'delayed' => $sum('delayed'),
 		'inTransit' => $sum('inTransit'),
 		'pending' => $sum('pending'),
+		'cancelled' => $sum('cancelled'),
 	);
 }
 
@@ -275,6 +277,26 @@ function dashboard_ops_load_consignments($conn, &$yearsData, $years, $cutoffIso,
 						$day['inTransit'] += (int) $row['transit_cnt'];
 						$day['pending'] += (int) $row['pending_cnt'];
 					});
+				}
+			}
+
+			if (isset($cols['booking_status'])) {
+				$sqlCancel = "SELECT $dtExpr AS dt, COUNT(*) AS cancelled
+					FROM `$table`
+					WHERE $dtExpr IS NOT NULL AND YEAR($dtExpr)=" . (int) $year . "
+						AND (booking_status='1' OR booking_status=1)
+					GROUP BY dt";
+				$cq = mysqli_query($conn, $sqlCancel);
+				if ($cq) {
+					while ($crow = mysqli_fetch_assoc($cq)) {
+						$iso = $crow['dt'];
+						if (!$iso) {
+							continue;
+						}
+						dashboard_ops_touch_day($yearsData[$year], $iso, function (&$day) use ($crow) {
+							$day['cancelled'] += (int) $crow['cancelled'];
+						});
+					}
 				}
 			}
 

@@ -7,8 +7,13 @@ expense_gcn_ensure_schema($conn);
 expense_require_admin();
 
 $has_edit = !empty($_GET['gcn_key']) || !empty($_GET['group_id']);
+$egcn_embed = !empty($_GET['embed']);
 if (!$has_edit && empty($_GET['create'])) {
 	header('Location:expense_gcn_list.php');
+	exit;
+}
+if (!$has_edit && !empty($_GET['create']) && !$egcn_embed) {
+	header('Location: expense_general.php?create=1&mode=gcn');
 	exit;
 }
 
@@ -28,6 +33,15 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 	<?php include('include/css_js.php'); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<style>
+		<?php if ($egcn_embed) { ?>
+		body.egcn-embed {
+			margin: 0;
+			background: transparent;
+		}
+		body.egcn-embed .egcn-embed-root {
+			padding: 0;
+		}
+		<?php } ?>
 		.main-content.new_dpt_bottom {
 			max-width: none;
 			padding: 20px 16px 24px;
@@ -888,7 +902,8 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 	</style>
 </head>
 
-<body class="page-header-fixed bg-1">
+<body class="<?php echo $egcn_embed ? 'egcn-embed' : 'page-header-fixed bg-1'; ?>">
+	<?php if (!$egcn_embed) { ?>
 	<div class="modal-shiftfix">
 		<div class="navbar navbar-fixed-top scroll-hide">
 			<?php require_once('include/header.php');
@@ -909,6 +924,11 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 						</div>
 						<div class="ew-card">
 							<div class="ew-form-body">
+	<?php } else { ?>
+	<div class="egcn-embed-root egcn-page">
+		<div class="ew-card">
+			<div class="ew-form-body">
+	<?php } ?>
 							<div class="egcn-shell">
 
 						<div class="egcn-toolbar">
@@ -1019,14 +1039,20 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 						</div>
 							</div>
 							</div>
+		<?php if (!$egcn_embed) { ?>
 						</div>
 					</div>
 				</div>
 			</div>
 		<?php require_once('include/footer.php'); ?>
 	</div>
+		<?php } else { ?>
+		</div>
+	</div>
+		<?php } ?>
 
 	<script type="text/javascript">
+		var egcnEmbed = <?php echo $egcn_embed ? 'true' : 'false'; ?>;
 		var vendorOptions = <?php echo json_encode($vendor_rows, JSON_UNESCAPED_UNICODE); ?>;
 		var categoryOptions = <?php echo json_encode($category_rows, JSON_UNESCAPED_UNICODE); ?>;
 		var gcnContext = null;
@@ -1644,7 +1670,11 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 							alert(r && r.message ? r.message : 'Save failed.');
 							return;
 						}
-						window.location.href = 'expense_gcn_list.php';
+						if (egcnEmbed) {
+							window.top.location.href = 'expense_general_list.php';
+						} else {
+							window.location.href = 'expense_gcn_list.php';
+						}
 					},
 					error: function() { alert('Save request failed.'); }
 				});

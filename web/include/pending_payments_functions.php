@@ -163,9 +163,7 @@ function pending_payments_fetch_rows($conn, $filters)
                 continue;
             }
             $balance = (float) $snap['balance'];
-            if ($balance <= 0.009) {
-                continue;
-            }
+            $settled = ($balance <= 0.009);
 
             $sno++;
             $inv_val = (float) $snap['invoice_amount'];
@@ -180,7 +178,7 @@ function pending_payments_fetch_rows($conn, $filters)
             $sum_bal += $balance;
 
             $booking_dt = pending_payments_invoice_booking_date($conn, $inv_id, $r['invoice_date'] ?? '');
-            $aging_days = pending_payments_aging_days($booking_dt, $today);
+            $aging_days = $settled ? 0 : pending_payments_aging_days($booking_dt, $today);
             $booking_label = $booking_dt ? $booking_dt->format('d-m-Y') : '—';
 
             $customer = trim($r['client_company_name'] ?? '');
@@ -199,7 +197,7 @@ function pending_payments_fetch_rows($conn, $filters)
                 'tds' => pending_payments_format_money($tds),
                 'balance_amount' => pending_payments_format_money($balance),
                 'overdue_aging_days' => $aging_days,
-                'overdue_aging' => pending_payments_format_aging($aging_days),
+                'overdue_aging' => $settled ? 'Settled' : pending_payments_format_aging($aging_days),
                 'booking_date' => $booking_label,
             );
         }

@@ -1,0 +1,561 @@
+<?php
+if (empty($_SESSION['user_id']) || empty($_SESSION['LAST_ACTIVITY']) || (time() - $_SESSION['LAST_ACTIVITY'] > 103600)) {
+  echo '<script> location.href="index.php"; </script>';
+  exit;
+}
+require_once ('include/function.php');
+require_once ('include/ew_skeleton.php');
+?>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --rail-w:            88px;
+  --panel-w:           248px;
+  --sidebar-width:     calc(var(--rail-w) + var(--panel-w));
+  --sidebar-collapsed: var(--rail-w);
+  --top-bar-h:         72px;
+  --ew-navy:           #06416F;
+  --ew-navy-deep:      #042C4A;
+  --ew-navy-light:     #0A5688;
+  --ew-primary:        #06416F;
+  --ew-accent:         #DD111E;
+  --ew-accent-deep:    #A50D17;
+  --ew-border:         #D8DDE5;
+  --ew-text:           #1A2332;
+  --ew-text-muted:     #6B7A8D;
+  --font-display:      'Space Grotesk', sans-serif;
+}
+
+/* ========== TOP BAR ========== */
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--top-bar-h);
+  background: rgba(221, 231, 240, 0.62);
+  border-bottom: 1px solid rgba(184, 201, 218, 0.9);
+  display: flex;
+  align-items: center;
+  padding: 0 20px 0 16px;
+  z-index: 1100;
+  gap: 0;
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  box-shadow: 0 10px 28px rgba(6, 65, 111, 0.08);
+}
+.top-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #DD111E 0 25%, #06416F 25% 100%);
+  pointer-events: none;
+}
+
+body.page-header-fixed {
+  padding-top: var(--top-bar-h) !important;
+}
+
+.navbar.navbar-fixed-top.scroll-hide {
+  min-height: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.main-content {
+  margin-left: var(--sidebar-width) !important;
+}
+
+.main-content.collapsed {
+  margin-left: var(--sidebar-collapsed) !important;
+}
+
+/* Menu toggle — immediately after logo */
+.top-bar .hamburger-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(6, 65, 111, 0.18);
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 70px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.top-bar .hamburger-btn:hover {
+  background: #06416F;
+  border-color: #06416F;
+}
+.top-bar .hamburger-btn .hb-line {
+  display: block;
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--ew-navy);
+  transition: background 0.2s ease;
+}
+.top-bar .hamburger-btn:hover .hb-line { background: #fff; }
+
+/* ---- Logo ---- */
+.top-bar .app-logo {
+  height: 58px;
+  width: auto;
+  max-width: 280px;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* ---- Spacer ---- */
+.top-bar .tb-spacer { flex: 1; }
+
+/* ---- Right cluster ---- */
+.top-bar .top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* notification bell */
+.top-bar .notif-bell {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.top-bar .notif-bell:hover { background: #06416F; transform: scale(1.05); }
+.top-bar .notif-bell i { font-size: 17px; color: var(--ew-navy); opacity: .85; transition: color 0.2s ease; }
+.top-bar .notif-bell:hover i { color: #fff; opacity: 1; }
+.top-bar .notif-bell .notif-count {
+  position: absolute;
+  top: 2px; right: 2px;
+  background: var(--ew-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 0 0 2px #fff;
+}
+.top-bar .notif-bell .dropdown-menu1 {
+  right: 0; left: auto;
+  top: 48px;
+  min-width: 300px;
+  max-width: 360px;
+  background: #fff;
+  border: 1px solid var(--ew-border);
+  border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(6,65,111,.16);
+  padding: 6px;
+  list-style: none;
+}
+.top-bar .notif-bell .dropdown-menu1 li a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--ew-text);
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.top-bar .notif-bell .dropdown-menu1 li a:hover { background: #D6E4F2; }
+
+/* divider */
+.top-bar .header-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--ew-border);
+  flex-shrink: 0;
+}
+
+.top-bar .applicatoin-name {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ew-navy);
+  white-space: nowrap;
+}
+
+/* ---- User block ---- */
+.top-bar .top-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 12px 6px 6px;
+  border-radius: 10px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  border: 1px solid transparent;
+}
+.top-bar .top-left:hover { background: #06416F; border-color: #06416F; }
+.top-bar .top-left:hover .user-name,
+.top-bar .top-left:hover .user-role,
+.top-bar .top-left:hover .user-caret { color: #fff; }
+.top-bar .top-left:hover .user-avatar { background: #fff; color: #06416F; }
+
+.top-bar .user-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: #06416F;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+  font-family: Inter, "Segoe UI", sans-serif;
+  font-size: 12px;
+  letter-spacing: .04em;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+
+.top-bar .user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.top-bar .user-meta .user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ew-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.top-bar .user-meta .user-role {
+  font-size: 0.72rem;
+  color: var(--ew-text-muted);
+  font-weight: 500;
+}
+.top-bar .top-left .user-caret {
+  font-size: 11px;
+  color: var(--ew-text-muted);
+  margin-left: 2px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.top-bar .top-left.menu-open .user-caret { transform: rotate(180deg); }
+
+/* User dropdown */
+.top-bar .top-left .user-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 54px; right: 0;
+  padding: 6px;
+  left: auto;
+  background: #fff;
+  border: 1px solid var(--ew-border);
+  border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(6,65,111,.16);
+  min-width: 200px;
+  z-index: 999;
+  overflow: hidden;
+  list-style: none;
+}
+.top-bar .top-left.menu-open .user-dropdown-menu { display: block; }
+
+.top-bar .top-left .user-dropdown-menu li a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ew-text);
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.top-bar .top-left .user-dropdown-menu li a:hover { background: #D6E4F2; color: var(--ew-navy); }
+.top-bar .top-left .user-dropdown-menu li a i { color: var(--ew-text-muted); width: 16px; text-align: center; }
+
+.top-bar .top-left .user-dropdown-menu li:last-child a { color: var(--ew-accent); }
+.top-bar .top-left .user-dropdown-menu li:last-child a i { color: var(--ew-accent); }
+
+@media (max-width: 767px) {
+  .top-bar { padding: 0 10px 0 12px; }
+  .top-bar .app-logo { height: 48px; max-width: 220px; }
+  .top-bar .applicatoin-name { display: none !important; }
+  .top-bar .header-divider { display: none; }
+  .top-bar .user-meta { display: none; }
+  body.page-header-fixed {
+    padding-top: var(--top-bar-h) !important;
+  }
+  .main-content,
+  .main-content.collapsed {
+    margin-left: 0 !important;
+    padding-top: 12px;
+  }
+  .new_dpt_bottom {
+    margin-bottom: 16px !important;
+  }
+}
+</style>
+
+<div class="top-bar" id="topBar">
+
+  <a href="dashboard.php" class="tb-brand" style="display:flex;align-items:center;text-decoration:none;height:58px;">
+    <img src="./images/elitewave-light.png" class="app-logo" alt="Elite Wave 360" style="height: 85px;">
+  </a>
+
+  <button type="button" class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()" title="Toggle menu" aria-label="Toggle menu" aria-expanded="true">
+    <span class="hb-line"></span>
+    <span class="hb-line"></span>
+    <span class="hb-line"></span>
+  </button>
+
+  <div class="tb-spacer"></div>
+
+  <div class="top-right">
+
+    <?php
+    $user_inq = 'select * from user_inquiry_list where status=0';
+    $res_inq = mysqli_query($conn, $user_inq);
+    $inq_count = mysqli_num_rows($res_inq);
+    if ($_SESSION['role'] == 'AD'):
+      ?>
+      <div class="dropdowns notifications hidden-xs notif-bell" data-toggle="dropdown">
+        <i class="fa fa-bell" aria-hidden="true"></i>
+        <span class="notif-count counter"></span>
+        <ul class="dropdown-menu dropdown-menu1"></ul>
+      </div>
+    <?php endif; ?>
+
+    <?php if ($_SESSION['role'] == 'CL'):
+      $query33 = "select * from client where client_id IN (select company_name from users where user_id='" . $_SESSION['user_id'] . "')";
+      $result33 = mysqli_query($conn, $query33);
+      $row33 = mysqli_fetch_array($result33);
+      echo '<span class="applicatoin-name" style="text-transform:uppercase;">' . $row33['client_company_name'] . '</span>';
+    endif; ?>
+
+    <?php if (!empty($ew_show_theme_toggle)): ?>
+      <button type="button"
+              class="ew-theme-toggle notif-bell hidden-xs"
+              id="ewThemeToggle"
+              title="Toggle light/dark mode"
+              aria-label="Toggle light/dark mode"
+              aria-pressed="false">
+        <i class="fa fa-moon-o ew-theme-icon-dark" aria-hidden="true"></i>
+        <i class="fa fa-sun-o ew-theme-icon-light" aria-hidden="true" style="display:none;"></i>
+      </button>
+    <?php endif; ?>
+
+    <div class="header-divider"></div>
+
+    <div class="top-left" id="userMenuToggle">
+      <?php
+      $username = get_user($conn, $_SESSION['user_id']);
+      $initial_src = preg_replace('/[^A-Za-z]/', '', (string) $username);
+      if (strlen($initial_src) >= 2) {
+        $user_initials = strtoupper(substr($initial_src, 0, 2));
+      } elseif ($initial_src !== '') {
+        $user_initials = strtoupper(substr($initial_src, 0, 1));
+      } else {
+        $user_initials = 'U';
+      }
+      ?>
+      <div class="user-avatar"><?php echo htmlspecialchars($user_initials); ?></div>
+      <div class="user-meta">
+        <span class="user-name"><?php echo $username; ?></span>
+        <span class="user-role">
+          <?php
+          if ($_SESSION['role'] == 'AD')
+            echo 'Administrator';
+          elseif ($_SESSION['role'] == 'DR')
+            echo 'Driver';
+          elseif ($_SESSION['role'] == 'CL')
+            echo 'Client';
+          else
+            echo 'User';
+          ?>
+        </span>
+      </div>
+      <i class="fa fa-caret-down user-caret"></i>
+
+      <ul class="user-dropdown-menu">
+        <li><a href="change_password.php"><i class="fa fa-key"></i> Change Password</a></li>
+        <li><a href="logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<div class="loading-page" style="display:none;"><?php echo ew_skeleton_card_inner(); ?></div>
+<div class="form-data-saving" style="display:none;"><?php echo ew_skeleton_card_inner(); ?></div>
+
+<script>
+$(document).ready(function(){
+
+  var lastSessionCheck = 0;
+  function checkSession() {
+    var now = Date.now();
+    if (now - lastSessionCheck < 60000) {
+      return;
+    }
+    lastSessionCheck = now;
+    $.ajax({ url:"include/sessions_check.php", type:"POST",
+      success:function(login){ if(login==0) window.location.href='logout.php'; }
+    });
+  }
+
+  $(document).on('click', function() {
+    checkSession();
+  });
+
+  let idleTime = 0;
+  let idleTimeout = 15 * 60 * 1000;
+  $(document).on('mouseover', function(){ idleTime = 0; });
+
+  setInterval(function(){
+    idleTime += 5000;
+    if(idleTime >= idleTimeout){
+      if(typeof ewToast==='function') ewToast('Session expired. Please login again.','error');
+      else alert('Session expired please login again');
+      window.location.href = 'logout.php';
+    } else {
+      $.ajax({ url:"include/sessions_check.php", type:"POST",
+        success:function(login){
+          if(login==0){
+            if(typeof ewToast==='function') ewToast('Session expired. Please login again.','error');
+            else alert('Session expired please login again');
+            window.location.href='logout.php';
+          }
+        }
+      });
+    }
+  }, 5000);
+
+  function load_unseen_notification(view=''){
+    $.ajax({ url:"./fetch_details.php", type:"post",
+      data:{ view:view, cmd:"get_notification_rfp" }, dataType:"json",
+      success:function(data){
+        $('.dropdown-menu1').html(data.notification);
+        if(data.unseen_notification > 0) $('.counter').html(data.unseen_notification);
+        else $('.counter').text("0");
+      }
+    });
+  }
+  load_unseen_notification();
+
+  $(document).on('click', '.notif-bell', function(e){
+    $('.counter').html('');
+    load_unseen_notification('yes');
+    $(this).find('.dropdown-menu1').toggle();
+    e.stopPropagation();
+  });
+
+  setInterval(function(){ load_unseen_notification(); }, 5000);
+
+  $(document).on('click', '#userMenuToggle', function(e){
+    $(this).toggleClass('menu-open');
+    e.stopPropagation();
+  });
+  $(document).on('click', function(){
+    $('#userMenuToggle').removeClass('menu-open');
+    $('.dropdown-menu1').hide();
+  });
+
+  function keepSkelFlex() {
+    $('.loading-page, .form-data-saving').each(function () {
+      if (this.style.display === 'block') {
+        this.style.display = 'flex';
+      }
+    });
+  }
+  if (window.MutationObserver) {
+    $('.loading-page, .form-data-saving').each(function () {
+      new MutationObserver(keepSkelFlex).observe(this, { attributes: true, attributeFilter: ['style'] });
+    });
+  }
+
+  var ewSlowAjax = 0;
+  var ewSlowTimer = null;
+  function ewLoaderSkip(settings) {
+    var url = String((settings && settings.url) || '');
+    var data = settings && settings.data;
+    var blob = url;
+    if (typeof data === 'string') {
+      blob += '&' + data;
+    } else if (data && typeof data === 'object') {
+      try { blob += '&' + $.param(data); } catch (e) {}
+    }
+    return blob.indexOf('sessions_check.php') !== -1
+      || blob.indexOf('get_notification') !== -1;
+  }
+  $(document).ajaxSend(function (event, xhr, settings) {
+    if (ewLoaderSkip(settings)) {
+      return;
+    }
+    ewSlowAjax += 1;
+    xhr._ewLoader = true;
+    if (!ewSlowTimer) {
+      ewSlowTimer = setTimeout(function () {
+        if (ewSlowAjax > 0) {
+          $('.loading-page').show();
+        }
+      }, 450);
+    }
+  });
+  $(document).ajaxComplete(function (event, xhr) {
+    if (!xhr._ewLoader) {
+      return;
+    }
+    ewSlowAjax = Math.max(0, ewSlowAjax - 1);
+    if (ewSlowAjax === 0) {
+      clearTimeout(ewSlowTimer);
+      ewSlowTimer = null;
+      $('.loading-page').hide();
+    }
+  });
+
+  /* Fallback: hide a stuck overlay once no slow request is still running */
+  function ewHideIdleLoader() {
+    if (ewSlowAjax === 0) {
+      $('.loading-page').hide();
+    }
+  }
+  ewHideIdleLoader();
+  setTimeout(ewHideIdleLoader, 1500);
+  setTimeout(ewHideIdleLoader, 4000);
+
+  $(document).on('click', 'a.panel-link[href], a.ew-btn-v2[href]', function (e) {
+    if (e.which === 2 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+      return;
+    }
+    var href = $(this).attr('href') || '';
+    if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0) {
+      return;
+    }
+    if ($(this).attr('target') === '_blank') {
+      return;
+    }
+    $('.loading-page').show();
+  });
+
+});
+$(window).on('load', function(){ $('.loading-page').hide(); });
+</script>

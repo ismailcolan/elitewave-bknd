@@ -60,6 +60,7 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
     $sum_qty = 0;
     $sum_weight = 0;
     $sum_freight = 0;
+    $sum_tempo = 0;
     $sum_dc = 0;
     $sum_cgst = 0;
     $sum_sgst = 0;
@@ -113,6 +114,11 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
         if ($dc <= 0) {
             $dc = (float) $live_amounts['other'];
         }
+        $d_tempo = round((float) ($trow['cartage_amount'] ?? 0), 2);
+        $doc_only = round((float) ($trow['doc_amount'] ?? 0), 2);
+        if ($d_tempo <= 0 && $doc_only <= 0) {
+            $doc_only = $dc;
+        }
         $line_cgst = (float) $detail['cgst_amount'];
         $line_sgst = (float) $detail['sgst_amount'];
         $line_igst = (float) $detail['igst_amount'];
@@ -134,7 +140,8 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
         $sum_qty += $qty;
         $sum_weight += $weight;
         $sum_freight += $freight;
-        $sum_dc += $dc;
+        $sum_tempo += $d_tempo;
+        $sum_dc += $doc_only;
         $sum_cgst += $line_cgst;
         $sum_sgst += $line_sgst;
         $sum_igst += $line_igst;
@@ -154,7 +161,8 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
     <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;font-size:7pt;">' . htmlspecialchars($mode_name) . '</td>
     <td style="border:1px solid #000;padding:3px;text-align:center;vertical-align:top;">' . htmlspecialchars($item['party_invoice_no'] ?? '') . '</td>
     <td style="border:1px solid #000;padding:3px;text-align:right;vertical-align:top;">' . number_format($freight, 2) . '</td>
-    <td style="border:1px solid #000;padding:3px;text-align:right;vertical-align:top;">' . number_format($dc, 2) . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:right;vertical-align:top;">' . number_format($d_tempo, 2) . '</td>
+    <td style="border:1px solid #000;padding:3px;text-align:right;vertical-align:top;">' . number_format($doc_only, 2) . '</td>
     <td style="border:1px solid #000;padding:3px;text-align:right;vertical-align:top;">' . number_format($total_line, 2) . '</td>
 </tr>';
         $sno++;
@@ -278,11 +286,12 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
     <td style="border:1px solid #000;width:4%;padding:2px;">Qty</td>
     <td style="border:1px solid #000;width:5%;padding:2px;">Weight</td>
     <td style="border:1px solid #000;width:4%;padding:2px;">Rate</td>
-    <td style="border:1px solid #000;width:12%;padding:2px;">Consignor / Consignee</td>
-    <td style="border:1px solid #000;width:14%;padding:2px;">Ship To</td>
+    <td style="border:1px solid #000;width:11%;padding:2px;">Consignor / Consignee</td>
+    <td style="border:1px solid #000;width:12%;padding:2px;">Ship To</td>
     <td style="border:1px solid #000;width:6%;padding:2px;">Mode</td>
-    <td style="border:1px solid #000;width:7%;padding:2px;">Supp.Inv.No.</td>
+    <td style="border:1px solid #000;width:6%;padding:2px;">Supp.Inv.No.</td>
     <td style="border:1px solid #000;width:6%;padding:2px;">Freight</td>
+    <td style="border:1px solid #000;width:6%;padding:2px;">D.Tempo</td>
     <td style="border:1px solid #000;width:5%;padding:2px;">DC</td>
     <td style="border:1px solid #000;width:6%;padding:2px;">Total</td>
 </tr>' . $rows_html . '
@@ -298,6 +307,7 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
     <td style="border:1px solid #000;padding:2px;"></td>
     <td style="border:1px solid #000;padding:2px;"></td>
     <td style="border:1px solid #000;text-align:right;padding:2px;font-weight:bold;vertical-align:middle;">' . number_format($sum_freight, 2) . '</td>
+    <td style="border:1px solid #000;text-align:right;padding:2px;vertical-align:middle;font-weight:bold;">' . number_format($sum_tempo, 2) . '</td>
     <td style="border:1px solid #000;text-align:right;padding:2px;vertical-align:middle;font-weight:bold;">' . number_format($sum_dc, 2) . '</td>
     <td style="border:1px solid #000;text-align:right;padding:2px;font-weight:bold;vertical-align:middle;">' . number_format($sum_total_line, 2) . '</td>
 </tr>

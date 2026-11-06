@@ -1586,6 +1586,50 @@ if ($form_name == 'delete_rate_quotation') {
     exit;
 }
 
+// Marketing bulk email trigger
+if ($form_name == 'marketing_bulk_send') {
+	header('Content-Type: application/json; charset=utf-8');
+	if (empty($_SESSION['user_id'])) {
+		echo json_encode(array(
+			'ok' => false,
+			'message' => 'Please log in again.',
+			'sent' => 0,
+			'failed' => 0,
+			'errors' => array('Session expired.'),
+		));
+		exit;
+	}
+	require_once __DIR__ . '/include/marketing_email.php';
+
+	$subject = trim((string) ($_POST['subject'] ?? ''));
+	$message = (string) ($_POST['message'] ?? '');
+	$cc = trim((string) ($_POST['cc'] ?? ''));
+	if ($cc === '') {
+		$cc = marketing_default_cc_email();
+	}
+	$client_ids = isset($_POST['client_ids']) ? (array) $_POST['client_ids'] : array();
+
+	$upload = marketing_save_uploaded_image(isset($_FILES['marketing_image']) ? $_FILES['marketing_image'] : array());
+	if (empty($upload['ok'])) {
+		echo json_encode(array(
+			'ok' => false,
+			'message' => $upload['message'] ?? 'Upload a marketing image.',
+			'sent' => 0,
+			'failed' => 0,
+			'errors' => array($upload['message'] ?? 'Upload a marketing image.'),
+		));
+		exit;
+	}
+
+	$result = marketing_send_bulk($conn, $subject, $message, $upload['url'], $client_ids, array(
+		'image_path' => $upload['path'] ?? '',
+		'created_by' => (int) $created_by,
+		'cc' => $cc,
+	));
+	echo json_encode($result);
+	exit;
+}
+
 // logistics vendor master
 if ($form_name == 'add_vendor') {
     require_once __DIR__ . '/include/vendor_master_helpers.php';
@@ -3990,8 +4034,10 @@ if ($form_name == 'edit_consignment_details') {
     $billing_only_edit = isset($_POST['billing_only_edit']) && (string) $_POST['billing_only_edit'] === '1';
 
     require_once('include/billing_functions.php');
+    require_once('include/transaction_list_query.php');
     $edit_tid = (int) ($edit_id ?? 0);
-    if ($edit_tid > 0 && booking_is_gcn_billed($conn, $tables[0], $edit_tid)) {
+    if ($edit_tid > 0 && booking_is_gcn_billed($conn, $tables[0], $edit_tid)
+        && !transaction_gcn_temporary_edit_allowed($grn_no ?? '')) {
         $out_put['result'] = 0;
         $out_put['message'] = 'This GCN is already invoiced. Booking cannot be edited.';
         echo json_encode($out_put);

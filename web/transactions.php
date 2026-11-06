@@ -3,11 +3,11 @@ require_once('include/connect.php');
 require_once('include/function.php');
 require_once('include/gst_tax_functions.php');
 require_once('include/billing_functions.php');
+require_once('include/transaction_list_query.php');
 require_once('include/gcn_gst_invoice_helpers.php');
 require_once('include/quotation_functions.php');
 require_once('include/vehicle_type_helpers.php');
 require_once('include/cfs_master_helpers.php');
-require_once('include/transaction_list_query.php');
 ew_vehicle_type_ensure_schema($conn);
 ew_cfs_master_ensure_schema($conn);
 $booking_vehicle_type_dims = ew_vehicle_type_booking_dims_lookup($conn);
@@ -1569,15 +1569,21 @@ if ($booking_clients_json === false) {
 															Freight Charges
 															<label class="freight-manual-toggle">
 																<input type="checkbox" id="freight_manual_amount" name="freight_manual_amount" value="1"<?php
-																if ($form_name === 'edit_consignment_details' && (float) ($row['frieght_amount'] ?? 0) > 0) {
+																$freight_rate_saved = (float) ($row['frieght_rate'] ?? 0);
+																$freight_amt_saved = (float) ($row['frieght_amount'] ?? 0);
+																$freight_is_manual = ($form_name === 'edit_consignment_details' && $freight_amt_saved > 0 && $freight_rate_saved <= 0);
+																if ($freight_is_manual) {
 																	echo ' checked';
 																}
 																?>>
 																<span>Enter amount manually</span>
 															</label>
 														</td>
-														<td><input type="text" name="frieght_rate" id="frieght_rate" value="<?php echo $row['frieght_rate'] ?? ''; ?>" class="form-control text-right" onchange="calc_charge_amt();" autocomplete="off" /></td>
-														<td class="amt-col"><input type="text" name="frieght_amount" id="frieght_amount" value="<?php echo $row['frieght_amount'] ?? ''; ?>" class="form-control text-right calculation freight-amt-field" onchange="sum_amount();" readonly autocomplete="off" /></td>
+														<td class="freight-rate-cell text-right<?php echo !empty($freight_is_manual) ? ' is-manual' : ''; ?>">
+															<input type="text" name="frieght_rate" id="frieght_rate" value="<?php echo $row['frieght_rate'] ?? ''; ?>" class="form-control text-right" onchange="calc_charge_amt();" autocomplete="off"<?php echo !empty($freight_is_manual) ? ' style="display:none"' : ''; ?> />
+															<span id="freight_rate_dash" class="freight-rate-dash"<?php echo empty($freight_is_manual) ? ' style="display:none"' : ''; ?>>—</span>
+														</td>
+														<td class="amt-col"><input type="text" name="frieght_amount" id="frieght_amount" value="<?php echo $row['frieght_amount'] ?? ''; ?>" class="form-control text-right calculation freight-amt-field" onchange="sum_amount();"<?php echo empty($freight_is_manual) ? ' readonly' : ''; ?> autocomplete="off" /></td>
 													</tr>
 													<tr>
 														<td>Doc.Charges</td>
@@ -2470,17 +2476,31 @@ if ($booking_clients_json === false) {
 			$('#gst_type_hint').text(hint);
 		}
 
-		function syncFreightManualMode() {
+		function syncFreightManualMode(recalc) {
 			var manual = $('#freight_manual_amount').is(':checked');
 			var $rate = $('#frieght_rate');
 			var $amt = $('#frieght_amount');
+			var $cell = $rate.closest('.freight-rate-cell');
 			if (manual) {
-				$rate.prop('readonly', true);
+				if ($.trim($rate.val()) !== '') {
+					$rate.data('saved-rate', $rate.val());
+				}
+				$rate.val('').prop('readonly', true).hide();
+				$cell.addClass('is-manual');
+				$('#freight_rate_dash').show();
 				$amt.prop('readonly', false);
 			} else {
-				$rate.prop('readonly', false);
+				var restored = $rate.data('saved-rate');
+				if (restored && $.trim($rate.val()) === '') {
+					$rate.val(restored);
+				}
+				$rate.prop('readonly', false).show();
+				$cell.removeClass('is-manual');
+				$('#freight_rate_dash').hide();
 				$amt.prop('readonly', true);
-				calc_charge_amt();
+				if (recalc) {
+					calc_charge_amt();
+				}
 			}
 		}
 
@@ -3262,7 +3282,8 @@ if ($booking_clients_json === false) {
 		ewSyncRajdhaniRowForTransport();
 		if ($('#form_name').val() === 'edit_consignment_details') {
 			var savedFreightOnLoad = parseFloat($('#frieght_amount').val()) || 0;
-			if (savedFreightOnLoad > 0) {
+			var savedRateOnLoad = parseFloat($('#frieght_rate').val()) || 0;
+			if (savedFreightOnLoad > 0 && savedRateOnLoad <= 0) {
 				$('#freight_manual_amount').prop('checked', true);
 				syncFreightManualMode();
 			}
@@ -3528,12 +3549,13 @@ if ($booking_clients_json === false) {
 
 		//Payment Fetch Client Charges Start
 		function load_payment_info() {
-			var lockedFreightVal = null;
+			var savedEditFreight = null;
 			if ($('#form_name').val() === 'edit_consignment_details') {
-				var savedFreight = parseFloat($('#frieght_amount').val()) || 0;
-				if (savedFreight > 0) {
-					lockedFreightVal = $('#frieght_amount').val();
-				}
+				savedEditFreight = {
+					rate: $('#frieght_rate').val(),
+					amount: $('#frieght_amount').val(),
+					manual: $('#freight_manual_amount').is(':checked')
+				};
 			}
 			if ($('#destination').val() != "" && $('#destination').val() != null) {
 				var consignor_and_consinee_des = $('#destination').val();
@@ -3561,7 +3583,19 @@ if ($booking_clients_json === false) {
 							// Local/other pickup is entered as cartage_amount; do not auto-fill hidden other_amount (avoids double GST).
 							$("#other_amount").val('0');
 
-							if ($("#mode_of_trasport").val() != "") {
+							if (savedEditFreight && savedEditFreight.manual) {
+								$('#frieght_rate').val('');
+								$('#freight_manual_amount').prop('checked', true);
+								syncFreightManualMode(false);
+								$('#frieght_amount').val(savedEditFreight.amount);
+								sum_amount();
+							} else if (savedEditFreight && (parseFloat(savedEditFreight.rate) || 0) > 0) {
+								$('#frieght_rate').val(savedEditFreight.rate);
+								$('#frieght_amount').val(savedEditFreight.amount);
+								$('#freight_manual_amount').prop('checked', false);
+								syncFreightManualMode(false);
+								sum_amount();
+							} else if ($("#mode_of_trasport").val() != "") {
 								if ($("#mode_of_trasport").val() == 1) { // air
 									$("#frieght_rate").val(parseFloat(pay_inv_data.air).toFixed(2));
 								} else if ($("#mode_of_trasport").val() == 2) //train
@@ -3581,16 +3615,11 @@ if ($booking_clients_json === false) {
 									$("#vehicle_loading_unloading").val("0");
 									$("#other_amount").val("");
 								}
+								calculate_charge_weight();
+								sum_amount();
 							} else {
 								$("#frieght_rate").val(parseFloat("0.00").toFixed(2));
-
-							}
-							calculate_charge_weight();
-							sum_amount();
-							if (lockedFreightVal !== null) {
-								$('#freight_manual_amount').prop('checked', true);
-								syncFreightManualMode();
-								$('#frieght_amount').val(lockedFreightVal);
+								calculate_charge_weight();
 								sum_amount();
 							}
 						}
@@ -3798,8 +3827,10 @@ if ($booking_clients_json === false) {
 			if (freightRateVal <= 0 && freightAmtVal > 0) {
 				$('#freight_manual_amount').prop('checked', true);
 			}
-			syncFreightManualMode();
-			$(document).on('change', '#freight_manual_amount', syncFreightManualMode);
+			syncFreightManualMode(false);
+			$(document).on('change', '#freight_manual_amount', function() {
+				syncFreightManualMode(true);
+			});
 			fillConsignorNameSelect($('#consignor').val() || '');
 			if ($('#consignor').val()) {
 				loadMappedConsignees($('#consignor').val(), $('#consignee').val() || '', function() {

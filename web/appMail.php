@@ -389,7 +389,34 @@ function sendAppMailWithAttachment($to_name, $to_mail, $subject, $msg, $attachme
 
 	$mail->isHTML(true);
 	$mail->Subject = $subject;
-	$mail->Body = '<body class="respond" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">    
+
+	$full_width = !empty($mail_cfg['full_width']);
+	if ($full_width) {
+		// Full-bleed layout for marketing campaigns (no fixed 590px center column).
+		$mail->Body = '<body class="respond" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" style="margin:0;padding:0;width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">'
+			. '<table border="0" width="100%" cellpadding="0" cellspacing="0" bgcolor="ffffff" style="width:100%;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;">'
+			. '<tr><td align="left" style="padding:0;">'
+			. '<table border="0" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background-color:#fff;border:8px solid #20409a;border-collapse:collapse;">'
+			. '<tr><td align="center" style="padding:16px 12px 8px;background-color:#fff;">'
+			. '<a href="https://www.elitewave360.in" style="display:inline-block;border:0;"><img border="0" style="display:block;max-width:280px;width:auto;height:auto;" src="https://elitewave360.in/web/images/elite-nav.png" alt="EliteWave360" /></a>'
+			. '</td></tr>'
+			. '<tr><td align="left" style="padding:0;color:#1a1a1a;font-size:16px;font-family:Work Sans, Calibri, sans-serif;line-height:24px;">'
+			. '<div style="line-height:24px;color:#1a1a1a;width:100%;">' . $msg . '</div>'
+			. '</td></tr>'
+			. '<tr><td style="padding:0 16px 18px;">'
+			. '<table border="0" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;border-top:1px solid #e5e7eb;">'
+			. '<tr><td align="left" style="padding-top:14px;color:#1a1a1a;font-size:14px;font-family:Work Sans, Calibri, sans-serif;line-height:22px;">'
+			. '<p style="margin:0 0 10px;color:#1a1a1a;">Thanks &amp; Regards,</p>'
+			. '<p style="margin:0 0 8px;color:#1a1a1a;"><b>Mohammed Athar</b><br>Director - Domestic &amp; International Marketing</p>'
+			. '<p style="margin:0;color:#1a1a1a;line-height:22px;">Phone: +91-9840859711 | +91 9382307611<br>'
+			. 'E-mail: athar@elitewave360.in | info@elitewave360.in<br>'
+			. 'Website: https://www.elitewave360.in</p>'
+			. '</td></tr></table>'
+			. '</td></tr>'
+			. '</table>'
+			. '</td></tr></table></body>';
+	} else {
+		$mail->Body = '<body class="respond" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">    
     <table border="0" width="100%" cellpadding="0" cellspacing="0" bgcolor="ffffff">
     <tr>
     <td align="center">
@@ -446,6 +473,7 @@ function sendAppMailWithAttachment($to_name, $to_mail, $subject, $msg, $attachme
     </tr>
     </table>
     </body>';
+	}
 
 	if (!$mail->send()) {
 		return array('ok' => false, 'error' => $mail->ErrorInfo);

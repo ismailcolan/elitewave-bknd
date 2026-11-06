@@ -13,11 +13,17 @@ function transaction_gcn_serial_no($row)
 	return 0;
 }
 
-/** Temporary: allow list + form edit for one GCN while invoiced/locked rules stay for all others. */
+/** Temporary: allow list + form edit for these GCNs. Invoiced lock stays for all others. */
 function transaction_gcn_temporary_edit_allowed($grn_no)
 {
 	$g = strtoupper(trim((string) $grn_no));
-	return ($g === 'EW360/0187');
+	if (in_array($g, array('EW360/0230', 'EW360/0232', 'EW360/0234'), true)) {
+		return true;
+	}
+	if (preg_match('/\/(\d+)\s*$/', $g, $m)) {
+		return in_array((int) $m[1], array(230, 232, 234), true);
+	}
+	return false;
 }
 
 function transaction_list_track_action_html($row)

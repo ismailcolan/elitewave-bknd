@@ -12,6 +12,14 @@ if ($preselect_id <= 0 && empty($_GET['create'])) {
 	header('Location:expense_general_list.php');
 	exit;
 }
+$is_create = ($preselect_id <= 0 && !empty($_GET['create']));
+$entry_mode = 'general';
+if ($is_create) {
+	$mode_param = isset($_GET['mode']) ? strtolower(trim((string) $_GET['mode'])) : '';
+	if ($mode_param === 'gcn') {
+		$entry_mode = 'gcn';
+	}
+}
 $preview_expense_no = expense_general_preview_next_no($conn);
 $payment_modes = ew_company_bank_payment_modes();
 $vendor_rows = expense_gcn_vendor_options($conn);
@@ -112,6 +120,43 @@ $bank_rows = ew_company_bank_options($conn);
 			box-sizing: border-box;
 		}
 
+		.ew-expense-mode-bar {
+			padding: 16px 24px 12px;
+			border-bottom: 1px solid var(--ew-border-light, #E9ECF0);
+		}
+
+		.ew-expense-mode-bar .ew-field {
+			max-width: 420px;
+			margin: 0;
+		}
+
+		.ew-expense-mode-bar .egen-select-wrap,
+		.ew-expense-mode-bar .select2-container {
+			width: 100% !important;
+			max-width: 420px;
+		}
+
+		.ew-expense-mode-bar .select2-container .select2-choice {
+			height: 40px !important;
+			line-height: 38px !important;
+		}
+
+		.ew-expense-mode-bar .select2-container .select2-chosen {
+			line-height: 38px !important;
+		}
+
+		#ew-expense-panel-gcn {
+			padding: 0;
+		}
+
+		#ew_expense_gcn_frame {
+			display: block;
+			width: 100%;
+			min-height: 880px;
+			border: 0;
+			background: transparent;
+		}
+
 		.egen-form-footer-actions {
 			display: flex;
 			align-items: center;
@@ -181,7 +226,15 @@ $bank_rows = ew_company_bank_options($conn);
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
 								<a href="expense_general_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
-								<h1 class="ew-page-title"><?php echo $preselect_id > 0 ? 'Edit General Expense' : 'Add General Expense'; ?></h1>
+								<h1 class="ew-page-title"><?php
+									if ($preselect_id > 0) {
+										echo 'Edit General Expense';
+									} elseif ($entry_mode === 'gcn') {
+										echo 'Add Expense against GCN';
+									} else {
+										echo 'Add General Expense';
+									}
+								?></h1>
 							</div>
 							<div class="ew-toolbar-right">
 								<a href="expense_general_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
@@ -189,6 +242,20 @@ $bank_rows = ew_company_bank_options($conn);
 							</div>
 						</div>
 						<div class="ew-card">
+							<?php if ($is_create) { ?>
+							<div class="ew-expense-mode-bar">
+								<div class="ew-field">
+									<label class="control-label">Expense mode <span style="color:red;">*</span> :</label>
+									<div class="egen-select-wrap">
+										<select id="expense_entry_mode" class="form-control egen-select">
+											<option value="general"<?php echo $entry_mode === 'general' ? ' selected' : ''; ?>>General expense</option>
+											<option value="gcn"<?php echo $entry_mode === 'gcn' ? ' selected' : ''; ?>>Expense against GCN</option>
+										</select>
+									</div>
+								</div>
+							</div>
+							<?php } ?>
+							<div id="ew-expense-panel-general"<?php echo ($is_create && $entry_mode === 'gcn') ? ' style="display:none;"' : ''; ?>>
 							<div class="ew-form-body">
 							<form id="general_expense_form">
 								<div class="ew-form-grid ew-form-grid--general">
@@ -301,6 +368,12 @@ $bank_rows = ew_company_bank_options($conn);
 									<button type="submit" class="ew-btn-v2 ew-btn-v2-primary" id="btn_save" form="general_expense_form"><i class="fa fa-save"></i> Save Expense</button>
 								</div>
 							</div>
+							</div>
+							<?php if ($is_create) { ?>
+							<div id="ew-expense-panel-gcn"<?php echo $entry_mode === 'general' ? ' style="display:none;"' : ''; ?>>
+								<iframe id="ew_expense_gcn_frame" title="Expense against GCN" src="<?php echo $entry_mode === 'gcn' ? 'expense_gcn.php?create=1&amp;embed=1' : ''; ?>"></iframe>
+							</div>
+							<?php } ?>
 						</div>
 					</div>
 				</div>
@@ -320,6 +393,7 @@ $bank_rows = ew_company_bank_options($conn);
 		var gstPercentRates = [0, 5, 12, 18, 28];
 		var tdsManual = false;
 		var skipTypeDefault = false;
+		var expenseCreateMode = <?php echo $is_create ? 'true' : 'false'; ?>;
 
 		function escHtml(v) {
 			if (v === null || v === undefined) return '';
@@ -444,6 +518,17 @@ $bank_rows = ew_company_bank_options($conn);
 			if ($el.data('select2')) $el.select2('destroy');
 			initSelect2($el, 'Select payment mode');
 			setSelectVal($el, selected || '');
+		}
+		function initExpenseEntryModeSelect() {
+			var $el = $('#expense_entry_mode');
+			if (!$el.length) return;
+			if ($el.data('select2')) $el.select2('destroy');
+			$el.select2({
+				width: '100%',
+				minimumResultsForSearch: Infinity,
+				allowClear: false
+			});
+			syncSelectTitle($el);
 		}
 		function getBankById(id) {
 			var found = null;
@@ -619,6 +704,49 @@ $bank_rows = ew_company_bank_options($conn);
 				});
 			} else {
 				togglePaymentBankRequirement();
+			}
+
+			function resizeGcnFrame() {
+				var $frame = $('#ew_expense_gcn_frame');
+				if (!$frame.length) return;
+				try {
+					var doc = $frame[0].contentDocument || $frame[0].contentWindow.document;
+					var h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 880);
+					$frame.height(h + 24);
+				} catch (e) { /* cross-origin or not loaded */ }
+			}
+
+			function setExpenseEntryMode(mode) {
+				var isGcn = mode === 'gcn';
+				$('#ew-expense-panel-general').toggle(!isGcn);
+				$('#ew-expense-panel-gcn').toggle(isGcn);
+				var $title = $('.ew-page-title');
+				if ($title.length) {
+					$title.text(isGcn ? 'Add Expense against GCN' : 'Add General Expense');
+				}
+				if (isGcn) {
+					var $frame = $('#ew_expense_gcn_frame');
+					if ($frame.length && !$frame.attr('src')) {
+						$frame.attr('src', 'expense_gcn.php?create=1&embed=1');
+					}
+					$frame.off('load.ewGcn').on('load.ewGcn', function() {
+						resizeGcnFrame();
+					});
+				}
+				if (window.history && window.history.replaceState) {
+					var url = new URL(window.location.href);
+					url.searchParams.set('mode', isGcn ? 'gcn' : 'general');
+					window.history.replaceState({}, '', url.pathname + '?' + url.searchParams.toString());
+				}
+			}
+
+			if (expenseCreateMode) {
+				initExpenseEntryModeSelect();
+				$('#expense_entry_mode').on('change', function() {
+					setExpenseEntryMode(getSelectVal($(this)) || 'general');
+					syncSelectTitle($(this));
+				});
+				$('#ew_expense_gcn_frame').on('load', resizeGcnFrame);
 			}
 
 			$('#vendor_id').on('change', function() {

@@ -30,6 +30,18 @@ if ($cmd === 'fetch') {
 	expense_general_json_out(array_merge(array('status' => 0), $record));
 }
 
+if ($cmd === 'view') {
+	$id = (int) ($_REQUEST['general_expense_id'] ?? 0);
+	$record = expense_general_view_data($conn, $id);
+	if (!$record) {
+		expense_general_json_out(array('status' => 1, 'message' => 'Expense record not found.'));
+	}
+	expense_general_json_out(array(
+		'status' => 0,
+		'data' => $record,
+	));
+}
+
 if ($cmd === 'next_expense_no') {
 	expense_general_json_out(array(
 		'status' => 0,
