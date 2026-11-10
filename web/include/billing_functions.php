@@ -345,9 +345,6 @@ function billing_validate_gcn_for_invoice($conn, $trans_table, $transaction_id, 
     if (!$q || !($booking = mysqli_fetch_assoc($q))) {
         return array('ok' => false, 'message' => 'GCN not found.');
     }
-    if ((string) ($booking['status'] ?? '') !== '8') {
-        return array('ok' => false, 'message' => 'GCN ' . ($booking['grn_no'] ?? '') . ' is not delivered yet.');
-    }
     if ((string) ($booking['booking_status'] ?? '') === '1') {
         return array('ok' => false, 'message' => 'GCN ' . ($booking['grn_no'] ?? '') . ' is cancelled.');
     }
@@ -877,7 +874,7 @@ function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_i
         $ids = array_filter(array_map('intval', $customer_ids));
         if (!empty($ids)) {
             $id_list = implode(',', $ids);
-            // Show all delivered GCNs where customer is consignor or consignee.
+            // Show GCNs where customer is consignor or consignee (any status except cancelled).
             $customer_filter = " AND (t.consigner IN ($id_list) OR t.consignee IN ($id_list))";
         }
     }
@@ -919,8 +916,7 @@ function billing_fetch_delivered_gcns($conn, $customer_ids = array(), $exclude_i
             t.vehicle_halting_charge, t.vehicle_loading_unloading, t.rajdhani_charges,
             t.taxable_value, t.gst_amount
             FROM `$trans_table` t
-            WHERE t.status='8'
-            AND (t.booking_status IS NULL OR t.booking_status='' OR t.booking_status!='1')
+            WHERE (t.booking_status IS NULL OR t.booking_status='' OR t.booking_status!='1')
             $customer_filter
             $series_mode_sql
             ORDER BY STR_TO_DATE(t.grn_date,'%d-%m-%Y') DESC, t.grn_no DESC";
@@ -1091,8 +1087,12 @@ function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing
         return null;
     }
 
-    $q = mysqli_query($conn, "SELECT * FROM `$trans_table` WHERE transaction_id='$transaction_id' AND status='8' LIMIT 1");
+    $q = mysqli_query($conn, "SELECT * FROM `$trans_table` WHERE transaction_id='$transaction_id' LIMIT 1");
     if (!$q || !($row = mysqli_fetch_assoc($q))) {
+        return null;
+    }
+    // Cancelled bookings stay blocked; delivery status is not required for tax invoice.
+    if ((string) ($row['booking_status'] ?? '') === '1') {
         return null;
     }
 

@@ -2,7 +2,8 @@
 <html lang="en">
 
 <head>
-	<meta charset="utf-8">
+    <script src="assets/js/ew-numeric-paste.js?v=20260921"></script>
+<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimal-ui">
 	<title>Gracious Express ~ Contact Us</title>
 
@@ -10,7 +11,6 @@
 	<link href="assets/css/master.css" rel="stylesheet">
 
 	<script src="assets/plugins/jquery/jquery-1.11.3.min.js"></script>
-	<script src="assets/js/ew-numeric-paste.js?v=20260921"></script>
 	<script src="assets/js/modernizr.custom.js"></script>
 
 	<style>

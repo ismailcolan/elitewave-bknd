@@ -939,7 +939,9 @@ function booking_client_name_options($conn)
 			continue;
 		}
 		if (function_exists('mb_check_encoding') && !mb_check_encoding($name, 'UTF-8')) {
-			$name = utf8_encode($name);
+			$name = function_exists('mb_convert_encoding')
+				? mb_convert_encoding($name, 'UTF-8', 'ISO-8859-1')
+				: $name;
 		}
 		$rows[] = array(
 			'id' => (int) $row['client_id'],

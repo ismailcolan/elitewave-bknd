@@ -103,7 +103,7 @@ if ($is_edit) {
 								<div class="ew-field span-2">
 									<label>GCN No <span class="req">*</span></label>
 									<select id="gcn_keys" class="form-control filter-select" multiple="multiple"></select>
-									<p class="ew-field-hint" id="gcn_result_hint">Choose the mode and a customer to load delivered GCNs.</p>
+									<p class="ew-field-hint" id="gcn_result_hint">Choose the mode and a customer to load GCNs.</p>
 								</div>
 							</div>
 						</div>
@@ -262,11 +262,11 @@ function sumLinesFromRows(lines) {
 function loadGcnOptions(selectKeys) {
 	var customerId = getPrimaryCustomerId();
 	if (!customerId) {
-		refreshGcnSelect('', 'Choose the mode and a customer to load delivered GCNs.');
+		refreshGcnSelect('', 'Choose the mode and a customer to load GCNs.');
 		renderLines([], {});
 		return;
 	}
-	refreshGcnSelect('', 'Loading delivered ' + seriesGcnLabel() + ' GCNs...');
+	refreshGcnSelect('', 'Loading ' + seriesGcnLabel() + ' GCNs...');
 	$.getJSON('create_invoice_data.php', {
 		cmd: 'fetch_gcns',
 		customers: customerId,
@@ -281,7 +281,7 @@ function loadGcnOptions(selectKeys) {
 		var opts = '';
 		var rows = r.data || [];
 		if (!rows.length) {
-			refreshGcnSelect('', 'No delivered ' + seriesGcnLabel() + ' GCNs found for this customer.');
+			refreshGcnSelect('', 'No ' + seriesGcnLabel() + ' GCNs found for this customer.');
 			renderLines([], {});
 			return;
 		}
@@ -293,7 +293,7 @@ function loadGcnOptions(selectKeys) {
 			}
 			opts += '<option value="' + escHtml(row.key) + '"' + disabled + ' title="' + escHtml(row.label) + '">' + escHtml(label) + '</option>';
 		});
-		var hint = rows.length + ' delivered GCN(s) found. Select one or more.';
+		var hint = rows.length + ' GCN(s) found. Select one or more.';
 		if ($.grep(rows, function(row) { return row.has_conflict; }).length) {
 			hint += ' GCNs marked "already billed" must be removed before saving.';
 		}
@@ -472,7 +472,7 @@ function saveInvoice(status) {
 
 $(document).ready(function() {
 	initCustomerSelect('');
-	refreshGcnSelect('', 'Choose the mode and a customer to load delivered GCNs.');
+	refreshGcnSelect('', 'Choose the mode and a customer to load GCNs.');
 
 	$(document).on('change', '#invoice_date', refreshInvoiceNo);
 	$(document).on('change', '#invoice_series', function() {

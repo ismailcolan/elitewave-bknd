@@ -6,7 +6,8 @@ include("./config.ini.php");
 <html lang="en">
 
 <head>
-    <meta charset="utf-8">
+    <script src="assets/js/ew-numeric-paste.js?v=20260921"></script>
+<meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimal-ui">
     <title>Gracious Express - Book Consignment</title>
 
@@ -20,7 +21,6 @@ include("./config.ini.php");
     <link rel="stylesheet" href="font-awesome-4.7.0/css/font-awesome.min.css">
     <!-- book consignment css and js finished here -->
     <script src="assets/plugins/jquery/jquery-1.11.3.min.js"></script>
-    <script src="assets/js/ew-numeric-paste.js?v=20260921"></script>
     <script src="assets/js/jquery.validate.min.js"></script>
     <script src="assets/js/modernizr.custom.js"></script>
 </head>

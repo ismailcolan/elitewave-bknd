@@ -163,7 +163,9 @@ function marketing_client_recipient_options($conn)
 			$name = $email;
 		}
 		if (function_exists('mb_check_encoding') && !mb_check_encoding($name, 'UTF-8')) {
-			$name = utf8_encode($name);
+			$name = function_exists('mb_convert_encoding')
+				? mb_convert_encoding($name, 'UTF-8', 'ISO-8859-1')
+				: $name;
 		}
 		$rows[] = array(
 			'id' => (int) $row['client_id'],
