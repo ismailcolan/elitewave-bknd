@@ -645,11 +645,13 @@
   padding-bottom: 36px;
 }
 
-.ew-page-v2 .ew-card > .ew-form-body:has(+ .ew-form-footer) {
+.ew-page-v2 .ew-card > .ew-form-body:has(+ .ew-form-footer),
+.ew-page-v2 .ew-card .ew-form-body:has(+ .ew-form-footer) {
   padding-bottom: 20px;
 }
 
-.ew-page-v2 .ew-card > .ew-form-footer:last-child {
+.ew-page-v2 .ew-card > .ew-form-footer:last-child,
+.ew-page-v2 .ew-card .ew-form-footer:last-child {
   padding: 14px 24px 22px;
 }
 
@@ -756,7 +758,8 @@
   color: var(--ew-text-muted, #6B7A8D);
 }
 
-.ew-page-v2 .ew-card > .ew-form-footer {
+.ew-page-v2 .ew-card > .ew-form-footer,
+.ew-page-v2 .ew-card .ew-form-footer {
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -766,13 +769,29 @@
   border-top: 1px solid var(--ew-border-light, #E9ECF0);
   background: #FAFBFC;
   flex-wrap: wrap;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
 }
 
-.ew-page-v2 .ew-form-footer .ew-btn-v2 {
+.ew-page-v2 .ew-form-footer .ew-btn-v2,
+.ew-page-v2 .ew-form-footer .btn {
   min-width: 84px;
   justify-content: center;
   margin: 0 !important;
   flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.ew-page-v2 .ew-form-footer .egen-form-footer-actions,
+.ew-page-v2 .ew-form-footer .ew-invoice-form-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  max-width: 100%;
 }
 
 /* Status badges inside v2 tables */
