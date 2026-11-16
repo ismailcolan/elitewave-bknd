@@ -99,8 +99,8 @@ th.table-title.sorting_disabled {
                                     </button>
                                 </div>
                             </div>
-                            <div class="ew-table-wrap widget-content padded clearfix new_dept">
-                            <table class="table table-bordered table-striped flight_tabl" id="dataTable1">
+                            <div class="ew-table-wrap widget-content padded clearfix new_dept ew-no-drag-scroll ew-carrier-list-wrap">
+                            <table class="table table-bordered table-striped flight_tabl ew-ss-datatable ew-no-drag-scroll" id="dataTable1">
                                 <thead>
                                     <th class="table-title" style="width:8%">S.No</th>
                                     <th class="table-title" style="width:24%">Flight Name</th>
@@ -108,55 +108,7 @@ th.table-title.sorting_disabled {
                                     <th class="table-title" style="width:32%">Journey Hours</th>
                                     <th class="table-title" style="width:15%">Action</th>
                                 </thead>
-                                <tbody>
-                                    <?php
-                                    $query = 'select * from flight where ' . ew_geo_scope_where($conn);
-                                    $result = mysqli_query($conn, $query);
-                                    $flight_rows = array();
-                                    if ($result) {
-                                        while ($row = mysqli_fetch_array($result)) {
-                                            $flight_rows[] = $row;
-                                        }
-                                    }
-                                    $flight_usage = ew_master_usage_map($conn, 'flight', array_column($flight_rows, 'flight_id'));
-                                    $i = 1;
-                                    foreach ($flight_rows as $row) {
-                                        ?>
-                                        <tr>
-                                            <td class="text-center"><?php echo $i; ?></td>
-                                            <td><?php echo htmlspecialchars($row['flight_name']); ?></td>
-                                            <td><?php echo htmlspecialchars($row['flight_number'] ?? ''); ?></td>
-                                            <td><?php echo htmlspecialchars($row['journey_hours'] ?? ''); ?></td>
-
-                                            <td class="actions center-content ">
-                                                <div class="action-buttons">
-                                                    <?php echo ew_master_edit_action_html(array(
-                                                        'in_use' => !empty($flight_usage[(int) $row['flight_id']]),
-                                                        'button_id' => (int) $row['flight_id'],
-                                                        'button_class' => 'table-actions btn-edit',
-                                                    )); ?>
-                                                    <?php
-                                                    if ($row['status'] == 0) {
-                                                        ?>
-                                                        <a class="table-actions btn-active" data-status="<?php echo $row['status'] ?>" title="InActive" id="<?php echo $row['flight_id'] ?>"><i class="fa fa-check"></i></a>
-                                                    <?php
-                                                    } else {
-                                                        ?>
-                                                        <a class="table-actions btn-active" style="color:red;" data-status="<?php echo $row['status'] ?>" title="Active" id="<?php echo $row['flight_id'] ?>"><i class="fa fa-times"></i></a>
-                                                    <?php
-                                                    }
-                                                    ?>
-                                                    <a title="Delete" href="#myModal" class="table-actions btn-trash" data-toggle="modal" id="<?php echo $row['flight_id'] ?>"><i class="fa fa-trash-o"></i></a>
-
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php
-                                        $i++;
-                                    }
-                                    ?>
-
-                                </tbody>
+                                <tbody></tbody>
                             </table>
                             </div>
                         </div>
@@ -171,6 +123,31 @@ th.table-title.sorting_disabled {
 
         <script type="text/javascript">
             $(document).ready(function() {
+                var flightScope = <?php echo json_encode(ew_geo_scope_from_request()); ?>;
+                $('#dataTable1').dataTable({
+                    bProcessing: true,
+                    bServerSide: true,
+                    bAutoWidth: false,
+                    sAjaxSource: 'master_carrier_list_data.php',
+                    sServerMethod: 'GET',
+                    sPaginationType: 'full_numbers',
+                    iDisplayLength: 10,
+                    aLengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                    aaSorting: [[1, 'asc']],
+                    oSearch: {
+                        sSearch: '',
+                        bSmart: false,
+                        bRegex: false,
+                        bCaseInsensitive: true
+                    },
+                    aoColumnDefs: [
+                        { bSortable: false, aTargets: [0, -1] }
+                    ],
+                    fnServerParams: function(aoData) {
+                        aoData.push({ name: 'entity', value: 'flight' });
+                        aoData.push({ name: 'scope', value: flightScope });
+                    }
+                });
 
                 $('#cities').multiselect({
                     buttonWidth: '100%',

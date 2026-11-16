@@ -138,6 +138,112 @@ function quotation_flight_label_by_id($conn, $flight_id)
 	return $lbl !== '' ? $lbl : '—';
 }
 
+/** Single train/flight row (id, label, hours) or null. */
+function quotation_transport_row_by_id($conn, $kind, $id)
+{
+	$id = (int) $id;
+	if ($id <= 0 || ($kind !== 'train' && $kind !== 'flight')) {
+		return null;
+	}
+	$sql = $kind === 'train'
+		? "SELECT train_id AS id, train_name AS name, train_number AS num, journey_hours FROM train WHERE train_id='$id' LIMIT 1"
+		: "SELECT flight_id AS id, flight_name AS name, flight_number AS num, journey_hours FROM flight WHERE flight_id='$id' LIMIT 1";
+	$q = @mysqli_query($conn, $sql);
+	$r = $q ? mysqli_fetch_assoc($q) : null;
+	if (!$r) {
+		return null;
+	}
+	return array(
+		'id' => (int) $r['id'],
+		'text' => quotation_transport_option_label($r['name'] ?? '', $r['num'] ?? ''),
+		'hours' => trim((string) ($r['journey_hours'] ?? '')),
+	);
+}
+
+/** Server-side search used by the remote train/flight dropdown (top N matches). */
+function quotation_transport_search($conn, $kind, $term, $limit = 10)
+{
+	if ($kind !== 'train' && $kind !== 'flight') {
+		return array();
+	}
+	$limit = max(1, min(50, (int) $limit));
+	$tbl = $kind;
+	$idc = $kind . '_id';
+	$nc = $kind . '_name';
+	$numc = $kind . '_number';
+	$where = 'status=0';
+	$order = "$nc ASC, $numc ASC";
+	$term = trim((string) $term);
+	// Word-based search: "chennai delhi", "chennai to delhi", "agartala agra" all match names like
+	// "Chennai Central To NDLS New Delhi" / "Agartala–Agra Superfast Express" regardless of separators.
+	$words = preg_split('/[\s,\/()\[\]\-–—→>:;|]+/u', mb_strtolower($term, 'UTF-8'), -1, PREG_SPLIT_NO_EMPTY);
+	$stop = array('to', 'via', 'and', 'from', 'express', 'exp', 'train', 'flight');
+	$filtered = array_values(array_filter($words, function ($w) use ($stop) {
+		return !in_array($w, $stop, true);
+	}));
+	if ($filtered !== array()) {
+		$words = $filtered;
+	}
+	$words = array_slice(array_values(array_unique($words)), 0, 6);
+	if ($words !== array()) {
+		$esc = function ($s) use ($conn) {
+			return mysqli_real_escape_string($conn, addcslashes($s, '%_\\'));
+		};
+		$hay = "CONCAT_WS(' ', $nc, $numc, loading_point1, loading_point2, loading_point3, loading_point4)";
+		$conds = array();
+		foreach ($words as $w) {
+			$conds[] = "$hay LIKE '%" . $esc($w) . "%'";
+		}
+		$where .= ' AND ' . implode(' AND ', $conds);
+		$full = $esc($term);
+		$first = $esc($words[0]);
+		$rank = array(
+			"($numc = '" . mysqli_real_escape_string($conn, $term) . "') DESC",
+			"($numc LIKE '$full%') DESC",
+			"($nc LIKE '%$full%') DESC",
+		);
+		if (count($words) > 1) {
+			// Keep the typed order first: "chennai delhi" → Chennai…Delhi before Delhi…Chennai.
+			$last = $esc($words[count($words) - 1]);
+			$p1 = "LOCATE('$first', LOWER($nc))";
+			$p2 = "LOCATE('$last', LOWER($nc))";
+			$rank[] = "($p1 > 0 AND $p1 < $p2) DESC";
+			// …and closest together: "Chennai to Delhi" before "Chandigarh to Chennai via Delhi".
+			$rank[] = "IF($p1 > 0 AND $p1 < $p2, $p2 - $p1, 9999) ASC";
+		}
+		$rank[] = "($nc LIKE '$first%') DESC";
+		$order = implode(', ', $rank) . ', ' . $order;
+	}
+	$out = array();
+	$q = @mysqli_query($conn, "SELECT $idc AS id, $nc AS name, $numc AS num, journey_hours FROM $tbl WHERE $where ORDER BY $order LIMIT $limit");
+	if ($q) {
+		while ($r = mysqli_fetch_assoc($q)) {
+			$out[] = array(
+				'id' => (int) $r['id'],
+				'text' => quotation_transport_option_label($r['name'] ?? '', $r['num'] ?? ''),
+				'hours' => trim((string) ($r['journey_hours'] ?? '')),
+			);
+		}
+	}
+	return $out;
+}
+
+/**
+ * Train / flight <select> that only carries the placeholder + the currently selected option.
+ * Options are searched on demand via quotation_transport_search.php (javascripts/ew-remote-source.js).
+ */
+function quotation_remote_source_select_html($conn, $kind, $attrs, $selected_id, $placeholder, $disabled = false)
+{
+	$html = '<select ' . $attrs . ' data-remote-source="' . $kind . '"' . ($disabled ? ' disabled' : '') . '>'
+		. '<option value="" data-hours="">' . htmlspecialchars($placeholder, ENT_QUOTES, 'UTF-8') . '</option>';
+	$row = quotation_transport_row_by_id($conn, $kind, $selected_id);
+	if ($row) {
+		$html .= '<option value="' . $row['id'] . '" data-hours="' . htmlspecialchars($row['hours'], ENT_QUOTES, 'UTF-8') . '" selected>'
+			. htmlspecialchars($row['text'], ENT_QUOTES, 'UTF-8') . '</option>';
+	}
+	return $html . '</select>';
+}
+
 function quotation_source_selects_html($conn, $prefix, $row, $vehicle_types, $trains, $flights, $form_editable, $mode_group)
 {
 	$prefix = ($prefix === 'md') ? 'md' : 'mm';
@@ -151,7 +257,7 @@ function quotation_source_selects_html($conn, $prefix, $row, $vehicle_types, $tr
 	$empty_style = $kind === '' ? '' : 'display:none;';
 	$html = '<select class="form-control ' . $prefix . '-source-empty" style="' . $empty_style . '" disabled>'
 		. '<option value="">Select source</option></select>';
-	$html .= '<select name="' . $prefix . '_vehicle_type_id[]" class="form-control ' . $prefix . '-source ' . $prefix . '-source-road" style="' . $style('road') . '"' . $dis . '>'
+	$html .= '<select name="' . $prefix . '_vehicle_type_id[]" class="form-control ' . $prefix . '-source ' . $prefix . '-source-road" data-remote-source="vehicle" data-search-local="1" style="' . $style('road') . '"' . $dis . '>'
 		. '<option value="">Select vehicle</option>';
 	foreach ($vehicle_types as $vt) {
 		$vid = (int) $vt['vehicle_type_id'];
@@ -162,22 +268,13 @@ function quotation_source_selects_html($conn, $prefix, $row, $vehicle_types, $tr
 		$html .= '<option value="' . $vid . '"' . $sel . '>' . htmlspecialchars($opt_lbl, ENT_QUOTES, 'UTF-8') . '</option>';
 	}
 	$html .= '</select>';
-	$html .= '<select name="' . $prefix . '_train_id[]" class="form-control ' . $prefix . '-source ' . $prefix . '-source-train" style="' . $style('train') . '"' . $dis . '>'
-		. '<option value="">Select train</option>';
-	foreach ($trains as $tr) {
-		$id = (int) ($tr['train_id'] ?? 0);
-		$sel = ($train_id === $id) ? ' selected' : '';
-		$html .= '<option value="' . $id . '"' . $sel . '>' . htmlspecialchars(quotation_transport_option_label($tr['train_name'] ?? '', $tr['train_number'] ?? '')) . '</option>';
-	}
-	$html .= '</select>';
-	$html .= '<select name="' . $prefix . '_flight_id[]" class="form-control ' . $prefix . '-source ' . $prefix . '-source-flight" style="' . $style('flight') . '"' . $dis . '>'
-		. '<option value="">Select flight</option>';
-	foreach ($flights as $fl) {
-		$id = (int) ($fl['flight_id'] ?? 0);
-		$sel = ($flight_id === $id) ? ' selected' : '';
-		$html .= '<option value="' . $id . '"' . $sel . '>' . htmlspecialchars(quotation_transport_option_label($fl['flight_name'] ?? '', $fl['flight_number'] ?? '')) . '</option>';
-	}
-	$html .= '</select>';
+	// Trains / flights are large tables (10k+ rows) — never render the full list per row.
+	$html .= quotation_remote_source_select_html($conn, 'train',
+		'name="' . $prefix . '_train_id[]" class="form-control ' . $prefix . '-source ' . $prefix . '-source-train" style="' . $style('train') . '"',
+		$train_id, 'Select train', !$form_editable);
+	$html .= quotation_remote_source_select_html($conn, 'flight',
+		'name="' . $prefix . '_flight_id[]" class="form-control ' . $prefix . '-source ' . $prefix . '-source-flight" style="' . $style('flight') . '"',
+		$flight_id, 'Select flight', !$form_editable);
 	return $html;
 }
 

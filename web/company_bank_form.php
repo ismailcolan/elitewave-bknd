@@ -101,7 +101,7 @@ if ($edit_id > 0) {
 							</div>
 							<div class="ew-form-footer">
 								<a href="company_bank.php" class="ew-btn-v2 ew-btn-v2-outline">Cancel</a>
-								<button type="submit" form="company_bank_form" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-save"></i> Save Bank Account</button>
+								<button type="submit" form="company_bank_form" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-save"></i> <?php echo $is_edit ? 'Update' : 'Submit'; ?></button>
 							</div>
 						</div>
 					</div>

@@ -46,8 +46,8 @@ var EW_RBAC_PAGES = [
 	["transaction_status.php", "consignment", "GCN Transit Update", 1, 0],
 	["request_for_new_pickup.php", "consignment", "Request For Pickup", 1, 0],
 
-	["expense_gcn_list.php", "expense", "Expense against GCN — List", 1, 0],
-	["expense_gcn.php", "expense", "Expense against GCN — Form", 0, 0],
+	["expense_gcn_list.php", "expense", "GCN Profit & Loss — List", 1, 0],
+	["expense_gcn.php", "expense", "GCN Profit & Loss — Form", 0, 0],
 	["expense_general_list.php", "expense", "General Expense — List", 1, 0],
 	["expense_general.php", "expense", "General Expense — Form", 0, 0],
 

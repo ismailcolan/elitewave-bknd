@@ -13,18 +13,25 @@ if ($preselect_id <= 0 && empty($_GET['create'])) {
 	exit;
 }
 $is_create = ($preselect_id <= 0 && !empty($_GET['create']));
-$entry_mode = 'general';
-if ($is_create) {
-	$mode_param = isset($_GET['mode']) ? strtolower(trim((string) $_GET['mode'])) : '';
-	if ($mode_param === 'gcn') {
-		$entry_mode = 'gcn';
-	}
-}
 $preview_expense_no = expense_general_preview_next_no($conn);
 $payment_modes = ew_company_bank_payment_modes();
 $vendor_rows = expense_gcn_vendor_options($conn);
 $category_rows = expense_gcn_category_options($conn);
 $bank_rows = ew_company_bank_options($conn);
+$tax_profiles = expense_general_tax_profiles($conn);
+$tds_percent_options = array(
+	array('value' => '0.00', 'label' => 'No TDS (0%)'),
+);
+foreach (billing_receipt_tds_percent_options($conn) as $opt) {
+	$rate = round((float) ($opt['rate'] ?? 0), 2);
+	if ($rate <= 0) {
+		continue;
+	}
+	$tds_percent_options[] = array(
+		'value' => number_format($rate, 2, '.', ''),
+		'label' => $opt['label'] ?? ('TDS ' . $rate . '%'),
+	);
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -229,6 +236,55 @@ $bank_rows = ew_company_bank_options($conn);
 				max-width: 200px;
 			}
 		}
+
+		.pv-lines-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 12px;
+			margin-bottom: 8px;
+		}
+
+		.pv-lines-wrap {
+			overflow-x: auto;
+		}
+
+		.pv-lines th,
+		.pv-lines td {
+			vertical-align: middle;
+			font-size: 12px;
+			min-width: 110px;
+		}
+
+		#pv_lines .pv-col-gcn {
+			display: none !important;
+		}
+
+		#pv_lines.is-gcn .pv-col-gcn {
+			display: table-cell !important;
+			min-width: 240px;
+		}
+
+		#pv_lines.is-gcn .pv-col-gcn .select2-container {
+			width: 100% !important;
+			min-width: 220px;
+		}
+
+		.pv-lines td.pv-col-action {
+			min-width: 48px;
+			width: 48px;
+			text-align: center;
+		}
+
+		.pv-lines input.form-control {
+			height: 32px;
+		}
+
+		.pv-lines .line-gst,
+		.pv-lines .line-tds,
+		.pv-lines .line-net {
+			background: #F3F7FB;
+		}
 	</style>
 </head>
 
@@ -245,15 +301,7 @@ $bank_rows = ew_company_bank_options($conn);
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
 								<a href="expense_general_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
-								<h1 class="ew-page-title"><?php
-									if ($preselect_id > 0) {
-										echo 'Edit General Expense';
-									} elseif ($entry_mode === 'gcn') {
-										echo 'Add Expense against GCN';
-									} else {
-										echo 'Add General Expense';
-									}
-								?></h1>
+								<h1 class="ew-page-title"><?php echo $preselect_id > 0 ? 'Edit Payment Voucher' : 'Add Payment Voucher'; ?></h1>
 							</div>
 							<div class="ew-toolbar-right">
 								<a href="expense_general_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
@@ -261,31 +309,18 @@ $bank_rows = ew_company_bank_options($conn);
 							</div>
 						</div>
 						<div class="ew-card">
-							<?php if ($is_create) { ?>
-							<div class="ew-expense-mode-bar">
-								<div class="ew-field">
-									<label class="control-label">Expense mode <span style="color:red;">*</span> :</label>
-									<div class="egen-select-wrap">
-										<select id="expense_entry_mode" class="form-control egen-select">
-											<option value="general"<?php echo $entry_mode === 'general' ? ' selected' : ''; ?>>General expense</option>
-											<option value="gcn"<?php echo $entry_mode === 'gcn' ? ' selected' : ''; ?>>Expense against GCN</option>
-										</select>
-									</div>
-								</div>
-							</div>
-							<?php } ?>
-							<div id="ew-expense-panel-general"<?php echo ($is_create && $entry_mode === 'gcn') ? ' style="display:none;"' : ''; ?>>
+							<div id="ew-expense-panel-general">
 							<div class="ew-form-body">
 							<form id="general_expense_form">
 								<div class="ew-form-grid ew-form-grid--general">
-									<div class="ew-section-label">Expense Details</div>
+									<div class="ew-section-label">Voucher Details</div>
 
 									<div class="ew-field">
-										<label class="control-label">Expense Code :</label>
+										<label class="control-label">Voucher Code :</label>
 										<input type="text" id="expense_no_display" class="form-control" readonly value="<?php echo $preselect_id > 0 ? '' : htmlspecialchars($preview_expense_no); ?>">
 									</div>
 									<div class="ew-field">
-										<label class="control-label">Expense Date <span style="color:red;">*</span> :</label>
+										<label class="control-label">Voucher Date <span style="color:red;">*</span> :</label>
 										<input type="text" id="expense_date" name="expense_date" class="form-control ew-date-field" value="<?php echo htmlspecialchars($c_date); ?>" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
 									</div>
 									<div class="ew-field">
@@ -293,46 +328,57 @@ $bank_rows = ew_company_bank_options($conn);
 										<div class="egen-select-wrap">
 											<select id="vendor_id" name="vendor_id" class="form-control egen-select"></select>
 										</div>
-										<span class="ew-field-hint" id="vendor_tax_hint"></span>
 									</div>
 
 									<div class="ew-field">
-										<label class="control-label">Expense Type <span style="color:red;">*</span> :</label>
+										<label class="control-label">Voucher Type <span style="color:red;">*</span> :</label>
 										<div class="egen-select-wrap">
-											<select id="category_id" name="category_id" class="form-control egen-select"></select>
+											<select id="voucher_type" name="voucher_type" class="form-control egen-select">
+												<option value="general">General</option>
+												<option value="gcn">GCN</option>
+											</select>
 										</div>
 									</div>
 									<div class="ew-field">
-										<label class="control-label">Expense Amount <span style="color:red;">*</span> :</label>
-										<input type="text" id="expense_amount" name="expense_amount" class="form-control text-right" placeholder="0.00" autocomplete="off">
-									</div>
-									<div class="ew-field" id="gst_wrap">
 										<label class="control-label">GST % :</label>
-										<select id="gst_percent" name="gst_percent" class="form-control">
-											<option value="0">0%</option>
-											<option value="5">5%</option>
-											<option value="12">12%</option>
-											<option value="18">18%</option>
-											<option value="28">28%</option>
-										</select>
-										<span class="ew-field-sub-label">GST amount (auto)</span>
-										<input type="text" id="gst_amount" name="gst_amount" class="form-control text-right egen-gst-readonly" placeholder="0.00" readonly tabindex="-1" autocomplete="off">
-										<span class="ew-field-hint" id="gst_hint"></span>
+										<div class="egen-select-wrap">
+											<select id="gst_percent" name="gst_percent" class="form-control egen-select"></select>
+										</div>
+									</div>
+									<div class="ew-field">
+										<label class="control-label">TDS % :</label>
+										<div class="egen-select-wrap">
+											<select id="tds_percent" name="tds_percent" class="form-control egen-select"></select>
+										</div>
 									</div>
 
-									<div class="ew-field">
-										<label class="control-label">TDS Value :</label>
-										<input type="text" id="tds_amount" name="tds_amount" class="form-control text-right" placeholder="0.00" autocomplete="off">
-										<span class="ew-field-hint" id="tds_hint"></span>
-									</div>
-									<div class="ew-field">
-										<label class="control-label">Other Deduction :</label>
-										<input type="text" id="other_deduction" name="other_deduction" class="form-control text-right" placeholder="0.00" autocomplete="off">
+									<div class="ew-field span-3">
+										<div class="pv-lines-head">
+											<label class="control-label" style="margin:0;">Lines</label>
+											<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_add_line"><i class="fa fa-plus"></i> Add line</button>
+										</div>
+										<div class="pv-lines-wrap">
+											<table class="table table-bordered pv-lines" id="pv_lines">
+												<thead>
+													<tr>
+														<th class="pv-col-gcn">GCN No.</th>
+														<th>Expense Type</th>
+														<th>Expense Amount</th>
+														<th>GST Amount</th>
+														<th>TDS Amount</th>
+														<th>Other Deduction</th>
+														<th>Net Amount</th>
+														<th style="width:48px;"></th>
+													</tr>
+												</thead>
+												<tbody id="pv_lines_body"></tbody>
+											</table>
+										</div>
 									</div>
 
 									<div class="ew-field span-3">
 										<label class="control-label">Description :</label>
-										<textarea id="description" name="description" class="form-control" maxlength="500" rows="3" placeholder="Expense notes"></textarea>
+										<textarea id="description" name="description" class="form-control" maxlength="500" rows="3" placeholder="Voucher notes"></textarea>
 									</div>
 
 									<div class="ew-section-label">Payment Details</div>
@@ -384,15 +430,10 @@ $bank_rows = ew_company_bank_options($conn);
 								</div>
 								<div class="egen-form-footer-actions">
 									<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_reset">Reset</button>
-									<button type="submit" class="ew-btn-v2 ew-btn-v2-primary" id="btn_save" form="general_expense_form"><i class="fa fa-save"></i> Save Expense</button>
+									<button type="submit" class="ew-btn-v2 ew-btn-v2-primary" id="btn_save" form="general_expense_form"><i class="fa fa-save"></i> <?php echo $preselect_id > 0 ? 'Update' : 'Submit'; ?></button>
 								</div>
 							</div>
 							</div>
-							<?php if ($is_create) { ?>
-							<div id="ew-expense-panel-gcn"<?php echo $entry_mode === 'general' ? ' style="display:none;"' : ''; ?>>
-								<iframe id="ew_expense_gcn_frame" title="Expense against GCN" src="<?php echo $entry_mode === 'gcn' ? 'expense_gcn.php?create=1&amp;embed=1' : ''; ?>"></iframe>
-							</div>
-							<?php } ?>
 						</div>
 					</div>
 				</div>
@@ -407,12 +448,11 @@ $bank_rows = ew_company_bank_options($conn);
 		var vendorOptions = <?php echo json_encode($vendor_rows, JSON_UNESCAPED_UNICODE); ?>;
 		var categoryOptions = <?php echo json_encode($category_rows, JSON_UNESCAPED_UNICODE); ?>;
 		var bankOptions = <?php echo json_encode($bank_rows, JSON_UNESCAPED_UNICODE); ?>;
+		var taxProfiles = <?php echo json_encode($tax_profiles, JSON_UNESCAPED_UNICODE); ?>;
+		var gcnOptions = [];
+		var gcnOptionsLoaded = false;
+		var tdsOptions = <?php echo json_encode($tds_percent_options, JSON_UNESCAPED_UNICODE); ?>;
 		var primaryBankId = 0;
-		var vendorTax = { gst_applicable: 0, tds_applicable: 0, tds_rate: 0 };
-		var gstPercentRates = [0, 5, 12, 18, 28];
-		var tdsManual = false;
-		var skipTypeDefault = false;
-		var expenseCreateMode = <?php echo $is_create ? 'true' : 'false'; ?>;
 
 		function escHtml(v) {
 			if (v === null || v === undefined) return '';
@@ -425,61 +465,15 @@ $bank_rows = ew_company_bank_options($conn);
 		function formatMoney(v) {
 			return parseMoney(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 		}
-		function getCategoryRow(categoryId) {
-			var found = null;
-			$.each(categoryOptions || [], function(i, row) {
-				if (String(row.category_id) === String(categoryId)) {
-					found = row;
-					return false;
-				}
-			});
-			return found;
-		}
-		function normalizeGstPercentSelect(pct) {
-			pct = parseFloat(pct);
-			if (isNaN(pct) || pct < 0) pct = 0;
-			var best = 0;
-			var bestDiff = null;
-			$.each(gstPercentRates, function(i, rate) {
-				var diff = Math.abs(pct - rate);
-				if (bestDiff === null || diff < bestDiff) {
-					bestDiff = diff;
-					best = rate;
-				}
-			});
-			return best;
-		}
-		function setGstPercentVal(pct) {
-			$('#gst_percent').val(String(normalizeGstPercentSelect(pct)));
-		}
-		function applyCategoryDefaultGstPercent() {
-			var row = getCategoryRow(getSelectVal($('#category_id')));
-			var pct = 0;
-			if (row && parseInt(row.gst_applicable, 10) === 1 && parseFloat(row.gst_percent) > 0) {
-				pct = parseFloat(row.gst_percent);
-			}
-			setGstPercentVal(pct);
-		}
-		function getCategoryDefaultAmount(categoryId) {
-			var amt = 0;
-			$.each(categoryOptions || [], function(i, row) {
-				if (String(row.category_id) === String(categoryId)) {
-					amt = parseMoney(row.default_amount);
-					return false;
-				}
-			});
-			return amt;
-		}
-		function applyCategoryDefaultAmount() {
-			var amt = getCategoryDefaultAmount(getSelectVal($('#category_id')));
-			if (amt > 0) {
-				$('#expense_amount').val(formatMoney(amt));
-			}
+		function rateKey(v) {
+			return parseMoney(v).toFixed(2);
 		}
 		function getSelectVal($el) {
 			if (!$el || !$el.length) return '';
 			var val = $el.val();
-			if ($el.data('select2')) val = $el.select2('val');
+			if ((val === null || val === undefined || val === '') && $el.data('select2')) {
+				val = $el.select2('val');
+			}
 			if ($.isArray(val)) val = val[0] || '';
 			return val ? String(val) : '';
 		}
@@ -504,8 +498,8 @@ $bank_rows = ew_company_bank_options($conn);
 			});
 			syncSelectTitle($el);
 		}
-		function fillSelectOptions($el, rows, valueKey, labelKey, selected) {
-			var html = '<option value=""></option>';
+		function fillSelectOptions($el, rows, valueKey, labelKey, selected, allowEmpty) {
+			var html = allowEmpty === false ? '' : '<option value=""></option>';
 			$.each(rows || [], function(i, row) {
 				var val = row[valueKey];
 				var label = row[labelKey] || row.label || val;
@@ -514,40 +508,200 @@ $bank_rows = ew_company_bank_options($conn);
 			if ($el.data('select2')) $el.select2('destroy');
 			$el.html(html);
 		}
+		function voucherType() {
+			return String(getSelectVal($('#voucher_type')) || 'general').toLowerCase();
+		}
+		function gstRates() {
+			var seen = {};
+			var rows = [];
+			$.each(taxProfiles || [], function(i, row) {
+				var key = rateKey(row.gst_rate);
+				if (seen[key]) return;
+				seen[key] = true;
+				rows.push({ value: key, label: parseMoney(row.gst_rate) + '%' });
+			});
+			rows.sort(function(a, b) { return parseMoney(a.value) - parseMoney(b.value); });
+			if (!rows.length) rows.push({ value: '0.00', label: '0%' });
+			return rows;
+		}
+		function currentGst() {
+			return parseMoney(getSelectVal($('#gst_percent')));
+		}
+		function currentTds() {
+			return parseMoney(getSelectVal($('#tds_percent')));
+		}
 		function buildVendorSelect(selected) {
 			var $el = $('#vendor_id');
-			fillSelectOptions($el, vendorOptions, 'vendor_id', 'label', selected);
+			fillSelectOptions($el, vendorOptions, 'vendor_id', 'label', selected, true);
 			initSelect2($el, 'Select vendor');
 			setSelectVal($el, selected || '');
 		}
-		function buildCategorySelect(selected) {
-			var $el = $('#category_id');
-			fillSelectOptions($el, categoryOptions, 'category_id', 'label', selected);
-			initSelect2($el, 'Select expense type');
-			setSelectVal($el, selected || '');
+		function buildGstSelect(selected) {
+			var $el = $('#gst_percent');
+			fillSelectOptions($el, gstRates(), 'value', 'label', rateKey(selected || 0), false);
+			initSelect2($el, 'GST %');
+			setSelectVal($el, rateKey(selected || gstRates()[0].value));
 		}
-		function buildBankSelect(selected) {
-			var $el = $('#company_bank_id');
-			fillSelectOptions($el, bankOptions, 'bank_account_id', 'label', selected);
-			initSelect2($el, 'Select company bank account');
-			setSelectVal($el, selected || '');
+		function defaultTdsValue() {
+			return '0.00';
 		}
-		function initPaymentModeSelect(selected) {
-			var $el = $('#payment_mode');
+		function buildTdsSelect(selected) {
+			var rows = tdsOptions && tdsOptions.length ? tdsOptions : [{ value: '0.00', label: 'No TDS (0%)' }];
+			var pick = (selected !== undefined && selected !== null && selected !== '') ? rateKey(selected) : defaultTdsValue();
+			var found = false;
+			$.each(rows, function(i, row) { if (rateKey(row.value) === pick) found = true; });
+			if (!found) pick = rateKey(rows[0].value);
+			var $el = $('#tds_percent');
+			fillSelectOptions($el, rows, 'value', 'label', pick, false);
+			initSelect2($el, 'TDS %');
+			setSelectVal($el, pick);
+		}
+		function initVoucherType(selected) {
+			var $el = $('#voucher_type');
 			if ($el.data('select2')) $el.select2('destroy');
-			initSelect2($el, 'Select payment mode');
-			setSelectVal($el, selected || '');
+			initSelect2($el, 'Select type');
+			setSelectVal($el, selected || 'general');
+			toggleGcnColumn();
 		}
-		function initExpenseEntryModeSelect() {
-			var $el = $('#expense_entry_mode');
-			if (!$el.length) return;
-			if ($el.data('select2')) $el.select2('destroy');
-			$el.select2({
-				width: '100%',
-				minimumResultsForSearch: Infinity,
-				allowClear: false
+		function toggleGcnColumn() {
+			var show = voucherType() === 'gcn';
+			$('#pv_lines').toggleClass('is-gcn', show);
+			if (!show) return;
+			refreshGcnSelects();
+		}
+		function rememberGcn(key, label) {
+			key = key ? String(key) : '';
+			if (!key) return;
+			var found = false;
+			$.each(gcnOptions, function(i, row) {
+				if (String(row.key) === key) {
+					found = true;
+					return false;
+				}
 			});
-			syncSelectTitle($el);
+			if (!found) {
+				gcnOptions.unshift({ key: key, label: label || key });
+			}
+		}
+		function refreshGcnSelects() {
+			if (!$('#pv_lines').hasClass('is-gcn')) return;
+			$('#pv_lines_body .line-gcn').each(function() {
+				var $el = $(this);
+				var val = $el.val() || '';
+				if ($el.data('select2')) {
+					try { $el.select2('destroy'); } catch (err) {}
+				}
+				$el.next('.select2-container').remove();
+				$el.removeClass('select2-offscreen').show();
+				$el.html(lineOptionsHtml(gcnOptions, 'key', 'label', val));
+				$el.select2({
+					width: '100%',
+					placeholder: gcnOptionsLoaded ? 'Select GCN' : 'Loading GCNs…',
+					allowClear: true,
+					minimumResultsForSearch: 0
+				});
+				if (val) $el.select2('val', val);
+			});
+		}
+		function ensureGcnOptions(done) {
+			if (gcnOptionsLoaded) {
+				refreshGcnSelects();
+				if (done) done();
+				return;
+			}
+			$.ajax({
+				url: 'expense_general_data.php',
+				data: { cmd: 'fetch_gcns' },
+				dataType: 'json',
+				global: false
+			}).done(function(r) {
+				var saved = gcnOptions.slice();
+				gcnOptions = (r && r.status === 0 && $.isArray(r.gcns)) ? r.gcns : [];
+				$.each(saved, function(i, row) { rememberGcn(row.key, row.label); });
+				gcnOptionsLoaded = true;
+			}).always(function() {
+				refreshGcnSelects();
+				if (done) done();
+			});
+		}
+		function lineOptionsHtml(rows, valueKey, labelKey, selected) {
+			var html = '<option value=""></option>';
+			$.each(rows || [], function(i, row) {
+				var val = row[valueKey];
+				var label = row[labelKey] || val;
+				html += '<option value="' + escHtml(val) + '"' + (String(selected) === String(val) ? ' selected' : '') + '>' + escHtml(label) + '</option>';
+			});
+			return html;
+		}
+		function recalcRow($row) {
+			var amount = parseMoney($row.find('.line-amount').val());
+			var other = parseMoney($row.find('.line-other').val());
+			var gst = Math.round((amount * currentGst() / 100) * 100) / 100;
+			var tds = currentTds() > 0 && amount > 0 ? Math.round(amount * currentTds() / 100 * 100) / 100 : 0;
+			var net = Math.round((amount + gst - tds - other) * 100) / 100;
+			$row.find('.line-gst').val(formatMoney(gst));
+			$row.find('.line-tds').val(formatMoney(tds));
+			$row.find('.line-net').val(formatMoney(net));
+			recalcTotal();
+		}
+		function recalcAllRows() {
+			$('#pv_lines_body tr').each(function() { recalcRow($(this)); });
+			recalcTotal();
+		}
+		function recalcTotal() {
+			var total = 0;
+			$('#pv_lines_body .line-net').each(function() { total += parseMoney($(this).val()); });
+			$('#net_payable_display').val(formatMoney(total));
+		}
+		function bindLine($row) {
+			var $type = $row.find('.line-type');
+			initSelect2($type, 'Expense type');
+			$type.on('change', function() { syncSelectTitle($(this)); });
+			$row.find('.line-gcn').on('change', function() { syncSelectTitle($(this)); });
+			$row.find('.line-amount, .line-other').on('input blur', function() { recalcRow($row); });
+			$row.find('.btn-remove-line').on('click', function() {
+				if ($('#pv_lines_body tr').length <= 1) {
+					$row.find('.line-amount, .line-other').val('');
+					setSelectVal($row.find('.line-type'), '');
+					setSelectVal($row.find('.line-gcn'), '');
+					recalcRow($row);
+					return;
+				}
+				$row.remove();
+				recalcTotal();
+			});
+			recalcRow($row);
+		}
+		function addLine(data) {
+			data = data || {};
+			var $row = $('<tr></tr>');
+			$row.append('<td class="pv-col-gcn"><select class="form-control line-gcn">' + lineOptionsHtml(gcnOptions, 'key', 'label', data.gcn_key || '') + '</select></td>');
+			$row.append('<td><select class="form-control line-type">' + lineOptionsHtml(categoryOptions, 'category_id', 'label', data.category_id || '') + '</select></td>');
+			$row.append('<td><input type="text" class="form-control text-right line-amount" value="' + escHtml(data.expense_amount || '') + '" autocomplete="off"></td>');
+			$row.append('<td><input type="text" class="form-control text-right line-gst" readonly tabindex="-1"></td>');
+			$row.append('<td><input type="text" class="form-control text-right line-tds" readonly tabindex="-1"></td>');
+			$row.append('<td><input type="text" class="form-control text-right line-other" value="' + escHtml(data.other_deduction || '') + '" autocomplete="off"></td>');
+			$row.append('<td><input type="text" class="form-control text-right line-net" readonly tabindex="-1"></td>');
+			$row.append('<td class="pv-col-action"><button type="button" class="act-link act-delete btn-remove-line" title="Remove"><i class="fa fa-trash-o"></i></button></td>');
+			$('#pv_lines_body').append($row);
+			bindLine($row);
+			toggleGcnColumn();
+			if (data.gcn_key) setSelectVal($row.find('.line-gcn'), data.gcn_key);
+			if (data.category_id) setSelectVal($row.find('.line-type'), data.category_id);
+			return $row;
+		}
+		function collectLines() {
+			var lines = [];
+			$('#pv_lines_body tr').each(function() {
+				var $row = $(this);
+				lines.push({
+					category_id: getSelectVal($row.find('.line-type')),
+					gcn_key: voucherType() === 'gcn' ? getSelectVal($row.find('.line-gcn')) : '',
+					expense_amount: $row.find('.line-amount').val() || 0,
+					other_deduction: $row.find('.line-other').val() || 0
+				});
+			});
+			return lines;
 		}
 		function getBankById(id) {
 			var found = null;
@@ -574,10 +728,8 @@ $bank_rows = ew_company_bank_options($conn);
 			var mode = String(getSelectVal($('#payment_mode')) || '').toUpperCase();
 			var required = paymentModeRequiresBank(mode);
 			var showBank = mode !== '' && mode !== 'CASH';
-
 			$('#payment_bank_account_wrap').toggle(showBank);
 			$('#bank_details_row').toggle(showBank && !!getSelectVal($('#company_bank_id')));
-
 			if (!showBank) {
 				clearBankSelection();
 			} else if (required && !getSelectVal($('#company_bank_id')) && bankOptions.length === 1) {
@@ -586,103 +738,32 @@ $bank_rows = ew_company_bank_options($conn);
 				applyBankDetails(onlyBankId);
 				$('#bank_details_row').show();
 			}
-
 			if (required) {
 				$('#payment_bank_account_wrap').find('label.control-label').first().html('Company Bank Account <span style="color:red;">*</span> :');
 			} else {
 				$('#payment_bank_account_wrap').find('label.control-label').first().html('Company Bank Account :');
 			}
 		}
-		function updateVendorTaxHint() {
-			var parts = [];
-			if (vendorTax.gst_applicable) parts.push('GST applicable');
-			else parts.push('No GST on vendor');
-			if (vendorTax.tds_applicable && parseMoney(vendorTax.tds_rate) > 0) {
-				parts.push('TDS ' + formatMoney(vendorTax.tds_rate) + '%');
-			}
-			$('#vendor_tax_hint').text(parts.join(' · '));
-			if (vendorTax.gst_applicable) {
-				$('#gst_wrap').removeClass('field-disabled');
-				$('#gst_percent').prop('disabled', false);
-			} else {
-				$('#gst_wrap').addClass('field-disabled');
-				setGstPercentVal(0);
-				$('#gst_percent').prop('disabled', true);
-				$('#gst_amount').val('0.00');
-			}
+		function buildBankSelect(selected) {
+			var $el = $('#company_bank_id');
+			fillSelectOptions($el, bankOptions, 'bank_account_id', 'label', selected, true);
+			initSelect2($el, 'Select company bank account');
+			setSelectVal($el, selected || '');
 		}
-		function loadVendorTax(vendorId, callback) {
-			if (!vendorId) {
-				vendorTax = { gst_applicable: 0, tds_applicable: 0, tds_rate: 0 };
-				updateVendorTaxHint();
-				if (callback) callback();
-				return;
-			}
-			$.getJSON('expense_general_data.php', { cmd: 'vendor_tax_info', vendor_id: vendorId }, function(r) {
-				vendorTax = (r && r.tax) ? r.tax : { gst_applicable: 0, tds_applicable: 0, tds_rate: 0 };
-				updateVendorTaxHint();
-				if (callback) callback();
-			});
-		}
-		function recalcAmounts(useSuggestedTds, applyCategoryGst) {
-			if (applyCategoryGst) {
-				applyCategoryDefaultGstPercent();
-			}
-			var payload = {
-				cmd: 'calc_amounts',
-				vendor_id: getSelectVal($('#vendor_id')) || 0,
-				category_id: getSelectVal($('#category_id')) || 0,
-				expense_amount: $('#expense_amount').val() || 0,
-				gst_percent: $('#gst_percent').val() || 0,
-				other_deduction: $('#other_deduction').val() || 0
-			};
-			if (!useSuggestedTds) {
-				payload.tds_amount = $('#tds_amount').val() || 0;
-			}
-			$.getJSON('expense_general_data.php', payload, function(r) {
-				if (!r || r.status !== 0 || !r.amounts) return;
-				if (applyCategoryGst && r.suggested_gst_percent !== undefined) {
-					setGstPercentVal(r.suggested_gst_percent);
-				}
-				$('#gst_amount').val(formatMoney(r.suggested_gst || r.amounts.gst_amount || 0));
-				$('#gst_hint').text(parseMoney($('#gst_amount').val()) > 0 ? 'From expense amount × GST %' : '');
-				if (useSuggestedTds || !tdsManual) {
-					$('#tds_amount').val(formatMoney(r.suggested_tds || 0));
-					$('#tds_hint').text((r.suggested_tds > 0) ? 'Auto from vendor/type' : '');
-				}
-				$('#net_payable_display').val(formatMoney(r.amounts.net_payable || 0));
-			});
-		}
-		function resetForm(keepDate) {
-			generalExpenseId = 0;
-			tdsManual = false;
-			setGstPercentVal(0);
-			$('#expense_no_display').val(nextExpenseNoPreview);
-			if (!keepDate) $('#expense_date').val(<?php echo json_encode($c_date); ?>);
-			setSelectVal($('#vendor_id'), '');
-			setSelectVal($('#category_id'), '');
-			$('#expense_amount, #gst_amount, #tds_amount, #other_deduction').val('');
-			$('#description').val('');
-			setSelectVal($('#payment_mode'), '');
-			clearBankSelection();
-			vendorTax = { gst_applicable: 0, tds_applicable: 0, tds_rate: 0 };
-			updateVendorTaxHint();
-			$('#net_payable_display').val('0.00');
-			togglePaymentBankRequirement();
+		function initPaymentModeSelect(selected) {
+			var $el = $('#payment_mode');
+			if ($el.data('select2')) $el.select2('destroy');
+			initSelect2($el, 'Select payment mode');
+			setSelectVal($el, selected || '');
 		}
 		function fillForm(data) {
 			generalExpenseId = parseInt(data.general_expense_id, 10) || 0;
 			$('#expense_no_display').val(data.expense_no || '');
 			$('#expense_date').val(data.expense_date || '');
-			skipTypeDefault = true;
 			buildVendorSelect(data.vendor_id || '');
-			buildCategorySelect(data.category_id || '');
-			skipTypeDefault = false;
-			$('#expense_amount').val(data.expense_amount || '');
-			setGstPercentVal(data.gst_percent_raw !== undefined ? data.gst_percent_raw : 0);
-			$('#gst_amount').val(data.gst_amount || '');
-			$('#tds_amount').val(data.tds_amount || '');
-			$('#other_deduction').val(data.other_deduction || '');
+			initVoucherType(data.voucher_type || 'general');
+			buildGstSelect(data.gst_percent_raw !== undefined ? data.gst_percent_raw : data.gst_percent);
+			buildTdsSelect(data.tds_percent);
 			$('#description').val(data.description || '');
 			initPaymentModeSelect(data.payment_mode || '');
 			buildBankSelect(data.company_bank_id || '');
@@ -692,106 +773,84 @@ $bank_rows = ew_company_bank_options($conn);
 			} else {
 				clearBankSelection();
 			}
-			$('#net_payable_display').val(data.net_payable || '0.00');
-			tdsManual = parseMoney(data.tds_amount_raw) > 0;
-			loadVendorTax(data.vendor_id || 0, function() {
-				togglePaymentBankRequirement();
+			$.each(data.lines || [], function(i, line) {
+				if (line && line.gcn_key) rememberGcn(line.gcn_key, line.gcn_label || line.gcn_no);
 			});
+			$('#pv_lines_body').empty();
+			var lines = data.lines || [];
+			if (!lines.length) {
+				addLine({
+					category_id: data.category_id || '',
+					expense_amount: data.expense_amount || '',
+					other_deduction: data.other_deduction || ''
+				});
+			} else {
+				$.each(lines, function(i, line) {
+					addLine({
+						category_id: line.category_id,
+						gcn_key: line.gcn_key,
+						expense_amount: line.expense_amount,
+						other_deduction: line.other_deduction
+					});
+				});
+			}
+			togglePaymentBankRequirement();
+			recalcAllRows();
+			if ((data.voucher_type || 'general') === 'gcn') {
+				ensureGcnOptions();
+			}
 		}
-		function initFormSelects() {
+
+		$(function() {
 			$.each(bankOptions, function(i, b) {
 				if (parseInt(b.is_primary, 10) === 1) primaryBankId = parseInt(b.bank_account_id, 10) || 0;
 			});
 			buildVendorSelect('');
-			buildCategorySelect('');
+			initVoucherType('general');
+			buildGstSelect(0);
+			buildTdsSelect('');
 			buildBankSelect('');
 			initPaymentModeSelect('');
 			clearBankSelection();
-		}
+			addLine({});
+			togglePaymentBankRequirement();
 
-		$(function() {
-			initFormSelects();
 			if (generalExpenseId > 0) {
-				$.getJSON('expense_general_data.php', { cmd: 'fetch', general_expense_id: generalExpenseId }, function(r) {
+				$.ajax({
+					url: 'expense_general_data.php',
+					data: { cmd: 'fetch', general_expense_id: generalExpenseId },
+					dataType: 'json',
+					global: false
+				}).done(function(r) {
 					if (!r || r.status !== 0) {
-						alert(r && r.message ? r.message : 'Could not load expense.');
+						alert(r && r.message ? r.message : 'Could not load voucher.');
 						return;
 					}
 					fillForm(r);
 				}).fail(function() {
-					alert('Could not load expense record.');
+					alert('Could not load voucher record.');
 				});
-			} else {
-				togglePaymentBankRequirement();
 			}
 
-			function resizeGcnFrame() {
-				var $frame = $('#ew_expense_gcn_frame');
-				if (!$frame.length) return;
-				try {
-					var doc = $frame[0].contentDocument || $frame[0].contentWindow.document;
-					var h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 880);
-					$frame.height(h + 24);
-				} catch (e) { /* cross-origin or not loaded */ }
-			}
-
-			function setExpenseEntryMode(mode) {
-				var isGcn = mode === 'gcn';
-				$('#ew-expense-panel-general').toggle(!isGcn);
-				$('#ew-expense-panel-gcn').toggle(isGcn);
-				var $title = $('.ew-page-title');
-				if ($title.length) {
-					$title.text(isGcn ? 'Add Expense against GCN' : 'Add General Expense');
-				}
-				if (isGcn) {
-					var $frame = $('#ew_expense_gcn_frame');
-					if ($frame.length && !$frame.attr('src')) {
-						$frame.attr('src', 'expense_gcn.php?create=1&embed=1');
-					}
-					$frame.off('load.ewGcn').on('load.ewGcn', function() {
-						resizeGcnFrame();
-					});
-				}
-				if (window.history && window.history.replaceState) {
-					var url = new URL(window.location.href);
-					url.searchParams.set('mode', isGcn ? 'gcn' : 'general');
-					window.history.replaceState({}, '', url.pathname + '?' + url.searchParams.toString());
-				}
-			}
-
-			if (expenseCreateMode) {
-				initExpenseEntryModeSelect();
-				$('#expense_entry_mode').on('change', function() {
-					setExpenseEntryMode(getSelectVal($(this)) || 'general');
-					syncSelectTitle($(this));
-				});
-				$('#ew_expense_gcn_frame').on('load', resizeGcnFrame);
-			}
-
-			$('#vendor_id').on('change', function() {
-				tdsManual = false;
+			$('#voucher_type').on('change select2-selected', function(e) {
+				var picked = (e && e.val !== undefined && e.val !== null && e.val !== '') ? e.val : $(this).val();
+				var show = String(picked || voucherType()).toLowerCase() === 'gcn';
+				$('#pv_lines').toggleClass('is-gcn', show);
 				syncSelectTitle($(this));
-				loadVendorTax(getSelectVal($(this)), function() {
-					recalcAmounts(true, false);
-				});
-			});
-			$('#category_id').on('change', function() {
-				syncSelectTitle($(this));
-				if (!skipTypeDefault) {
-					applyCategoryDefaultAmount();
+				if (show) {
+					refreshGcnSelects();
+					ensureGcnOptions();
 				}
-				recalcAmounts(true, true);
-			});
-			$('#expense_amount, #other_deduction').on('input blur', function() {
-				recalcAmounts(!tdsManual, false);
 			});
 			$('#gst_percent').on('change', function() {
-				recalcAmounts(!tdsManual, false);
+				syncSelectTitle($(this));
+				recalcAllRows();
 			});
-			$('#tds_amount').on('input', function() {
-				tdsManual = true;
-				recalcAmounts(false, false);
+			$('#tds_percent').on('change', function() {
+				syncSelectTitle($(this));
+				recalcAllRows();
 			});
+			$('#btn_add_line').on('click', function() { addLine({}); });
 			$('#company_bank_id').on('change', function() {
 				var bankId = getSelectVal($(this));
 				syncSelectTitle($(this));
@@ -802,25 +861,32 @@ $bank_rows = ew_company_bank_options($conn);
 				syncSelectTitle($(this));
 				togglePaymentBankRequirement();
 			});
-
 			$('#btn_reset').on('click', function() {
 				if (!confirm('Reset form?')) return;
-				resetForm(false);
+				window.location.reload();
 			});
-
 			$('#general_expense_form').on('submit', function(e) {
 				e.preventDefault();
+				var lines = collectLines();
+				if (voucherType() === 'gcn') {
+					var missingGcn = false;
+					$.each(lines, function(i, line) {
+						if (!line.gcn_key) missingGcn = true;
+					});
+					if (missingGcn) {
+						alert('Please select GCN no. on every line.');
+						return;
+					}
+				}
 				var payload = {
 					cmd: 'save',
 					general_expense_id: generalExpenseId,
 					expense_date: $('#expense_date').val(),
 					vendor_id: getSelectVal($('#vendor_id')),
-					category_id: getSelectVal($('#category_id')),
-					expense_amount: $('#expense_amount').val(),
-					gst_percent: $('#gst_percent').val(),
-					gst_amount: $('#gst_amount').val(),
-					tds_amount: $('#tds_amount').val(),
-					other_deduction: $('#other_deduction').val(),
+					voucher_type: voucherType(),
+					gst_percent: getSelectVal($('#gst_percent')),
+					tds_percent: getSelectVal($('#tds_percent')),
+					lines_json: JSON.stringify(lines),
 					description: $('#description').val(),
 					payment_mode: getSelectVal($('#payment_mode')),
 					company_bank_id: getSelectVal($('#company_bank_id')),
@@ -835,15 +901,7 @@ $bank_rows = ew_company_bank_options($conn);
 						alert(r && r.message ? r.message : 'Save failed.');
 						return;
 					}
-					generalExpenseId = parseInt(r.general_expense_id, 10) || 0;
-					$('#expense_no_display').val(r.expense_no || '');
-					$('#net_payable_display').val(r.net_payable || '0.00');
-					$.getJSON('expense_general_data.php', { cmd: 'next_expense_no' }, function(preview) {
-						if (preview && preview.status === 0 && preview.expense_no) {
-							nextExpenseNoPreview = preview.expense_no;
-						}
-					});
-					alert(r.message || 'Saved.');
+					window.location.href = 'expense_general_list.php';
 				}, 'json').fail(function() {
 					$('#btn_save').prop('disabled', false);
 					alert('Save request failed.');

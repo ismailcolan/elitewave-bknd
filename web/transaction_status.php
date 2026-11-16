@@ -67,44 +67,69 @@ $status_pickup_carriers = ew_status_pickup_carrier_options($conn);
             overflow-x: auto;
         }
         .trans_list_table {
-            width: 100% !important;
-            min-width: 1200px;
+            width: max-content !important;
+            min-width: 1680px !important;
             margin: 0 !important;
-            border-collapse: collapse !important;
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
             table-layout: fixed !important;
         }
-        .trans_list_table col.col-sno { width: 42px; }
-        .trans_list_table col.col-gcn { width: 88px; }
-        .trans_list_table col.col-date { width: 88px; }
-        .trans_list_table col.col-pkgs { width: 48px; }
-        .trans_list_table col.col-consignor { width: 120px; }
-        .trans_list_table col.col-consignee { width: 120px; }
-        .trans_list_table col.col-dest { width: 90px; }
-        .trans_list_table col.col-mode { width: 120px; }
-        .trans_list_table col.col-status { width: 110px; }
-        .trans_list_table col.col-steps { width: 380px; }
+        .trans_list_table col.col-sno { width: 72px; }
+        .trans_list_table col.col-gcn { width: 120px; }
+        .trans_list_table col.col-date { width: 120px; }
+        .trans_list_table col.col-pkgs { width: 72px; }
+        .trans_list_table col.col-consignor { width: 200px; }
+        .trans_list_table col.col-consignee { width: 200px; }
+        .trans_list_table col.col-dest { width: 140px; }
+        .trans_list_table col.col-mode { width: 140px; }
+        .trans_list_table col.col-status { width: 120px; }
+        .trans_list_table col.col-steps { width: 480px; }
         .trans_list_table thead th {
-            padding: 11px 8px !important;
-            white-space: nowrap;
+            padding: 12px 14px !important;
+            white-space: nowrap !important;
             vertical-align: middle !important;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            overflow: visible;
+            text-overflow: clip;
         }
         .trans_list_table thead th:last-child { text-align: center !important; }
         .trans_list_table tbody td {
             font-size: 13px;
-            padding: 9px 8px !important;
+            padding: 10px 12px !important;
             vertical-align: middle !important;
             border-color: #EEF2F7 !important;
             color: #1E293B;
             overflow: hidden;
-            word-wrap: break-word;
+            text-overflow: ellipsis;
         }
-        .trans_list_table tbody td.col-steps {
+        .trans_list_table thead th.col-sno,
+        .trans_list_table tbody td.col-sno,
+        .trans_list_table thead th.col-date,
+        .trans_list_table tbody td.col-date,
+        .trans_list_table thead th.col-pkgs,
+        .trans_list_table tbody td.col-pkgs,
+        .trans_list_table thead th.col-gcn,
+        .trans_list_table tbody td.col-gcn {
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+        }
+        .trans_list_table thead th.col-sno,
+        .trans_list_table tbody td.col-sno,
+        .trans_list_table thead th.col-pkgs,
+        .trans_list_table tbody td.col-pkgs {
+            text-align: center !important;
+        }
+        .trans_list_table tbody td.col-steps,
+        .trans_list_table thead th.col-steps {
             overflow: visible !important;
-            white-space: nowrap;
-            padding: 8px 6px !important;
+            white-space: nowrap !important;
+            padding: 8px 10px !important;
             text-align: left !important;
+            position: static !important;
+            transform: none !important;
+            z-index: auto !important;
+            box-shadow: none !important;
+            min-width: 480px !important;
+            width: 480px !important;
         }
         .trans_list_table tbody tr:hover td { background: #F8FAFC !important; }
         .trans_list_table tbody tr:nth-child(even) td { background: #FBFCFE; }
@@ -443,16 +468,16 @@ $status_pickup_carriers = ew_status_pickup_carrier_options($conn);
                                 </colgroup>
                                 <thead>
                                     <tr>
-                                    <th>S.No</th>
-                                    <th>GCN No</th>
-                                    <th>GCN Date</th>
-                                    <th>Pkgs</th>
-                                    <th>Consignor</th>
-                                    <th>Consignee</th>
-                                    <th>Destination</th>
-                                    <th>Mode</th>
-                                    <th>Status</th>
-                                    <th>Transit Update</th>
+                                    <th class="col-sno">S.No</th>
+                                    <th class="col-gcn">GCN No</th>
+                                    <th class="col-date">GCN Date</th>
+                                    <th class="col-pkgs">Pkgs</th>
+                                    <th class="col-consignor">Consignor</th>
+                                    <th class="col-consignee">Consignee</th>
+                                    <th class="col-dest">Destination</th>
+                                    <th class="col-mode">Mode</th>
+                                    <th class="col-status">Status</th>
+                                    <th class="col-steps">Transit Update</th>
                                     </tr>
                                 </thead>
                                 <tbody id="get_month_details">
@@ -549,10 +574,10 @@ $ts_express_train = (int) ($ts_carrier_dec['train_id'] ?? 0);
 $ts_express_flight = (int) ($ts_carrier_dec['flight_id'] ?? 0);
                                             ?>
                                             <tr>
-                                                <td class="text-center" data-label="S.No" data-order="<?php echo (int) transaction_gcn_serial_no($row); ?>"><?php echo (int) transaction_gcn_serial_no($row); ?></td>
-                                                <td data-label="GCN No"><span class="txn-gcn-no"><?php echo htmlspecialchars($row['grn_no']); ?></span></td>
-                                                <td data-label="GCN Date"><?php echo htmlspecialchars($row['grn_date']); ?></td>
-                                                <td class="text-center" data-label="Pkgs"><?php echo (int) $pkg_r['pkge']; ?></td>
+                                                <td class="text-center col-sno" data-label="S.No" data-order="<?php echo (int) transaction_gcn_serial_no($row); ?>"><?php echo (int) transaction_gcn_serial_no($row); ?></td>
+                                                <td class="col-gcn" data-label="GCN No"><span class="txn-gcn-no"><?php echo htmlspecialchars($row['grn_no']); ?></span></td>
+                                                <td class="col-date" data-label="GCN Date"><?php echo htmlspecialchars($row['grn_date']); ?></td>
+                                                <td class="text-center col-pkgs" data-label="Pkgs"><?php echo (int) $pkg_r['pkge']; ?></td>
                                                 <td data-label="Consignor"><?php echo htmlspecialchars(get_client_name($conn, $row['consigner'])); ?></td>
                                                 <td data-label="Consignee"><?php echo htmlspecialchars(get_client_name($conn, $row['consignee'])); ?></td>
                                                 <td data-label="Destination"><?php echo htmlspecialchars(get_city_name($conn, $row['destination'])); ?></td>

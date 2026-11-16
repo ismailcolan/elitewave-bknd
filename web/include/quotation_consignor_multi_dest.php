@@ -48,9 +48,10 @@ function quotation_ensure_destination_rows_table($conn)
 	}
 }
 
-function quotation_city_state_catalog($conn)
+function quotation_city_state_catalog($conn, $extra_city_ids = null)
 {
 	$rows = array();
+	$seen = array();
 	$sql = "SELECT c.city_id, c.city_name, c.state AS state_id, s.state_name
 		FROM city c
 		LEFT JOIN state s ON s.state_id = c.state
@@ -59,14 +60,53 @@ function quotation_city_state_catalog($conn)
 	$q = @mysqli_query($conn, $sql);
 	if ($q) {
 		while ($r = mysqli_fetch_assoc($q)) {
+			$cid = (int) $r['city_id'];
 			$city = trim((string) ($r['city_name'] ?? ''));
 			$state = trim((string) ($r['state_name'] ?? ''));
 			$label = $state !== '' ? ($city . ' — ' . $state) : $city;
 			$rows[] = array(
-				'city_id' => (int) $r['city_id'],
+				'city_id' => $cid,
 				'state_id' => (int) ($r['state_id'] ?? 0),
 				'label' => $label,
 			);
+			$seen[$cid] = true;
+		}
+	}
+	// Keep saved destination cities visible even if later marked inactive.
+	if (is_array($extra_city_ids) && $extra_city_ids !== array()) {
+		$ids = array();
+		foreach ($extra_city_ids as $id) {
+			$id = (int) $id;
+			if ($id > 0 && empty($seen[$id])) {
+				$ids[$id] = $id;
+			}
+		}
+		if ($ids !== array()) {
+			$id_list = implode(',', $ids);
+			$eq = @mysqli_query($conn, "SELECT c.city_id, c.city_name, c.state AS state_id, s.state_name
+				FROM city c
+				LEFT JOIN state s ON s.state_id = c.state
+				WHERE c.city_id IN ($id_list)");
+			if ($eq) {
+				while ($r = mysqli_fetch_assoc($eq)) {
+					$cid = (int) $r['city_id'];
+					if (!empty($seen[$cid])) {
+						continue;
+					}
+					$city = trim((string) ($r['city_name'] ?? ''));
+					$state = trim((string) ($r['state_name'] ?? ''));
+					$label = $state !== '' ? ($city . ' — ' . $state) : $city;
+					if ($label === '') {
+						$label = 'City #' . $cid;
+					}
+					$rows[] = array(
+						'city_id' => $cid,
+						'state_id' => (int) ($r['state_id'] ?? 0),
+						'label' => $label,
+					);
+					$seen[$cid] = true;
+				}
+			}
 		}
 	}
 	return $rows;
@@ -371,12 +411,7 @@ function quotation_render_destination_row_html($conn, $row, $city_catalog, $mode
 			}
 		}
 	}
-	if ($trains === array()) {
-		$trains = quotation_active_trains($conn);
-	}
-	if ($flights === array()) {
-		$flights = quotation_active_flights($conn);
-	}
+	// Train / flight options are loaded on demand (quotation_transport_search.php).
 	ob_start();
 	?>
 	<tr class="md-row" data-mode-group="<?php echo htmlspecialchars($mode_group, ENT_QUOTES, 'UTF-8'); ?>">

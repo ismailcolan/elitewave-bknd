@@ -1351,6 +1351,16 @@ a.table-actions:not(:has(i)) {
   max-width: 100% !important;
 }
 
+/* List table outer wraps are not scrollports — frame/scroll is .ew-table-scroll-host */
+.ew-page-v2 .ew-table-wrap.widget-content,
+.ew-page-v2 .ew-table-wrap.widget-content.padded,
+.ew-page-v2 .ew-table-wrap.widget-content.new_dept,
+.ew-page-v2 .ew-table-wrap.widget-content.padded.clearfix.new_dept,
+.ew-card .ew-table-wrap {
+  overflow: visible !important;
+  max-width: 100% !important;
+}
+
 .select2-container-multi .select2-choices {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1978,22 +1988,60 @@ table.dataTable tbody td.col-amount,
   text-align: right !important;
 }
 
-/* Serial number column (S.No / Sl.No) — center body cells only */
+/* Compact columns — never wrap (S.No / date / pkgs / amounts) */
 table.table thead th.col-sno,
 table.dataTable thead th.col-sno,
-.widget-content table thead th.col-sno {
-  text-align: left !important;
+.widget-content table thead th.col-sno,
+.ew-table-scroll-host table thead th.col-sno,
+.trans_list_table thead th.col-sno {
+  text-align: center !important;
+  white-space: nowrap !important;
+  min-width: 56px;
 }
 
 table.table tbody td.col-sno,
 table.dataTable tbody td.col-sno,
-.widget-content table tbody td.col-sno {
+.widget-content table tbody td.col-sno,
+.ew-table-scroll-host table tbody td.col-sno,
+.trans_list_table tbody td.col-sno {
   text-align: center !important;
   max-width: none !important;
   width: 1%;
-  min-width: 48px;
-  white-space: nowrap;
+  min-width: 56px;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
   vertical-align: middle;
+}
+
+table.table thead th.col-date,
+table.table tbody td.col-date,
+table.dataTable thead th.col-date,
+table.dataTable tbody td.col-date,
+.trans_list_table thead th.col-date,
+.trans_list_table tbody td.col-date,
+.ew-table-scroll-host table thead th.col-date,
+.ew-table-scroll-host table tbody td.col-date {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  min-width: 108px;
+  vertical-align: middle !important;
+}
+
+table.table thead th.col-pkgs,
+table.table tbody td.col-pkgs,
+table.dataTable thead th.col-pkgs,
+table.dataTable tbody td.col-pkgs,
+.trans_list_table thead th.col-pkgs,
+.trans_list_table tbody td.col-pkgs,
+.ew-table-scroll-host table thead th.col-pkgs,
+.ew-table-scroll-host table tbody td.col-pkgs {
+  text-align: center !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  min-width: 56px;
+  vertical-align: middle !important;
 }
 
 #egcn_list_table th.col-actions,
@@ -2685,4 +2733,189 @@ html {
 }
 *::-webkit-scrollbar-corner {
   background: #e8eef4;
+}
+
+/* ── List table: outer shell fixed; only inner host scrolls columns ─ */
+.ew-card.ew-erp-list,
+.ew-page-v2 .ew-card.ew-erp-list {
+  overflow: hidden;
+}
+
+/* Outer wrap — equal gutter; NOT a scroll container (sticky needs only the host) */
+.ew-page-v2 .ew-table-wrap,
+.ew-page-v2 .ew-table-wrap.widget-content,
+.ew-page-v2 .ew-table-wrap.widget-content.padded,
+.ew-page-v2 .ew-table-wrap.widget-content.new_dept,
+.ew-page-v2 .ew-table-wrap.widget-content.padded.clearfix.new_dept,
+.ew-page-v2 .ew-card > .ew-table-wrap,
+.ew-page-v2.ew-page-v2--wide-table .ew-card.ew-erp-list .ew-table-wrap,
+.ew-card .ew-table-wrap,
+.ew-card.ew-erp-list .ew-table-wrap,
+.widget-container .widget-content.ew-table-wrap,
+.widget-content.padded.new_dept.ew-table-wrap,
+.table-scroll-wrapper,
+.egcn-table-wrap {
+  overflow: visible !important;
+  max-width: 100% !important;
+  position: relative;
+  box-sizing: border-box !important;
+  padding-top: 12px !important;
+  padding-right: 24px !important;
+  padding-bottom: 16px !important;
+  padding-left: 24px !important;
+}
+
+/*
+ * Framed scroller: border + radius always on LEFT and RIGHT.
+ * Columns scroll inside; Action sticks to the right edge of this frame.
+ */
+.ew-table-scroll-host {
+  display: block !important;
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--panel-border, #C5D3E0) !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.ew-table-scroll-host::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+.ew-table-scroll-host table.table,
+.ew-table-scroll-host table.dataTable,
+.ew-table-scroll-host #dataTable1 {
+  width: max-content !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  /* Frame owns the outer border — table must not paint its own L/R edges */
+  border: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+}
+
+.ew-table-scroll-host table > thead > tr > th:first-child {
+  border-top-left-radius: 7px;
+}
+
+.ew-table-scroll-host table > tbody > tr:last-child > td:first-child {
+  border-bottom-left-radius: 7px;
+}
+
+/*
+ * Action column — pinned to the right by JS transform (see ew-table-drag-scroll.js).
+ * Do NOT target bare .actions — Transit Update uses .col-steps.actions and must stay in flow.
+ */
+.ew-table-scroll-host table > thead > tr > th.col-actions,
+.ew-table-scroll-host table > thead > tr > th.col-action,
+.ew-table-scroll-host table > tbody > tr > td.col-actions,
+.ew-table-scroll-host table > tbody > tr > td.col-action {
+  position: relative !important;
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 132px !important;
+  max-width: none !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  text-align: center !important;
+  border-left: 1px solid var(--panel-border, #C5D3E0) !important;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Transit Update — never pin / never overlay other columns */
+.ew-table-scroll-host table > thead > tr > th.col-steps,
+.ew-table-scroll-host table > tbody > tr > td.col-steps,
+.txn-page-wrap .trans_list_table thead th.col-steps,
+.txn-page-wrap .trans_list_table tbody td.col-steps {
+  position: static !important;
+  transform: none !important;
+  z-index: auto !important;
+  box-shadow: none !important;
+  min-width: 480px !important;
+  width: 480px !important;
+  max-width: none !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+  background: transparent !important;
+}
+
+/* Transaction list has 5 action icons — keep full width */
+.txn-page-wrap .ew-table-scroll-host table > thead > tr > th.col-actions,
+.txn-page-wrap .ew-table-scroll-host table > tbody > tr > td.col-actions {
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+}
+
+.ew-table-scroll-host.ew-action-pinned table > thead > tr > th.col-actions,
+.ew-table-scroll-host.ew-action-pinned table > thead > tr > th.col-action,
+.ew-table-scroll-host.ew-action-pinned table > tbody > tr > td.col-actions,
+.ew-table-scroll-host.ew-action-pinned table > tbody > tr > td.col-action {
+  box-shadow: -6px 0 10px -6px rgba(15, 23, 42, 0.22);
+}
+
+.ew-table-scroll-host table > thead > tr > th.col-actions,
+.ew-table-scroll-host table > thead > tr > th.col-action {
+  z-index: 8 !important;
+  background: var(--rail-bg, #DDE7F0) !important;
+  border-top-right-radius: 7px;
+}
+
+.ew-table-scroll-host table > tbody > tr > td.col-actions,
+.ew-table-scroll-host table > tbody > tr > td.col-action {
+  z-index: 6 !important;
+  background: #fff !important;
+}
+
+.ew-table-scroll-host table > tbody > tr:nth-child(even) > td.col-actions,
+.ew-table-scroll-host table > tbody > tr:nth-child(even) > td.col-action {
+  background: #f9fafb !important;
+}
+
+.ew-table-scroll-host table > tbody > tr:hover > td.col-actions,
+.ew-table-scroll-host table > tbody > tr:hover > td.col-action {
+  background: #f1f5f9 !important;
+}
+
+.ew-table-scroll-host table > tbody > tr:last-child > td.col-actions,
+.ew-table-scroll-host table > tbody > tr:last-child > td.col-action {
+  border-bottom-right-radius: 7px;
+}
+
+.ew-table-scroll-host table td.col-actions .act-wrap,
+.ew-table-scroll-host table td.col-actions .action-buttons {
+  display: inline-flex !important;
+  justify-content: center !important;
+  max-width: 100%;
+}
+
+.ew-action-rail {
+  display: none !important;
 }

@@ -46,8 +46,14 @@ if ($sum_gst_q && ($sum_row = mysqli_fetch_assoc($sum_gst_q))) {
 		.table-scroll-wrapper {
 			overflow-x: auto;
 			-webkit-overflow-scrolling: touch;
-			border: 1px solid #e5e7eb;
-			border-radius: 6px;
+			border: none;
+			border-radius: 0;
+			padding: 0;
+			margin: 0;
+		}
+		.ew-card.ew-erp-list > .ew-table-wrap > p {
+			padding: 12px 24px 0;
+			margin: 0 0 8px !important;
 		}
 		#credit_note_list_table { font-size: 13px; margin-bottom: 0; border-collapse: collapse; width: 100% !important; }
 		#credit_note_list_table th {

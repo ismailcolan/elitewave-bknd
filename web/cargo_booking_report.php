@@ -128,9 +128,16 @@ if ($cities_q) {
 								<h1 class="ew-page-title">Cargo Booking Report</h1>
 							</div>
 						</div>
+						<div id="ew_mis_filters_view">
 						<div class="ew-card">
-						<div class="ew-card-toolbar">
+						<div class="ew-card-toolbar ew-mis-filters-head">
 							<h2>Report Filters</h2>
+							<div class="ew-mis-quick-range" aria-label="Quick date ranges">
+								<button type="button" data-range="today">Today</button>
+								<button type="button" data-range="week">This week</button>
+								<button type="button" class="is-active" data-range="month">This month</button>
+								<button type="button" data-range="last_month">Last month</button>
+							</div>
 						</div>
 						<div class="ew-form-body">
 							<div class="ew-mis-filter-shell">
@@ -205,30 +212,57 @@ if ($cities_q) {
 								</div>
 							</div>
 							<div class="ew-mis-filter-footer">
-								<button class="ew-btn-v2 ew-btn-v2-primary btn1" type="button" id="search" onclick="if(window.loadCargoReport){window.loadCargoReport();}">
-									<i class="fa fa-search"></i> Search
+								<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="ew_mis_reset_filters">
+									<i class="fa fa-undo"></i> Reset
 								</button>
-								<button class="ew-btn-v2 ew-btn-v2-outline btn-export-excel" type="button" id="exportExcel">
-									<i class="fa fa-file-excel-o"></i> Export Excel
+								<button class="ew-btn-v2 ew-btn-v2-primary btn1" type="button" id="search">
+									<i class="fa fa-search"></i> Search
 								</button>
 							</div>
 							</div>
 						</div>
 						</div>
 
+						<div class="ew-card" id="ew_mis_empty_card">
+							<div class="ew-mis-empty-state">
+								<div class="ew-mis-empty-icon"><i class="fa fa-file-text-o"></i></div>
+								<h3>Choose a date range to load cargo bookings</h3>
+								<p>Use a quick range above, or set From and To dates, then press Search.</p>
+							</div>
+						</div>
+						</div>
+
+						<div id="ew_mis_results_view" style="display:none;">
+							<div class="ew-mis-active-bar">
+								<div class="ew-mis-active-left">
+									<span class="ew-mis-active-label"><i class="fa fa-filter"></i> Filters</span>
+									<span class="ew-mis-date-pill" id="ew_mis_date_pill"></span>
+									<span class="ew-mis-active-summary" id="ew_mis_active_summary"></span>
+								</div>
+								<div class="ew-mis-active-actions">
+									<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="ew_mis_edit_filters">Edit filters</button>
+									<button class="ew-btn-v2 ew-btn-v2-outline btn-export-excel" type="button" id="exportExcel">
+										<span class="ew-icon-excel" aria-hidden="true"></span> Export Excel
+									</button>
+								</div>
+							</div>
+
 				<div class="ew-card ew-erp-list" id="table_div" style="margin-bottom:20px;">
-						<div class="ew-card-toolbar">
-							<h2>Cargo Booking Report Data</h2>
-							<div class="ew-toolbar-right">
+						<div class="ew-card-toolbar ew-mis-results-toolbar">
+							<h2 id="ew_mis_results_title">Cargo Booking Report Data</h2>
+							<div class="ew-mis-results-tools">
+								<div class="ew-mis-table-search">
+									<i class="fa fa-search"></i>
+									<input type="search" id="ew_mis_table_search" placeholder="Search GR no, party…" autocomplete="off">
+								</div>
 								<span class="report-count" id="report_count"></span>
 							</div>
 						</div>
 						<div class="ew-table-wrap widget-content padded clearfix new_dept">
-							<div class="table-scroll-wrapper" id="report">
-								<p class="ew-mis-empty-hint">Click Search above to load report data.</p>
-							</div>
+							<div class="table-scroll-wrapper" id="report"></div>
 						</div>
 				</div>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -238,18 +272,50 @@ if ($cities_q) {
 	</div>
 
 	<script type="text/javascript">
-	window.loadCargoReport = function() {
-		var from = $('#from_date').val();
-		var to = $('#to_date').val();
-		if (!from || !to) {
-			ewFormToast('Please select From Date and To Date.', 'error', 5000);
-			return;
-		}
+	$(document).ready(function() {
+		var defaultFrom = <?php echo json_encode($default_from); ?>;
+		var defaultTo = <?php echo json_encode($c_date); ?>;
+
+		var misView = window.EwMisReportView.wire({
+			fromSel: '#from_date',
+			toSel: '#to_date',
+			tableSel: '#report_table',
+			searchInputSel: '#ew_mis_table_search',
+			onReset: function() {
+				$('#from_date').val(defaultFrom);
+				$('#to_date').val(defaultTo);
+				$('#customers, #modes, #origins, #destinations, #payment_modes').val(null).trigger('change');
+				$('.ew-mis-quick-range [data-range]').removeClass('is-active');
+				$('.ew-mis-quick-range [data-range="month"]').addClass('is-active');
+			}
+		});
 
 		function getSelectedValues(selector) {
 			var vals = $(selector).val();
 			if (!vals || vals.length === 0) return '';
 			return vals.join(',');
+		}
+
+		function buildPayload() {
+			return {
+				from_date: $('#from_date').val(),
+				to_date: $('#to_date').val(),
+				customers: getSelectedValues('#customers'),
+				modes: getSelectedValues('#modes'),
+				origins: getSelectedValues('#origins'),
+				destinations: getSelectedValues('#destinations'),
+				payment_modes: getSelectedValues('#payment_modes')
+			};
+		}
+
+		function filterSummaryText(payload) {
+			return [
+				payload.customers ? 'Selected customers' : 'All customers',
+				payload.modes ? 'Selected modes' : 'All modes',
+				payload.origins ? 'Selected origins' : 'All origins',
+				payload.destinations ? 'Selected destinations' : 'All destinations',
+				payload.payment_modes ? 'Selected payment modes' : 'All payment modes'
+			].join(', ');
 		}
 
 		function escCell(v) {
@@ -303,26 +369,19 @@ if ($cities_q) {
 			}
 			if ($.fn.DataTable) {
 				window.cargoReportTable = $('#report_table').DataTable({
-					dom: 'frtip',
+					dom: 'lrtip',
 					lengthMenu: [[10, 25, 50, 100, -1], ['10', '25', '50', '100', 'All']],
 					pageLength: 25,
 					scrollX: true,
 					order: [[0, 'asc']]
 				});
 			}
+			if (window.applyEwListLayout) {
+				window.applyEwListLayout();
+			}
 		}
 
-		var payload = {
-			from_date: from,
-			to_date: to,
-			customers: getSelectedValues('#customers'),
-			modes: getSelectedValues('#modes'),
-			origins: getSelectedValues('#origins'),
-			destinations: getSelectedValues('#destinations'),
-			payment_modes: getSelectedValues('#payment_modes')
-		};
-
-		function loadFromFetchDetails() {
+		function loadFromFetchDetails(payload) {
 			$.ajax({
 				url: 'fetch_details.php',
 				type: 'GET',
@@ -336,34 +395,48 @@ if ($cities_q) {
 			});
 		}
 
-		function renderOrFallback(raw) {
+		function renderOrFallback(raw, payload) {
 			if (!raw || String(raw).replace(/^\s+|\s+$/g, '') === '') {
-				loadFromFetchDetails();
+				loadFromFetchDetails(payload);
 				return;
 			}
 			try {
 				JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
 				renderReport(raw);
 			} catch (e) {
-				loadFromFetchDetails();
+				loadFromFetchDetails(payload);
 			}
 		}
 
-		$('#report').html('<p style="text-align:center;padding:30px;"><i class="fa fa-spinner fa-spin fa-2x"></i><br>Loading report data...</p>');
-		$('#table_div').show();
+		window.loadCargoReport = function() {
+			var payload = buildPayload();
+			if (!payload.from_date || !payload.to_date) {
+				if (typeof ewFormToast === 'function') {
+					ewFormToast('Please select From Date and To Date.', 'error', 5000);
+				}
+				return;
+			}
 
-		$.ajax({
-			url: 'cargo_booking_report_data.php',
-			type: 'POST',
-			data: payload,
-			dataType: 'text',
-			timeout: 180000,
-			success: renderOrFallback,
-			error: loadFromFetchDetails
-		});
-	};
+			$('#ew_mis_table_search').val('');
+			$('#report').html('<p class="ew-mis-empty-hint">Loading…</p>');
+			misView.showResults({
+				datePill: misView.datePill(),
+				summary: filterSummaryText(payload),
+				countText: '',
+				resultsTitle: 'Cargo Booking Report Data'
+			});
 
-	$(document).ready(function() {
+			$.ajax({
+				url: 'cargo_booking_report_data.php',
+				type: 'POST',
+				data: payload,
+				dataType: 'text',
+				timeout: 180000,
+				success: function(raw) { renderOrFallback(raw, payload); },
+				error: function() { loadFromFetchDetails(payload); }
+			});
+		};
+
 		function initFilterSelect(selector, placeholder) {
 			try {
 				var $el = $(selector);
@@ -387,24 +460,20 @@ if ($cities_q) {
 		});
 
 		$(document).on('click', '#exportExcel', function() {
-			var from = $('#from_date').val();
-			var to = $('#to_date').val();
-			if (!from || !to) {
-				ewFormToast('Please select From Date and To Date.', 'error', 5000);
+			var payload = buildPayload();
+			if (!payload.from_date || !payload.to_date) {
+				if (typeof ewFormToast === 'function') {
+					ewFormToast('Please select From Date and To Date.', 'error', 5000);
+				}
 				return;
 			}
-			function getSelectedValues(selector) {
-				var vals = $(selector).val();
-				if (!vals || vals.length === 0) return '';
-				return vals.join(',');
-			}
-			window.location.href = 'cargo_booking_report_export.php?from_date=' + encodeURIComponent(from) +
-				'&to_date=' + encodeURIComponent(to) +
-				'&customers=' + encodeURIComponent(getSelectedValues('#customers')) +
-				'&modes=' + encodeURIComponent(getSelectedValues('#modes')) +
-				'&origins=' + encodeURIComponent(getSelectedValues('#origins')) +
-				'&destinations=' + encodeURIComponent(getSelectedValues('#destinations')) +
-				'&payment_modes=' + encodeURIComponent(getSelectedValues('#payment_modes'));
+			window.location.href = 'cargo_booking_report_export.php?from_date=' + encodeURIComponent(payload.from_date) +
+				'&to_date=' + encodeURIComponent(payload.to_date) +
+				'&customers=' + encodeURIComponent(payload.customers) +
+				'&modes=' + encodeURIComponent(payload.modes) +
+				'&origins=' + encodeURIComponent(payload.origins) +
+				'&destinations=' + encodeURIComponent(payload.destinations) +
+				'&payment_modes=' + encodeURIComponent(payload.payment_modes);
 		});
 	});
 

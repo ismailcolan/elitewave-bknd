@@ -105,8 +105,9 @@ foreach ($vehicle_types as $vt) {
 		'dim_display' => $snap['dim_display'],
 	);
 }
-$source_trains = quotation_active_trains($conn);
-$source_flights = quotation_active_flights($conn);
+// Train / flight lists are searched on demand (quotation_transport_search.php) — not preloaded.
+$source_trains = array();
+$source_flights = array();
 $mode_rows_form = quotation_hydrate_mode_rows_for_form($conn, $id > 0 ? $id : 0);
 $delivery_days_opts = quotation_delivery_days_options();
 $mode_catalog = quotation_mode_transport_catalog($conn);
@@ -449,7 +450,8 @@ window.QUOTATION_ALL_MODES_SCREEN = true;
 window.QUOTATION_PREVIEW_IN_MODAL = true;
 window.QUOTATION_RETURN_PAGE = 'quotation_all_modes.php';
 </script>
-<script src="javascripts/quotation-form.js?v=20261020letter"></script>
+<script src="javascripts/ew-remote-source.js?v=20261114search"></script>
+<script src="javascripts/quotation-form.js?v=20261111remote"></script>
 <?php echo quotation_customer_approve_modal_html(); ?>
 <?php echo quotation_customer_approve_script('quotation_all_modes_list.php?tab=approved'); ?>
 </body>

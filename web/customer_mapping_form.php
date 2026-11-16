@@ -97,7 +97,7 @@ $page_title = $edit_customer_id > 0 ? 'Edit Customer Mapping' : 'Create Customer
 							<div class="ew-card">
 								<div class="ew-form-footer">
 									<a href="customer_mapping.php" class="ew-btn-v2 ew-btn-v2-outline">Cancel</a>
-									<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save"><i class="fa fa-save"></i> Save</button>
+									<button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save"><i class="fa fa-save"></i> Submit</button>
 								</div>
 							</div>
 						</form>

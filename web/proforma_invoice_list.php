@@ -21,7 +21,7 @@ $list_q = mysqli_query($conn, "SELECT m.*, c.client_company_name
 		.badge-draft { background: #f59e0b; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; }
 		.badge-final { background: #16a34a; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px; }
 		.badge-style { background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 10px; margin-left: 4px; }
-		.table-scroll-wrapper { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 6px; }
+		.table-scroll-wrapper { overflow-x: auto; border: none; border-radius: 0; padding: 0; margin: 0; }
 		#proforma_list_table { font-size: 13px; margin-bottom: 0; width: 100% !important; }
 		#proforma_list_table th { background: var(--rail-bg, #DDE7F0) !important; font-size: 11px; font-weight: 700; white-space: nowrap; padding: 8px 6px; }
 		#proforma_list_table td { vertical-align: middle; padding: 6px; border-bottom: 1px solid #e9ecef !important; }

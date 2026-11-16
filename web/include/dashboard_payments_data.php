@@ -49,6 +49,7 @@ function dashboard_payments_mode_color($mode)
 		'IMPS' => '#06b6d4',
 		'CHEQUE' => '#8b5cf6',
 		'UPI' => '#0891b2',
+		'EDC' => '#10b981',
 		'CASH' => '#f97316',
 		'DD' => '#6366f1',
 	);

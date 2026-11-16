@@ -86,7 +86,7 @@ div#dataTable1_length {
                                 <h2>City List</h2>
                                 <div class="ew-toolbar-right">
                                     <a href="city_export.php" class="ew-btn-v2 ew-btn-v2-outline" title="Download Excel copy">
-                                        Export Excel <i class="fa fa-download"></i>
+                                        <span class="ew-icon-excel" aria-hidden="true"></span> Export Excel
                                     </a>
                                     <button type="button" class="ew-btn-v2 ew-btn-v2-primary" id="openCreateCity">
                                         Create <i class="fa fa-plus"></i>

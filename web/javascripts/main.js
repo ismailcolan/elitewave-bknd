@@ -363,21 +363,24 @@
         }
       });
     }
-    $("#dataTable1").dataTable({
-      "sPaginationType": "full_numbers",
-      oSearch: {
-        sSearch: "",
-        bSmart: false,
-        bRegex: false,
-        bCaseInsensitive: true
-      },
-      aoColumnDefs: [
-        {
-          bSortable: false,
-          aTargets: [0, -1]
-        }
-      ]
-    });
+    // Skip server-side master lists (flight/train) — they init themselves.
+    if (!$("#dataTable1").hasClass("ew-ss-datatable")) {
+      $("#dataTable1").dataTable({
+        "sPaginationType": "full_numbers",
+        oSearch: {
+          sSearch: "",
+          bSmart: false,
+          bRegex: false,
+          bCaseInsensitive: true
+        },
+        aoColumnDefs: [
+          {
+            bSortable: false,
+            aTargets: [0, -1]
+          }
+        ]
+      });
+    }
     $('.table').each(function() {
       return $(".table #checkAll").click(function() {
         if ($(".table #checkAll").is(":checked")) {

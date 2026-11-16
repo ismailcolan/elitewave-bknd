@@ -72,14 +72,15 @@
 		return map[code] || code || '—';
 	}
 
-	function syncMdRowVehicle($tr) {
+	function syncMdRowVehicle($tr, clearHidden) {
 		var group = $tr.find('.md-mode option:selected').attr('data-mode-group') || $tr.attr('data-mode-group') || '';
 		$tr.attr('data-mode-group', group);
 		var kind = sourceKind(group);
 		$tr.find('.md-source').each(function() {
 			var show = kind !== '' && $(this).hasClass('md-source-' + kind);
 			$(this).toggle(show);
-			if (!show) {
+			// Only clear when the user changes mode — never wipe saved source on page load / re-sync.
+			if (!show && clearHidden) {
 				$(this).val('');
 			}
 		});
@@ -395,7 +396,7 @@
 		});
 
 		$(document).on('change', '.md-mode', function() {
-			syncMdRowVehicle($(this).closest('tr.md-row'));
+			syncMdRowVehicle($(this).closest('tr.md-row'), true);
 			renderPreview();
 		});
 
@@ -455,21 +456,43 @@
 			return '';
 		}
 
-		function applyDestMasterHtml(html) {
-			var $tbody = $('#md_dest_tbody');
-			$tbody.find('select.md-city').each(function() {
+		function destroyMdCitySelect2($scope) {
+			$scope.find('select.md-city').each(function() {
 				var $el = $(this);
-				if ($el.hasClass('select2-hidden-accessible')) {
+				if ($el.hasClass('select2-hidden-accessible') || $el.data('select2')) {
 					try {
 						$el.select2('destroy');
 					} catch (e) { /* ignore */ }
 				}
 			});
+		}
+
+		function applyDestMasterHtml(html) {
+			if ($('input[name=md_dest_entry_mode]:checked').val() !== 'master') {
+				return;
+			}
+			var $tbody = $('#md_dest_tbody');
+			destroyMdCitySelect2($tbody);
 			$tbody.html(html || '');
 			if ($.fn.select2) {
 				initMdSelect2($tbody);
 			}
 			syncMdVehicleFields();
+			renderPreview();
+		}
+
+		function resetManualDestRows() {
+			var $tbody = $('#md_dest_tbody');
+			destroyMdCitySelect2($tbody);
+			var $clone = cloneEmptyDestRow();
+			if (!$clone) {
+				return;
+			}
+			$tbody.empty().append($clone);
+			if ($.fn.select2) {
+				initMdSelect2($clone);
+			}
+			syncMdRowVehicle($clone);
 			renderPreview();
 		}
 
@@ -492,6 +515,9 @@
 				data: { cmd: 'get_quotation_dest_master_rows', master_id: masterId },
 				success: function(data) {
 					destMasterLoadXhr = null;
+					if ($('input[name=md_dest_entry_mode]:checked').val() !== 'master') {
+						return;
+					}
 					if (!data || !data.ok) {
 						alert((data && data.message) || 'Could not load Quotation Master.');
 						return;
@@ -525,7 +551,12 @@
 		$('input[name=md_dest_entry_mode]').on('change', function() {
 			if ($('input[name=md_dest_entry_mode]:checked').val() === 'master') {
 				loadDestMasterRows(false);
+				return;
 			}
+			if (destMasterLoadXhr && destMasterLoadXhr.readyState !== 4) {
+				destMasterLoadXhr.abort();
+			}
+			resetManualDestRows();
 		});
 
 		if (masterOnly) {
@@ -534,6 +565,11 @@
 			}
 			syncMdVehicleFields();
 			return;
+		}
+
+		// New quotation: if "Pre-filled from Quotation Master" is selected, load a copy (never mutates master).
+		if ($('input[name=md_dest_entry_mode]:checked').val() === 'master' && resolveDestMasterId()) {
+			loadDestMasterRows(false);
 		}
 
 		$('#btn_quotation_preview').on('click', function() {

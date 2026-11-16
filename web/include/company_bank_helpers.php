@@ -66,6 +66,7 @@ function ew_company_bank_payment_modes()
 		'CASH' => 'Cash',
 		'CHEQUE' => 'Cheque',
 		'UPI' => 'UPI',
+		'EDC' => 'EDC',
 		'NEFT' => 'NEFT',
 		'RTGS' => 'RTGS',
 		'IMPS' => 'IMPS',

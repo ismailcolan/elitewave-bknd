@@ -21,6 +21,13 @@ function expense_general_json_out($payload)
 	exit;
 }
 
+if ($cmd === 'fetch_gcns') {
+	expense_general_json_out(array(
+		'status' => 0,
+		'gcns' => expense_general_gcn_options($conn),
+	));
+}
+
 if ($cmd === 'fetch') {
 	$id = (int) ($_REQUEST['general_expense_id'] ?? 0);
 	$record = expense_general_load($conn, $id);
@@ -129,12 +136,10 @@ if ($cmd === 'save') {
 		'general_expense_id' => (int) ($_REQUEST['general_expense_id'] ?? 0),
 		'expense_date' => $_REQUEST['expense_date'] ?? '',
 		'vendor_id' => $_REQUEST['vendor_id'] ?? 0,
-		'category_id' => $_REQUEST['category_id'] ?? 0,
-		'expense_amount' => $_REQUEST['expense_amount'] ?? 0,
+		'voucher_type' => $_REQUEST['voucher_type'] ?? 'general',
 		'gst_percent' => $_REQUEST['gst_percent'] ?? 0,
-		'gst_amount' => $_REQUEST['gst_amount'] ?? 0,
-		'tds_amount' => $_REQUEST['tds_amount'] ?? 0,
-		'other_deduction' => $_REQUEST['other_deduction'] ?? 0,
+		'tds_percent' => $_REQUEST['tds_percent'] ?? 0,
+		'lines_json' => $_REQUEST['lines_json'] ?? '[]',
 		'description' => $_REQUEST['description'] ?? '',
 		'payment_mode' => $_REQUEST['payment_mode'] ?? '',
 		'company_bank_id' => $_REQUEST['company_bank_id'] ?? 0,

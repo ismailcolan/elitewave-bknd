@@ -341,30 +341,32 @@ $logged_id = $_SESSION['user_id'];
     width: 100% !important;
 }
 .trans_list_table {
-    width: 100% !important;
+    width: max-content !important;
+    min-width: 1600px !important;
     margin: 0 !important;
-    border-collapse: collapse !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
     table-layout: fixed !important;
 }
-.trans_list_table col.col-sno { width: 42px; }
-.trans_list_table col.col-gcn { width: 88px; }
-.trans_list_table col.col-pnr { width: 140px; }
-.trans_list_table col.col-date { width: 88px; }
-.trans_list_table col.col-pkgs { width: 48px; }
-.trans_list_table col.col-consignor { width: 130px; }
-.trans_list_table col.col-consignee { width: 130px; }
-.trans_list_table col.col-dest { width: 90px; }
-.trans_list_table col.col-mode { width: 110px; }
-.trans_list_table col.col-status { width: 100px; }
+.trans_list_table col.col-sno { width: 72px; }
+.trans_list_table col.col-gcn { width: 120px; }
+.trans_list_table col.col-pnr { width: 160px; }
+.trans_list_table col.col-date { width: 120px; }
+.trans_list_table col.col-pkgs { width: 72px; }
+.trans_list_table col.col-consignor { width: 200px; }
+.trans_list_table col.col-consignee { width: 200px; }
+.trans_list_table col.col-dest { width: 140px; }
+.trans_list_table col.col-mode { width: 140px; }
+.trans_list_table col.col-status { width: 120px; }
 .trans_list_table col.col-actions { width: 200px; }
-.trans_list_table .txn-mode { font-size: 12px; font-weight: 600; color: #334155; }
+.trans_list_table .txn-mode { font-size: 12px; font-weight: 600; color: #334155; white-space: nowrap; }
 .trans_list_table thead th {
-    padding: 11px 8px !important;
-    white-space: nowrap;
+    padding: 12px 14px !important;
+    white-space: nowrap !important;
     vertical-align: middle !important;
     box-sizing: border-box !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    text-overflow: clip;
 }
 .trans_list_table thead th.sorting,
 .trans_list_table thead th.sorting_asc,
@@ -374,19 +376,49 @@ $logged_id = $_SESSION['user_id'];
 }
 .trans_list_table tbody td {
     font-size: 13px;
-    padding: 9px 8px !important;
+    padding: 12px 14px !important;
     vertical-align: middle !important;
     border-color: #EEF2F7 !important;
     color: #1E293B;
     box-sizing: border-box !important;
     overflow: hidden;
-    word-wrap: break-word;
+    text-overflow: ellipsis;
+}
+.trans_list_table thead th.col-sno,
+.trans_list_table tbody td.col-sno,
+.trans_list_table thead th.col-date,
+.trans_list_table tbody td.col-date,
+.trans_list_table thead th.col-pkgs,
+.trans_list_table tbody td.col-pkgs,
+.trans_list_table thead th.col-gcn,
+.trans_list_table tbody td.col-gcn,
+.trans_list_table thead th.col-pnr,
+.trans_list_table tbody td.col-pnr,
+.trans_list_table thead th.col-dest,
+.trans_list_table tbody td.col-dest,
+.trans_list_table thead th.col-mode,
+.trans_list_table tbody td.col-mode,
+.trans_list_table thead th.col-status,
+.trans_list_table tbody td.col-status {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.trans_list_table thead th.col-sno,
+.trans_list_table tbody td.col-sno,
+.trans_list_table thead th.col-pkgs,
+.trans_list_table tbody td.col-pkgs {
+    text-align: center !important;
 }
 .trans_list_table tbody td.col-actions {
     overflow: visible !important;
     white-space: nowrap;
     position: relative;
     z-index: 1;
+    width: 200px !important;
+    min-width: 200px !important;
+    max-width: 200px !important;
 }
 .trans_list_table tbody tr:hover td.col-actions {
     z-index: 4;
@@ -396,6 +428,18 @@ $logged_id = $_SESSION['user_id'];
     white-space: normal;
     line-height: 1.4;
     font-size: 13px;
+    overflow: hidden;
+}
+.trans_list_table tbody td.col-consignor .txn-party-name,
+.trans_list_table tbody td.col-consignee .txn-party-name {
+    display: inline;
+}
+.trans_list_table tbody td.col-consignor .txn-party-icon,
+.trans_list_table tbody td.col-consignee .txn-party-icon {
+    display: inline-block;
+    margin-left: 4px;
+    vertical-align: middle;
+    white-space: nowrap;
 }
 .trans_list_table tbody tr:hover {
     position: relative;
@@ -652,17 +696,17 @@ $logged_id = $_SESSION['user_id'];
                                 </colgroup>
                                 <thead>
                                     <tr>
-                                    <th>S.No</th>
-                                    <th>GCN No</th>
-                                    <th>Tracking code</th>
-                                    <th>GCN Date</th>
-                                    <th>Pkgs</th>
-                                    <th>Consignor</th>
-                                    <th>Consignee</th>
-                                    <th>Destination</th>
-                                    <th>Mode</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th class="col-sno">S.No</th>
+                                    <th class="col-gcn">GCN No</th>
+                                    <th class="col-pnr">Tracking code</th>
+                                    <th class="col-date">GCN Date</th>
+                                    <th class="col-pkgs">Pkgs</th>
+                                    <th class="col-consignor">Consignor</th>
+                                    <th class="col-consignee">Consignee</th>
+                                    <th class="col-dest">Destination</th>
+                                    <th class="col-mode">Mode</th>
+                                    <th class="col-status">Status</th>
+                                    <th class="col-actions">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="get_month_details">
@@ -746,11 +790,11 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                         $gcn_sno = (int) transaction_gcn_serial_no($row);
                                         ?>
                                         <tr>
-                                            <td class="text-center" data-order="<?php echo $gcn_sno; ?>"><?php echo $gcn_sno; ?></td>
-                                            <td><span class="txn-gcn-no"><?php echo htmlspecialchars($row['grn_no']); ?></span></td>
-                                            <td><span class="txn-pnr"><?php echo htmlspecialchars($row['tracking_code'] ?? ''); ?></span></td>
-                                            <td><?php echo htmlspecialchars($row['grn_date']); ?></td>
-                                            <td class="text-center"><?php echo (int) $pkg_r['pkge']; ?></td>
+                                            <td class="text-center col-sno" data-order="<?php echo $gcn_sno; ?>"><?php echo $gcn_sno; ?></td>
+                                            <td class="col-gcn"><span class="txn-gcn-no"><?php echo htmlspecialchars($row['grn_no']); ?></span></td>
+                                            <td class="col-pnr"><span class="txn-pnr"><?php echo htmlspecialchars($row['tracking_code'] ?? ''); ?></span></td>
+                                            <td class="col-date"><?php echo htmlspecialchars($row['grn_date']); ?></td>
+                                            <td class="text-center col-pkgs"><?php echo (int) $pkg_r['pkge']; ?></td>
                                             <td class="col-consignor"><?php echo transaction_list_client_cell($conn, $row['consigner']); ?></td>
                                             <td class="col-consignee"><?php echo transaction_list_client_cell($conn, $row['consignee']); ?></td>
                                             <td><?php

@@ -916,7 +916,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
 								<a href="expense_gcn_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
-								<h1 class="ew-page-title">Expense against GCN</h1>
+								<h1 class="ew-page-title">GCN Profit &amp; Loss</h1>
 							</div>
 							<div class="ew-toolbar-right">
 								<a href="expense_gcn_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
@@ -1031,7 +1031,7 @@ $preselect_group_id = isset($_GET['group_id']) ? (int) $_GET['group_id'] : 0;
 										</div>
 
 										<div class="egcn-panel-footer">
-											<button type="button" class="btn btn-primary" id="btn_save"><i class="fa fa-save"></i> Save Expenses</button>
+											<button type="button" class="btn btn-primary" id="btn_save"><i class="fa fa-save"></i> Submit</button>
 										</div>
 									</div>
 								</div>

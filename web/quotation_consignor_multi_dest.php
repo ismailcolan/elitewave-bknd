@@ -228,6 +228,7 @@ $dest_master_singleton_id = $dest_masters ? (int) ($dest_masters[0]['master_id']
 													<label><input type="radio" name="md_dest_entry_mode" value="manual" checked> Enter new rows manually</label>
 													<label><input type="radio" name="md_dest_entry_mode" value="master"> Pre-filled from Quotation Master</label>
 												</div>
+												<p class="ew-field-hint" style="margin:6px 0 0;">Manual starts with a blank row. Pre-filled copies Quotation Master into this quotation only.</p>
 											</div>
 										</div>
 									</div>
@@ -328,7 +329,8 @@ window.QUOTATION_PREVIEW_IN_MODAL = true;
 window.QUOTATION_RETURN_PAGE = 'quotation_consignor_multi_dest.php';
 window.QUOTATION_DEST_MASTER_SINGLETON_ID = <?php echo (int) $dest_master_singleton_id; ?>;
 </script>
-<script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261102inline"></script>
+<script src="javascripts/ew-remote-source.js?v=20261114search"></script>
+<script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261114manual"></script>
 <?php echo quotation_customer_approve_modal_html(); ?>
 <?php echo quotation_customer_approve_script('quotation_consignor_multi_dest_list.php?tab=approved'); ?>
 </body>

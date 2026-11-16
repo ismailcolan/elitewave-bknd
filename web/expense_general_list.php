@@ -6,7 +6,7 @@ require_once('include/expense_general_helpers.php');
 expense_general_ensure_schema($conn);
 expense_require_admin();
 
-$list_rows = expense_general_fetch_list($conn);
+$list_rows = expense_general_fetch_list($conn, 'general');
 ?>
 <!DOCTYPE html>
 <html>
@@ -18,8 +18,9 @@ $list_rows = expense_general_fetch_list($conn);
 		#dataTable1 th.col-actions,
 		#dataTable1 td.col-actions {
 			text-align: center;
-			width: 120px;
-			min-width: 120px;
+			width: 132px;
+			min-width: 132px;
+			max-width: 132px;
 		}
 
 		#dataTable1 .col-actions .act-link {
@@ -118,12 +119,12 @@ $list_rows = expense_general_fetch_list($conn);
 					<div class="ew-page-v2 ew-page-v2--wide-table">
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
-								<h1 class="ew-page-title">General Expense</h1>
+								<h1 class="ew-page-title">Payment Voucher</h1>
 							</div>
 						</div>
 						<div class="ew-card ew-erp-list">
 							<div class="ew-card-toolbar">
-								<h2>General Expense List</h2>
+								<h2>Payment Voucher List</h2>
 								<div class="ew-toolbar-right">
 									<div class="ew-list-toolbar__tools"></div>
 									<a href="expense_general.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
@@ -132,17 +133,17 @@ $list_rows = expense_general_fetch_list($conn);
 							<div class="ew-table-wrap widget-content padded clearfix new_dept">
 							<?php if (empty($list_rows)) { ?>
 								<div class="egen-empty" style="padding:24px;text-align:center;color:#64748b;">
-									No general expenses saved yet.
+									No payment vouchers saved yet.
 									<br><br>
-									<a href="expense_general.php?create=1" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-plus"></i> Add General Expense</a>
+									<a href="expense_general.php?create=1" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-plus"></i> Add Payment Voucher</a>
 								</div>
 							<?php } else { ?>
 									<table class="table table-bordered table-striped egen_list_tab" id="dataTable1">
 										<thead>
 											<tr>
 												<th>S.No</th>
-												<th>Expense No</th>
-												<th>Date</th>
+												<th>Voucher Code</th>
+												<th>Voucher Date</th>
 												<th>Vendor</th>
 												<th>Expense Type</th>
 												<th>Amount</th>
@@ -207,7 +208,7 @@ $list_rows = expense_general_fetch_list($conn);
 	<div class="ew-v2-modal-backdrop" id="egenViewModal">
 		<div class="ew-v2-modal ew-v2-modal--lg">
 			<div class="ew-v2-modal-head">
-				<h3 id="egenViewModalTitle">General expense details</h3>
+				<h3 id="egenViewModalTitle">Payment voucher details</h3>
 				<button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
 			</div>
 			<div class="ew-v2-modal-body" id="egenViewModalBody">
@@ -241,8 +242,8 @@ $list_rows = expense_general_fetch_list($conn);
 				}
 				var html = '';
 				html += '<div class="egen-view-meta">';
-				html += '<div><dt>Expense No</dt><dd>' + egenEscHtml(data.expense_no || '—') + '</dd></div>';
-				html += '<div><dt>Expense date</dt><dd>' + egenEscHtml(data.expense_date || '—') + '</dd></div>';
+				html += '<div><dt>Voucher Code</dt><dd>' + egenEscHtml(data.expense_no || '—') + '</dd></div>';
+				html += '<div><dt>Voucher date</dt><dd>' + egenEscHtml(data.expense_date || '—') + '</dd></div>';
 				html += '<div><dt>Vendor</dt><dd>' + egenEscHtml(data.vendor_label || '—') + '</dd></div>';
 				html += '<div><dt>Expense type</dt><dd>' + egenEscHtml(data.category_label || '—') + '</dd></div>';
 				html += '<div><dt>Payment mode</dt><dd>' + egenEscHtml(data.payment_mode_label || data.payment_mode || '—') + '</dd></div>';
@@ -280,7 +281,7 @@ $list_rows = expense_general_fetch_list($conn);
 				if (!id) {
 					return;
 				}
-				$('#egenViewModalTitle').text('General expense' + (no ? ' — ' + no : ''));
+				$('#egenViewModalTitle').text('Payment voucher' + (no ? ' — ' + no : ''));
 				$('#egenViewModalBody').html('<p class="text-muted" style="margin:0;">Loading…</p>');
 				$('#btn_egen_download_pdf').hide().attr('href', '#');
 				if (typeof ewV2OpenModal === 'function') {
@@ -294,7 +295,7 @@ $list_rows = expense_general_fetch_list($conn);
 						return;
 					}
 					var titleNo = r.data.expense_no || no || ('#' + id);
-					$('#egenViewModalTitle').text('General expense — ' + titleNo);
+					$('#egenViewModalTitle').text('Payment voucher — ' + titleNo);
 					$('#egenViewModalBody').html(egenRenderView(r.data));
 					$('#btn_egen_download_pdf').attr('href', 'expense_general_pdf.php?general_expense_id=' + encodeURIComponent(id) + '&download=1').show();
 				}).fail(function() {
@@ -305,7 +306,7 @@ $list_rows = expense_general_fetch_list($conn);
 			$(document).on('click', '.btn-delete-general-expense', function() {
 				var id = $(this).data('id');
 				var no = $(this).data('no') || '';
-				if (!id || !confirm('Delete general expense ' + no + '?')) return;
+				if (!id || !confirm('Delete payment voucher ' + no + '?')) return;
 				var $btn = $(this);
 				$btn.prop('disabled', true);
 				$.post('expense_general_data.php', { cmd: 'delete', general_expense_id: id }, function(r) {

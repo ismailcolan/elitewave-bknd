@@ -38,6 +38,7 @@ $page_module_map = array(
   'expense_group_master.php' => 'setup',
   'expense_gcn.php' => 'expense', 'expense_gcn_list.php' => 'expense',
   'expense_general.php' => 'expense', 'expense_general_list.php' => 'expense',
+  'expense_bill.php' => 'expense', 'expense_bill_list.php' => 'expense',
   'qrcode_master.php' => 'tools', 'bulkmail.php' => 'tools', 'users.php' => 'tools', 'user_list.php' => 'tools',
   'database_backup.php' => 'tools',
   'pod_list.php' => 'portal', 'pod_master.php' => 'portal', 'edit_pod_list.php' => 'portal',
@@ -56,8 +57,13 @@ $page_module_map = array(
   'credit_note_list.php' => 'invoice', 'create_credit_note.php' => 'invoice',
   'receipt_list.php' => 'invoice', 'create_receipt.php' => 'invoice',
   'consignment_report.php' => 'mis', 'client_arrival_report.php' => 'mis',
-  'cargo_booking_report.php' => 'mis', 'gst_tax_report.php' => 'mis',
+  'cargo_booking_report.php' => 'mis', 'pending_delivery_report.php' => 'mis',
+  'gst_tax_report.php' => 'mis',
   'invoice_register.php' => 'mis',
+  'proforma_invoice_register.php' => 'mis',
+  'pending_invoice_ageing.php' => 'mis',
+  'receipt_register.php' => 'mis',
+  'pending_receipt_ageing.php' => 'mis',
   'pending_payments.php' => 'invoice',
   'pending_payments_ledger_pdf.php' => 'invoice',
   'client_payment_transactions.php' => 'mis',
@@ -637,7 +643,7 @@ function ew_panel_head($title) {
     </button>
     <?php endif; ?>
     <?php if ($_SESSION['role'] != 'DR'): ?>
-    <button type="button" class="rail-item<?php echo ew_module_active('mis', $active_module); ?>" data-module="mis" data-tooltip="MIS Report" title="MIS Report">
+    <button type="button" class="rail-item<?php echo ew_module_active('mis', $active_module); ?>" data-module="mis" data-tooltip="MIS" title="MIS">
       <?php echo ew_rail_icon('mis'); ?>
       <span class="rail-label">MIS</span>
     </button>
@@ -742,8 +748,9 @@ function ew_panel_head($title) {
     <div class="panel-module<?php echo ew_module_active('expense', $active_module); ?>" data-module="expense">
       <?php ew_panel_head('Expense'); ?>
       <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active_any(array('expense_gcn_list.php', 'expense_gcn.php'), $current_page); ?>" href="expense_gcn_list.php">Expense against GCN</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('expense_general_list.php', 'expense_general.php'), $current_page); ?>" href="expense_general_list.php">General Expense</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('expense_gcn_list.php', 'expense_gcn.php'), $current_page); ?>" href="expense_gcn_list.php">GCN Profit &amp; Loss</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('expense_general_list.php', 'expense_general.php'), $current_page); ?>" href="expense_general_list.php">Payment Voucher</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('expense_bill_list.php', 'expense_bill.php'), $current_page); ?>" href="expense_bill_list.php">Bill Registration</a>
       </div>
     </div>
 
@@ -845,17 +852,43 @@ function ew_panel_head($title) {
 
     <?php if ($_SESSION['role'] != 'DR'): ?>
     <div class="panel-module<?php echo ew_module_active('mis', $active_module); ?>" data-module="mis">
-      <?php ew_panel_head('MIS Report'); ?>
+      <?php ew_panel_head('MIS'); ?>
       <div class="panel-scroll">
         <?php if ($_SESSION['role'] == 'CL'): ?>
           <a class="panel-link<?php echo ew_menu_active('consignment_report.php', $current_page); ?>" href="consignment_report.php">My Booking Report</a>
           <a class="panel-link<?php echo ew_menu_active('client_arrival_report.php', $current_page); ?>" href="client_arrival_report.php">My Arrival Report</a>
         <?php else: ?>
           <a class="panel-link<?php echo ew_menu_active('consignment_report.php', $current_page); ?>" href="consignment_report.php">Booking Status Report</a>
-          <a class="panel-link<?php echo ew_menu_active('cargo_booking_report.php', $current_page); ?>" href="cargo_booking_report.php">Cargo Booking Report</a>
           <a class="panel-link<?php echo ew_menu_active('gst_tax_report.php', $current_page); ?>" href="gst_tax_report.php">GST Tax Report</a>
-          <a class="panel-link<?php echo ew_menu_active('invoice_register.php', $current_page); ?>" href="invoice_register.php">Invoice Register</a>
           <a class="panel-link<?php echo ew_menu_active('client_payment_transactions.php', $current_page); ?>" href="client_payment_transactions.php">Payment History</a>
+          <?php
+          // Reports sub-module. Add next new reports here.
+          $mis_new_report_pages = array(
+            'cargo_booking_report.php',
+            'pending_delivery_report.php',
+            'proforma_invoice_register.php',
+            'invoice_register.php',
+            'pending_invoice_ageing.php',
+            'receipt_register.php',
+            'pending_receipt_ageing.php',
+          );
+          $mis_new_reports_open = in_array($current_page, $mis_new_report_pages, true);
+          ?>
+          <div class="panel-accordion<?php echo $mis_new_reports_open ? ' is-open' : ''; ?>" data-accordion-id="mis-reports" data-accordion-label="Reports">
+            <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $mis_new_reports_open ? 'true' : 'false'; ?>">
+              <span>Reports</span>
+              <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="panel-accordion-body">
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('cargo_booking_report.php', $current_page); ?>" href="cargo_booking_report.php">Cargo Booking Report</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_delivery_report.php', $current_page); ?>" href="pending_delivery_report.php">Pending Delivery Report</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('proforma_invoice_register.php', $current_page); ?>" href="proforma_invoice_register.php">Proforma Invoice Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('invoice_register.php', $current_page); ?>" href="invoice_register.php">Invoice Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_invoice_ageing.php', $current_page); ?>" href="pending_invoice_ageing.php">Pending Invoice Register / Ageing</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('receipt_register.php', $current_page); ?>" href="receipt_register.php">Receipt Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_receipt_ageing.php', $current_page); ?>" href="pending_receipt_ageing.php">Pending Receipt Register / Ageing</a>
+            </div>
+          </div>
         <?php endif; ?>
       </div>
     </div>

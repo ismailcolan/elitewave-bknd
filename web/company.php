@@ -200,7 +200,7 @@
                             </form>
                             </div>
                             <div class="ew-form-footer">
-                                <button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save"><i class="fa fa-save"></i> Save Company</button>
+                                <button class="ew-btn-v2 ew-btn-v2-primary" type="button" id="save"><i class="fa fa-save"></i> Submit</button>
                             </div>
                         </div>
                     </div>

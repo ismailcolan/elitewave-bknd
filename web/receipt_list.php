@@ -32,7 +32,7 @@ $list_q = mysqli_query($conn, "SELECT m.*, c.client_company_name
 	<?php include('include/title.php'); ?>
 	<?php include('include/css_js.php'); ?>
 	<style>
-		.table-scroll-wrapper { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 6px; }
+		.table-scroll-wrapper { overflow-x: auto; border: none; border-radius: 0; padding: 0; margin: 0; }
 		#receipt_list_table { font-size: 13px; margin-bottom: 0; border-collapse: collapse; width: 100% !important; }
 		#receipt_list_table th { background: #DDE7F0 !important; font-size: 11px; font-weight: 700; padding: 8px 6px; border-bottom: 2px solid #C5D3E0 !important; }
 		#receipt_list_table td { padding: 6px; border-bottom: 1px solid #e9ecef !important; vertical-align: middle; }

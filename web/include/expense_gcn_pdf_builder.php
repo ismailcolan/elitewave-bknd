@@ -42,15 +42,17 @@ function expense_gcn_build_pdf_html($conn, array $view)
 	$title = 'GCN Expense Summary';
 	$html = elitewave_pdf_letterhead_open($conn, $title, 'GCN Expense Copy', true, true);
 
-	$modeLabel = $view['expense_mode'] === 'group' ? 'Group' : 'Single';
-	$meta = array(
-		array('Type', $modeLabel),
-		array('GCN No', $view['grn_no'] ?? '—'),
-		array('GCN date', $view['grn_date'] ?? '—'),
-		array('Route', $view['route_label'] ?? '—'),
-		array('Mode of transport', $view['mode_of_transport'] ?? '—'),
-	);
-	if ($view['expense_mode'] !== 'group') {
+	$modeLabel = ($view['expense_mode'] ?? 'single') === 'group' ? 'Group' : 'Single';
+	$meta = array();
+	if (!empty($view['expense_no'])) {
+		$meta[] = array('Voucher code', $view['expense_no']);
+	}
+	$meta[] = array('Type', $modeLabel);
+	$meta[] = array('GCN No', $view['grn_no'] ?? '—');
+	$meta[] = array('GCN date', $view['grn_date'] ?? '—');
+	$meta[] = array('Route', $view['route_label'] ?? '—');
+	$meta[] = array('Mode of transport', $view['mode_of_transport'] ?? '—');
+	if (($view['expense_mode'] ?? 'single') !== 'group') {
 		$meta[] = array('Consignor', $view['consignor'] ?? '—');
 		$meta[] = array('Consignee', $view['consignee'] ?? '—');
 		if (!empty($view['invoice_no'])) {
@@ -86,7 +88,7 @@ function expense_gcn_build_pdf_html($conn, array $view)
 	$html .= '</tr></table>';
 
 	$html .= '<p class="ew-doc-h2" style="margin-top:0;">Revenue breakup</p>';
-	if ($view['expense_mode'] === 'group' && !empty($view['gcns'])) {
+	if (($view['expense_mode'] ?? 'single') === 'group' && !empty($view['gcns'])) {
 		$html .= '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 14px;">';
 		$html .= '<tr>' . expense_gcn_pdf_th('GCN No') . expense_gcn_pdf_th('Date') . expense_gcn_pdf_th('Route')
 			. expense_gcn_pdf_th('Mode') . expense_gcn_pdf_th('Revenue', 'right') . '</tr>';
@@ -114,7 +116,7 @@ function expense_gcn_build_pdf_html($conn, array $view)
 	}
 
 	$html .= '<p class="ew-doc-h2">Expense breakup</p>';
-	$lines = $view['lines'] ?? array();
+	$lines = !empty($view['profit_lines']) ? $view['profit_lines'] : ($view['lines'] ?? array());
 	if ($lines === array()) {
 		$html .= '<p style="font-size:9pt;color:#64748b;">No expense lines recorded.</p>';
 	} else {

@@ -27,8 +27,10 @@ $list_q = mysqli_query($conn, "SELECT m.*, c.client_company_name
 		.table-scroll-wrapper {
 			overflow-x: auto;
 			-webkit-overflow-scrolling: touch;
-			border: 1px solid #e5e7eb;
-			border-radius: 6px;
+			border: none;
+			border-radius: 0;
+			padding: 0;
+			margin: 0;
 		}
 		#invoice_list_table { font-size: 13px; margin-bottom: 0; border-collapse: collapse; width: 100% !important; }
 		#invoice_list_table th {

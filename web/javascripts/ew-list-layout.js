@@ -119,11 +119,17 @@
       $footerLeft.empty().append($meta);
     }
 
-    var $filter = relocateControl($wrapper, $tools, '.dataTables_filter');
-    if ($filter.length) {
-      $filter.addClass('ew-erp-search');
-      stripLabelText($filter.find('label'));
-      wrapSearchInput($filter.find('input[type="search"], input[type="text"]').first());
+    // MIS reports use a custom #ew_mis_table_search — do not promote DataTables' duplicate Search
+    if ($card.find('#ew_mis_table_search').length || $card.closest('.ew-page-v2--mis-report').find('#ew_mis_table_search').length) {
+      $wrapper.find('.dataTables_filter').hide().attr('aria-hidden', 'true');
+      $tools.find('.dataTables_filter').remove();
+    } else {
+      var $filter = relocateControl($wrapper, $tools, '.dataTables_filter');
+      if ($filter.length) {
+        $filter.addClass('ew-erp-search');
+        stripLabelText($filter.find('label'));
+        wrapSearchInput($filter.find('input[type="search"], input[type="text"]').first());
+      }
     }
 
     var $info = relocateControl($wrapper, $meta, '.dataTables_info');
@@ -153,7 +159,7 @@
   }
 
   function hasListTable($card) {
-    return $card.find('#dataTable1, #ew_db_backup_table, #txn_list_table, #ts_status_table, #invoice_list_table, #receipt_list_table, #trip_list_table, #payment_report_table, #invoice_register_table, #pending_payments_table, table.dataTable').length > 0;
+    return $card.find('#dataTable1, #ew_db_backup_table, #txn_list_table, #ts_status_table, #invoice_list_table, #receipt_list_table, #trip_list_table, #payment_report_table, #invoice_register_table, #receipt_register_table, #pending_invoice_ageing_table, #pending_receipt_ageing_table, #pending_payments_table, table.dataTable').length > 0;
   }
 
   function normalizeHeaderLabel(text) {

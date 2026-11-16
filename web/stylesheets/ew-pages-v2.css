@@ -156,6 +156,25 @@
   border-color: var(--ew-navy, #0A1E3D);
 }
 
+/* Excel mark — this Font Awesome build has no fa-file-excel-o; color follows button theme */
+.ew-page-v2 .ew-icon-excel,
+.ew-icon-excel {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  vertical-align: -2px;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M9.5 1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5.5L9.5 1zM5 7h6v1.2H5V7zm0 2.2h6V10.4H5V9.2zm0 2.2h4V12.6H5v-1.2zM9.5 1.8L12.2 4.5H9.5V1.8z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M9.5 1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5.5L9.5 1zM5 7h6v1.2H5V7zm0 2.2h6V10.4H5V9.2zm0 2.2h4V12.6H5v-1.2zM9.5 1.8L12.2 4.5H9.5V1.8z'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
 .ew-page-v2 .ew-btn-v2-outline:hover {
   background: #E8EDF4;
   color: var(--ew-navy, #0A1E3D);
@@ -168,9 +187,13 @@
 }
 
 .ew-page-v2 .ew-table-wrap {
-  overflow-x: auto;
+  overflow: visible !important;
   border-top: 1px solid var(--ew-border-light, #E9ECF0);
+  position: relative;
+  max-width: 100%;
 }
+
+/* Columns scroll inside .ew-table-scroll-host only (see ew-design-system.css) */
 
 .ew-page-v2 .ew-table {
   width: 100%;
@@ -255,7 +278,9 @@
 .ew-page-v2 .ew-table-wrap table tbody td.col-amount,
 .ew-page-v2 .ew-table-wrap .dataTable tbody td.col-amount,
 .ew-page-v2 .ew-table-wrap table tbody td.num,
-.ew-page-v2 .ew-table-wrap .dataTable tbody td.num {
+.ew-page-v2 .ew-table-wrap .dataTable tbody td.num,
+.ew-page-v2 .ew-table-wrap table tfoot td.num,
+.ew-page-v2 .ew-table-wrap .dataTable tfoot td.num {
   text-align: right !important;
   font-variant-numeric: tabular-nums;
 }
@@ -656,7 +681,7 @@
 }
 
 .ew-page-v2 .ew-card > .ew-table-wrap {
-  padding: 12px 20px 20px;
+  padding: 12px 24px 16px !important;
 }
 
 .ew-page-v2 .ew-card > .ew-table-wrap + .ew-table-footer {
@@ -799,6 +824,60 @@
   white-space: nowrap;
 }
 
+/* Flight / Train master lists — no drag-pan, keep table fixed in place */
+.ew-page-v2 .ew-carrier-list-wrap,
+.ew-page-v2 .ew-no-drag-scroll {
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  max-width: 100%;
+}
+
+.ew-page-v2 .ew-carrier-list-wrap .dataTables_wrapper,
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable {
+  table-layout: fixed !important;
+}
+
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable th:nth-child(1),
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable td:nth-child(1) {
+  width: 8%;
+  text-align: center !important;
+}
+
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable th:nth-child(2),
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable td:nth-child(2) {
+  width: 42%;
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable th:nth-child(3),
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable td:nth-child(3) {
+  width: 16%;
+}
+
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable th:nth-child(4),
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable td:nth-child(4) {
+  width: 18%;
+}
+
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable th:nth-child(5),
+.ew-page-v2 .ew-carrier-list-wrap table.ew-ss-datatable td:nth-child(5) {
+  width: 16%;
+}
+
+.ew-page-v2 .ew-carrier-list-wrap .ew-table-scroll-inner,
+.ew-page-v2 .ew-carrier-list-wrap .ew-drag-scroll {
+  overflow: visible !important;
+  cursor: default !important;
+}
+
 /* Wide table variant */
 .ew-page-v2.ew-page-v2--wide-table .ew-table-wrap {
   max-width: 100%;
@@ -813,10 +892,11 @@
 }
 
 /* Vehicle list — framed table + readable multi-line headers */
-.ew-page-v2 .ew-table-wrap table.vehicle_tab {
-  border-left: 1px solid var(--panel-border, #C5D3E0) !important;
-  border-right: 1px solid var(--panel-border, #C5D3E0) !important;
-  border-bottom: 1px solid var(--panel-border, #C5D3E0) !important;
+.ew-page-v2 .ew-table-wrap table.vehicle_tab,
+.ew-page-v2 .ew-table-scroll-host table.vehicle_tab {
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
 }
 
 .ew-page-v2 .ew-table-wrap table.vehicle_tab thead th {
@@ -840,15 +920,19 @@
 }
 
 .ew-page-v2.ew-page-v2--wide-table .ew-card.ew-erp-list .ew-table-wrap {
-  padding: 12px 16px 16px;
+  padding: 12px 24px 16px !important;
 }
 
+/* Outer frame is on .ew-table-scroll-host — table itself stays borderless at L/R */
 .ew-page-v2 .ew-table-wrap table.expense_type_tab,
 .ew-page-v2 .ew-table-wrap table.egcn_list_tab,
-.ew-page-v2 .ew-table-wrap table.egen_list_tab {
-  border-left: 1px solid var(--panel-border, #C5D3E0) !important;
-  border-right: 1px solid var(--panel-border, #C5D3E0) !important;
-  border-bottom: 1px solid var(--panel-border, #C5D3E0) !important;
+.ew-page-v2 .ew-table-wrap table.egen_list_tab,
+.ew-page-v2 .ew-table-scroll-host table.expense_type_tab,
+.ew-page-v2 .ew-table-scroll-host table.egcn_list_tab,
+.ew-page-v2 .ew-table-scroll-host table.egen_list_tab {
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
 }
 
 .ew-page-v2 .egcn-page .ew-card .egcn-shell {
@@ -1706,8 +1790,23 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 }
 
 .txn-page-wrap .trans_list_table {
-  border-left: 1px solid var(--panel-border, #C5D3E0) !important;
-  border-right: 1px solid var(--panel-border, #C5D3E0) !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+.txn-page-wrap .trans_list_table thead th.col-sno,
+.txn-page-wrap .trans_list_table tbody td.col-sno,
+.txn-page-wrap .trans_list_table thead th.col-pkgs,
+.txn-page-wrap .trans_list_table tbody td.col-pkgs {
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.txn-page-wrap .trans_list_table thead th.col-date,
+.txn-page-wrap .trans_list_table tbody td.col-date,
+.txn-page-wrap .trans_list_table thead th.col-gcn,
+.txn-page-wrap .trans_list_table tbody td.col-gcn {
+  white-space: nowrap !important;
 }
 
 .txn-page-wrap .trans_list_table thead th {
@@ -2413,10 +2512,22 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 
 .ew-page-v2--mis-report .ew-mis-empty-hint {
   text-align: center;
-  padding: 36px 24px 44px;
+  padding: 18px 16px;
   margin: 0;
   color: var(--ew-text-muted, #6B7A8D);
-  font-size: 14px;
+  font-size: 13px;
+}
+
+.ew-page-v2--mis-report #ew_mis_empty_card {
+  box-shadow: none;
+  border: 1px dashed var(--panel-border, #C5D3E0);
+  background: #F8FAFC;
+  margin-top: 12px;
+}
+
+.ew-page-v2--mis-report #ew_mis_empty_card .ew-card-toolbar,
+.ew-page-v2--mis-report #ew_mis_empty_card > .ew-form-body {
+  display: none;
 }
 
 .ew-page-v2--mis-report .filter-label {
@@ -2438,31 +2549,112 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   border-color: var(--ew-border, #D8DDE5);
 }
 
-.ew-page-v2--mis-report .table-scroll-wrapper,
-.ew-page-v2--mis-report .ew-invoice-table-scroll {
-  overflow-x: auto;
-  border: 1px solid var(--ew-border-light, #E9ECF0);
-  border-radius: 10px;
+/*
+ * Results table: match app list tables —
+ * side gutters (24px) + framed scroller with L/R borders (like .ew-table-scroll-host).
+ * No extra gap above thead inside the frame.
+ */
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap.widget-content,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap.padded,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap.widget-content.padded,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap.widget-content.padded.clearfix.new_dept {
+  border-top: none !important;
+  padding-top: 0 !important;
+  padding-right: 24px !important;
+  padding-bottom: 16px !important;
+  padding-left: 24px !important;
+  margin: 0 !important;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list .table-scroll-wrapper,
+.ew-page-v2--mis-report .ew-card.ew-erp-list .ew-invoice-table-scroll {
+  display: block !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  border: 1px solid var(--panel-border, #C5D3E0) !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
   -webkit-overflow-scrolling: touch;
 }
 
-.ew-page-v2--mis-report .table-scroll-wrapper:not(:has(table)),
-.ew-page-v2--mis-report .ew-invoice-table-scroll:not(:has(table)) {
-  border: none;
-  border-radius: 0;
-  background: transparent;
-}
-
-.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap {
-  padding: 16px 24px 32px;
-}
-
-.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper:not(:has(table)),
-.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll:not(:has(table)) {
+.ew-page-v2--mis-report .ew-card.ew-erp-list .table-scroll-wrapper:not(:has(table)),
+.ew-page-v2--mis-report .ew-card.ew-erp-list .ew-invoice-table-scroll:not(:has(table)) {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
   min-height: 100px;
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .dataTables_wrapper,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .dataTables_scroll,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .dataTables_scrollHead,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .dataTables_scrollBody {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Frame owns outer border — kill table-bordered outer edges (avoids double/dark lines) */
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper table,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper .dataTable,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll table,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll .dataTable,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper table.table-bordered,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll table.table-bordered {
+  margin: 0 !important;
+  border: none !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper table > thead > tr > th,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper table > tbody > tr > td,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper table > tfoot > tr > td,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll table > thead > tr > th,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll table > tbody > tr > td,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll table > tfoot > tr > td,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper .table-bordered > thead > tr > th,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper .table-bordered > tbody > tr > td,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper .table-bordered > tfoot > tr > td {
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: 1px solid #eef2f7 !important;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper table > thead > tr > th,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll table > thead > tr > th {
+  border-bottom: 1px solid var(--panel-border, #C5D3E0) !important;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper table > tbody > tr:last-child > td,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper table > tfoot > tr:last-child > td,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll table > tbody > tr:last-child > td,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll table > tfoot > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper table > thead > tr > th:first-child,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll table > thead > tr > th:first-child {
+  border-top-left-radius: 7px;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .table-scroll-wrapper table > thead > tr > th:last-child,
+.ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap .ew-invoice-table-scroll table > thead > tr > th:last-child {
+  border-top-right-radius: 7px;
+}
+
+/* Ageing chips sit in the same side gutter as the framed table */
+.ew-page-v2--mis-report .ew-card.ew-erp-list #bucket_summary {
+  padding: 12px 0 10px;
+  margin: 0;
 }
 
 .ew-page-v2--mis-report #payment_report_table .num {
@@ -2501,6 +2693,232 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   .ew-page-v2--mis-report .ew-mis-filter-grid .span-2 {
     grid-template-columns: 1fr;
     grid-column: span 1;
+  }
+}
+
+/* MIS report: filters view → results view (searchable table) */
+.ew-page-v2--mis-report .ew-mis-filters-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ew-page-v2--mis-report .ew-mis-quick-range {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ew-page-v2--mis-report .ew-mis-quick-range [data-range] {
+  border: 1px solid var(--panel-border, #C5D3E0);
+  background: #fff;
+  color: var(--ew-navy, #0A1E3D);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.ew-page-v2--mis-report .ew-mis-quick-range [data-range].is-active {
+  background: var(--ew-navy, #0A1E3D);
+  border-color: var(--ew-navy, #0A1E3D);
+  color: #fff;
+}
+
+.ew-page-v2--mis-report .ew-mis-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  text-align: center;
+  padding: 16px 18px;
+  color: var(--ew-text-muted, #64748B);
+}
+
+.ew-page-v2--mis-report .ew-mis-empty-state .ew-mis-empty-icon {
+  font-size: 18px;
+  color: #94A3B8;
+  margin: 0;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.ew-page-v2--mis-report .ew-mis-empty-state h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ew-navy, #0A1E3D);
+  line-height: 1.35;
+}
+
+.ew-page-v2--mis-report .ew-mis-empty-state p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ew-text-muted, #64748B);
+}
+
+.ew-page-v2--mis-report .ew-mis-empty-state p::before {
+  content: "— ";
+  color: #94A3B8;
+  font-weight: 600;
+}
+
+.ew-page-v2--mis-report .ew-mis-active-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #EEF3F8;
+  border: 1px solid var(--panel-border, #C5D3E0);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.ew-page-v2--mis-report .ew-mis-active-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  min-width: 0;
+}
+
+.ew-page-v2--mis-report .ew-mis-active-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ew-navy, #0A1E3D);
+  white-space: nowrap;
+}
+
+.ew-page-v2--mis-report .ew-mis-active-label i {
+  margin-right: 6px;
+}
+
+.ew-page-v2--mis-report .ew-mis-date-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #DDE7F0;
+  color: var(--ew-navy, #0A1E3D);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ew-page-v2--mis-report .ew-mis-active-summary {
+  font-size: 12px;
+  color: var(--ew-text-muted, #64748B);
+  min-width: 0;
+}
+
+.ew-page-v2--mis-report .ew-mis-active-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ew-page-v2--mis-report .ew-mis-results-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ew-page-v2--mis-report .ew-mis-results-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Keep only custom MIS search — hide DataTables default filter */
+.ew-page-v2--mis-report .dataTables_filter,
+.ew-page-v2--mis-report .ew-list-toolbar__tools .dataTables_filter,
+.ew-page-v2--mis-report .ew-erp-search.dataTables_filter {
+  display: none !important;
+}
+
+/* Total row: amount columns right-aligned under body .num columns */
+.ew-page-v2--mis-report table tfoot td,
+.ew-page-v2--mis-report table.dataTable tfoot td,
+.ew-page-v2--mis-report .table-scroll-wrapper table tfoot td {
+  padding: 12px 16px !important;
+  vertical-align: middle !important;
+}
+
+.ew-page-v2--mis-report table tfoot td.num,
+.ew-page-v2--mis-report table.dataTable tfoot td.num,
+.ew-page-v2--mis-report .table-scroll-wrapper table tfoot td.num,
+.ew-page-v2--mis-report table tfoot th.num,
+.ew-page-v2--mis-report table.dataTable tfoot th.num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.ew-page-v2--mis-report table tfoot td:not(.num),
+.ew-page-v2--mis-report table.dataTable tfoot td:not(.num),
+.ew-page-v2--mis-report table tfoot th:not(.num) {
+  text-align: left !important;
+}
+
+.ew-page-v2--mis-report .ew-mis-table-search {
+  position: relative;
+  min-width: 220px;
+}
+
+.ew-page-v2--mis-report .ew-mis-table-search i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94A3B8;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.ew-page-v2--mis-report .ew-mis-table-search input {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--ew-border, #D8DDE5);
+  border-radius: 8px;
+  padding: 0 12px 0 34px;
+  font-size: 13px;
+  color: var(--ew-text, #1A2332);
+  background: #fff;
+}
+
+.ew-page-v2--mis-report .ew-mis-table-search input:focus {
+  outline: none;
+  border-color: #9DC3E6;
+  box-shadow: 0 0 0 3px rgba(157, 195, 230, 0.25);
+}
+
+@media (max-width: 767px) {
+  .ew-page-v2--mis-report .ew-mis-active-bar {
+    align-items: stretch;
+  }
+  .ew-page-v2--mis-report .ew-mis-active-actions {
+    width: 100%;
+  }
+  .ew-page-v2--mis-report .ew-mis-active-actions .ew-btn-v2 {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .ew-page-v2--mis-report .ew-mis-table-search {
+    min-width: 100%;
+    width: 100%;
   }
 }
 

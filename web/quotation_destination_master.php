@@ -13,18 +13,32 @@ $singleton = quotation_dest_master_get_singleton($conn);
 $id = $singleton ? (int) $singleton['master_id'] : 0;
 
 $page_title_suffix = '';
+$extra_city_ids = array();
 if ($id > 0) {
 	$page_title_suffix = trim((string) ($singleton['master_name'] ?? ''));
 	$dest_rows_form = quotation_dest_master_hydrate_rows_for_form($conn, $id);
+	$extra_city_ids = quotation_dest_master_city_ids($conn, $id);
 } else {
 	$dest_rows_form = quotation_default_destination_rows_for_form();
 }
 
 $modes = quotation_mode_transport_catalog($conn);
-$city_catalog = quotation_city_state_catalog($conn);
+$city_catalog = quotation_city_state_catalog($conn, $extra_city_ids);
 $vehicle_types = ew_vehicle_type_list($conn, true);
 $delivery_days_opts = quotation_delivery_days_options();
 $empty_row = quotation_default_destination_rows_for_form()[0];
+$vehicle_json = array();
+foreach ($vehicle_types as $vt) {
+	$vid = (int) ($vt['vehicle_type_id'] ?? 0);
+	if ($vid <= 0) {
+		continue;
+	}
+	$vehicle_json[$vid] = array(
+		'label' => function_exists('quotation_vehicle_type_dropdown_label')
+			? quotation_vehicle_type_dropdown_label($conn, $vid, $vt['type_name'] ?? '')
+			: trim((string) ($vt['type_name'] ?? '')),
+	);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -77,7 +91,7 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 
 						<div class="ew-card ew-invoice-details-card">
 							<h2 class="ew-card-section-title">Destinations &amp; charges</h2>
-							<p class="ew-field-hint" style="margin:0 0 10px;"></p>
+							<p class="ew-field-hint" style="margin:0 0 10px;">Saved once and kept permanently. Creating Single / Multi Mode / Multi Destination quotations copies these rows — it does not clear this master.</p>
 							<div class="ew-table-wrap">
 								<table class="table table-bordered table-condensed" id="md_dest_table">
 									<thead>
@@ -99,7 +113,7 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 								</table>
 							</div>
 							<div class="ew-form-footer ew-invoice-form-footer ew-dest-master-footer">
-								<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-save-dest-master" id="btn_save_dest_master">Save</button>
+								<button type="button" class="ew-btn-v2 ew-btn-v2-primary btn-save-dest-master" id="btn_save_dest_master">Submit</button>
 							</div>
 						</div>
 					</form>
@@ -117,8 +131,10 @@ $empty_row = quotation_default_destination_rows_for_form()[0];
 <script>
 window.QUOTATION_DEST_MASTER_ONLY = true;
 window.QUOTATION_DEST_MASTER_MAX_ROWS = <?php echo (int) QUOTATION_DEST_MASTER_MAX_ROWS; ?>;
+window.QUOTATION_VEHICLE_MAP = <?php echo json_encode($vehicle_json); ?>;
 </script>
-<script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261102inline"></script>
-<script src="javascripts/quotation-destination-master-form.js?v=20261102save"></script>
+<script src="javascripts/ew-remote-source.js?v=20261114search"></script>
+<script src="javascripts/quotation-consignor-multi-dest-form.js?v=20261114persist"></script>
+<script src="javascripts/quotation-destination-master-form.js?v=20261114persist"></script>
 </body>
 </html>

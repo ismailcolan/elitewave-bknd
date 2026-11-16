@@ -111,8 +111,9 @@ if ($customer_mode === 'new' && (int) ($master['party_id'] ?? 0) > 0 && trim((st
 if ($customer_mode === 'existing' && trim((string) ($master['party_name'] ?? '')) === '' && (int) ($master['party_id'] ?? 0) > 0) {
 	$master['party_name'] = quotation_party_name($conn, (int) $master['party_id']);
 }
-$source_trains = quotation_active_trains($conn);
-$source_flights = quotation_active_flights($conn);
+// Train / flight lists are searched on demand (quotation_transport_search.php) — not preloaded.
+$source_trains = array();
+$source_flights = array();
 $mode_kind_map = quotation_mode_kind_map($conn);
 $vehicle_types = ew_vehicle_type_list($conn, true);
 $vehicle_json = array();
@@ -389,31 +390,11 @@ function ew_quotation_status_pill_class($status)
 										<div class="ew-form-grid ew-form-grid--invoice ew-form-grid--quotation">
 											<div class="ew-field span-2" id="quote_train_wrap" style="display:none;">
 												<label>Train</label>
-												<select name="train_id" id="quote_train_id" class="form-control">
-													<option value="" data-hours="">Select train</option>
-													<?php foreach ($source_trains as $tr) {
-														$tid = (int) ($tr['train_id'] ?? 0);
-														$sel = ((int) ($master['train_id'] ?? 0) === $tid) ? ' selected' : '';
-														$hrs = trim((string) ($tr['journey_hours'] ?? ''));
-														echo '<option value="' . $tid . '" data-hours="' . htmlspecialchars($hrs, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>'
-															. htmlspecialchars(quotation_transport_option_label($tr['train_name'] ?? '', $tr['train_number'] ?? ''))
-															. '</option>';
-													} ?>
-												</select>
+												<?php echo quotation_remote_source_select_html($conn, 'train', 'name="train_id" id="quote_train_id" class="form-control"', (int) ($master['train_id'] ?? 0), 'Select train'); ?>
 											</div>
 											<div class="ew-field span-2" id="quote_flight_wrap" style="display:none;">
 												<label>Flight</label>
-												<select name="flight_id" id="quote_flight_id" class="form-control">
-													<option value="" data-hours="">Select flight</option>
-													<?php foreach ($source_flights as $fl) {
-														$fid = (int) ($fl['flight_id'] ?? 0);
-														$sel = ((int) ($master['flight_id'] ?? 0) === $fid) ? ' selected' : '';
-														$hrs = trim((string) ($fl['journey_hours'] ?? ''));
-														echo '<option value="' . $fid . '" data-hours="' . htmlspecialchars($hrs, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>'
-															. htmlspecialchars(quotation_transport_option_label($fl['flight_name'] ?? '', $fl['flight_number'] ?? ''))
-															. '</option>';
-													} ?>
-												</select>
+												<?php echo quotation_remote_source_select_html($conn, 'flight', 'name="flight_id" id="quote_flight_id" class="form-control"', (int) ($master['flight_id'] ?? 0), 'Select flight'); ?>
 											</div>
 											<div class="ew-field" id="quote_hours_wrap">
 												<label>Hours</label>
@@ -421,7 +402,7 @@ function ew_quotation_status_pill_class($status)
 											</div>
 											<div class="ew-field span-2">
 												<label id="vehicle_type_label">Vehicle type</label>
-												<select name="vehicle_type_id" id="vehicle_type_id" class="form-control">
+												<select name="vehicle_type_id" id="vehicle_type_id" class="form-control" data-remote-source="vehicle" data-search-local="1">
 													<option value="">Select vehicle type</option>
 													<?php foreach ($vehicle_types as $vt) {
 														$sel = ((int) ($master['vehicle_type_id'] ?? 0) === (int) $vt['vehicle_type_id']) ? ' selected' : '';
@@ -574,7 +555,8 @@ window.QUOTATION_LETTER_INTRO = <?php echo json_encode(quotation_letter_intro_te
 window.QUOTATION_MULTI_MODE_TYPES = [];
 window.QUOTATION_ALL_MODES_SCREEN = false;
 </script>
-<script src="javascripts/quotation-form.js?v=20261028driverids"></script>
+<script src="javascripts/ew-remote-source.js?v=20261114search"></script>
+<script src="javascripts/quotation-form.js?v=20261111remote"></script>
 <?php echo quotation_customer_approve_modal_html(); ?>
 <?php echo quotation_customer_approve_script('quotation_list.php?tab=approved'); ?>
 </body>

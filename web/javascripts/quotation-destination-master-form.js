@@ -6,7 +6,7 @@
 			return;
 		}
 
-		function saveDestMaster($btn) {
+		function saveDestMaster($btn, forceReplace) {
 			var maxRows = parseInt(window.QUOTATION_DEST_MASTER_MAX_ROWS, 10) || 200;
 			var rowCount = $('#md_dest_tbody tr.md-row').length;
 			if (rowCount > maxRows) {
@@ -22,11 +22,15 @@
 			}
 			$btn.prop('disabled', true);
 			$('#response').hide();
+			var payload = $('#dest_master_form').serialize();
+			if (forceReplace) {
+				payload += '&force_replace_master=1';
+			}
 			$.ajax({
 				url: 'save_details.php',
 				type: 'POST',
 				dataType: 'json',
-				data: $('#dest_master_form').serialize(),
+				data: payload,
 				success: function(data) {
 					$btn.prop('disabled', false);
 					if (data && data.ok) {
@@ -34,7 +38,15 @@
 							$('#master_id').val(data.master_id);
 						}
 						if (typeof ewToast === 'function') {
-							ewToast('Saved. You can leave and continue later from Quotation Masters.', 'success');
+							ewToast('Saved. Master rows stay when you use other quotations.', 'success');
+						}
+						return;
+					}
+					if (data && data.needs_confirm) {
+						var msg = (data.message || 'This will remove some saved destination rows.')
+							+ '\n\nClick OK only if you intentionally removed those rows.';
+						if (window.confirm(msg)) {
+							saveDestMaster($btn, true);
 						}
 						return;
 					}

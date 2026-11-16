@@ -8,6 +8,9 @@ web/images/pdf.zip
 *.sql
 error_log
 **/error_log
+backup.log
+**/backup.log
+web/storage/db_backups/backup.log
 
 # User uploads
 uploads/

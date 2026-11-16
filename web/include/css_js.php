@@ -34,8 +34,8 @@
 	<!-- Modern UI Layer (loaded last to override legacy styles) -->
 	<link href="stylesheets/modern-ui.css?v=20261023list-align" media="all" rel="stylesheet" type="text/css" />
 	<link href="stylesheets/ew-datepicker.css?v=20260918datefield" media="all" rel="stylesheet" type="text/css" />
-<link href="stylesheets/ew-design-system.css?v=20261109footer1" media="all" rel="stylesheet" type="text/css" />
-<link href="stylesheets/ew-pages-v2.css?v=20261109footer1" media="all" rel="stylesheet" type="text/css" />
+<link href="stylesheets/ew-design-system.css?v=20261112stickyaction18" media="all" rel="stylesheet" type="text/css" />
+<link href="stylesheets/ew-pages-v2.css?v=20261113tfoot-right" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-form-validation.css?v=20260911valfix" media="all" rel="stylesheet" type="text/css" />
 <link href="stylesheets/ew-skeleton.css?v=20261013loader2" media="all" rel="stylesheet" type="text/css" />
 	
@@ -98,9 +98,10 @@
 	<script src="javascripts/jquery.sparkline.min.js" type="text/javascript"></script>
 	<script src="javascripts/dropzone.js" type="text/javascript"></script>
 	<script src="javascripts/jquery.nestable.js" type="text/javascript"></script>
-	<script src="javascripts/main.js?v=20261023dbkrange" type="text/javascript"></script>
-	<script src="javascripts/ew-list-layout.js?v=20261023sno-center" type="text/javascript"></script>
-	<script src="javascripts/ew-table-drag-scroll.js?v=20260909fix" type="text/javascript"></script>
+	<script src="javascripts/main.js?v=20261111sslist1" type="text/javascript"></script>
+	<script src="javascripts/ew-list-layout.js?v=20261113mis-one-search" type="text/javascript"></script>
+	<script src="javascripts/ew-mis-report-views.js?v=20261113mis-results-view" type="text/javascript"></script>
+	<script src="javascripts/ew-table-drag-scroll.js?v=20261112stickyaction18" type="text/javascript"></script>
 	<script src="javascripts/ew-pages-v2.js?v=20260930revertmodalfoot" type="text/javascript"></script>
 	<script src="javascripts/ew-cancel-modal.js?v=20261029receiptcancel" type="text/javascript"></script>
 	<script src="javascripts/ew-master-edit.js?v=20261026master-use" type="text/javascript"></script>

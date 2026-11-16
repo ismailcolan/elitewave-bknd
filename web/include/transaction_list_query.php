@@ -228,11 +228,11 @@ function transaction_list_render_row($conn, $row, $i)
 
 	$sno = transaction_gcn_serial_no($row);
 	$out_put = '<tr>
-			<td class="text-center" data-order="' . $sno . '">' . $sno . '</td>
-			<td><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
-			<td><span class="txn-pnr">' . htmlspecialchars($row['tracking_code'] ?? '') . '</span></td>
-			<td>' . htmlspecialchars($row['grn_date']) . '</td>
-			<td class="text-center">' . (int) ($pkg_r['pkge'] ?? 0) . '</td>
+			<td class="text-center col-sno" data-order="' . $sno . '">' . $sno . '</td>
+			<td class="col-gcn"><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
+			<td class="col-pnr"><span class="txn-pnr">' . htmlspecialchars($row['tracking_code'] ?? '') . '</span></td>
+			<td class="col-date">' . htmlspecialchars($row['grn_date']) . '</td>
+			<td class="text-center col-pkgs">' . (int) ($pkg_r['pkge'] ?? 0) . '</td>
 			<td class="col-consignor">' . transaction_list_client_cell($conn, $row['consigner'], $row['consignor_branch_id'] ?? 0) . '</td>
 			<td class="col-consignee">' . transaction_list_client_cell($conn, $row['consignee'], $row['consignee_branch_id'] ?? 0) . '</td>
 			<td>' . $dest_cell . '</td>
@@ -404,10 +404,10 @@ function transaction_status_list_render_row($conn, $row, $i)
 	$ts_express_train = (int) ($ts_carrier_dec['train_id'] ?? 0);
 	$ts_express_flight = (int) ($ts_carrier_dec['flight_id'] ?? 0);
 	$out = '<tr>
-		<td class="text-center" data-label="S.No" data-order="' . $sno . '">' . $sno . '</td>
-		<td data-label="GCN No"><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
-		<td data-label="GCN Date">' . htmlspecialchars($row['grn_date']) . '</td>
-		<td class="text-center" data-label="Pkgs">' . $total_packages . '</td>
+		<td class="text-center col-sno" data-label="S.No" data-order="' . $sno . '">' . $sno . '</td>
+		<td class="col-gcn" data-label="GCN No"><span class="txn-gcn-no">' . htmlspecialchars($row['grn_no']) . '</span></td>
+		<td class="col-date" data-label="GCN Date">' . htmlspecialchars($row['grn_date']) . '</td>
+		<td class="text-center col-pkgs" data-label="Pkgs">' . $total_packages . '</td>
 		<td data-label="Consignor">' . htmlspecialchars(get_client_name($conn, $row['consigner'])) . '</td>
 		<td data-label="Consignee">' . htmlspecialchars(get_client_name($conn, $row['consignee'])) . '</td>
 		<td data-label="Destination">' . htmlspecialchars(get_city_name($conn, $row['destination'])) . '</td>

@@ -2,6 +2,7 @@
 require_once('PhpSpreadsheet/vendor/autoload.php');
 require_once('include/connect.php');
 require_once('include/function.php');
+require_once('include/ew_excel_report_sheet.php');
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -258,14 +259,10 @@ foreach ($table_list as $tbl_name) {
         GROUP BY t.transaction_id";
 }
 
-if (empty($union_queries)) {
-    die('No data found for the selected date range.');
-}
-
-$final_query = implode(' UNION ALL ', $union_queries) . ' ORDER BY grn_date DESC, grn_no DESC';
-$result = @mysqli_query($conn, $final_query);
-if (!$result) {
-    die('Unable to generate report.');
+$result = false;
+if (!empty($union_queries)) {
+    $final_query = implode(' UNION ALL ', $union_queries) . ' ORDER BY grn_date DESC, grn_no DESC';
+    $result = @mysqli_query($conn, $final_query);
 }
 
 $spreadsheet = new Spreadsheet();
@@ -279,6 +276,7 @@ $headerFill = '9DC3E6';
 $headerText = '1F4E79';
 $altRowFill = 'DDEBF7';
 $borderColor = '9BC2E6';
+$headerBorderColor = '1F4E79';
 $navyText = '1F4E79';
 
 $columns = array(
@@ -325,6 +323,12 @@ for ($c = 1; $c <= $colCount; $c++) {
     $colLetters[] = Coordinate::stringFromColumnIndex($c);
 }
 $lastCol = $colLetters[$colCount - 1];
+$sheetCanvas = ew_excel_apply_report_sheet_look(
+	$spreadsheet,
+	$sheet,
+	$lastCol,
+	($result ? (int) mysqli_num_rows($result) : 0)
+);
 
 $reportTitle = 'Cargo Booking Report : ' . $from_date . ' to ' . $to_date;
 
@@ -358,9 +362,11 @@ $sheet->getStyle('A1:' . $lastCol . '3')->applyFromArray(array(
 ));
 $sheet->getStyle('A1')->applyFromArray(array(
     'font' => array('bold' => true, 'size' => 16, 'color' => array('rgb' => $navyText), 'name' => 'Calibri'),
+    'alignment' => array('horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER),
 ));
 $sheet->getStyle('A2')->applyFromArray(array(
     'font' => array('bold' => true, 'size' => 12, 'color' => array('rgb' => $navyText), 'name' => 'Calibri'),
+    'alignment' => array('horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER),
 ));
 $sheet->getStyle('A3')->applyFromArray(array(
     'font' => array('bold' => true, 'size' => 10, 'color' => array('rgb' => $navyText), 'name' => 'Calibri'),
@@ -390,11 +396,11 @@ $sheet->getStyle('A' . $headerRow . ':' . $lastCol . $headerRow)->applyFromArray
     'borders' => array(
         'allBorders' => array(
             'borderStyle' => Border::BORDER_THIN,
-            'color' => array('rgb' => $borderColor),
+            'color' => array('rgb' => $headerBorderColor),
         ),
     ),
     'alignment' => array(
-        'horizontal' => Alignment::HORIZONTAL_LEFT,
+        'horizontal' => Alignment::HORIZONTAL_CENTER,
         'vertical' => Alignment::VERTICAL_CENTER,
         'wrapText' => true,
     ),
@@ -406,6 +412,7 @@ $textCols = array(1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
 
 $dataRowStyle = array(
     'font' => array('size' => 10, 'name' => 'Calibri', 'color' => array('rgb' => '1F1F1F')),
+    'fill' => array('fillType' => Fill::FILL_SOLID, 'color' => array('rgb' => 'FFFFFF')),
     'borders' => array(
         'allBorders' => array(
             'borderStyle' => Border::BORDER_THIN,
@@ -420,8 +427,19 @@ $dataRowStyle = array(
 
 $rowNum = $headerRow + 1;
 $i = 1;
+$hasData = ($result && mysqli_num_rows($result) > 0);
 
-if ($result && mysqli_num_rows($result) > 0) {
+if (!$hasData) {
+    $sheet->mergeCells('A' . $rowNum . ':' . $lastCol . $rowNum);
+    $sheet->setCellValue('A' . $rowNum, 'No data available');
+    $sheet->getStyle('A' . $rowNum . ':' . $lastCol . $rowNum)->applyFromArray(array(
+        'font' => array('bold' => true, 'size' => 12, 'name' => 'Calibri', 'color' => array('rgb' => '64748B')),
+        'fill' => array('fillType' => Fill::FILL_SOLID, 'color' => array('rgb' => 'F4F7FB')),
+        'borders' => array('allBorders' => array('borderStyle' => Border::BORDER_THIN, 'color' => array('rgb' => $borderColor))),
+        'alignment' => array('horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER),
+    ));
+    $sheet->getRowDimension($rowNum)->setRowHeight(28);
+} else {
     while ($row = mysqli_fetch_assoc($result)) {
         $values = array(
             $i,
@@ -489,9 +507,9 @@ if ($result && mysqli_num_rows($result) > 0) {
     }
 }
 
-$lastDataRow = ($rowNum > $headerRow + 1) ? ($rowNum - 1) : $headerRow;
+$lastDataRow = !$hasData ? $headerRow : (($rowNum > $headerRow + 1) ? ($rowNum - 1) : $headerRow);
 $sheet->setAutoFilter('A' . $headerRow . ':' . $lastCol . $lastDataRow);
-$sheet->freezePane('A' . ($headerRow + 1));
+ew_excel_fill_rows_below_report($sheet, !$hasData ? $headerRow : ($rowNum - 1), $sheetCanvas);
 
 $colWidths = array(
     'A' => 8, 'B' => 12, 'C' => 16, 'D' => 12, 'E' => 8, 'F' => 12, 'G' => 12, 'H' => 10,

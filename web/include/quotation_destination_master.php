@@ -142,11 +142,36 @@ function quotation_dest_master_hydrate_rows_for_form($conn, $master_id)
 	return $out;
 }
 
+/** City IDs stored on a master — keep them in dropdowns even if city was deactivated. */
+function quotation_dest_master_city_ids($conn, $master_id)
+{
+	$ids = array();
+	foreach (quotation_dest_master_get_rows($conn, $master_id) as $row) {
+		$cid = (int) ($row['destination_city_id'] ?? 0);
+		if ($cid > 0) {
+			$ids[$cid] = $cid;
+		}
+	}
+	return array_values($ids);
+}
+
 function quotation_dest_master_save_rows($conn, $master_id, $rows)
 {
 	quotation_dest_master_ensure_tables($conn);
 	$master_id = (int) $master_id;
-	mysqli_query($conn, "DELETE FROM rate_quotation_dest_master_rows WHERE master_id='$master_id'");
+	$started_tx = false;
+	if (function_exists('mysqli_begin_transaction')) {
+		$started_tx = @mysqli_begin_transaction($conn);
+	} else {
+		$started_tx = (bool) @mysqli_query($conn, 'START TRANSACTION');
+	}
+	$ok_del = mysqli_query($conn, "DELETE FROM rate_quotation_dest_master_rows WHERE master_id='$master_id'");
+	if (!$ok_del) {
+		if ($started_tx) {
+			@mysqli_rollback($conn);
+		}
+		return false;
+	}
 	$esc = function ($v) use ($conn) {
 		return mysqli_real_escape_string($conn, (string) $v);
 	};
@@ -156,7 +181,7 @@ function quotation_dest_master_save_rows($conn, $master_id, $rows)
 		$vt = (int) ($row['vehicle_type_id'] ?? 0);
 		$vt_sql = $vt > 0 ? "'$vt'" : 'NULL';
 		$vtxt_sql = "'" . $esc($row['vehicle_text'] ?? '') . "'";
-		mysqli_query($conn, "INSERT INTO rate_quotation_dest_master_rows (
+		$ok_ins = mysqli_query($conn, "INSERT INTO rate_quotation_dest_master_rows (
 			master_id, sort_no, destination_city_id, mode_id, vehicle_type_id, vehicle_text, delivery_days,
 			freight_charges, tempo_charges, doc_charges, others, row_total
 		) VALUES (
@@ -166,7 +191,17 @@ function quotation_dest_master_save_rows($conn, $master_id, $rows)
 			'" . $esc($row['doc_charges'] ?? 0) . "', '" . $esc($row['others'] ?? 0) . "',
 			'" . $esc($row['row_total'] ?? 0) . "'
 		)");
+		if (!$ok_ins) {
+			if ($started_tx) {
+				@mysqli_rollback($conn);
+			}
+			return false;
+		}
 	}
+	if ($started_tx) {
+		@mysqli_commit($conn);
+	}
+	return true;
 }
 
 function quotation_dest_master_suggest_name($conn, $rows)
@@ -230,10 +265,24 @@ function quotation_dest_master_save($conn, $payload, $master_id, $user_id)
 			$master_id = $existing_singleton;
 		}
 	}
+	$force_replace = !empty($payload['force_replace_master']);
+	$existing_row_count = 0;
 	if ($master_id > 0) {
 		$existing = quotation_dest_master_get($conn, $master_id);
 		if (!$existing) {
 			return array('ok' => false, 'message' => 'Master not found.');
+		}
+		$existing_row_count = count(quotation_dest_master_get_rows($conn, $master_id));
+		// Never silently shrink the shared template (e.g. after using other quotations / truncated POST).
+		if (!$force_replace && $existing_row_count > 0 && count($rows) < $existing_row_count) {
+			return array(
+				'ok' => false,
+				'needs_confirm' => true,
+				'existing_count' => $existing_row_count,
+				'new_count' => count($rows),
+				'message' => 'This would replace ' . $existing_row_count . ' saved destination row(s) with only '
+					. count($rows) . '. Confirm if you really want to remove the missing rows.',
+			);
 		}
 		$name = quotation_dest_master_suggest_name($conn, $rows);
 		$ok = mysqli_query($conn, "UPDATE rate_quotation_dest_master SET
@@ -256,8 +305,10 @@ function quotation_dest_master_save($conn, $payload, $master_id, $user_id)
 	if ($master_id <= 0) {
 		return array('ok' => false, 'message' => 'Could not save master.');
 	}
-	quotation_dest_master_save_rows($conn, $master_id, $rows);
-	return array('ok' => true, 'master_id' => $master_id);
+	if (!quotation_dest_master_save_rows($conn, $master_id, $rows)) {
+		return array('ok' => false, 'message' => 'Could not save destination rows. Existing master data was kept.');
+	}
+	return array('ok' => true, 'master_id' => $master_id, 'row_count' => count($rows));
 }
 
 function quotation_dest_master_delete($conn, $master_id)
@@ -284,7 +335,7 @@ function quotation_dest_master_toggle_status($conn, $master_id, $status, $user_i
 function quotation_dest_master_rows_html($conn, $master_id, $form_editable = true)
 {
 	$rows = quotation_dest_master_hydrate_rows_for_form($conn, $master_id);
-	$city_catalog = quotation_city_state_catalog($conn);
+	$city_catalog = quotation_city_state_catalog($conn, quotation_dest_master_city_ids($conn, $master_id));
 	$modes = quotation_mode_transport_catalog($conn);
 	$vehicle_types = ew_vehicle_type_list($conn, true);
 	$delivery_days_opts = quotation_delivery_days_options();
