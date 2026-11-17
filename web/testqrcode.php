@@ -1,7 +1,7 @@
 <?php
 require_once("include/connect.php");
 //require_once("save_admin.php");
-include("include/function.php");
+require_once('include/function.php');
 ?><!DOCTYPE html>
 <html lang="en">
 <head>

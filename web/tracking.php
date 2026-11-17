@@ -8,6 +8,7 @@
   box-sizing: border-box;
   font-family: "Open Sans";
 }
+
 i.fa {
    font-size: 18px !important;
     padding: 0px;

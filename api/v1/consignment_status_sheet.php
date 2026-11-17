@@ -40,7 +40,7 @@ if (empty($user_id)) {
 // Optional: Validate if user_id exists in DB (simplified security check)
 $user_query = "SELECT * FROM users WHERE user_id='" . mysqli_real_escape_string($conn, $user_id) . "' AND status=0";
 $user_result = mysqli_query($conn, $user_query);
-if (mysqli_num_rows($user_result) == 0) {
+if (ew_mysqli_num_rows($user_result) == 0) {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized: invalid user_id']);
     exit;
 }

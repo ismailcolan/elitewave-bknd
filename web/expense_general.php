@@ -100,20 +100,13 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			justify-content: space-between;
 			align-items: center;
 			gap: 16px;
-			margin: 0 !important;
-			padding: 14px 24px 22px !important;
-			width: 100%;
-			max-width: 100%;
-			box-sizing: border-box;
-			overflow: visible;
 		}
 
 		.egen-net-payable {
 			display: flex;
 			align-items: center;
 			gap: 10px;
-			flex: 1 1 auto;
-			min-width: 0;
+			flex: 0 0 auto;
 		}
 
 		.egen-net-payable label {
@@ -126,7 +119,6 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 
 		#net_payable_display {
 			width: 128px;
-			max-width: 100%;
 			height: 34px;
 			padding: 0 12px;
 			font-size: 13px;
@@ -175,17 +167,9 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 		.egen-form-footer-actions {
 			display: flex;
 			align-items: center;
-			justify-content: flex-end;
 			gap: 8px;
-			flex: 0 0 auto;
 			flex-wrap: wrap;
 			margin-left: auto;
-			max-width: 100%;
-		}
-
-		.egen-form-footer-actions .ew-btn-v2 {
-			flex-shrink: 0;
-			white-space: nowrap;
 		}
 
 		.field-disabled {
@@ -211,24 +195,21 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			.ew-form-footer.egen-form-footer {
 				flex-direction: column;
 				align-items: stretch;
-				padding: 14px 16px 18px !important;
 			}
 
 			.egen-net-payable {
 				max-width: none;
-				width: 100%;
-				justify-content: space-between;
 			}
 
 			.egen-form-footer-actions {
-				justify-content: stretch;
+				justify-content: flex-end;
 				margin-left: 0;
 				width: 100%;
 			}
 
-			.egen-form-footer-actions .ew-btn-v2 {
-				flex: 1 1 auto;
-				min-width: 0;
+			.egen-net-payable {
+				width: 100%;
+				justify-content: space-between;
 			}
 
 			#net_payable_display {
