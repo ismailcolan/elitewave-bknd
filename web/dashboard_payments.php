@@ -65,14 +65,15 @@ $date_range_display = $date_range_all
 	? ''
 	: (dbk_display_date($data['range']['from']) . ' – ' . dbk_display_date($data['range']['to']));
 
+$pay_recv = (float) ($kpi['total_receivables'] ?? 0);
 $pay_kpi_cards = array(
-	array('fmt' => 'total_receivables_fmt', 'class' => 'k-pay-recv', 'label' => 'Total Receivables', 'icon' => 'fa-inr'),
-	array('fmt' => 'todays_collections_fmt', 'class' => 'k-pay-today', 'label' => "Today's Collections", 'icon' => 'fa-calendar-check-o'),
-	array('fmt' => 'month_collections_fmt', 'class' => 'k-pay-month', 'label' => 'This Month Collections', 'icon' => 'fa-calendar'),
-	array('fmt' => 'pending_collections_fmt', 'class' => 'k-pay-pending', 'label' => 'Pending Collections', 'icon' => 'fa-clock-o'),
-	array('fmt' => 'overdue_amount_fmt', 'class' => 'k-pay-overdue', 'label' => 'Overdue Amount', 'icon' => 'fa-exclamation-triangle', 'trend' => true),
-	array('fmt' => 'advance_received_fmt', 'class' => 'k-pay-advance', 'label' => 'Advance Received', 'icon' => 'fa-briefcase'),
-	array('fmt' => 'unallocated_payments_fmt', 'class' => 'k-pay-unalloc', 'label' => 'Unallocated Payments', 'icon' => 'fa-chain-broken'),
+	array('fmt' => 'total_receivables_fmt', 'raw' => 'total_receivables', 'class' => 'k-pay-recv', 'label' => 'Total receivables', 'icon' => 'fa-inr', 'meta_strong' => 'Open', 'meta_text' => 'balance'),
+	array('fmt' => 'todays_collections_fmt', 'raw' => 'todays_collections', 'class' => 'k-pay-today', 'label' => "Today's collections", 'icon' => 'fa-calendar-check-o', 'meta_strong' => 'Today', 'meta_text' => 'collected'),
+	array('fmt' => 'month_collections_fmt', 'raw' => 'month_collections', 'class' => 'k-pay-month', 'label' => 'This month collections', 'icon' => 'fa-calendar', 'meta_strong' => 'Month', 'meta_text' => 'to date'),
+	array('fmt' => 'pending_collections_fmt', 'raw' => 'pending_collections', 'class' => 'k-pay-pending', 'label' => 'Pending collections', 'icon' => 'fa-clock-o', 'tone' => 'warn', 'share' => true),
+	array('fmt' => 'overdue_amount_fmt', 'raw' => 'overdue_amount', 'class' => 'k-pay-overdue', 'label' => 'Overdue amount', 'icon' => 'fa-exclamation-triangle', 'trend' => true, 'tone' => 'bad', 'share' => true),
+	array('fmt' => 'advance_received_fmt', 'raw' => 'advance_received', 'class' => 'k-pay-advance', 'label' => 'Advance received', 'icon' => 'fa-briefcase', 'tone' => 'ok', 'meta_strong' => 'Advance', 'meta_text' => 'on hand'),
+	array('fmt' => 'unallocated_payments_fmt', 'raw' => 'unallocated_payments', 'class' => 'k-pay-unalloc', 'label' => 'Unallocated payments', 'icon' => 'fa-chain-broken', 'tone' => 'warn', 'meta_strong' => 'Needs', 'meta_text' => 'matching'),
 );
 ?>
 <!DOCTYPE html>
@@ -82,8 +83,8 @@ $pay_kpi_cards = array(
 	<?php include('include/css_js.php'); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-	<link href="stylesheets/dashboard-booking.css?v=20261027range8" rel="stylesheet" type="text/css" />
-	<link href="stylesheets/dashboard-payments.css?v=20261028pay6" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/dashboard-booking.css?v=20261117kpiref1" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/dashboard-payments.css?v=20261117kpi9" rel="stylesheet" type="text/css" />
 </head>
 <body class="page-header-fixed bg-1 dash-booking-page">
 	<div class="modal-shiftfix">
@@ -123,17 +124,32 @@ $pay_kpi_cards = array(
 				</div>
 
 				<div class="dash-kpi-row dash-pay-kpi-row" role="list">
-					<?php foreach ($pay_kpi_cards as $card): ?>
+					<?php foreach ($pay_kpi_cards as $card):
+						$tone = $card['tone'] ?? '';
+						if (!empty($card['share'])) {
+							$amt = (float) ($kpi[$card['raw']] ?? 0);
+							$pct = $pay_recv > 0.009 ? round($amt * 100 / $pay_recv, 1) : 0;
+							$meta_strong = rtrim(rtrim(number_format($pct, 1, '.', ''), '0'), '.') . '%';
+							$meta_text = 'of receivables';
+						} else {
+							$meta_strong = $card['meta_strong'] ?? '';
+							$meta_text = $card['meta_text'] ?? '';
+						}
+					?>
 						<div class="dash-kpi-card <?php echo dbk_h($card['class']); ?>" role="listitem">
-							<div class="dash-kpi-head">
-								<span class="dash-kpi-lbl"><?php echo dbk_h($card['label']); ?></span>
+							<div class="dash-kpi-top">
 								<span class="dash-kpi-ico"><i class="fa <?php echo dbk_h($card['icon']); ?>" aria-hidden="true"></i></span>
+								<div class="dash-kpi-val dash-pay-kpi-val">
+									₹ <?php echo dbk_h($kpi[$card['fmt']]); ?>
+									<?php if (!empty($card['trend'])): ?>
+										<i class="fa fa-long-arrow-up dash-pay-kpi-trend" aria-hidden="true"></i>
+									<?php endif; ?>
+								</div>
 							</div>
-							<div class="dash-kpi-val dash-pay-kpi-val">
-								₹ <?php echo dbk_h($kpi[$card['fmt']]); ?>
-								<?php if (!empty($card['trend'])): ?>
-									<i class="fa fa-long-arrow-up dash-pay-kpi-trend" aria-hidden="true"></i>
-								<?php endif; ?>
+							<div class="dash-kpi-lbl"><?php echo dbk_h($card['label']); ?></div>
+							<div class="dash-kpi-meta<?php echo $tone !== '' ? ' is-' . dbk_h($tone) : ''; ?>">
+								<strong><?php echo dbk_h($meta_strong); ?></strong>
+								<span><?php echo dbk_h($meta_text); ?></span>
 							</div>
 						</div>
 					<?php endforeach; ?>

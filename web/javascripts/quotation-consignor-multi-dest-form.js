@@ -127,12 +127,13 @@
 		if (!$.fn.select2) {
 			return;
 		}
-		$scope.find('.md-city').each(function() {
+		$scope.find('select.md-city').each(function() {
 			var $el = $(this);
 			if ($el.data('select2')) {
 				return;
 			}
-			$el.select2({ width: '100%', placeholder: 'City — State', allowClear: true });
+			var ph = $el.hasClass('md-origin-city') ? 'Origin — State' : 'Destination — State';
+			$el.select2({ width: '100%', placeholder: ph, allowClear: true });
 			$el.on('change', renderPreview);
 		});
 	}
@@ -168,10 +169,11 @@
 	}
 
 	function destPreviewTable() {
-		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Destination</th><th>Mode</th><th>Source of transport</th><th>Days</th><th align="right">Freight</th><th align="right">Pickup &amp; Delivery</th></tr>';
+		var html = '<table class="charges" style="font-size:11px;"><tr><th align="left">Origin</th><th align="left">Destination</th><th>Mode</th><th>Source of transport</th><th>Days</th><th align="right">Freight</th><th align="right">Pickup &amp; Delivery</th></tr>';
 		$('#md_dest_tbody tr.md-row').each(function() {
 			var $tr = $(this);
-			var dest = mdSelectLabel($tr.find('.md-city'), 'City — State');
+			var origin = mdSelectLabel($tr.find('.md-origin-city'), 'Origin — State');
+			var dest = mdSelectLabel($tr.find('.md-dest-city'), 'Destination — State');
 			var mode = mdSelectLabel($tr.find('.md-mode'), 'Mode');
 			var src = sourceLabel($tr);
 			var days = mdSelectLabel($tr.find('.md-days'), 'Days');
@@ -179,7 +181,7 @@
 			var tempoRaw = $.trim($tr.find('.md-amt[name="md_tempo[]"]').val());
 			var rt = freightRaw === '' ? '—' : ('₹ ' + fmt(num(freightRaw)) + ' /-');
 			var tempoDisp = tempoRaw === '' ? '—' : ('₹ ' + fmt(num(tempoRaw)) + ' /-');
-			html += '<tr><td>' + escHtml(dest) + '</td><td>' + escHtml(mode) + '</td><td>' + escHtml(src) + '</td><td>' + escHtml(days) + '</td><td align="right">' + escHtml(rt) + '</td><td align="right">' + escHtml(tempoDisp) + '</td></tr>';
+			html += '<tr><td>' + escHtml(origin) + '</td><td>' + escHtml(dest) + '</td><td>' + escHtml(mode) + '</td><td>' + escHtml(src) + '</td><td>' + escHtml(days) + '</td><td align="right">' + escHtml(rt) + '</td><td align="right">' + escHtml(tempoDisp) + '</td></tr>';
 		});
 		html += '</table>';
 		return html;
@@ -250,7 +252,7 @@
 	}
 
 	function mdRowIsActive($tr) {
-		if (mdRowFieldVal($tr, '.md-city') || mdRowFieldVal($tr, '.md-mode')) {
+		if (mdRowFieldVal($tr, '.md-origin-city') || mdRowFieldVal($tr, '.md-dest-city') || mdRowFieldVal($tr, '.md-mode')) {
 			return true;
 		}
 		if (mdRowFieldVal($tr, '.md-days')) {
@@ -282,7 +284,8 @@
 				return;
 			}
 			seen++;
-			var city = mdRowFieldVal($tr, '.md-city');
+			var origin = mdRowFieldVal($tr, '.md-origin-city');
+			var city = mdRowFieldVal($tr, '.md-dest-city');
 			var mode = mdRowFieldVal($tr, '.md-mode');
 			var days = mdRowFieldVal($tr, '.md-days');
 			var $freight = $tr.find('.md-amt[name="md_freight[]"]');
@@ -290,10 +293,16 @@
 			var freight = $.trim($freight.val() || '');
 			var tempo = $.trim($tempo.val() || '');
 
-			if (!city) {
-				mdFlagInvalid($tr.find('.md-city'));
+			if (!origin) {
+				mdFlagInvalid($tr.find('.md-origin-city'));
 				if (!$firstBad) {
-					$firstBad = $tr.find('.md-city');
+					$firstBad = $tr.find('.md-origin-city');
+				}
+			}
+			if (!city) {
+				mdFlagInvalid($tr.find('.md-dest-city'));
+				if (!$firstBad) {
+					$firstBad = $tr.find('.md-dest-city');
 				}
 			}
 			if (!mode) {
@@ -323,12 +332,13 @@
 		});
 		if (seen === 0) {
 			var $firstRow = $('#md_dest_tbody tr.md-row').first();
-			mdFlagInvalid($firstRow.find('.md-city'));
+			mdFlagInvalid($firstRow.find('.md-origin-city'));
+			mdFlagInvalid($firstRow.find('.md-dest-city'));
 			mdFlagInvalid($firstRow.find('.md-mode'));
 			mdFlagInvalid($firstRow.find('.md-days'));
 			mdFlagInvalid($firstRow.find('.md-amt[name="md_freight[]"]'));
 			mdFlagInvalid($firstRow.find('.md-amt[name="md_tempo[]"]'));
-			$firstBad = $firstRow.find('.md-city');
+			$firstBad = $firstRow.find('.md-origin-city');
 		}
 		if ($firstBad && $firstBad.length) {
 			var top = $firstBad.offset().top - 140;
@@ -391,7 +401,7 @@
 			syncCustomerModeUi(true);
 		});
 
-		$(document).on('input change', '.pv-bind, #gst_rate, #party_id, #party_name, .md-amt, .md-city, .md-mode, .md-source, .md-days, #subject, #quotation_approval, #freight_paid_by, #payment_terms, #cfs_port_factory, #part_number', function() {
+		$(document).on('input change', '.pv-bind, #gst_rate, #party_id, #party_name, .md-amt, .md-origin-city, .md-dest-city, .md-mode, .md-source, .md-days, #subject, #quotation_approval, #freight_paid_by, #payment_terms, #cfs_port_factory, #part_number', function() {
 			renderPreview();
 		});
 
@@ -426,7 +436,7 @@
 			renderPreview();
 		});
 
-		$(document).on('change input', '#md_dest_tbody .md-city, #md_dest_tbody .md-mode, #md_dest_tbody .md-days, #md_dest_tbody .md-amt', function() {
+		$(document).on('change input', '#md_dest_tbody .md-origin-city, #md_dest_tbody .md-dest-city, #md_dest_tbody .md-mode, #md_dest_tbody .md-days, #md_dest_tbody .md-amt', function() {
 			$(this).removeClass('md-field-error');
 		});
 
@@ -457,7 +467,7 @@
 		}
 
 		function destroyMdCitySelect2($scope) {
-			$scope.find('select.md-city').each(function() {
+			$scope.find('select.md-origin-city, select.md-dest-city').each(function() {
 				var $el = $(this);
 				if ($el.hasClass('select2-hidden-accessible') || $el.data('select2')) {
 					try {

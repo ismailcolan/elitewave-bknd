@@ -52,28 +52,28 @@
 	<script src="javascripts/jquery-ui.js" type="text/javascript"></script>
 	
 	<script src="javascripts/bootstrap.min.js" type="text/javascript"></script>
-	<script src="javascripts/raphael.min.js" type="text/javascript"></script>
-	<script src="javascripts/selectivizr-min.js" type="text/javascript"></script>
-	<script src="javascripts/jquery.mousewheel.js" type="text/javascript"></script>
-	<script src="javascripts/jquery.vmap.min.js" type="text/javascript"></script>
-	<script src="javascripts/jquery.vmap.sampledata.js" type="text/javascript"></script>
-	<script src="javascripts/jquery.vmap.world.js" type="text/javascript"></script>
-	<script src="javascripts/jquery.bootstrap.wizard.js" type="text/javascript"></script>
-	<script src="javascripts/fullcalendar.min.js" type="text/javascript"></script>
-	<script src="javascripts/gcal.js" type="text/javascript"></script>
+	<script src="javascripts/raphael.min.js" type="text/javascript" defer></script>
+	<script src="javascripts/selectivizr-min.js" type="text/javascript" defer></script>
+	<script src="javascripts/jquery.mousewheel.js" type="text/javascript" defer></script>
+	<script src="javascripts/jquery.vmap.min.js" type="text/javascript" defer></script>
+	<script src="javascripts/jquery.vmap.sampledata.js" type="text/javascript" defer></script>
+	<script src="javascripts/jquery.vmap.world.js" type="text/javascript" defer></script>
+	<script src="javascripts/jquery.bootstrap.wizard.js" type="text/javascript" defer></script>
+	<script src="javascripts/fullcalendar.min.js" type="text/javascript" defer></script>
+	<script src="javascripts/gcal.js" type="text/javascript" defer></script>
 	<script src="javascripts/jquery.dataTables.min.js" type="text/javascript"></script>
 	<script src="javascripts/datatable-editable.js" type="text/javascript"></script>
-	<script src="javascripts/jquery.easy-pie-chart.js" type="text/javascript"></script>
-	<script src="javascripts/excanvas.min.js" type="text/javascript"></script>
+	<script src="javascripts/jquery.easy-pie-chart.js" type="text/javascript" defer></script>
+	<script src="javascripts/excanvas.min.js" type="text/javascript" defer></script>
 	<!--<script src="javascripts/jquery.isotope.min.js" type="text/javascript"></script>
 	<script src="javascripts/isotope_extras.js" type="text/javascript"></script>
 	<script src="javascripts/modernizr.custom.js" type="text/javascript"></script>-->
-	<script src="javascripts/jquery.fancybox.pack.js" type="text/javascript"></script>
+	<script src="javascripts/jquery.fancybox.pack.js" type="text/javascript" defer></script>
 	<script src="javascripts/select2.js" type="text/javascript"></script>
 	<script src="javascripts/styleswitcher.js" type="text/javascript"></script>
-	<script src="javascripts/wysiwyg.js" type="text/javascript"></script>
-	<script src="javascripts/typeahead.js" type="text/javascript"></script>
-	<script src="javascripts/summernote.min.js" type="text/javascript"></script>
+	<script src="javascripts/wysiwyg.js" type="text/javascript" defer></script>
+	<script src="javascripts/typeahead.js" type="text/javascript" defer></script>
+	<script src="javascripts/summernote.min.js" type="text/javascript" defer></script>
 	<script src="javascripts/jquery.inputmask.min.js" type="text/javascript"></script>
 	<script src="javascripts/jquery.validate.js" type="text/javascript"></script>
 	<script src="javascripts/bootstrap-fileupload.js" type="text/javascript"></script>
@@ -92,12 +92,12 @@
 	<script src="javascripts/address.js" type="text/javascript"></script>
 	<script src="javascripts/daterange-picker.js" type="text/javascript"></script>
 	<script src="javascripts/date.js" type="text/javascript"></script>
-	<script src="javascripts/morris.min.js" type="text/javascript"></script>
-	<script src="javascripts/skycons.js" type="text/javascript"></script>
-	<script src="javascripts/fitvids.js" type="text/javascript"></script>
-	<script src="javascripts/jquery.sparkline.min.js" type="text/javascript"></script>
-	<script src="javascripts/dropzone.js" type="text/javascript"></script>
-	<script src="javascripts/jquery.nestable.js" type="text/javascript"></script>
+	<script src="javascripts/morris.min.js" type="text/javascript" defer></script>
+	<script src="javascripts/skycons.js" type="text/javascript" defer></script>
+	<script src="javascripts/fitvids.js" type="text/javascript" defer></script>
+	<script src="javascripts/jquery.sparkline.min.js" type="text/javascript" defer></script>
+	<script src="javascripts/dropzone.js" type="text/javascript" defer></script>
+	<script src="javascripts/jquery.nestable.js" type="text/javascript" defer></script>
 	<script src="javascripts/main.js?v=20261111sslist1" type="text/javascript"></script>
 	<script src="javascripts/ew-list-layout.js?v=20261113mis-one-search" type="text/javascript"></script>
 	<script src="javascripts/ew-mis-report-views.js?v=20261113mis-results-view" type="text/javascript"></script>
@@ -106,8 +106,8 @@
 	<script src="javascripts/ew-cancel-modal.js?v=20261029receiptcancel" type="text/javascript"></script>
 	<script src="javascripts/ew-master-edit.js?v=20261026master-use" type="text/javascript"></script>
 	<script src="javascripts/respond.js" type="text/javascript"></script>
-	<script src="javascripts/highcharts.js" type="text/javascript"></script>
-	<script src="javascripts/jSignature.js" type="text/javascript"></script>
+	<script src="javascripts/highcharts.js" type="text/javascript" defer></script>
+	<script src="javascripts/jSignature.js" type="text/javascript" defer></script>
 	<script src="javascripts/bootstrap-multiselect.js" type="text/javascript"></script>
 	<script src="javascripts/jquery.timepicker.js?v=20261027modalpos" type="text/javascript"></script>
 	<script src="javascripts/duplicate_check.js" type="text/javascript"></script>

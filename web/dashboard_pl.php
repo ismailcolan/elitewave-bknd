@@ -71,13 +71,13 @@ $date_range_display = $date_range_all
 	: (dbpl_display_date($data['range']['from']) . ' – ' . dbpl_display_date($data['range']['to']));
 
 $pl_kpi_cards = array(
-	array('key' => 'total_revenue_fmt', 'sub' => 'total_revenue', 'spark' => 'revenue', 'spark_color' => '#2563eb', 'class' => 'pl-rev', 'label' => 'Total Revenue', 'icon' => 'fa-line-chart', 'prefix' => '₹ '),
-	array('key' => 'direct_cost_fmt', 'sub' => 'direct_cost', 'spark' => 'direct', 'spark_color' => '#fb923c', 'class' => 'pl-direct', 'label' => 'Direct Logistics Cost', 'icon' => 'fa-truck', 'prefix' => '₹ '),
-	array('key' => 'gross_profit_fmt', 'sub' => 'gross_profit', 'spark' => 'net', 'spark_color' => '#16a34a', 'class' => 'pl-gross', 'label' => 'Gross Profit', 'icon' => 'fa-plus-circle', 'prefix' => '₹ '),
-	array('key' => 'gross_margin_fmt', 'sub' => 'gross_margin', 'spark' => 'revenue', 'spark_color' => '#1e3a8a', 'class' => 'pl-gmargin', 'label' => 'Gross Margin', 'icon' => 'fa-pie-chart', 'prefix' => ''),
-	array('key' => 'operating_fmt', 'sub' => 'operating', 'spark' => 'operating', 'spark_color' => '#dc2626', 'class' => 'pl-op', 'label' => 'Operating Expenses', 'icon' => 'fa-building', 'prefix' => '₹ '),
-	array('key' => 'net_profit_fmt', 'sub' => 'net_profit', 'spark' => 'net', 'spark_color' => '#15803d', 'class' => 'pl-net', 'label' => 'Net Profit', 'icon' => 'fa-money', 'prefix' => '₹ '),
-	array('key' => 'net_margin_fmt', 'sub' => 'net_margin', 'spark' => 'net', 'spark_color' => '#0891b2', 'class' => 'pl-nmargin', 'label' => 'Net Margin', 'icon' => 'fa-percent', 'prefix' => ''),
+	array('key' => 'total_revenue_fmt', 'sub' => 'total_revenue', 'spark' => 'revenue', 'spark_color' => '#06416F', 'class' => 'pl-rev', 'label' => 'Total Revenue', 'icon' => 'fa-line-chart', 'prefix' => '₹ '),
+	array('key' => 'direct_cost_fmt', 'sub' => 'direct_cost', 'spark' => 'direct', 'spark_color' => '#B45309', 'class' => 'pl-direct', 'label' => 'Direct Logistics Cost', 'icon' => 'fa-truck', 'prefix' => '₹ '),
+	array('key' => 'gross_profit_fmt', 'sub' => 'gross_profit', 'spark' => 'net', 'spark_color' => '#15803D', 'class' => 'pl-gross', 'label' => 'Gross Profit', 'icon' => 'fa-plus-circle', 'prefix' => '₹ '),
+	array('key' => 'gross_margin_fmt', 'sub' => 'gross_margin', 'spark' => 'revenue', 'spark_color' => '#06416F', 'class' => 'pl-gmargin', 'label' => 'Gross Margin', 'icon' => 'fa-pie-chart', 'prefix' => ''),
+	array('key' => 'operating_fmt', 'sub' => 'operating', 'spark' => 'operating', 'spark_color' => '#B45309', 'class' => 'pl-op', 'label' => 'Operating Expenses', 'icon' => 'fa-building', 'prefix' => '₹ '),
+	array('key' => 'net_profit_fmt', 'sub' => 'net_profit', 'spark' => 'net', 'spark_color' => '#15803D', 'class' => 'pl-net', 'label' => 'Net Profit', 'icon' => 'fa-money', 'prefix' => '₹ '),
+	array('key' => 'net_margin_fmt', 'sub' => 'net_margin', 'spark' => 'net', 'spark_color' => '#06416F', 'class' => 'pl-nmargin', 'label' => 'Net Margin', 'icon' => 'fa-percent', 'prefix' => ''),
 );
 $kpi_sub = $data['kpi_sub'];
 $kpi_spark = $data['kpi_spark'];
@@ -89,8 +89,8 @@ $kpi_spark = $data['kpi_spark'];
 	<?php include('include/css_js.php'); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-	<link href="stylesheets/dashboard-booking.css?v=20261027range8" rel="stylesheet" type="text/css" />
-	<link href="stylesheets/dashboard-pl.css?v=20261028pl2" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/dashboard-booking.css?v=20261117kpiref2" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/dashboard-pl.css?v=20261117kpiref2" rel="stylesheet" type="text/css" />
 </head>
 <body class="page-header-fixed bg-1 dash-booking-page">
 	<div class="modal-shiftfix">
@@ -130,29 +130,46 @@ $kpi_spark = $data['kpi_spark'];
 				</div>
 
 				<div class="dash-pl-kpi-row" role="list">
-					<?php foreach ($pl_kpi_cards as $card):
+					<?php
+					// Card palette (icon / pale bottom line / sparkline) — profit cards turn red when negative.
+					$pl_palette = array(
+						'violet' => '#6E5BE8', 'orange' => '#F0883E', 'green' => '#34A86A', 'cyan' => '#24A9B8',
+						'amber' => '#D9962E', 'blue' => '#4F7DE8', 'red' => '#E24D5F',
+					);
+					$pl_card_tone = array(
+						'pl-rev' => 'violet', 'pl-direct' => 'orange', 'pl-gross' => 'green', 'pl-gmargin' => 'cyan',
+						'pl-op' => 'amber', 'pl-net' => 'green', 'pl-nmargin' => 'blue',
+					);
+					foreach ($pl_kpi_cards as $card):
 						$sub = $kpi_sub[$card['sub']] ?? array('highlight' => '', 'text' => '', 'tone' => 'muted');
 						$spark_series = $kpi_spark[$card['spark']] ?? array();
+						$card_tone = $pl_card_tone[$card['class']] ?? 'blue';
+						if (in_array($card['class'], array('pl-gross', 'pl-gmargin', 'pl-net', 'pl-nmargin'), true) && ($sub['tone'] ?? '') === 'neg') {
+							$card_tone = 'red';
+						}
+						$spark_color = $pl_palette[$card_tone];
 					?>
-						<div class="dash-pl-kpi-card <?php echo dbpl_h($card['class']); ?>" role="listitem">
-							<div class="dash-pl-kpi-ico" aria-hidden="true"><i class="fa <?php echo dbpl_h($card['icon']); ?>"></i></div>
-							<div class="dash-pl-kpi-val"><?php echo dbpl_h($card['prefix'] . $kpi[$card['key']]); ?></div>
-							<div class="dash-pl-kpi-lbl"><?php echo dbpl_h($card['label']); ?></div>
-							<div class="dash-pl-kpi-foot">
-								<div class="dash-pl-kpi-freq tone-<?php echo dbpl_h($sub['tone']); ?>">
-									<?php if (!empty($sub['highlight'])): ?>
-										<strong><?php echo dbpl_h($sub['highlight']); ?></strong>
-									<?php endif; ?>
-									<?php if (!empty($sub['text'])): ?>
-										<span><?php echo dbpl_h($sub['text']); ?></span>
-									<?php endif; ?>
-								</div>
+						<div class="dash-pl-kpi-card <?php echo dbpl_h($card['class']); ?> tone-<?php echo dbpl_h($card_tone); ?>" role="listitem">
+							<div class="dash-pl-kpi-top">
+								<div class="dash-pl-kpi-ico" aria-hidden="true"><i class="fa <?php echo dbpl_h($card['icon']); ?>"></i></div>
+								<div class="dash-pl-kpi-val"><?php echo dbpl_h($card['prefix'] . $kpi[$card['key']]); ?></div>
+							</div>
+							<div class="dash-pl-kpi-mid">
+								<div class="dash-pl-kpi-lbl"><?php echo dbpl_h($card['label']); ?></div>
 								<span
 									class="dash-pl-kpi-spark"
-									data-spark-color="<?php echo dbpl_h($card['spark_color']); ?>"
+									data-spark-color="<?php echo dbpl_h($spark_color); ?>"
 									data-spark-values="<?php echo dbpl_h(json_encode(array_values($spark_series))); ?>"
 									aria-hidden="true"
 								></span>
+							</div>
+							<div class="dash-pl-kpi-freq tone-<?php echo dbpl_h($sub['tone']); ?>">
+								<?php if (!empty($sub['highlight'])): ?>
+									<strong><?php echo dbpl_h($sub['highlight']); ?></strong>
+								<?php endif; ?>
+								<?php if (!empty($sub['text'])): ?>
+									<span><?php echo dbpl_h($sub['text']); ?></span>
+								<?php endif; ?>
 							</div>
 						</div>
 					<?php endforeach; ?>
@@ -317,7 +334,7 @@ $kpi_spark = $data['kpi_spark'];
 	<script src="javascripts/highcharts.js"></script>
 	<script src="javascripts/dashboard-charts-common.js?v=20261026"></script>
 	<script src="javascripts/dashboard-date-range.js?v=20261027range8"></script>
-	<script src="javascripts/dashboard-pl.js?v=20261028pl2"></script>
+	<script src="javascripts/dashboard-pl.js?v=20261117kpiref2"></script>
 	<script>
 	(function () {
 		if (typeof dbkInitDashboardDateRange === 'function') {

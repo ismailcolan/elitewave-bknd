@@ -783,8 +783,8 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                         $status = $row['status'];
                                         $cancelled_by = get_user($conn, $row['cancelled_by']);
                                         $updated_at = $row['updated_at'];
-                                        $pkg_q = mysqli_query($conn, 'select sum(no_of_pkge) as pkge from transaction_invoice_' . $m1 . '_' . $dt[2] . " where transaction_id='" . $row['transaction_id'] . "' ");
-                                        $pkg_r = mysqli_fetch_array($pkg_q);
+                                        $pkg_map = transaction_invoice_pkg_sums($conn, $m1, $dt[2]);
+                                        $pkg_r = array('pkge' => (int) ($pkg_map[(int) $row['transaction_id']] ?? 0));
                                         $trans_table_name = 'transaction_' . $m1 . '_' . $dt[2];
                                         $gcn_billed = booking_is_gcn_billed($conn, $trans_table_name, $row['transaction_id']);
                                         $gcn_sno = (int) transaction_gcn_serial_no($row);

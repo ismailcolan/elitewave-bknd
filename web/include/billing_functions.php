@@ -223,9 +223,40 @@ function billing_gcn_on_final_invoice($conn, $trans_table, $transaction_id, $exc
     return false;
 }
 
+function billing_final_transaction_id_set($conn, $trans_table)
+{
+    static $cache = array();
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $trans_table);
+    if ($trans_table === '') {
+        return array();
+    }
+    if (isset($cache[$trans_table])) {
+        return $cache[$trans_table];
+    }
+    $set = array();
+    $sql = "SELECT DISTINCT d.transaction_id AS tid
+        FROM billing_invoice_details d
+        INNER JOIN billing_invoice_master m ON m.billing_invoice_id = d.billing_invoice_id
+        WHERE d.trans_table='" . mysqli_real_escape_string($conn, $trans_table) . "'
+        AND m.status='final'";
+    $q = mysqli_query($conn, $sql);
+    if ($q) {
+        while ($row = mysqli_fetch_assoc($q)) {
+            $set[(int) $row['tid']] = true;
+        }
+    }
+    $cache[$trans_table] = $set;
+    return $set;
+}
+
 function booking_is_gcn_billed($conn, $trans_table, $transaction_id)
 {
-    return billing_gcn_on_final_invoice($conn, $trans_table, $transaction_id);
+    $transaction_id = (int) $transaction_id;
+    if ($transaction_id <= 0) {
+        return false;
+    }
+    $set = billing_final_transaction_id_set($conn, $trans_table);
+    return !empty($set[$transaction_id]);
 }
 
 function billing_gcn_final_conflict($conn, $trans_table, $transaction_id, $exclude_invoice_id = 0)

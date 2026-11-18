@@ -31,9 +31,6 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 			-webkit-overflow-scrolling: touch;
 		}
 		/* Table already has its own borders — do not frame the wrapper again */
-.ew-page-v2--mis-report .ew-erp-list #bucket_summary {
-			padding: 12px 24px 0;
-		}
 		#pending_invoice_ageing_table { min-width: 1300px; }
 		#pending_invoice_ageing_table th {
 			background: var(--rail-bg, #DDE7F0);
@@ -64,50 +61,6 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 			font-weight: 600;
 			color: #64748B;
 		}
-		.ageing-bucket-strip {
-			display: flex;
-			flex-wrap: nowrap;
-			gap: 8px;
-			width: 100%;
-			margin: 0 0 14px;
-			box-sizing: border-box;
-		}
-		.ageing-bucket-chip {
-			flex: 1 1 0;
-			min-width: 0;
-			background: #EEF3F8;
-			border: 1px solid #C5D3E0;
-			border-radius: 8px;
-			padding: 10px 12px;
-			box-sizing: border-box;
-			text-align: center;
-		}
-		.ageing-bucket-chip .lbl {
-			display: block;
-			font-size: 11px;
-			color: #64748B;
-			font-weight: 600;
-			white-space: nowrap;
-		}
-		.ageing-bucket-chip .val {
-			display: block;
-			font-size: 13px;
-			font-weight: 700;
-			color: #1A2332;
-			margin-top: 2px;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-		@media (max-width: 900px) {
-			.ageing-bucket-strip {
-				flex-wrap: wrap;
-			}
-			.ageing-bucket-chip {
-				flex: 1 1 calc(33.333% - 8px);
-				min-width: 120px;
-			}
-		}
 		.days-overdue-high { color: #B91C1C; font-weight: 700; }
 		.days-overdue-mid { color: #B45309; font-weight: 600; }
 	</style>
@@ -127,6 +80,9 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
 								<h1 class="ew-page-title">Pending Invoice Register / Ageing</h1>
+							</div>
+							<div class="ew-page-head-right">
+								<span class="report-count" id="report_count"></span>
 							</div>
 						</div>
 						<div id="ew_mis_filters_view">
@@ -211,6 +167,10 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 									<span class="ew-mis-active-summary" id="ew_mis_active_summary"></span>
 								</div>
 								<div class="ew-mis-active-actions">
+									<div class="ew-mis-table-search">
+										<i class="fa fa-search"></i>
+										<input type="search" id="ew_mis_table_search" placeholder="Search invoice no, customer…" autocomplete="off">
+									</div>
 									<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="ew_mis_edit_filters">Edit filters</button>
 									<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-export-excel" id="exportExcel">
 										<span class="ew-icon-excel" aria-hidden="true"></span> Export Excel
@@ -219,16 +179,6 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 							</div>
 
 							<div class="ew-card ew-erp-list" id="table_div">
-								<div class="ew-card-toolbar ew-mis-results-toolbar">
-									<h2 id="ew_mis_results_title">Pending Invoice Register / Ageing</h2>
-									<div class="ew-mis-results-tools">
-										<div class="ew-mis-table-search">
-											<i class="fa fa-search"></i>
-											<input type="search" id="ew_mis_table_search" placeholder="Search invoice no, customer…" autocomplete="off">
-										</div>
-										<span class="report-count" id="report_count"></span>
-									</div>
-								</div>
 								<div class="ew-table-wrap widget-content padded clearfix">
 									<div id="bucket_summary" class="ageing-bucket-strip" style="display:none;"></div>
 									<div class="table-scroll-wrapper" id="report"></div>
@@ -353,7 +303,7 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 				$.each(chipOrder, function(i, b) {
 					chips += '<div class="ageing-bucket-chip"><span class="lbl">' + b.label + '</span><span class="val">' + escCell(buckets[b.key] || '0.00') + '</span></div>';
 				});
-				$('#bucket_summary').html(chips).show();
+				$('#bucket_summary').html(chips).css('display', 'flex');
 
 				if (data.length === 0) {
 					$('#report').html('<p class="ew-mis-empty-hint">No pending invoices found for the selected filters.</p>');

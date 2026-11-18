@@ -55,6 +55,8 @@
   function showFilters($root) {
     $root.find('#ew_mis_filters_view').show();
     $root.find('#ew_mis_results_view').hide();
+    $root.find('#report_count').text('');
+    $root.find('#ew_mis_table_search').val('');
     $root.removeClass('ew-mis-showing-results');
   }
 

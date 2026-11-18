@@ -7,6 +7,7 @@ define('QUOTATION_DEST_MASTER_MAX_ROWS', 200);
 
 function quotation_dest_master_ensure_tables($conn)
 {
+	quotation_ensure_destination_rows_table($conn);
 	mysqli_query($conn, "CREATE TABLE IF NOT EXISTS rate_quotation_dest_master (
 		master_id INT(11) NOT NULL AUTO_INCREMENT,
 		master_name VARCHAR(200) NOT NULL,
@@ -24,6 +25,7 @@ function quotation_dest_master_ensure_tables($conn)
 		row_id INT(11) NOT NULL AUTO_INCREMENT,
 		master_id INT(11) NOT NULL,
 		sort_no INT(11) NOT NULL DEFAULT 0,
+		origin_city_id INT(11) NOT NULL DEFAULT 0,
 		destination_city_id INT(11) NOT NULL DEFAULT 0,
 		mode_id INT(11) NOT NULL DEFAULT 0,
 		vehicle_type_id INT(11) DEFAULT NULL,
@@ -37,6 +39,10 @@ function quotation_dest_master_ensure_tables($conn)
 		PRIMARY KEY (row_id),
 		KEY idx_rq_dest_master_row (master_id)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+	$chk_origin = @mysqli_query($conn, "SHOW COLUMNS FROM rate_quotation_dest_master_rows LIKE 'origin_city_id'");
+	if (!$chk_origin || mysqli_num_rows($chk_origin) === 0) {
+		@mysqli_query($conn, 'ALTER TABLE rate_quotation_dest_master_rows ADD COLUMN origin_city_id INT(11) NOT NULL DEFAULT 0 AFTER sort_no');
+	}
 }
 
 function quotation_dest_master_list($conn, $active_only = true)
@@ -126,6 +132,7 @@ function quotation_dest_master_hydrate_rows_for_form($conn, $master_id)
 		$mid = (int) ($row['mode_id'] ?? 0);
 		$meta = $by_mode[$mid] ?? array('mode_group' => '');
 		$out[] = array(
+			'origin_city_id' => (int) ($row['origin_city_id'] ?? 0),
 			'destination_city_id' => (int) ($row['destination_city_id'] ?? 0),
 			'mode_id' => $mid,
 			'mode_group' => trim((string) ($meta['mode_group'] ?? '')),
@@ -147,9 +154,11 @@ function quotation_dest_master_city_ids($conn, $master_id)
 {
 	$ids = array();
 	foreach (quotation_dest_master_get_rows($conn, $master_id) as $row) {
-		$cid = (int) ($row['destination_city_id'] ?? 0);
-		if ($cid > 0) {
-			$ids[$cid] = $cid;
+		foreach (array('origin_city_id', 'destination_city_id') as $col) {
+			$cid = (int) ($row[$col] ?? 0);
+			if ($cid > 0) {
+				$ids[$cid] = $cid;
+			}
 		}
 	}
 	return array_values($ids);
@@ -182,10 +191,10 @@ function quotation_dest_master_save_rows($conn, $master_id, $rows)
 		$vt_sql = $vt > 0 ? "'$vt'" : 'NULL';
 		$vtxt_sql = "'" . $esc($row['vehicle_text'] ?? '') . "'";
 		$ok_ins = mysqli_query($conn, "INSERT INTO rate_quotation_dest_master_rows (
-			master_id, sort_no, destination_city_id, mode_id, vehicle_type_id, vehicle_text, delivery_days,
+			master_id, sort_no, origin_city_id, destination_city_id, mode_id, vehicle_type_id, vehicle_text, delivery_days,
 			freight_charges, tempo_charges, doc_charges, others, row_total
 		) VALUES (
-			'$master_id', '$sort', '" . (int) $row['destination_city_id'] . "', '" . (int) $row['mode_id'] . "', $vt_sql, $vtxt_sql,
+			'$master_id', '$sort', '" . (int) ($row['origin_city_id'] ?? 0) . "', '" . (int) $row['destination_city_id'] . "', '" . (int) $row['mode_id'] . "', $vt_sql, $vtxt_sql,
 			'" . $esc($row['delivery_days'] ?? '') . "',
 			'" . $esc($row['freight_charges'] ?? 0) . "', '" . $esc($row['tempo_charges'] ?? 0) . "',
 			'" . $esc($row['doc_charges'] ?? 0) . "', '" . $esc($row['others'] ?? 0) . "',

@@ -209,14 +209,19 @@ function get_statename($conn, $id)
 
 function get_city_name($conn, $id)
 {
+	static $cache = array();
 	$id = (int) $id;
 	if ($id <= 0) {
 		return '';
 	}
-	$query = "select * from city where city_id='$id'";
+	if (array_key_exists($id, $cache)) {
+		return $cache[$id];
+	}
+	$query = "select city_name from city where city_id='$id' LIMIT 1";
 	$result = mysqli_query($conn, $query);
-	$row = mysqli_fetch_array($result);
-	return $row['city_name'] ?? '';
+	$row = $result ? mysqli_fetch_array($result) : null;
+	$cache[$id] = $row['city_name'] ?? '';
+	return $cache[$id];
 }
 
 /** Display label: City, State, Country (for warehouse location dropdown / lists). */
@@ -880,10 +885,19 @@ function get_hub_name($conn, $id)
 
 function get_mode($conn, $id)
 {
-	$query = "select * from mode_of_transportation where mode_id='$id'";
+	static $cache = array();
+	$id = (int) $id;
+	if ($id <= 0) {
+		return '';
+	}
+	if (array_key_exists($id, $cache)) {
+		return $cache[$id];
+	}
+	$query = "select mode_type from mode_of_transportation where mode_id='$id' LIMIT 1";
 	$result = mysqli_query($conn, $query);
-	$row = mysqli_fetch_array($result);
-	return $row['mode_type'];
+	$row = $result ? mysqli_fetch_array($result) : null;
+	$cache[$id] = $row['mode_type'] ?? '';
+	return $cache[$id];
 }
 
 /** @return array<int, string> */
@@ -916,10 +930,19 @@ function get_users($conn)
 
 function get_client_name($conn, $id)
 {
-	$query = "select * from client where client_id='$id'";
+	static $cache = array();
+	$id = (int) $id;
+	if ($id <= 0) {
+		return '';
+	}
+	if (array_key_exists($id, $cache)) {
+		return $cache[$id];
+	}
+	$query = "select client_company_name from client where client_id='$id' LIMIT 1";
 	$result = mysqli_query($conn, $query);
-	$row = mysqli_fetch_array($result);
-	return ew_client_decrypt_name($row['client_company_name'] ?? '');
+	$row = $result ? mysqli_fetch_array($result) : null;
+	$cache[$id] = ew_client_decrypt_name($row['client_company_name'] ?? '');
+	return $cache[$id];
 }
 
 function booking_client_name_options($conn)
@@ -1087,10 +1110,19 @@ function get_password($conn, $id)
 
 function get_user($conn, $id)
 {
-	$query = "select * from users where user_id='$id'";
+	static $cache = array();
+	$id = (int) $id;
+	if ($id <= 0) {
+		return '';
+	}
+	if (array_key_exists($id, $cache)) {
+		return $cache[$id];
+	}
+	$query = "select user_name from users where user_id='$id' LIMIT 1";
 	$result = mysqli_query($conn, $query);
-	$row = mysqli_fetch_array($result);
-	return $row['user_name'];
+	$row = $result ? mysqli_fetch_array($result) : null;
+	$cache[$id] = $row['user_name'] ?? '';
+	return $cache[$id];
 }
 
 function get_package_name($conn, $id)

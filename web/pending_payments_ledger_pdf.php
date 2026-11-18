@@ -25,11 +25,22 @@ if (!empty($ledger['error'])) {
     exit($ledger['error']);
 }
 
-$html = pending_payments_ledger_build_pdf_html($conn, $filters, $ledger);
+$with_narration = !isset($_GET['narration']) || (string) $_GET['narration'] !== '0';
+if ($with_narration) {
+    $html = pending_payments_ledger_build_pdf_html($conn, $filters, $ledger);
+    $file_prefix = 'Ledger_';
+    $page_format = 'A4';
+    $doc_title = 'Client Ledger Statement';
+} else {
+    $html = pending_payments_ledger_build_gcn_pdf_html($conn, $filters, $ledger);
+    $file_prefix = 'Ledger_GCN_';
+    $page_format = 'A4-L';
+    $doc_title = 'Client Ledger GCN detail';
+}
 
 $mpdf = new \Mpdf\Mpdf(array(
     'mode' => 'utf-8',
-    'format' => 'A4',
+    'format' => $page_format,
     'default_font' => 'freesans',
     'margin_left' => 8,
     'margin_right' => 8,
@@ -42,9 +53,9 @@ $client_slug = trim($client_slug, '_');
 if ($client_slug === '') {
     $client_slug = 'Customer';
 }
-$filename = 'Ledger_' . $client_slug . '_' . str_replace('-', '', $filters['from_date']) . '_to_' . str_replace('-', '', $filters['to_date']) . '.pdf';
+$filename = $file_prefix . $client_slug . '_' . str_replace('-', '', $filters['from_date']) . '_to_' . str_replace('-', '', $filters['to_date']) . '.pdf';
 
-$mpdf->SetTitle('Client Ledger Statement');
+$mpdf->SetTitle($doc_title);
 $mpdf->SetAuthor('EliteWave360 Logistics');
 $mpdf->WriteHTML($html);
 

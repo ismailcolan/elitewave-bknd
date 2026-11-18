@@ -13,17 +13,10 @@ function transaction_gcn_serial_no($row)
 	return 0;
 }
 
-/** Temporary: allow list + form edit for these GCNs. Invoiced lock stays for all others. */
+/** Consignment list: Edit is open for every GCN (invoiced and Pay-at-Booking included). */
 function transaction_gcn_temporary_edit_allowed($grn_no)
 {
-	$g = strtoupper(trim((string) $grn_no));
-	if (in_array($g, array('EW360/0230', 'EW360/0232', 'EW360/0234'), true)) {
-		return true;
-	}
-	if (preg_match('/\/(\d+)\s*$/', $g, $m)) {
-		return in_array((int) $m[1], array(230, 232, 234), true);
-	}
-	return false;
+	return true;
 }
 
 function transaction_list_track_action_html($row)
@@ -202,6 +195,28 @@ function transaction_list_mode_cell($conn, $row)
 	return '<span class="txn-mode">' . htmlspecialchars($mode_name, ENT_QUOTES, 'UTF-8') . '</span>';
 }
 
+function transaction_invoice_pkg_sums($conn, $m1, $y)
+{
+	static $cache = array();
+	$m1 = (int) $m1;
+	$y = (int) $y;
+	$key = $m1 . '_' . $y;
+	if (isset($cache[$key])) {
+		return $cache[$key];
+	}
+	$map = array();
+	if ($m1 > 0 && $y > 0) {
+		$q = mysqli_query($conn, 'SELECT transaction_id, SUM(no_of_pkge) AS pkge FROM transaction_invoice_' . $m1 . '_' . $y . ' GROUP BY transaction_id');
+		if ($q) {
+			while ($r = mysqli_fetch_assoc($q)) {
+				$map[(int) $r['transaction_id']] = (int) $r['pkge'];
+			}
+		}
+	}
+	$cache[$key] = $map;
+	return $map;
+}
+
 function transaction_list_render_row($conn, $row, $i)
 {
 	$m1 = (int) ($row['list_qtr'] ?? 0);
@@ -220,8 +235,8 @@ function transaction_list_render_row($conn, $row, $i)
 	$cancelled_by = get_user($conn, $row['cancelled_by']);
 	$updated_at = $row['updated_at'];
 
-	$pkg_q = mysqli_query($conn, 'SELECT SUM(no_of_pkge) AS pkge FROM transaction_invoice_' . $m1 . '_' . $y . " WHERE transaction_id='" . (int) $row['transaction_id'] . "'");
-	$pkg_r = $pkg_q ? mysqli_fetch_array($pkg_q) : array('pkge' => 0);
+	$pkg_map = transaction_invoice_pkg_sums($conn, $m1, $y);
+	$pkg_r = array('pkge' => (int) ($pkg_map[(int) $row['transaction_id']] ?? 0));
 
 	$dest_name = get_city_name($conn, $row['destination']);
 	$dest_cell = $dest_name !== '' ? '<span class="txn-dest">' . htmlspecialchars($dest_name) . '</span>' : '<span class="txn-dest-empty">—</span>';
@@ -385,8 +400,8 @@ function transaction_status_list_render_row($conn, $row, $i)
 	$booking = $row['booking_status'];
 	$status = $row['status'];
 
-	$pkg_q = mysqli_query($conn, 'SELECT SUM(no_of_pkge) AS pkge FROM transaction_invoice_' . $m1 . '_' . $y . " WHERE transaction_id='" . (int) $row['transaction_id'] . "'");
-	$pkg_r = $pkg_q ? mysqli_fetch_array($pkg_q) : array('pkge' => 0);
+	$pkg_map = transaction_invoice_pkg_sums($conn, $m1, $y);
+	$pkg_r = array('pkge' => (int) ($pkg_map[(int) $row['transaction_id']] ?? 0));
 	$total_packages = (int) ($pkg_r['pkge'] ?? 0);
 
 	$badge_opts = ew_transaction_badge_opts_for_row($conn, $row, $total_packages);

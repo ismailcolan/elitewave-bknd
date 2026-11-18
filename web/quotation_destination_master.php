@@ -96,6 +96,7 @@ foreach ($vehicle_types as $vt) {
 								<table class="table table-bordered table-condensed" id="md_dest_table">
 									<thead>
 										<tr>
+											<th style="min-width:180px;">Origin (City — State)</th>
 											<th style="min-width:180px;">Destination (City — State)</th>
 											<th style="min-width:120px;">Mode</th>
 											<th style="min-width:180px;">Source of transport</th>

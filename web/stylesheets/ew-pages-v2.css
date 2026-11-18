@@ -23,6 +23,18 @@
   min-width: 0;
 }
 
+.ew-page-v2 .ew-page-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.ew-page-v2--mis-report .ew-page-head-right .report-count:empty {
+  display: none;
+}
+
 .ew-page-v2 .ew-back-btn {
   width: 36px;
   height: 36px;
@@ -2552,7 +2564,7 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 /*
  * Results table: match app list tables —
  * side gutters (24px) + framed scroller with L/R borders (like .ew-table-scroll-host).
- * No extra gap above thead inside the frame.
+ * Top padding replaces the old results toolbar so the table is not flush to the card edge.
  */
 .ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap,
 .ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap.widget-content,
@@ -2560,7 +2572,7 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
 .ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap.widget-content.padded,
 .ew-page-v2--mis-report .ew-card.ew-erp-list > .ew-table-wrap.widget-content.padded.clearfix.new_dept {
   border-top: none !important;
-  padding-top: 0 !important;
+  padding-top: 16px !important;
   padding-right: 24px !important;
   padding-bottom: 16px !important;
   padding-left: 24px !important;
@@ -2651,10 +2663,57 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   border-top-right-radius: 7px;
 }
 
-/* Ageing chips sit in the same side gutter as the framed table */
-.ew-page-v2--mis-report .ew-card.ew-erp-list #bucket_summary {
-  padding: 12px 0 10px;
+/* Ageing chips: full-width equal columns, same side gutter as framed table */
+.ew-page-v2--mis-report .ew-card.ew-erp-list #bucket_summary,
+.ew-page-v2--mis-report .ew-card.ew-erp-list .ageing-bucket-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 0 14px;
   margin: 0;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list .ageing-bucket-chip {
+  flex: 1 1 0;
+  min-width: 0;
+  background: #EEF3F8;
+  border: 1px solid #C5D3E0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list .ageing-bucket-chip .lbl {
+  display: block;
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ew-page-v2--mis-report .ew-card.ew-erp-list .ageing-bucket-chip .val {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1A2332;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+  .ew-page-v2--mis-report .ew-card.ew-erp-list .ageing-bucket-strip {
+    flex-wrap: wrap;
+  }
+
+  .ew-page-v2--mis-report .ew-card.ew-erp-list .ageing-bucket-chip {
+    flex: 1 1 calc(33.333% - 8px);
+    min-width: 120px;
+  }
 }
 
 .ew-page-v2--mis-report #payment_report_table .num {
@@ -2826,14 +2885,16 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.ew-page-v2--mis-report .ew-mis-active-actions .ew-mis-table-search {
+  min-width: 220px;
+  width: 240px;
 }
 
 .ew-page-v2--mis-report .ew-mis-results-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  display: none !important;
 }
 
 .ew-page-v2--mis-report .ew-mis-results-tools {
@@ -2841,6 +2902,10 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.ew-page-v2--mis-report .ew-erp-list > .ew-table-wrap {
+  border-top: none !important;
 }
 
 /* Keep only custom MIS search — hide DataTables default filter */
@@ -2916,6 +2981,7 @@ body:has(.ew-v2-modal-backdrop.open) .bootstrap-timepicker-widget {
     flex: 1 1 auto;
     justify-content: center;
   }
+  .ew-page-v2--mis-report .ew-mis-active-actions .ew-mis-table-search,
   .ew-page-v2--mis-report .ew-mis-table-search {
     min-width: 100%;
     width: 100%;

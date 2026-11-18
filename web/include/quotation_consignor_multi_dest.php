@@ -27,6 +27,7 @@ function quotation_ensure_destination_rows_table($conn)
 		row_id INT(11) NOT NULL AUTO_INCREMENT,
 		quotation_id INT(11) NOT NULL,
 		sort_no INT(11) NOT NULL DEFAULT 0,
+		origin_city_id INT(11) NOT NULL DEFAULT 0,
 		destination_city_id INT(11) NOT NULL DEFAULT 0,
 		mode_id INT(11) NOT NULL DEFAULT 0,
 		vehicle_type_id INT(11) DEFAULT NULL,
@@ -45,6 +46,10 @@ function quotation_ensure_destination_rows_table($conn)
 	$chk_tempo = @mysqli_query($conn, "SHOW COLUMNS FROM rate_quotation_destination_rows LIKE 'tempo_charges'");
 	if (!$chk_tempo || mysqli_num_rows($chk_tempo) === 0) {
 		@mysqli_query($conn, 'ALTER TABLE rate_quotation_destination_rows ADD COLUMN tempo_charges DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER freight_charges');
+	}
+	$chk_origin = @mysqli_query($conn, "SHOW COLUMNS FROM rate_quotation_destination_rows LIKE 'origin_city_id'");
+	if (!$chk_origin || mysqli_num_rows($chk_origin) === 0) {
+		@mysqli_query($conn, 'ALTER TABLE rate_quotation_destination_rows ADD COLUMN origin_city_id INT(11) NOT NULL DEFAULT 0 AFTER sort_no');
 	}
 }
 
@@ -143,6 +148,7 @@ function quotation_default_destination_rows_for_form()
 {
 	return array(
 		array(
+			'origin_city_id' => 0,
 			'destination_city_id' => 0,
 			'mode_id' => 0,
 			'vehicle_type_id' => 0,
@@ -174,6 +180,7 @@ function quotation_hydrate_destination_rows_for_form($conn, $quotation_id)
 		$mid = (int) ($row['mode_id'] ?? 0);
 		$meta = $by_mode[$mid] ?? array('mode_group' => '');
 		$out[] = array(
+			'origin_city_id' => (int) ($row['origin_city_id'] ?? 0),
 			'destination_city_id' => (int) ($row['destination_city_id'] ?? 0),
 			'mode_id' => $mid,
 			'mode_group' => trim((string) ($meta['mode_group'] ?? '')),
@@ -192,6 +199,10 @@ function quotation_hydrate_destination_rows_for_form($conn, $quotation_id)
 
 function quotation_parse_destination_rows_from_post($conn, $payload)
 {
+	$origins = $payload['md_origin_city_id'] ?? array();
+	if (!is_array($origins)) {
+		$origins = array();
+	}
 	$cities = $payload['md_city_id'] ?? array();
 	if (!is_array($cities)) {
 		$cities = array();
@@ -210,17 +221,21 @@ function quotation_parse_destination_rows_from_post($conn, $payload)
 	$tempo = $payload['md_tempo'] ?? array();
 
 	$rows = array();
-	$n = count($cities);
+	$n = max(count($origins), count($cities));
 	for ($i = 0; $i < $n; $i++) {
+		$origin_id = (int) ($origins[$i] ?? 0);
 		$city_id = (int) ($cities[$i] ?? 0);
 		$mode_id = (int) ($modes[$i] ?? 0);
 		$f = quotation_parse_money_field($freight[$i] ?? 0);
 		$tempo_amt = quotation_parse_money_field($tempo[$i] ?? 0);
 		$row_total = quotation_destination_row_total($f, 0, 0, $tempo_amt);
-		if ($city_id <= 0 && $mode_id <= 0) {
+		if ($origin_id <= 0 && $city_id <= 0 && $mode_id <= 0) {
 			continue;
 		}
 		$row_no = $i + 1;
+		if ($origin_id <= 0) {
+			return array('ok' => false, 'message' => 'Select origin (city — state) for row ' . $row_no . '.');
+		}
 		if ($city_id <= 0) {
 			return array('ok' => false, 'message' => 'Select destination (city — state) for row ' . $row_no . '.');
 		}
@@ -253,6 +268,7 @@ function quotation_parse_destination_rows_from_post($conn, $payload)
 			$vtxt = $fid > 0 ? ('flight:' . $fid) : '';
 		}
 		$rows[] = array(
+			'origin_city_id' => $origin_id,
 			'destination_city_id' => $city_id,
 			'mode_id' => $mode_id,
 			'vehicle_type_id' => $vt_id,
@@ -286,10 +302,10 @@ function quotation_save_destination_rows($conn, $quotation_id, $rows)
 		$vt_sql = $vt > 0 ? "'$vt'" : 'NULL';
 		$vtxt_sql = "'" . $esc($row['vehicle_text'] ?? '') . "'";
 		mysqli_query($conn, "INSERT INTO rate_quotation_destination_rows (
-			quotation_id, sort_no, destination_city_id, mode_id, vehicle_type_id, vehicle_text, delivery_days,
+			quotation_id, sort_no, origin_city_id, destination_city_id, mode_id, vehicle_type_id, vehicle_text, delivery_days,
 			freight_charges, tempo_charges, doc_charges, others, row_total
 		) VALUES (
-			'$quotation_id', '$sort', '" . (int) $row['destination_city_id'] . "', '" . (int) $row['mode_id'] . "', $vt_sql, $vtxt_sql,
+			'$quotation_id', '$sort', '" . (int) ($row['origin_city_id'] ?? 0) . "', '" . (int) $row['destination_city_id'] . "', '" . (int) $row['mode_id'] . "', $vt_sql, $vtxt_sql,
 			'" . $esc($row['delivery_days'] ?? '') . "',
 			'" . $esc(number_format((float) $row['freight_charges'], 2, '.', '')) . "',
 			'" . $esc(number_format((float) ($row['tempo_charges'] ?? 0), 2, '.', '')) . "',
@@ -324,6 +340,7 @@ function quotation_destination_rows_for_display($conn, $quotation_id)
 		}
 		$mid = (int) ($row['mode_id'] ?? 0);
 		$row['mode_type'] = $mode_names[$mid] ?? '';
+		$row['origin_label'] = quotation_city_state_label($conn, (int) ($row['origin_city_id'] ?? 0));
 		$row['destination_label'] = quotation_city_state_label($conn, (int) ($row['destination_city_id'] ?? 0));
 		$row['vehicle_display'] = quotation_mode_row_vehicle_display($conn, $row);
 		$row['delivery_days_label'] = quotation_delivery_days_label($row['delivery_days'] ?? '');
@@ -374,6 +391,7 @@ function quotation_consignor_multi_dest_email_table_html($conn, $quotation_id)
 	$td = 'padding:7px 10px;border:1px solid #cbd5e1;font-size:13px;color:#1a1a1a;vertical-align:top;';
 	$html = '<table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin:12px 0 16px;">'
 		. '<tr>'
+		. '<th style="' . $th . '">Origin</th>'
 		. '<th style="' . $th . '">Destination</th>'
 		. '<th style="' . $th . '">Mode</th>'
 		. '<th style="' . $th . '">Source of transport</th>'
@@ -386,6 +404,7 @@ function quotation_consignor_multi_dest_email_table_html($conn, $quotation_id)
 			return '&#8377; ' . htmlspecialchars(quotation_format_money_display($n), ENT_QUOTES, 'UTF-8') . ' /-';
 		};
 		$html .= '<tr>'
+			. '<td style="' . $td . '">' . htmlspecialchars($r['origin_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['destination_label'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['mode_type'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['vehicle_display'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
@@ -400,6 +419,7 @@ function quotation_consignor_multi_dest_email_table_html($conn, $quotation_id)
 
 function quotation_render_destination_row_html($conn, $row, $city_catalog, $modes, $vehicle_types, $delivery_days_opts, $form_editable, $trains = array(), $flights = array())
 {
+	$origin_id = (int) ($row['origin_city_id'] ?? 0);
 	$city_id = (int) ($row['destination_city_id'] ?? 0);
 	$mode_id = (int) ($row['mode_id'] ?? 0);
 	$mode_group = trim((string) ($row['mode_group'] ?? ''));
@@ -416,7 +436,16 @@ function quotation_render_destination_row_html($conn, $row, $city_catalog, $mode
 	?>
 	<tr class="md-row" data-mode-group="<?php echo htmlspecialchars($mode_group, ENT_QUOTES, 'UTF-8'); ?>">
 		<td>
-			<select name="md_city_id[]" class="form-control md-city" <?php echo $form_editable ? '' : 'disabled'; ?>>
+			<select name="md_origin_city_id[]" class="form-control md-origin-city md-city" <?php echo $form_editable ? '' : 'disabled'; ?>>
+				<option value="">City — State</option>
+				<?php foreach ($city_catalog as $c) {
+					$sel = ($origin_id === (int) $c['city_id']) ? ' selected' : '';
+					echo '<option value="' . (int) $c['city_id'] . '"' . $sel . '>' . htmlspecialchars($c['label']) . '</option>';
+				} ?>
+			</select>
+		</td>
+		<td>
+			<select name="md_city_id[]" class="form-control md-dest-city md-city" <?php echo $form_editable ? '' : 'disabled'; ?>>
 				<option value="">City — State</option>
 				<?php foreach ($city_catalog as $c) {
 					$sel = ($city_id === (int) $c['city_id']) ? ' selected' : '';

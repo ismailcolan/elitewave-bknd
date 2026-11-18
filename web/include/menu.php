@@ -1,8 +1,9 @@
 <?php
 require_once ('include/connect.php');
 require_once ('include/function.php');
-$read_status = mysqli_query($conn, 'SELECT read_status FROM `user_registrations` WHERE read_status = 0');
-$count_read = mysqli_num_rows($read_status);
+$read_status = mysqli_query($conn, 'SELECT COUNT(*) AS c FROM `user_registrations` WHERE read_status = 0');
+$read_row = $read_status ? mysqli_fetch_assoc($read_status) : null;
+$count_read = (int) ($read_row['c'] ?? 0);
 
 $current_page = basename($_SERVER['PHP_SELF']);
 
@@ -39,6 +40,7 @@ $page_module_map = array(
   'expense_gcn.php' => 'expense', 'expense_gcn_list.php' => 'expense',
   'expense_general.php' => 'expense', 'expense_general_list.php' => 'expense',
   'expense_bill.php' => 'expense', 'expense_bill_list.php' => 'expense',
+  'petty_cash.php' => 'expense', 'petty_cash_list.php' => 'expense',
   'qrcode_master.php' => 'tools', 'bulkmail.php' => 'tools', 'users.php' => 'tools', 'user_list.php' => 'tools',
   'database_backup.php' => 'tools',
   'pod_list.php' => 'portal', 'pod_master.php' => 'portal', 'edit_pod_list.php' => 'portal',
@@ -55,6 +57,7 @@ $page_module_map = array(
   'create_invoice.php' => 'invoice', 'invoice_list.php' => 'invoice',
   'create_proforma_invoice.php' => 'invoice', 'proforma_invoice_list.php' => 'invoice',
   'credit_note_list.php' => 'invoice', 'create_credit_note.php' => 'invoice',
+  'debit_note_list.php' => 'invoice', 'create_debit_note.php' => 'invoice',
   'receipt_list.php' => 'invoice', 'create_receipt.php' => 'invoice',
   'consignment_report.php' => 'mis', 'client_arrival_report.php' => 'mis',
   'cargo_booking_report.php' => 'mis', 'pending_delivery_report.php' => 'mis',
@@ -62,6 +65,17 @@ $page_module_map = array(
   'invoice_register.php' => 'mis',
   'proforma_invoice_register.php' => 'mis',
   'pending_invoice_ageing.php' => 'mis',
+  'credit_note_report.php' => 'mis',
+  'debit_note_report.php' => 'mis',
+  'bill_registration_register.php' => 'mis',
+  'expense_register.php' => 'mis',
+  'petty_cash_register.php' => 'mis',
+  'gst_output_register.php' => 'mis',
+  'gst_input_register.php' => 'mis',
+  'tds_output_register.php' => 'mis',
+  'tds_input_register.php' => 'mis',
+  'statement_of_account.php' => 'mis',
+  'day_book.php' => 'mis',
   'receipt_register.php' => 'mis',
   'pending_receipt_ageing.php' => 'mis',
   'pending_payments.php' => 'invoice',
@@ -751,6 +765,7 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active_any(array('expense_gcn_list.php', 'expense_gcn.php'), $current_page); ?>" href="expense_gcn_list.php">GCN Profit &amp; Loss</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('expense_general_list.php', 'expense_general.php'), $current_page); ?>" href="expense_general_list.php">Payment Voucher</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('expense_bill_list.php', 'expense_bill.php'), $current_page); ?>" href="expense_bill_list.php">Bill Registration</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('petty_cash_list.php', 'petty_cash.php'), $current_page); ?>" href="petty_cash_list.php">Petty Cash</a>
       </div>
     </div>
 
@@ -843,6 +858,7 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active_any(array('invoice_list.php', 'create_invoice.php'), $current_page); ?>" href="invoice_list.php">Tax Invoice</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('pending_payments.php', 'pending_payments_ledger_pdf.php'), $current_page); ?>" href="pending_payments.php">Bill Wise</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('credit_note_list.php', 'create_credit_note.php'), $current_page); ?>" href="credit_note_list.php">Credit Note</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('debit_note_list.php', 'create_debit_note.php'), $current_page); ?>" href="debit_note_list.php">Debit Note</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('receipt_list.php', 'create_receipt.php'), $current_page); ?>" href="receipt_list.php">Payment Receipt</a>
         <span class="panel-link" title="Screen coming soon">Payment History</span>
         <a class="panel-link<?php echo ew_menu_active_any(array('gst_tax_master.php', 'gst_tax_form.php'), $current_page); ?>" href="gst_tax_master.php">GST Tax Master</a>
@@ -869,6 +885,17 @@ function ew_panel_head($title) {
             'proforma_invoice_register.php',
             'invoice_register.php',
             'pending_invoice_ageing.php',
+            'credit_note_report.php',
+            'debit_note_report.php',
+            'bill_registration_register.php',
+            'expense_register.php',
+            'petty_cash_register.php',
+            'gst_output_register.php',
+            'gst_input_register.php',
+            'tds_output_register.php',
+            'tds_input_register.php',
+            'statement_of_account.php',
+            'day_book.php',
             'receipt_register.php',
             'pending_receipt_ageing.php',
           );
@@ -885,6 +912,17 @@ function ew_panel_head($title) {
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('proforma_invoice_register.php', $current_page); ?>" href="proforma_invoice_register.php">Proforma Invoice Register</a>
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('invoice_register.php', $current_page); ?>" href="invoice_register.php">Invoice Register</a>
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_invoice_ageing.php', $current_page); ?>" href="pending_invoice_ageing.php">Pending Invoice Register / Ageing</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('credit_note_report.php', $current_page); ?>" href="credit_note_report.php">Credit Note Report (From Customer)</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('debit_note_report.php', $current_page); ?>" href="debit_note_report.php">Debit Note Report (To Vendor)</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('bill_registration_register.php', $current_page); ?>" href="bill_registration_register.php">Bill Registration Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('expense_register.php', $current_page); ?>" href="expense_register.php">Expense Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('petty_cash_register.php', $current_page); ?>" href="petty_cash_register.php">Petty Cash Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('gst_output_register.php', $current_page); ?>" href="gst_output_register.php">GST Output Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('gst_input_register.php', $current_page); ?>" href="gst_input_register.php">GST Input Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('tds_output_register.php', $current_page); ?>" href="tds_output_register.php">TDS Output Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('tds_input_register.php', $current_page); ?>" href="tds_input_register.php">TDS Input Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('statement_of_account.php', $current_page); ?>" href="statement_of_account.php">Statement of Account (Customer / Vendor)</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('day_book.php', $current_page); ?>" href="day_book.php">Day Book</a>
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('receipt_register.php', $current_page); ?>" href="receipt_register.php">Receipt Register</a>
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_receipt_ageing.php', $current_page); ?>" href="pending_receipt_ageing.php">Pending Receipt Register / Ageing</a>
             </div>

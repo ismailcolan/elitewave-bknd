@@ -127,6 +127,9 @@ if ($cities_q) {
 							<div class="ew-page-head-left">
 								<h1 class="ew-page-title">Cargo Booking Report</h1>
 							</div>
+							<div class="ew-page-head-right">
+								<span class="report-count" id="report_count"></span>
+							</div>
 						</div>
 						<div id="ew_mis_filters_view">
 						<div class="ew-card">
@@ -240,6 +243,10 @@ if ($cities_q) {
 									<span class="ew-mis-active-summary" id="ew_mis_active_summary"></span>
 								</div>
 								<div class="ew-mis-active-actions">
+									<div class="ew-mis-table-search">
+										<i class="fa fa-search"></i>
+										<input type="search" id="ew_mis_table_search" placeholder="Search GR no, party…" autocomplete="off">
+									</div>
 									<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="ew_mis_edit_filters">Edit filters</button>
 									<button class="ew-btn-v2 ew-btn-v2-outline btn-export-excel" type="button" id="exportExcel">
 										<span class="ew-icon-excel" aria-hidden="true"></span> Export Excel
@@ -248,16 +255,6 @@ if ($cities_q) {
 							</div>
 
 				<div class="ew-card ew-erp-list" id="table_div" style="margin-bottom:20px;">
-						<div class="ew-card-toolbar ew-mis-results-toolbar">
-							<h2 id="ew_mis_results_title">Cargo Booking Report Data</h2>
-							<div class="ew-mis-results-tools">
-								<div class="ew-mis-table-search">
-									<i class="fa fa-search"></i>
-									<input type="search" id="ew_mis_table_search" placeholder="Search GR no, party…" autocomplete="off">
-								</div>
-								<span class="report-count" id="report_count"></span>
-							</div>
-						</div>
 						<div class="ew-table-wrap widget-content padded clearfix new_dept">
 							<div class="table-scroll-wrapper" id="report"></div>
 						</div>

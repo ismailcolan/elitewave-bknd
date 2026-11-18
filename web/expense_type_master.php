@@ -68,7 +68,6 @@ $expense_groups = expense_group_list($conn, true);
 												$expense_type_rows[] = $list;
 											}
 										}
-										$expense_type_usage = ew_master_usage_map($conn, 'expense_type', array_column($expense_type_rows, 'category_id'));
 										$i = 1;
 										foreach ($expense_type_rows as $list) {
 												?>
@@ -85,7 +84,7 @@ $expense_groups = expense_group_list($conn, true);
 													<td class="actions center-content">
 														<div class="action-buttons">
 															<?php echo ew_master_edit_action_html(array(
-																'in_use' => !empty($expense_type_usage[(int) $list['category_id']]),
+																'in_use' => false,
 																'button_id' => (int) $list['category_id'],
 																'button_class' => 'table-actions btn-edit-expense-type',
 															)); ?>

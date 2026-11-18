@@ -28,19 +28,30 @@ function ew_master_transaction_suffixes($conn)
 	return $cache;
 }
 
-function ew_master_sql_table_exists($conn, $table)
+function ew_master_table_columns($conn, $table)
 {
 	static $cache = array();
 	$table = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
 	if ($table === '') {
-		return false;
+		return array();
 	}
 	if (array_key_exists($table, $cache)) {
 		return $cache[$table];
 	}
-	$q = @mysqli_query($conn, "SELECT 1 FROM `$table` LIMIT 1");
-	$cache[$table] = (bool) $q;
-	return $cache[$table];
+	$cols = array();
+	$q = @mysqli_query($conn, "SHOW COLUMNS FROM `$table`");
+	if ($q) {
+		while ($row = mysqli_fetch_assoc($q)) {
+			$cols[$row['Field']] = true;
+		}
+	}
+	$cache[$table] = $cols;
+	return $cols;
+}
+
+function ew_master_sql_table_exists($conn, $table)
+{
+	return ew_master_table_columns($conn, $table) !== array();
 }
 
 /** @return int[] ids from $candidate_ids that appear in $table.$column */
@@ -52,11 +63,8 @@ function ew_master_ids_found_in_table($conn, $table, $column, array $candidate_i
 	if ($column === '' || $table === '' || $candidate_ids === array()) {
 		return array();
 	}
-	if (!ew_master_sql_table_exists($conn, $table)) {
-		return array();
-	}
-	$chk = mysqli_query($conn, "SHOW COLUMNS FROM `$table` LIKE '$column'");
-	if (!$chk || mysqli_num_rows($chk) === 0) {
+	$cols = ew_master_table_columns($conn, $table);
+	if (!isset($cols[$column])) {
 		return array();
 	}
 	$in = implode(',', $candidate_ids);

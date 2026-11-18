@@ -66,6 +66,9 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 							<div class="ew-page-head-left">
 								<h1 class="ew-page-title">Receipt Register</h1>
 							</div>
+							<div class="ew-page-head-right">
+								<span class="report-count" id="report_count"></span>
+							</div>
 						</div>
 
 						<div id="ew_mis_filters_view">
@@ -147,6 +150,10 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 									<span class="ew-mis-active-summary" id="ew_mis_active_summary"></span>
 								</div>
 								<div class="ew-mis-active-actions">
+									<div class="ew-mis-table-search">
+										<i class="fa fa-search"></i>
+										<input type="search" id="ew_mis_table_search" placeholder="Search receipt no, customer…" autocomplete="off">
+									</div>
 									<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="ew_mis_edit_filters">Edit filters</button>
 									<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-export-excel" id="exportExcel">
 										<span class="ew-icon-excel" aria-hidden="true"></span> Export Excel
@@ -155,16 +162,6 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 							</div>
 
 							<div class="ew-card ew-erp-list" id="table_div">
-								<div class="ew-card-toolbar ew-mis-results-toolbar">
-									<h2 id="ew_mis_results_title">Receipt Register Data</h2>
-									<div class="ew-mis-results-tools">
-										<div class="ew-mis-table-search">
-											<i class="fa fa-search"></i>
-											<input type="search" id="ew_mis_table_search" placeholder="Search receipt no, customer…" autocomplete="off">
-										</div>
-										<span class="report-count" id="report_count"></span>
-									</div>
-								</div>
 								<div class="ew-table-wrap widget-content padded clearfix">
 									<div class="table-scroll-wrapper" id="report"></div>
 								</div>

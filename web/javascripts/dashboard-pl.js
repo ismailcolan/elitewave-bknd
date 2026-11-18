@@ -20,8 +20,10 @@
 			}
 			el.sparkline(values, {
 				type: 'line',
-				width: 72,
-				height: 32,
+				width: 60,
+				height: 24,
+				disableTooltips: true,
+				disableHighlight: true,
 				lineColor: color,
 				fillColor: dbplSparkFill(color),
 				spotColor: false,

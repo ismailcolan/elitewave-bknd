@@ -27,8 +27,33 @@ while ($row1 = mysqli_fetch_array($result)) {
     <?php include ('include/css_js.php'); ?>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
     <style>
-        .table td.actions .action-buttons {
-            width: 147px;
+        #dataTable1 {
+            table-layout: fixed;
+            width: 100% !important;
+        }
+        #dataTable1 th:nth-child(1),
+        #dataTable1 td:nth-child(1) {
+            width: 72px;
+        }
+        #dataTable1 th:nth-child(2),
+        #dataTable1 td:nth-child(2) {
+            width: auto;
+            max-width: none !important;
+        }
+        #dataTable1 th:nth-child(3),
+        #dataTable1 td:nth-child(3) {
+            width: 180px;
+            max-width: 180px !important;
+        }
+        #dataTable1 th:nth-child(4),
+        #dataTable1 td.actions {
+            width: 148px !important;
+            max-width: 148px !important;
+            white-space: nowrap;
+        }
+        #dataTable1 td.actions .action-buttons {
+            width: auto;
+            justify-content: flex-end;
         }
 
         .dataTable th.sorting:after,
@@ -126,10 +151,10 @@ while ($row1 = mysqli_fetch_array($result)) {
                             <div class="ew-table-wrap widget-content padded clearfix new_dept">
                             <table class="table table-bordered table-striped clist_tb" id="dataTable1">
                                 <thead>
-                                    <th class="table-title" style="width:10%">S.No</th>
-                                    <th class="table-title" style="width:10%">Company Name</th>
-                                    <th class="table-title" style="width:30%">Contact Person</th>
-                                    <th class="table-title" style="width:15%">Action</th>
+                                    <th class="table-title" style="width:72px">S.No</th>
+                                    <th class="table-title">Company Name</th>
+                                    <th class="table-title" style="width:180px">Contact Person</th>
+                                    <th class="table-title" style="width:148px">Action</th>
                                 </thead>
                                 <tbody>
                                     <?php

@@ -317,8 +317,8 @@ body.dash-booking-page .main-content.new_dpt_bottom.collapsed {
 .dash-kpi-row {
 	display: grid;
 	grid-template-columns: repeat(8, minmax(0, 1fr));
-	gap: 12px;
-	margin-bottom: 16px;
+	gap: 14px;
+	margin-bottom: 18px;
 	min-width: 0;
 }
 
@@ -559,6 +559,176 @@ body.dash-booking-page .main-content.new_dpt_bottom.collapsed {
 	margin-top: 10px;
 }
 
+/* ==========================================================================
+   KPI cards — Consignment / Invoice / Payments dashboards (shared)
+   Reference: white tile, soft lifted shadow, tinted icon square + number,
+   label, "+x% text" meta and a very light accent line along the bottom.
+   Per card: --dbk-kpi-accent (icon), --dbk-kpi-ico-bg (icon tile), --dbk-kpi-soft (bottom line)
+   ========================================================================== */
+.dash-booking-shell .dash-kpi-card {
+	--dbk-kpi-accent: #6E5BE8;
+	--dbk-kpi-ico-bg: #EEEBFD;
+	--dbk-kpi-soft: #CFC8FA;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	gap: 0;
+	min-height: 0;
+	padding: 16px 18px 15px;
+	background: #fff;
+	border: 0;
+	border-radius: 6px;
+	box-shadow:
+		0 1px 2px rgba(16, 24, 40, 0.06),
+		0 2px 8px rgba(16, 24, 40, 0.06);
+	overflow: hidden;
+	transition: box-shadow .18s ease, transform .18s ease;
+}
+
+.dash-booking-shell .dash-kpi-card:hover {
+	box-shadow:
+		0 2px 4px rgba(16, 24, 40, 0.06),
+		0 8px 18px rgba(16, 24, 40, 0.08);
+	transform: translateY(-1px);
+}
+
+.dash-booking-shell .dash-kpi-card::before {
+	display: none;
+}
+
+/* very light accent line along the bottom edge */
+.dash-booking-shell .dash-kpi-card::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 2px;
+	background: var(--dbk-kpi-soft);
+	border-radius: 0 0 6px 6px;
+}
+
+.dash-booking-shell .dash-kpi-top {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.dash-booking-shell .dash-kpi-ico {
+	width: 30px;
+	height: 30px;
+	flex: 0 0 30px;
+	border-radius: 6px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--dbk-kpi-ico-bg);
+	color: var(--dbk-kpi-accent);
+	font-size: 14px;
+	opacity: 1;
+	box-shadow: none;
+}
+
+.dash-booking-shell .dash-kpi-val {
+	margin: 0;
+	min-width: 0;
+	font-size: 22px;
+	font-weight: 600;
+	line-height: 1;
+	letter-spacing: -0.01em;
+	color: #2F3542;
+	font-variant-numeric: tabular-nums;
+}
+
+.dash-booking-shell .dash-kpi-val.dash-pay-kpi-val {
+	font-size: clamp(15px, 1.05vw, 20px);
+}
+
+.dash-booking-shell .dash-kpi-lbl {
+	display: block;
+	margin-top: 14px;
+	padding: 0;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.35;
+	letter-spacing: 0;
+	text-transform: none;
+	color: #3F4553;
+}
+
+.dash-booking-shell .dash-kpi-meta {
+	margin-top: 5px;
+	margin-bottom: 0;
+	font-size: 11.5px;
+	font-weight: 400;
+	line-height: 1.35;
+	color: #A0A7B4;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.dash-booking-shell .dash-kpi-meta strong,
+.dash-booking-shell .dash-kpi-meta.is-ok strong,
+.dash-booking-shell .dash-kpi-meta.is-warn strong,
+.dash-booking-shell .dash-kpi-meta.is-bad strong {
+	margin-right: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	color: #3F4553;
+}
+
+.dash-booking-shell .dash-kpi-foot { display: none; }
+.dash-booking-shell .dash-kpi-tone { display: none; }
+.dash-booking-shell .dash-kpi-head { display: none; }
+
+.dash-booking-shell .dash-pay-kpi-trend {
+	color: #DD111E;
+	font-size: 13px;
+}
+
+/* Palette — icon colour / icon tile / pale bottom line */
+.dash-booking-shell .dash-kpi-card.tone-violet { --dbk-kpi-accent: #6E5BE8; --dbk-kpi-ico-bg: #EEEBFD; --dbk-kpi-soft: #CFC8FA; }
+.dash-booking-shell .dash-kpi-card.tone-orange { --dbk-kpi-accent: #F0883E; --dbk-kpi-ico-bg: #FFF0E5; --dbk-kpi-soft: #F9D3B5; }
+.dash-booking-shell .dash-kpi-card.tone-red    { --dbk-kpi-accent: #E24D5F; --dbk-kpi-ico-bg: #FDE8EA; --dbk-kpi-soft: #F6C3CA; }
+.dash-booking-shell .dash-kpi-card.tone-cyan   { --dbk-kpi-accent: #24A9B8; --dbk-kpi-ico-bg: #E0F6F8; --dbk-kpi-soft: #B0E5EB; }
+.dash-booking-shell .dash-kpi-card.tone-blue   { --dbk-kpi-accent: #4F7DE8; --dbk-kpi-ico-bg: #EAF0FD; --dbk-kpi-soft: #C3D3F7; }
+.dash-booking-shell .dash-kpi-card.tone-green  { --dbk-kpi-accent: #34A86A; --dbk-kpi-ico-bg: #E5F6EC; --dbk-kpi-soft: #BCE5CD; }
+.dash-booking-shell .dash-kpi-card.tone-amber  { --dbk-kpi-accent: #D9962E; --dbk-kpi-ico-bg: #FDF3E1; --dbk-kpi-soft: #F1D9AE; }
+.dash-booking-shell .dash-kpi-card.tone-slate  { --dbk-kpi-accent: #7D8A9C; --dbk-kpi-ico-bg: #EEF1F5; --dbk-kpi-soft: #D5DBE3; }
+
+/* Consignment */
+.dash-booking-shell .dash-kpi-card.k-total     { --dbk-kpi-accent: #6E5BE8; --dbk-kpi-ico-bg: #EEEBFD; --dbk-kpi-soft: #CFC8FA; }
+.dash-booking-shell .dash-kpi-card.k-today     { --dbk-kpi-accent: #24A9B8; --dbk-kpi-ico-bg: #E0F6F8; --dbk-kpi-soft: #B0E5EB; }
+.dash-booking-shell .dash-kpi-card.k-pending   { --dbk-kpi-accent: #F0883E; --dbk-kpi-ico-bg: #FFF0E5; --dbk-kpi-soft: #F9D3B5; }
+.dash-booking-shell .dash-kpi-card.k-transit   { --dbk-kpi-accent: #6E5BE8; --dbk-kpi-ico-bg: #EEEBFD; --dbk-kpi-soft: #CFC8FA; }
+.dash-booking-shell .dash-kpi-card.k-dest      { --dbk-kpi-accent: #4F7DE8; --dbk-kpi-ico-bg: #EAF0FD; --dbk-kpi-soft: #C3D3F7; }
+.dash-booking-shell .dash-kpi-card.k-ofd       { --dbk-kpi-accent: #24A9B8; --dbk-kpi-ico-bg: #E0F6F8; --dbk-kpi-soft: #B0E5EB; }
+.dash-booking-shell .dash-kpi-card.k-delivered { --dbk-kpi-accent: #34A86A; --dbk-kpi-ico-bg: #E5F6EC; --dbk-kpi-soft: #BCE5CD; }
+.dash-booking-shell .dash-kpi-card.k-cancel    { --dbk-kpi-accent: #E24D5F; --dbk-kpi-ico-bg: #FDE8EA; --dbk-kpi-soft: #F6C3CA; }
+
+/* Invoice */
+.dash-booking-shell .dash-kpi-card.k-inv-total     { --dbk-kpi-accent: #6E5BE8; --dbk-kpi-ico-bg: #EEEBFD; --dbk-kpi-soft: #CFC8FA; }
+.dash-booking-shell .dash-kpi-card.k-inv-draft     { --dbk-kpi-accent: #F0883E; --dbk-kpi-ico-bg: #FFF0E5; --dbk-kpi-soft: #F9D3B5; }
+.dash-booking-shell .dash-kpi-card.k-inv-generated { --dbk-kpi-accent: #24A9B8; --dbk-kpi-ico-bg: #E0F6F8; --dbk-kpi-soft: #B0E5EB; }
+.dash-booking-shell .dash-kpi-card.k-inv-sent      { --dbk-kpi-accent: #4F7DE8; --dbk-kpi-ico-bg: #EAF0FD; --dbk-kpi-soft: #C3D3F7; }
+.dash-booking-shell .dash-kpi-card.k-inv-partial   { --dbk-kpi-accent: #D9962E; --dbk-kpi-ico-bg: #FDF3E1; --dbk-kpi-soft: #F1D9AE; }
+.dash-booking-shell .dash-kpi-card.k-inv-paid      { --dbk-kpi-accent: #34A86A; --dbk-kpi-ico-bg: #E5F6EC; --dbk-kpi-soft: #BCE5CD; }
+.dash-booking-shell .dash-kpi-card.k-inv-overdue   { --dbk-kpi-accent: #E24D5F; --dbk-kpi-ico-bg: #FDE8EA; --dbk-kpi-soft: #F6C3CA; }
+.dash-booking-shell .dash-kpi-card.k-inv-cancelled { --dbk-kpi-accent: #7D8A9C; --dbk-kpi-ico-bg: #EEF1F5; --dbk-kpi-soft: #D5DBE3; }
+
+/* Payments */
+.dash-booking-shell .dash-kpi-card.k-pay-recv    { --dbk-kpi-accent: #6E5BE8; --dbk-kpi-ico-bg: #EEEBFD; --dbk-kpi-soft: #CFC8FA; }
+.dash-booking-shell .dash-kpi-card.k-pay-today   { --dbk-kpi-accent: #24A9B8; --dbk-kpi-ico-bg: #E0F6F8; --dbk-kpi-soft: #B0E5EB; }
+.dash-booking-shell .dash-kpi-card.k-pay-month   { --dbk-kpi-accent: #4F7DE8; --dbk-kpi-ico-bg: #EAF0FD; --dbk-kpi-soft: #C3D3F7; }
+.dash-booking-shell .dash-kpi-card.k-pay-pending { --dbk-kpi-accent: #F0883E; --dbk-kpi-ico-bg: #FFF0E5; --dbk-kpi-soft: #F9D3B5; }
+.dash-booking-shell .dash-kpi-card.k-pay-overdue { --dbk-kpi-accent: #E24D5F; --dbk-kpi-ico-bg: #FDE8EA; --dbk-kpi-soft: #F6C3CA; }
+.dash-booking-shell .dash-kpi-card.k-pay-advance { --dbk-kpi-accent: #34A86A; --dbk-kpi-ico-bg: #E5F6EC; --dbk-kpi-soft: #BCE5CD; }
+.dash-booking-shell .dash-kpi-card.k-pay-unalloc { --dbk-kpi-accent: #D9962E; --dbk-kpi-ico-bg: #FDF3E1; --dbk-kpi-soft: #F1D9AE; }
+
+/* Legacy per-card accents (Invoice / Payments still use these until restyled) */
 .dash-kpi-card.k-total { --dbk-kpi-accent: #2563EB; --dbk-kpi-ico-bg: #DBEAFE; }
 .dash-kpi-card.k-today { --dbk-kpi-accent: #16A34A; --dbk-kpi-ico-bg: #DCFCE7; }
 .dash-kpi-card.k-pending { --dbk-kpi-accent: #EA580C; --dbk-kpi-ico-bg: #FFEDD5; }
@@ -568,15 +738,15 @@ body.dash-booking-page .main-content.new_dpt_bottom.collapsed {
 .dash-kpi-card.k-delivered { --dbk-kpi-accent: #15803D; --dbk-kpi-ico-bg: #DCFCE7; }
 .dash-kpi-card.k-cancel { --dbk-kpi-accent: #DC2626; --dbk-kpi-ico-bg: #FEE2E2; }
 
-/* Invoice dashboard KPI tones (same card component as bookings) */
-.dash-kpi-card.k-inv-total { --dbk-kpi-accent: #2563EB; --dbk-kpi-ico-bg: #DBEAFE; }
-.dash-kpi-card.k-inv-draft { --dbk-kpi-accent: #EA580C; --dbk-kpi-ico-bg: #FFEDD5; }
-.dash-kpi-card.k-inv-generated { --dbk-kpi-accent: #0284C7; --dbk-kpi-ico-bg: #E0F2FE; }
-.dash-kpi-card.k-inv-sent { --dbk-kpi-accent: #7C3AED; --dbk-kpi-ico-bg: #EDE9FE; }
-.dash-kpi-card.k-inv-partial { --dbk-kpi-accent: #6366F1; --dbk-kpi-ico-bg: #E0E7FF; }
-.dash-kpi-card.k-inv-paid { --dbk-kpi-accent: #16A34A; --dbk-kpi-ico-bg: #DCFCE7; }
-.dash-kpi-card.k-inv-overdue { --dbk-kpi-accent: #E11D48; --dbk-kpi-ico-bg: #FFE4E6; }
-.dash-kpi-card.k-inv-cancelled { --dbk-kpi-accent: #64748B; --dbk-kpi-ico-bg: #F1F5F9; }
+/* Invoice dashboard KPI tones — calm navy (shell rules win for active UI) */
+.dash-kpi-card.k-inv-total { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-inv-draft { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-inv-generated { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-inv-sent { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-inv-partial { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-inv-paid { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-inv-overdue { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-inv-cancelled { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
 
 /* Booking Revenue Summary — mockup (peach left, mid columns, blue right) */
 .dash-revenue-card {

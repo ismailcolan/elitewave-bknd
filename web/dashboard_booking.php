@@ -52,6 +52,17 @@ function dbk_num($n)
 	return number_format((int) $n);
 }
 
+function dbk_share_meta($count, $total)
+{
+	$total = (int) $total;
+	$count = (int) $count;
+	if ($total <= 0) {
+		return array('strong' => '0%', 'text' => 'of total', 'tone' => '');
+	}
+	$pct = round($count * 100 / $total, 1);
+	return array('strong' => rtrim(rtrim(number_format($pct, 1, '.', ''), '0'), '.') . '%', 'text' => 'of total', 'tone' => '');
+}
+
 function dbk_display_date($raw)
 {
 	$raw = trim((string) $raw);
@@ -87,7 +98,7 @@ $freight_cards = $data['freight_cards'] ?? array();
 	<?php include('include/css_js.php'); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-	<link href="stylesheets/dashboard-booking.css?v=20261028freight9" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/dashboard-booking.css?v=20261117kpiref1" rel="stylesheet" type="text/css" />
 </head>
 
 <body class="page-header-fixed bg-1 dash-booking-page">
@@ -131,39 +142,36 @@ $freight_cards = $data['freight_cards'] ?? array();
 					</div>
 				</div>
 
+				<?php
+				$bk_total = (int) ($kpi['total'] ?? 0);
+				$bk_kpi_cards = array(
+					array('class' => 'k-total', 'label' => 'Total bookings', 'icon' => 'fa-truck', 'value' => (int) ($kpi['total'] ?? 0), 'meta_strong' => 'Selected', 'meta_text' => 'date range', 'tone' => ''),
+					array('class' => 'k-today', 'label' => "Today's bookings", 'icon' => 'fa-file-text-o', 'value' => (int) ($kpi['today'] ?? 0), 'meta' => dbk_share_meta($kpi['today'] ?? 0, $bk_total)),
+					array('class' => 'k-pending', 'label' => 'Pending pickups', 'icon' => 'fa-hand-paper-o', 'value' => (int) ($kpi['pending_pickup'] ?? 0), 'meta' => dbk_share_meta($kpi['pending_pickup'] ?? 0, $bk_total), 'tone' => 'warn'),
+					array('class' => 'k-transit', 'label' => 'In transit', 'icon' => 'fa-exchange', 'value' => (int) ($kpi['in_transit'] ?? 0), 'meta' => dbk_share_meta($kpi['in_transit'] ?? 0, $bk_total)),
+					array('class' => 'k-dest', 'label' => 'At destination', 'icon' => 'fa-map-marker', 'value' => (int) ($kpi['at_destination'] ?? 0), 'meta' => dbk_share_meta($kpi['at_destination'] ?? 0, $bk_total)),
+					array('class' => 'k-ofd', 'label' => 'Out for delivery', 'icon' => 'fa-motorcycle', 'value' => (int) ($kpi['out_for_delivery'] ?? 0), 'meta' => dbk_share_meta($kpi['out_for_delivery'] ?? 0, $bk_total)),
+					array('class' => 'k-delivered', 'label' => 'Delivered', 'icon' => 'fa-check-circle', 'value' => (int) ($kpi['delivered'] ?? 0), 'meta' => dbk_share_meta($kpi['delivered'] ?? 0, $bk_total), 'tone' => 'ok'),
+					array('class' => 'k-cancel', 'label' => 'Cancelled / hold', 'icon' => 'fa-exclamation-triangle', 'value' => (int) ($kpi['cancelled'] ?? 0), 'meta' => dbk_share_meta($kpi['cancelled'] ?? 0, $bk_total), 'tone' => 'bad'),
+				);
+				?>
 				<div class="dash-kpi-row">
-					<div class="dash-kpi-card k-total">
-						<div class="dash-kpi-head"><span class="dash-kpi-lbl">Total Bookings</span><span class="dash-kpi-ico"><i class="fa fa-truck" aria-hidden="true"></i></span></div>
-						<div class="dash-kpi-val"><?php echo dbk_num($kpi['total']); ?></div>
-					</div>
-					<div class="dash-kpi-card k-today">
-						<div class="dash-kpi-head"><span class="dash-kpi-lbl">Today's Bookings</span><span class="dash-kpi-ico"><i class="fa fa-file-text-o" aria-hidden="true"></i></span></div>
-						<div class="dash-kpi-val"><?php echo dbk_num($kpi['today']); ?></div>
-					</div>
-					<div class="dash-kpi-card k-pending">
-						<div class="dash-kpi-head"><span class="dash-kpi-lbl">Pending Pickups</span><span class="dash-kpi-ico"><i class="fa fa-hand-paper-o" aria-hidden="true"></i></span></div>
-						<div class="dash-kpi-val"><?php echo dbk_num($kpi['pending_pickup']); ?></div>
-					</div>
-					<div class="dash-kpi-card k-transit">
-						<div class="dash-kpi-head"><span class="dash-kpi-lbl">In Transit</span><span class="dash-kpi-ico"><i class="fa fa-exchange" aria-hidden="true"></i></span></div>
-						<div class="dash-kpi-val"><?php echo dbk_num($kpi['in_transit']); ?></div>
-					</div>
-					<div class="dash-kpi-card k-dest">
-						<div class="dash-kpi-head"><span class="dash-kpi-lbl">At Destination</span><span class="dash-kpi-ico"><i class="fa fa-map-marker" aria-hidden="true"></i></span></div>
-						<div class="dash-kpi-val"><?php echo dbk_num($kpi['at_destination']); ?></div>
-					</div>
-					<div class="dash-kpi-card k-ofd">
-						<div class="dash-kpi-head"><span class="dash-kpi-lbl">Out for Delivery</span><span class="dash-kpi-ico"><i class="fa fa-motorcycle" aria-hidden="true"></i></span></div>
-						<div class="dash-kpi-val"><?php echo dbk_num($kpi['out_for_delivery']); ?></div>
-					</div>
-					<div class="dash-kpi-card k-delivered">
-						<div class="dash-kpi-head"><span class="dash-kpi-lbl">Delivered</span><span class="dash-kpi-ico"><i class="fa fa-check-circle" aria-hidden="true"></i></span></div>
-						<div class="dash-kpi-val"><?php echo dbk_num($kpi['delivered']); ?></div>
-					</div>
-					<div class="dash-kpi-card k-cancel">
-						<div class="dash-kpi-head"><span class="dash-kpi-lbl">Cancelled / Hold</span><span class="dash-kpi-ico"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span></div>
-						<div class="dash-kpi-val"><?php echo dbk_num($kpi['cancelled']); ?></div>
-					</div>
+					<?php foreach ($bk_kpi_cards as $card):
+						$meta = $card['meta'] ?? array('strong' => $card['meta_strong'] ?? '', 'text' => $card['meta_text'] ?? '', 'tone' => '');
+						$tone = $card['tone'] ?? ($meta['tone'] ?? '');
+					?>
+						<div class="dash-kpi-card <?php echo dbk_h($card['class']); ?>">
+							<div class="dash-kpi-top">
+								<span class="dash-kpi-ico"><i class="fa <?php echo dbk_h($card['icon']); ?>" aria-hidden="true"></i></span>
+								<div class="dash-kpi-val"><?php echo dbk_num($card['value']); ?></div>
+							</div>
+							<div class="dash-kpi-lbl"><?php echo dbk_h($card['label']); ?></div>
+							<div class="dash-kpi-meta<?php echo $tone !== '' ? ' is-' . dbk_h($tone) : ''; ?>">
+								<strong><?php echo dbk_h($meta['strong']); ?></strong>
+								<span><?php echo dbk_h($meta['text']); ?></span>
+							</div>
+						</div>
+					<?php endforeach; ?>
 				</div>
 
 				<div class="dash-freight-row" role="list" aria-label="Freight mode summary">

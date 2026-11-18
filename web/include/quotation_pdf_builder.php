@@ -168,6 +168,7 @@ function quotation_pdf_consignor_multi_dest_table_html($conn, $quotation_id)
 		return 'Rs. ' . quotation_format_money_display($n) . ' /-';
 	};
 	$body = '<tr>'
+		. '<th style="' . $th . '">Origin</th>'
 		. '<th style="' . $th . '">Destination</th>'
 		. '<th style="' . $th . '">Mode</th>'
 		. '<th style="' . $th . '">Source of transport</th>'
@@ -177,6 +178,7 @@ function quotation_pdf_consignor_multi_dest_table_html($conn, $quotation_id)
 		. '</tr>';
 	foreach ($rows as $r) {
 		$body .= '<tr>'
+			. '<td style="' . $td . '">' . htmlspecialchars($r['origin_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['destination_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['mode_type'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['vehicle_display'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'

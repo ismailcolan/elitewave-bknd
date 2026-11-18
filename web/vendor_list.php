@@ -14,7 +14,6 @@ if ($result) {
 		$data[] = $row1;
 	}
 }
-$vendor_usage = ew_master_usage_map($conn, 'vendor', array_column($data, 'vendor_id'));
 ?>
 <!DOCTYPE html>
 <html>
@@ -103,7 +102,7 @@ $vendor_usage = ew_master_usage_map($conn, 'vendor', array_column($data, 'vendor
 											<td class="actions center-content">
 												<div class="action-buttons">
 													<?php echo ew_master_edit_action_html(array(
-														'in_use' => !empty($vendor_usage[(int) $row['vendor_id']]),
+														'in_use' => false,
 														'mode' => 'link',
 														'href' => 'vendor.php?key=' . md5($row['vendor_id']),
 														'link_class' => 'table-actions btn-edit',

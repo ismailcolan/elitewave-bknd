@@ -2,7 +2,7 @@
 
 .dash-pay-kpi-row {
 	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: 12px;
+	gap: 14px;
 }
 
 .dash-pay-kpi-val {
@@ -17,18 +17,19 @@
 }
 
 .dash-pay-kpi-trend {
-	color: #dc2626;
+	color: #DD111E;
 	font-size: 14px;
 	flex-shrink: 0;
 }
 
-.dash-kpi-card.k-pay-recv { --dbk-kpi-accent: #2563eb; --dbk-kpi-ico-bg: #dbeafe; }
-.dash-kpi-card.k-pay-today { --dbk-kpi-accent: #16a34a; --dbk-kpi-ico-bg: #dcfce7; }
-.dash-kpi-card.k-pay-month { --dbk-kpi-accent: #059669; --dbk-kpi-ico-bg: #d1fae5; }
-.dash-kpi-card.k-pay-pending { --dbk-kpi-accent: #0284c7; --dbk-kpi-ico-bg: #e0f2fe; }
-.dash-kpi-card.k-pay-overdue { --dbk-kpi-accent: #dc2626; --dbk-kpi-ico-bg: #fee2e2; }
-.dash-kpi-card.k-pay-advance { --dbk-kpi-accent: #15803d; --dbk-kpi-ico-bg: #dcfce7; }
-.dash-kpi-card.k-pay-unalloc { --dbk-kpi-accent: #ea580c; --dbk-kpi-ico-bg: #ffedd5; }
+/* Accents overridden by .dash-booking-shell calm KPI rules in dashboard-booking.css */
+.dash-kpi-card.k-pay-recv { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-pay-today { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-pay-month { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-pay-pending { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-pay-overdue { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-pay-advance { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
+.dash-kpi-card.k-pay-unalloc { --dbk-kpi-accent: #06416F; --dbk-kpi-ico-bg: #E8EDF4; }
 
 .dash-pay-analytics-row {
 	display: grid;

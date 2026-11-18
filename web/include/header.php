@@ -7,7 +7,9 @@ require_once ('include/function.php');
 require_once ('include/ew_skeleton.php');
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 
 <style>
 :root {
@@ -332,9 +334,10 @@ body.page-header-fixed {
   <div class="top-right">
 
     <?php
-    $user_inq = 'select * from user_inquiry_list where status=0';
+    $user_inq = 'SELECT COUNT(*) AS c FROM user_inquiry_list WHERE status=0';
     $res_inq = mysqli_query($conn, $user_inq);
-    $inq_count = mysqli_num_rows($res_inq);
+    $inq_row = $res_inq ? mysqli_fetch_assoc($res_inq) : null;
+    $inq_count = (int) ($inq_row['c'] ?? 0);
     if ($_SESSION['role'] == 'AD'):
       ?>
       <div class="dropdowns notifications hidden-xs notif-bell" data-toggle="dropdown">

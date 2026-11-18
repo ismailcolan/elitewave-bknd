@@ -130,3 +130,130 @@ Invoices raise the balance (debit); payments, credit notes and TDS reduce it (cr
     $html .= elitewave_pdf_letterhead_close(true);
     return $html;
 }
+
+function pending_payments_ledger_pdf_money($n)
+{
+    return number_format((float) $n, 2, '.', ',');
+}
+
+/** Expanded GCN lines for each invoice — same columns as the on-screen expand. */
+function pending_payments_ledger_build_gcn_pdf_html($conn, $filters, $ledger)
+{
+    require_once __DIR__ . '/bill_wise_functions.php';
+
+    $client = $ledger['client'] ?: array('name' => '—', 'gst_no' => '', 'contact_no' => '', 'address' => '');
+    $bw_filters = array(
+        'from_date' => $filters['from_date'],
+        'to_date' => $filters['to_date'],
+        'from_mysql' => $filters['from_mysql'],
+        'to_mysql' => $filters['to_mysql'],
+        'customers' => (string) (int) ($filters['customer_id'] ?? 0),
+    );
+    $report = bill_wise_fetch($conn, $bw_filters);
+    $customer = null;
+    $cid = (int) ($filters['customer_id'] ?? 0);
+    foreach (($report['customers'] ?? array()) as $c) {
+        if ((int) ($c['id'] ?? 0) === $cid) {
+            $customer = $c;
+            break;
+        }
+    }
+    $invoices = $customer['invoices'] ?? array();
+
+    $period = $filters['from_date'] . ' to ' . $filters['to_date'];
+    $html = elitewave_pdf_letterhead_open($conn, 'Client Ledger — GCN detail', 'Without narration · expanded consignments', true, true);
+    $html .= '
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 8px;font-size:8pt;">
+<tr>
+	<td style="border:1px solid #021659;padding:6px 8px;">
+		<div style="font-size:7.5pt;color:#021659;font-weight:bold;">ACCOUNT OF</div>
+		<div style="font-size:10pt;font-weight:bold;">' . htmlspecialchars($client['name'], ENT_QUOTES, 'UTF-8') . '</div>
+		<div style="margin-top:2px;">Period ' . htmlspecialchars($period, ENT_QUOTES, 'UTF-8') . '</div>
+	</td>
+</tr>
+</table>';
+
+    if ($invoices === array()) {
+        $html .= '<p style="font-size:9pt;">No invoices in this period.</p>';
+        $html .= elitewave_pdf_letterhead_close(true);
+        return $html;
+    }
+
+    $th = 'border:1px solid #021659;background:#E8EEF6;color:#021659;padding:3px 2px;font-size:6.5pt;font-weight:bold;';
+    $td = 'border:1px solid #C5D3E0;padding:2px 2px;font-size:6.5pt;vertical-align:top;';
+    $heads = array('S.No', 'T/A', 'GCN No.', 'GCN Date', 'Package', 'Consignor', 'Station', 'Ship To', 'Inv No', 'Freight', 'D.Tempo', 'DC', 'Weight', 'Rate', 'per', 'Amount');
+
+    foreach ($invoices as $inv) {
+        $gcns = $inv['gcns'] ?? array();
+        $html .= '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:8px 0 2px;font-size:8pt;">';
+        $html .= '<tr><td style="border:1px solid #021659;background:#021659;color:#fff;padding:4px 6px;">';
+        $html .= '<b>' . htmlspecialchars($inv['date_short'] ?: $inv['date'], ENT_QUOTES, 'UTF-8') . '</b> &nbsp; ';
+        $html .= htmlspecialchars($inv['ledger_name'], ENT_QUOTES, 'UTF-8') . ' &nbsp; ';
+        $html .= '<b>' . htmlspecialchars($inv['voucher_no'], ENT_QUOTES, 'UTF-8') . '</b> &nbsp; ';
+        $html .= count($gcns) . ' GCN(s) &nbsp; Invoice ₹ ' . pending_payments_ledger_pdf_money($inv['total']);
+        $html .= ' &nbsp; Received ₹ ' . pending_payments_ledger_pdf_money($inv['received']);
+        $html .= ' &nbsp; Balance ₹ ' . pending_payments_ledger_pdf_money($inv['balance']);
+        $html .= '</td></tr></table>';
+
+        $html .= '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 6px;"><thead><tr>';
+        foreach ($heads as $h) {
+            $align = in_array($h, array('Freight', 'D.Tempo', 'DC', 'Rate', 'Amount'), true) ? 'right' : 'left';
+            $html .= '<th style="' . $th . 'text-align:' . $align . ';">' . htmlspecialchars($h, ENT_QUOTES, 'UTF-8') . '</th>';
+        }
+        $html .= '</tr></thead><tbody>';
+
+        $sub = 0.0;
+        $wsum = 0.0;
+        $n = 0;
+        foreach ($gcns as $g) {
+            $n++;
+            $sub += (float) ($g['amount'] ?? 0);
+            $wsum += (float) ($g['weight'] ?? 0);
+            $cells = array(
+                (string) $n,
+                (string) ($g['type'] ?? ''),
+                (string) ($g['gr_no'] ?? ''),
+                (string) ($g['gr_date_short'] ?: ($g['gr_date'] ?? '')),
+                (string) ($g['qty'] ?? ''),
+                (string) ($g['consignor'] ?? ''),
+                (string) ($g['station'] ?? ''),
+                (string) ($g['ship_to'] ?? ''),
+                (string) ($g['inv_no'] ?? ''),
+                pending_payments_ledger_pdf_money($g['freight'] ?? 0),
+                pending_payments_ledger_pdf_money($g['detention_tempo'] ?? 0),
+                pending_payments_ledger_pdf_money($g['dc'] ?? 0),
+                (string) ($g['weight_label'] ?? $g['weight'] ?? ''),
+                pending_payments_ledger_pdf_money($g['rate'] ?? 0),
+                (string) ($g['per'] ?? ''),
+                pending_payments_ledger_pdf_money($g['amount'] ?? 0),
+            );
+            $html .= '<tr>';
+            foreach ($cells as $i => $val) {
+                $align = ($i >= 9 && $i !== 12 && $i !== 14) ? 'right' : 'left';
+                $html .= '<td style="' . $td . 'text-align:' . $align . ';">' . htmlspecialchars($val, ENT_QUOTES, 'UTF-8') . '</td>';
+            }
+            $html .= '</tr>';
+        }
+        if ($n === 0) {
+            $html .= '<tr><td colspan="16" style="' . $td . '">No GCN lines on this invoice.</td></tr>';
+        }
+        $html .= '<tr><td colspan="15" style="' . $td . 'text-align:right;font-weight:bold;">Sub total</td>';
+        $html .= '<td style="' . $td . 'text-align:right;font-weight:bold;">' . pending_payments_ledger_pdf_money($sub) . '</td></tr>';
+        if ((float) ($inv['cgst'] ?? 0) > 0.009) {
+            $html .= '<tr><td colspan="15" style="' . $td . 'text-align:right;">Output CGST</td><td style="' . $td . 'text-align:right;">' . pending_payments_ledger_pdf_money($inv['cgst']) . '</td></tr>';
+        }
+        if ((float) ($inv['sgst'] ?? 0) > 0.009) {
+            $html .= '<tr><td colspan="15" style="' . $td . 'text-align:right;">Output SGST</td><td style="' . $td . 'text-align:right;">' . pending_payments_ledger_pdf_money($inv['sgst']) . '</td></tr>';
+        }
+        if (abs((float) ($inv['round_off'] ?? 0)) > 0.009) {
+            $html .= '<tr><td colspan="15" style="' . $td . 'text-align:right;">Round off</td><td style="' . $td . 'text-align:right;">' . pending_payments_ledger_pdf_money($inv['round_off']) . '</td></tr>';
+        }
+        $html .= '<tr><td colspan="12" style="' . $td . 'font-weight:bold;background:#F8FAFC;">' . count($gcns) . ' GCN(s), ' . number_format($wsum, 2, '.', '') . ' Kgs</td>';
+        $html .= '<td colspan="3" style="' . $td . 'text-align:right;font-weight:bold;background:#F8FAFC;">Total</td>';
+        $html .= '<td style="' . $td . 'text-align:right;font-weight:bold;background:#F8FAFC;">' . pending_payments_ledger_pdf_money($inv['total']) . '</td></tr>';
+        $html .= '</tbody></table>';
+    }
+
+    $html .= elitewave_pdf_letterhead_close(true);
+    return $html;
+}

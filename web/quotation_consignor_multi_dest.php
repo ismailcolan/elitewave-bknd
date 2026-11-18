@@ -89,7 +89,18 @@ foreach ($vehicle_types as $vt) {
 	);
 }
 $modes = quotation_mode_transport_catalog($conn);
-$city_catalog = quotation_city_state_catalog($conn);
+$extra_city_ids = array();
+if ($id > 0) {
+	foreach (quotation_get_destination_rows($conn, $id) as $dest_row) {
+		foreach (array('origin_city_id', 'destination_city_id') as $col) {
+			$cid = (int) ($dest_row[$col] ?? 0);
+			if ($cid > 0) {
+				$extra_city_ids[$cid] = $cid;
+			}
+		}
+	}
+}
+$city_catalog = quotation_city_state_catalog($conn, array_values($extra_city_ids));
 $dest_rows_form = quotation_hydrate_destination_rows_for_form($conn, $id > 0 ? $id : 0);
 $delivery_days_opts = quotation_delivery_days_options();
 $empty_row = quotation_default_destination_rows_for_form()[0];
@@ -237,6 +248,7 @@ $dest_master_singleton_id = $dest_masters ? (int) ($dest_masters[0]['master_id']
 										<table class="table table-bordered table-condensed" id="md_dest_table">
 											<thead>
 												<tr>
+													<th style="min-width:180px;">Origin (City — State)</th>
 													<th style="min-width:180px;">Destination (City — State)</th>
 													<th style="min-width:120px;">Mode</th>
 													<th style="min-width:180px;">Source of transport</th>

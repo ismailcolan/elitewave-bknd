@@ -72,15 +72,16 @@ $date_range_display = $date_range_all
 	? ''
 	: (dbk_display_date($data['range']['from']) . ' – ' . dbk_display_date($data['range']['to']));
 
+$inv_total = (int) ($kpi['total'] ?? 0);
 $inv_kpi_cards = array(
-	array('key' => 'total', 'class' => 'k-inv-total', 'label' => 'Total Invoices', 'icon' => 'fa-file-text-o'),
-	array('key' => 'draft', 'class' => 'k-inv-draft', 'label' => 'Draft', 'icon' => 'fa-pencil-square-o'),
+	array('key' => 'total', 'class' => 'k-inv-total', 'label' => 'Total invoices', 'icon' => 'fa-file-text-o', 'meta_strong' => 'Selected', 'meta_text' => 'date range'),
+	array('key' => 'draft', 'class' => 'k-inv-draft', 'label' => 'Draft', 'icon' => 'fa-pencil-square-o', 'tone' => 'warn'),
 	array('key' => 'generated', 'class' => 'k-inv-generated', 'label' => 'Generated', 'icon' => 'fa-cog'),
 	array('key' => 'sent', 'class' => 'k-inv-sent', 'label' => 'Sent', 'icon' => 'fa-paper-plane-o'),
-	array('key' => 'partial', 'class' => 'k-inv-partial', 'label' => 'Partially Paid', 'icon' => 'fa-adjust'),
-	array('key' => 'paid', 'class' => 'k-inv-paid', 'label' => 'Paid', 'icon' => 'fa-check-circle'),
-	array('key' => 'overdue', 'class' => 'k-inv-overdue', 'label' => 'Overdue', 'icon' => 'fa-exclamation-circle'),
-	array('key' => 'cancelled', 'class' => 'k-inv-cancelled', 'label' => 'Cancelled', 'icon' => 'fa-ban'),
+	array('key' => 'partial', 'class' => 'k-inv-partial', 'label' => 'Partially paid', 'icon' => 'fa-adjust', 'tone' => 'warn'),
+	array('key' => 'paid', 'class' => 'k-inv-paid', 'label' => 'Paid', 'icon' => 'fa-check-circle', 'tone' => 'ok'),
+	array('key' => 'overdue', 'class' => 'k-inv-overdue', 'label' => 'Overdue', 'icon' => 'fa-exclamation-circle', 'tone' => 'bad'),
+	array('key' => 'cancelled', 'class' => 'k-inv-cancelled', 'label' => 'Cancelled', 'icon' => 'fa-ban', 'tone' => 'bad'),
 );
 ?>
 <!DOCTYPE html>
@@ -90,8 +91,8 @@ $inv_kpi_cards = array(
 	<?php include('include/css_js.php'); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-	<link href="stylesheets/dashboard-booking.css?v=20261027range8" rel="stylesheet" type="text/css" />
-	<link href="stylesheets/dashboard-invoice.css?v=20261026out" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/dashboard-booking.css?v=20261117kpiref1" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/dashboard-invoice.css?v=20261117kpi7" rel="stylesheet" type="text/css" />
 </head>
 <body class="page-header-fixed bg-1 dash-booking-page">
 	<div class="modal-shiftfix">
@@ -131,10 +132,28 @@ $inv_kpi_cards = array(
 				</div>
 
 				<div class="dash-kpi-row">
-					<?php foreach ($inv_kpi_cards as $card): ?>
+					<?php foreach ($inv_kpi_cards as $card):
+						$count = (int) ($kpi[$card['key']] ?? 0);
+						if ($card['key'] === 'total') {
+							$meta_strong = $card['meta_strong'];
+							$meta_text = $card['meta_text'];
+						} else {
+							$pct = $inv_total > 0 ? round($count * 100 / $inv_total, 1) : 0;
+							$meta_strong = rtrim(rtrim(number_format($pct, 1, '.', ''), '0'), '.') . '%';
+							$meta_text = 'of total';
+						}
+						$tone = $card['tone'] ?? '';
+					?>
 						<div class="dash-kpi-card <?php echo dbk_h($card['class']); ?>">
-							<div class="dash-kpi-head"><span class="dash-kpi-lbl"><?php echo dbk_h($card['label']); ?></span><span class="dash-kpi-ico"><i class="fa <?php echo dbk_h($card['icon']); ?>" aria-hidden="true"></i></span></div>
-							<div class="dash-kpi-val"><?php echo dbk_num($kpi[$card['key']] ?? 0); ?></div>
+							<div class="dash-kpi-top">
+								<span class="dash-kpi-ico"><i class="fa <?php echo dbk_h($card['icon']); ?>" aria-hidden="true"></i></span>
+								<div class="dash-kpi-val"><?php echo dbk_num($count); ?></div>
+							</div>
+							<div class="dash-kpi-lbl"><?php echo dbk_h($card['label']); ?></div>
+							<div class="dash-kpi-meta<?php echo $tone !== '' ? ' is-' . dbk_h($tone) : ''; ?>">
+								<strong><?php echo dbk_h($meta_strong); ?></strong>
+								<span><?php echo dbk_h($meta_text); ?></span>
+							</div>
 						</div>
 					<?php endforeach; ?>
 				</div>
