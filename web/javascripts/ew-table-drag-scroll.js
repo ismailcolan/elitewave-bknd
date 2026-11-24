@@ -36,6 +36,9 @@
   }
 
   function shouldSkipTable($table) {
+    if ($table.hasClass('ew-form-drag-table')) {
+      return false;
+    }
     return $table.hasClass('ew-ss-datatable')
       || $table.hasClass('ew-no-drag-scroll')
       || $table.hasClass('ew-no-sticky-action')

@@ -58,7 +58,7 @@ function tds_output_doc_type_options()
 {
 	return array(
 		'' => 'All documents',
-		'vendor_bill' => 'Bill Registration',
+		'vendor_bill' => 'Purchase Bill Registration',
 		'payment_voucher' => 'Payment Voucher',
 	);
 }

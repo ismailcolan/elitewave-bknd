@@ -609,6 +609,5 @@ if (!$is_edit && empty($_GET['create'])) {
 			});
 		});
 	</script>
-</body>
 
 </html>

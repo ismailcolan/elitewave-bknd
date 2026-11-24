@@ -78,7 +78,7 @@ $vendors_q = mysqli_query($conn, 'SELECT vendor_id, vendor_code, vendor_name FRO
 					<div class="ew-page-v2 ew-page-v2--wide-table ew-page-v2--mis-report">
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
-								<h1 class="ew-page-title">Bill Registration Register</h1>
+								<h1 class="ew-page-title">Purchase Bill Registration Register</h1>
 							</div>
 							<div class="ew-page-head-right">
 								<span class="report-count" id="report_count"></span>
@@ -151,7 +151,7 @@ $vendors_q = mysqli_query($conn, 'SELECT vendor_id, vendor_code, vendor_name FRO
 							<div class="ew-card" id="ew_mis_empty_card">
 								<div class="ew-mis-empty-state">
 									<div class="ew-mis-empty-icon"><i class="fa fa-file-text-o"></i></div>
-									<h3>Choose a date range to load bill registrations</h3>
+									<h3>Choose a date range to load purchase bill registrations</h3>
 									<p>Use a quick range above, or set From and To dates, then press Search.</p>
 								</div>
 							</div>
@@ -265,7 +265,7 @@ $vendors_q = mysqli_query($conn, 'SELECT vendor_id, vendor_code, vendor_name FRO
 				datePill: misView.datePill(),
 				summary: filterSummaryText(payload),
 				countText: '',
-				resultsTitle: 'Bill Registration Register Data'
+				resultsTitle: 'Purchase Bill Registration Register Data'
 			});
 
 			$.getJSON('bill_registration_register_data.php', payload).done(function(resp) {
@@ -278,7 +278,7 @@ $vendors_q = mysqli_query($conn, 'SELECT vendor_id, vendor_code, vendor_name FRO
 				var data = resp.data || [];
 				var summary = resp.summary || {};
 				if (data.length === 0) {
-					$('#report').html('<p class="ew-mis-empty-hint">No bill registrations found for the selected filters.</p>');
+					$('#report').html('<p class="ew-mis-empty-hint">No purchase bill registrations found for the selected filters.</p>');
 					$('#report_count').text('0 bill(s)');
 					return;
 				}

@@ -1,5 +1,7 @@
 <?php
 require_once '/home/elitewave360/public_html/php/web/automation/SMPT/PHPMailerAutoload.php';
+require_once dirname(__DIR__) . '/include/ew_mail_config.php';
+
 function sendAppMail($to_name, $to_mail, $subject, $msg)
 {
 
@@ -13,18 +15,7 @@ function sendAppMail($to_name, $to_mail, $subject, $msg)
 	// array_push($mail_array,$to_email);
 
 	$mail = new PHPMailer;
-	$mail->isSMTP();     // Set mailer to use SMTP
-	// 				$mail->SMTPDebug = 2;
-	// $mail->Debugoutput = 'html';
-	$mail->Host = 'smtpout.secureserver.net';  // Specify main and backup SMTP servers
-	$mail->SMTPAuth = true;
-	// $mail->SMTPSecure = true;                           // Enable SMTP authentication
-	$mail->Username = 'info@elitewave360.in';                 // SMTP username
-	$mail->Password = 'EliteWave@360#';                           // SMTP password
-	$mail->SMTPSecure = 'tls';   // Enable TLS encryption, `ssl` also accepted
-	$mail->Port = 587;                                          // TCP port to connect to
-	$mail->From = 'info@elitewave360.in';
-	$mail->FromName = 'Elite Wave 360';
+	ew_mail_configure_phpmailer($mail);
 	// $mail = new PHPMailer;
 	// $mail->isSMTP();     // Set mailer to use SMTP
 	// $mail->Host = 'sg2plcpnl0032.prod.sin2.secureserver.net';  // Specify main and backup SMTP servers
@@ -38,14 +29,11 @@ function sendAppMail($to_name, $to_mail, $subject, $msg)
 	// $mail->FromName = 'Elite Wave 360';
 	//$mail->addAddress('si.aadil@gmail.com', 'Aadil');
 	//$mail->addAddress('mailmeroselin3012@gmail.com', 'Roselin');
-	// $mail->addAddress($to_mail,$to_name);     // Add a recipient
-	if (gettype($to_mail) == "array") {
-		for ($i = 0; $i < count($to_mail); $i++) {
-			$mail->addAddress($to_mail[$i], $to_name[$i]);
-		}
-	} else {
-		$mail->addAddress($to_mail, $to_name);     // Add a recipient
+	$added_to = ew_mail_add_to_recipients($mail, $to_name, $to_mail);
+	if ($added_to === 0) {
+		return 0;
 	}
+	ew_mail_add_default_cc($mail);
 	// Dear '.$to_name.'
 	$mail->isHTML(true);
 	$mail->Subject = $subject;
@@ -199,16 +187,7 @@ function sendAttachments($to_name, $to_mail, $subject, $file, $image, $msg, $nam
 	//array_push($mail_array,$to_email);
 
 	$mail = new PHPMailer;
-	$mail->isSMTP();     // Set mailer to use SMTP
-	$mail->Host = 'smtpout.secureserver.net';  // Specify main and backup SMTP servers
-	$mail->SMTPAuth = true;
-	// $mail->SMTPSecure = true;                           // Enable SMTP authentication
-	$mail->Username = 'info@elitewave360.in';                 // SMTP username
-	$mail->Password = 'EliteWave@360#';                           // SMTP password
-	$mail->SMTPSecure = 'tls';   // Enable TLS encryption, `ssl` also accepted
-	$mail->Port = 587;                                          // TCP port to connect to
-	$mail->From = 'info@elitewave360.in';
-	$mail->FromName = 'Elite Wave 360';
+	ew_mail_configure_phpmailer($mail);
 	// $mail->addAddress('si.aadil@gmail.com', 'Aadil');
 	// $mail->addAddress('mailmeroselin3012@gmail.com', 'Roselin');
 
@@ -226,14 +205,11 @@ function sendAttachments($to_name, $to_mail, $subject, $file, $image, $msg, $nam
 	// $mail->addAddress('si.aadil@gmail.com', 'Aadil');
 	// $mail->addAddress('mailmeroselin3012@gmail.com', 'Roselin');
 
-	//$mail->addAddress($to_mail,$to_name );     // Add a recipient
-	for ($i = 0; $i < count($to_mail); $i++) {
-		$mail->addAddress($to_mail[$i], $to_name[$i]);
+	$added_to = ew_mail_add_to_recipients($mail, $to_name, $to_mail);
+	if ($added_to === 0) {
+		return 0;
 	}
-	// foreach($to_email as $emails)
-	// {
-	// $mail->AddCC($emails, 'Testing');
-	// }
+	ew_mail_add_default_cc($mail);
 
 	$mail->isHTML(true);
 

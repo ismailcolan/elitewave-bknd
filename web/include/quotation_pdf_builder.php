@@ -173,16 +173,19 @@ function quotation_pdf_consignor_multi_dest_table_html($conn, $quotation_id)
 		. '<th style="' . $th . '">Mode</th>'
 		. '<th style="' . $th . '">Source of transport</th>'
 		. '<th style="' . $th . '">Days</th>'
+		. '<th style="' . $th . '">Weight</th>'
 		. '<th style="' . $th . 'text-align:right;">Freight</th>'
 		. '<th style="' . $th . 'text-align:right;">Pickup &amp; Delivery</th>'
 		. '</tr>';
 	foreach ($rows as $r) {
+		$w = trim((string) ($r['weight'] ?? ''));
 		$body .= '<tr>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['origin_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['destination_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['mode_type'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['vehicle_display'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['delivery_days_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
+			. '<td style="' . $td . '">' . htmlspecialchars($w !== '' ? $w : '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['freight_charges'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['tempo_charges'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
 			. '</tr>';
@@ -493,14 +496,17 @@ function quotation_pdf_multi_mode_table_html($conn, $quotation_id)
 		. '<th style="' . $th . '">Mode</th>'
 		. '<th style="' . $th . '">Source of transport</th>'
 		. '<th style="' . $th . '">Days</th>'
+		. '<th style="' . $th . '">Weight</th>'
 		. '<th style="' . $th . 'text-align:right;">Freight</th>'
 		. '<th style="' . $th . 'text-align:right;">Pickup &amp; Delivery</th>'
 		. '</tr>';
 	foreach ($rows as $r) {
+		$w = trim((string) ($r['weight'] ?? ''));
 		$body .= '<tr>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['mode_type'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['vehicle_display'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $td . '">' . htmlspecialchars($r['delivery_days_label'] ?? '—', ENT_QUOTES, 'UTF-8') . '</td>'
+			. '<td style="' . $td . '">' . htmlspecialchars($w !== '' ? $w : '—', ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['freight_charges'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
 			. '<td style="' . $tdr . '">' . htmlspecialchars($fmt($r['tempo_charges'] ?? 0), ENT_QUOTES, 'UTF-8') . '</td>'
 			. '</tr>';

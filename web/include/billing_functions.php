@@ -399,7 +399,7 @@ function billing_validate_gcn_for_invoice($conn, $trans_table, $transaction_id, 
         );
     }
 
-    $detail = billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing_type, $edit_id);
+    $detail = billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing_type, $edit_id, -1, $customer_id);
     if (!$detail) {
         return array('ok' => false, 'message' => 'GCN ' . ($booking['grn_no'] ?? '') . ' is not available for invoicing.');
     }
@@ -418,7 +418,15 @@ function billing_line_from_detail_row($conn, $d, $exclude_invoice_id = 0)
         return null;
     }
 
-    $detail = billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $d['billing_type'] ?? '', $exclude_invoice_id);
+    $invoice_customer_id = 0;
+    if ($exclude_invoice_id > 0) {
+        $inv = billing_get_invoice($conn, $exclude_invoice_id);
+        if ($inv && !empty($inv['master']['customer_id'])) {
+            $invoice_customer_id = (int) $inv['master']['customer_id'];
+        }
+    }
+
+    $detail = billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $d['billing_type'] ?? '', $exclude_invoice_id, -1, $invoice_customer_id);
     if ($detail) {
         return $detail;
     }
@@ -1022,7 +1030,12 @@ function billing_invoice_lines_aggregate($conn, $trans_table, $transaction_id)
     $transaction_id = (int) $transaction_id;
     $agg = array('packages' => 0, 'weight' => 0.0, 'freight' => 0.0, 'rate' => 0.0);
 
-    $q = @mysqli_query($conn, "SELECT qty, charged_weight, frieght_rate FROM `$inv_tbl`
+    $select_rate = '';
+    $rate_chk = @mysqli_query($conn, "SHOW COLUMNS FROM `$inv_tbl` LIKE 'frieght_rate'");
+    if ($rate_chk && mysqli_num_rows($rate_chk) > 0) {
+        $select_rate = ', frieght_rate';
+    }
+    $q = @mysqli_query($conn, "SELECT qty, charged_weight{$select_rate} FROM `$inv_tbl`
         WHERE transaction_id='$transaction_id'
         AND (type_of_pkge IS NULL OR type_of_pkge='' OR type_of_pkge!='Select Package Type')");
     if (!$q) {
@@ -1110,7 +1123,7 @@ function billing_amounts_from_booking_row($row, $line_agg = null)
     );
 }
 
-function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing_type = '', $exclude_invoice_id = 0, $exclude_proforma_id = -1)
+function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing_type = '', $exclude_invoice_id = 0, $exclude_proforma_id = -1, $invoice_customer_id = 0)
 {
     $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
     $transaction_id = (int) $transaction_id;
@@ -1167,13 +1180,29 @@ function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing
     $freight = $amounts['freight'];
     $other = $amounts['other'];
     $taxable = $amounts['taxable'];
-    $cgst = (float) ($row['cgst_amount'] ?? 0);
-    $sgst = (float) ($row['sgst_amount'] ?? 0);
-    $igst = (float) ($row['igst_amount'] ?? 0);
-    $cess = (float) ($row['cess_amount'] ?? 0);
-    $gst = (float) ($row['gst_amount'] ?? 0);
-    $total = (float) ($row['total'] ?? 0);
-    $line_total = $total > 0 ? $total : ($freight + $other + $gst);
+
+    $invoice_customer_id = (int) $invoice_customer_id;
+    if ($invoice_customer_id <= 0) {
+        $invoice_customer_id = (int) ($row['consigner'] ?? 0);
+        if ($invoice_customer_id <= 0) {
+            $invoice_customer_id = (int) ($row['consignee'] ?? 0);
+        }
+    }
+
+    $gst_recalc = gst_tax_recalc_booking_for_freight_invoice($conn, $row, $invoice_customer_id, $taxable);
+    $cgst = (float) ($gst_recalc['cgst_amount'] ?? 0);
+    $sgst = (float) ($gst_recalc['sgst_amount'] ?? 0);
+    $igst = (float) ($gst_recalc['igst_amount'] ?? 0);
+    $cess = (float) ($gst_recalc['cess_amount'] ?? 0);
+    $gst = (float) ($gst_recalc['gst_amount'] ?? 0);
+    $taxable = (float) ($gst_recalc['taxable_value'] ?? $taxable);
+    $line_total = (float) ($gst_recalc['grand_total'] ?? 0);
+    if ($line_total <= 0) {
+        $line_total = $taxable + $gst;
+    }
+    $gst_warnings = isset($gst_recalc['gst_warnings']) && is_array($gst_recalc['gst_warnings'])
+        ? $gst_recalc['gst_warnings']
+        : array();
 
     if ($billing_type === '') {
         $billing_type = billing_type_from_mode($row['mode_of_consignment'] ?? 0);
@@ -1207,6 +1236,8 @@ function billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing
         'billing_type_label' => isset($opts[$billing_type]) ? $opts[$billing_type] : strtoupper($billing_type),
         'mode_label' => billing_mode_label($row['mode_of_consignment'] ?? 0, $conn),
         'invoiced_amount' => billing_format_money($line_total),
+        'invoice_gst_type' => $gst_recalc['gst_type'] ?? '',
+        'gst_warnings' => $gst_warnings,
     );
 }
 
@@ -1238,6 +1269,122 @@ function billing_sum_lines($lines)
         $sum[$k] = billing_format_money($v);
     }
     return $sum;
+}
+
+/**
+ * Recompute CGST/SGST/IGST from freight rules and persist to invoice master + detail rows.
+ */
+function billing_invoice_sync_gst_from_rules($conn, $billing_invoice_id, $user_id = 0)
+{
+    $billing_invoice_id = (int) $billing_invoice_id;
+    $user_id = (int) $user_id;
+    if ($billing_invoice_id <= 0) {
+        return false;
+    }
+
+    $data = billing_get_invoice($conn, $billing_invoice_id);
+    if (!$data) {
+        return false;
+    }
+    $status = $data['master']['status'] ?? '';
+    if ($status === 'cancelled') {
+        return false;
+    }
+
+    $customer_id = (int) ($data['master']['customer_id'] ?? 0);
+    $recalc_lines = array();
+    foreach ($data['details'] as $d) {
+        $tbl = preg_replace('/[^a-zA-Z0-9_]/', '', $d['trans_table'] ?? '');
+        $tid = (int) ($d['transaction_id'] ?? 0);
+        if ($tbl === '' || $tid <= 0) {
+            continue;
+        }
+        $line = billing_fetch_gcn_detail($conn, $tbl, $tid, $d['billing_type'] ?? '', $billing_invoice_id, -1, $customer_id);
+        if (!$line) {
+            continue;
+        }
+        $line['detail_id'] = (int) ($d['detail_id'] ?? 0);
+        $recalc_lines[] = $line;
+    }
+    if (empty($recalc_lines)) {
+        return false;
+    }
+
+    $totals = billing_sum_lines($recalc_lines);
+    $master = $data['master'];
+
+    $old_cgst = (float) ($master['cgst_amount'] ?? 0);
+    $old_sgst = (float) ($master['sgst_amount'] ?? 0);
+    $old_igst = (float) ($master['igst_amount'] ?? 0);
+    $new_cgst = (float) ($totals['cgst_amount'] ?? 0);
+    $new_sgst = (float) ($totals['sgst_amount'] ?? 0);
+    $new_igst = (float) ($totals['igst_amount'] ?? 0);
+
+    $changed = (abs($old_cgst - $new_cgst) > 0.009)
+        || (abs($old_sgst - $new_sgst) > 0.009)
+        || (abs($old_igst - $new_igst) > 0.009);
+
+    if (!$changed) {
+        foreach ($recalc_lines as $line) {
+            $detail_id = (int) ($line['detail_id'] ?? 0);
+            if ($detail_id <= 0) {
+                continue;
+            }
+            foreach ($data['details'] as $d) {
+                if ((int) ($d['detail_id'] ?? 0) !== $detail_id) {
+                    continue;
+                }
+                if (abs((float) ($d['cgst_amount'] ?? 0) - (float) ($line['cgst_amount'] ?? 0)) > 0.009
+                    || abs((float) ($d['igst_amount'] ?? 0) - (float) ($line['igst_amount'] ?? 0)) > 0.009) {
+                    $changed = true;
+                }
+                break;
+            }
+        }
+    }
+
+    if (!$changed) {
+        return false;
+    }
+
+    $now = date('Y-m-d H:i:s');
+    $esc_words = mysqli_real_escape_string($conn, gst_tax_report_amount_in_words((float) $totals['grand_total']));
+
+    mysqli_query($conn, "UPDATE billing_invoice_master SET
+        total_freight='{$totals['total_freight']}',
+        total_other='{$totals['total_other']}',
+        taxable_value='{$totals['taxable_value']}',
+        cgst_amount='{$totals['cgst_amount']}',
+        sgst_amount='{$totals['sgst_amount']}',
+        igst_amount='{$totals['igst_amount']}',
+        cess_amount='{$totals['cess_amount']}',
+        gst_amount='{$totals['gst_amount']}',
+        grand_total='{$totals['grand_total']}',
+        total_words='$esc_words',
+        updated_at='$now',
+        updated_by='$user_id'
+        WHERE billing_invoice_id='$billing_invoice_id'");
+
+    foreach ($recalc_lines as $line) {
+        $detail_id = (int) ($line['detail_id'] ?? 0);
+        if ($detail_id <= 0) {
+            continue;
+        }
+        mysqli_query($conn, "UPDATE billing_invoice_details SET
+            freight_amount='{$line['freight_amount']}',
+            other_charges='{$line['other_charges']}',
+            taxable_value='{$line['taxable_value']}',
+            cgst_amount='{$line['cgst_amount']}',
+            sgst_amount='{$line['sgst_amount']}',
+            igst_amount='{$line['igst_amount']}',
+            cess_amount='{$line['cess_amount']}',
+            gst_amount='{$line['gst_amount']}',
+            total_amount='{$line['total_amount']}',
+            invoiced_amount='{$line['invoiced_amount']}'
+            WHERE detail_id='$detail_id'");
+    }
+
+    return true;
 }
 
 function billing_get_invoice($conn, $billing_invoice_id)
@@ -1305,6 +1452,35 @@ function billing_save_invoice($conn, $payload, $user_id)
 
     if (empty($parsed_lines)) {
         return array('status' => 1, 'message' => 'No valid GCN lines to save.');
+    }
+
+    if ($status === 'final') {
+        $gst_errors = array();
+        foreach ($parsed_lines as $pline) {
+            $tbl = preg_replace('/[^a-zA-Z0-9_]/', '', $pline['trans_table'] ?? '');
+            $tid = (int) ($pline['transaction_id'] ?? 0);
+            if ($tbl === '' || $tid <= 0) {
+                continue;
+            }
+            $bq = mysqli_query($conn, "SELECT * FROM `$tbl` WHERE transaction_id='$tid' LIMIT 1");
+            if (!$bq || !($brow = mysqli_fetch_assoc($bq))) {
+                continue;
+            }
+            $ctx = gst_tax_invoice_place_of_supply_context($conn, $customer_id, $brow);
+            foreach (gst_tax_invoice_finalize_errors($conn, $ctx) as $err) {
+                $gst_errors[$err] = true;
+            }
+        }
+        if (!empty($gst_errors)) {
+            $grn = $parsed_lines[0]['grn_no'] ?? '';
+
+            return array(
+                'status' => 1,
+                'message' => 'GST validation failed before issuing invoice'
+                    . ($grn !== '' ? ' (e.g. GCN ' . $grn . ')' : '')
+                    . ': ' . implode(' ', array_keys($gst_errors)),
+            );
+        }
     }
 
     if ($billing_type_raw === '') {

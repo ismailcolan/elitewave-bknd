@@ -1776,32 +1776,10 @@ function ew_transport_carrier_option_label($name, $number)
 	return $name . ' (' . $number . ')';
 }
 
-/** Active trains and flights for status-2 (Picked Up) carrier selection. */
+/** Status pickup carriers: lists are loaded on demand via quotation_transport_search.php (ew-remote-source.js). */
 function ew_status_pickup_carrier_options($conn)
 {
-	$out = array('train' => array(), 'flight' => array());
-	$tq = @mysqli_query($conn, "SELECT train_id, train_name, train_number, journey_hours FROM train WHERE status=0 ORDER BY train_name ASC");
-	if ($tq) {
-		while ($tr = mysqli_fetch_assoc($tq)) {
-			$out['train'][] = array(
-				'id' => (int) $tr['train_id'],
-				'label' => ew_transport_carrier_option_label($tr['train_name'] ?? '', $tr['train_number'] ?? ''),
-				'journey_hours' => isset($tr['journey_hours']) ? (string) $tr['journey_hours'] : '',
-			);
-		}
-	}
-	$fq = @mysqli_query($conn, "SELECT flight_id, flight_name, flight_number, journey_hours FROM flight WHERE status=0 ORDER BY flight_name ASC");
-	if ($fq) {
-		while ($fl = mysqli_fetch_assoc($fq)) {
-			$out['flight'][] = array(
-				'id' => (int) $fl['flight_id'],
-				'label' => ew_transport_carrier_option_label($fl['flight_name'] ?? '', $fl['flight_number'] ?? ''),
-				'journey_hours' => isset($fl['journey_hours']) ? (string) $fl['journey_hours'] : '',
-			);
-		}
-	}
-
-	return $out;
+	return array('train' => array(), 'flight' => array());
 }
 
 /** Decode train_type column for status pickup (train:ID, flight:ID, or legacy numeric). */
@@ -2771,6 +2749,75 @@ function ew_normalize_legacy_entity_code($code)
 	}
 
 	return $code;
+}
+
+function ew_transaction_images_table_from_transaction_table($trans_table)
+{
+	$trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $trans_table);
+	if ($trans_table === '' || strpos($trans_table, 'transaction_') !== 0) {
+		return '';
+	}
+	return preg_replace('/^transaction_/', 'transaction_images_', $trans_table, 1);
+}
+
+function ew_transaction_invoice_table_from_images_table($images_table)
+{
+	$images_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $images_table);
+	if ($images_table === '' || strpos($images_table, 'transaction_images_') !== 0) {
+		return '';
+	}
+	return preg_replace('/^transaction_images_/', 'transaction_invoice_', $images_table, 1);
+}
+
+function ew_transaction_table_from_images_table($images_table)
+{
+	$images_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $images_table);
+	if ($images_table === '' || strpos($images_table, 'transaction_images_') !== 0) {
+		return '';
+	}
+	return preg_replace('/^transaction_images_/', 'transaction_', $images_table, 1);
+}
+
+/**
+ * Extra columns for unified booking attachments (E-Way / GCN / Party Invoice).
+ */
+function ew_transaction_images_ensure_attachment_schema($conn, $table_name)
+{
+	$table_name = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $table_name);
+	if ($table_name === '' || strpos($table_name, 'transaction_images_') !== 0) {
+		return;
+	}
+	static $done = array();
+	if (!empty($done[$table_name])) {
+		return;
+	}
+	$done[$table_name] = true;
+
+	$columns = array(
+		'attachment_type' => "VARCHAR(20) NOT NULL DEFAULT 'eway'",
+		'grn_no' => 'VARCHAR(50) DEFAULT NULL',
+		'delivery_date' => 'VARCHAR(25) DEFAULT NULL',
+		'party_invoice_no' => 'VARCHAR(100) DEFAULT NULL',
+		'transaction_invoice_id' => 'INT(11) DEFAULT NULL',
+	);
+	foreach ($columns as $col => $ddl) {
+		$chk = mysqli_query($conn, "SHOW COLUMNS FROM `$table_name` LIKE '$col'");
+		if ($chk && mysqli_num_rows($chk) === 0) {
+			mysqli_query($conn, "ALTER TABLE `$table_name` ADD COLUMN `$col` $ddl");
+		}
+	}
+	@mysqli_query($conn, "UPDATE `$table_name` SET attachment_type='eway' WHERE (attachment_type IS NULL OR attachment_type='') AND COALESCE(eway_bill_no,'')!=''");
+}
+
+function ew_booking_attachment_type_label($type)
+{
+	$map = array(
+		'eway' => 'E-Way',
+		'gcn' => 'GCN - Proof Of Delivery',
+		'party_invoice' => 'Party Invoice',
+	);
+	$type = strtolower(trim((string) $type));
+	return $map[$type] ?? 'Attachment';
 }
 
 function ew_eway_attachment_web_root()

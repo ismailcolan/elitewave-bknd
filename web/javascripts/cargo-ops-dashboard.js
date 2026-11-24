@@ -856,7 +856,7 @@
     dr.innerHTML =
       '<div class="trk-drawer-top">'
       + '<b>' + esc(item.grn_no || '—') + '</b>'
-      + '<button type="button" class="trk-btn" data-drawer-close="1">Close</button>'
+      + '<button type="button" class="trk-btn trk-x" data-drawer-close="1" aria-label="Close">&times;</button>'
       + '</div>'
       + '<div class="trk-drawer-art">' + modeArtHtml(mkey, modePillLabel(item)) + '</div>'
       + '<span class="trk-fno">' + esc(modePillLabel(item)) + '</span>'

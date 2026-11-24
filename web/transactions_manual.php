@@ -13,6 +13,14 @@ $booking_vehicle_type_dims_json = json_encode($booking_vehicle_type_dims, JSON_U
 if ($booking_vehicle_type_dims_json === false) {
 	$booking_vehicle_type_dims_json = '{}';
 }
+$booking_mode_kind_map = quotation_mode_kind_map($conn);
+$booking_vehicle_id_names = array();
+foreach (ew_vehicle_type_list($conn, true) as $ew_vt_row) {
+	$ew_vid = (int) ($ew_vt_row['vehicle_type_id'] ?? 0);
+	if ($ew_vid > 0) {
+		$booking_vehicle_id_names[(string) $ew_vid] = trim((string) ($ew_vt_row['type_name'] ?? ''));
+	}
+}
 ensure_gst_tax_master_table($conn);
 $company_query = mysqli_query($conn, 'SELECT company_id, company_code, grn_mode, state FROM company WHERE status=0 LIMIT 1');
 $company_row = mysqli_fetch_array($company_query);
@@ -727,8 +735,9 @@ if ($booking_clients_json === false) {
 							if (!is_array($row)) {
 								$row = array();
 							}
-							$saved_booking_vehicle_type = trim((string) ($row['vehicle_type'] ?? ''));
-							$initial_vehicle_type_dims_display = isset($booking_vehicle_type_dims[$saved_booking_vehicle_type])
+							$booking_source_parsed = ew_booking_parse_source_storage($conn, is_array($row) ? $row : array());
+							$saved_booking_vehicle_type = $booking_source_parsed['kind'] === 'road' ? trim((string) $booking_source_parsed['vehicle_name']) : '';
+							$initial_vehicle_type_dims_display = ($saved_booking_vehicle_type !== '' && isset($booking_vehicle_type_dims[$saved_booking_vehicle_type]))
 								? $booking_vehicle_type_dims[$saved_booking_vehicle_type] : '';
 							$transaction_id = $row['transaction_id'] ?? '';
 							$ftl_type = $row['ftl_type'] ?? '';
@@ -1185,9 +1194,9 @@ if ($booking_clients_json === false) {
 													<label class="control-label">Insurance No</label>
 													<input type="text" name="insurance_number" id="insurance_number" value="<?php echo htmlspecialchars($row['insurance_number'] ?? ''); ?>" class="form-control">
 												</div>
-												<div class="ew-field">
-													<label class="control-label">Vehicle Type</label>
-													<?php echo ew_vehicle_type_transaction_select_html($conn, $row['vehicle_type'] ?? ''); ?>
+												<div class="ew-field" id="booking_source_transport_wrap">
+													<label class="control-label" for="booking_source_vehicle">Source of transport</label>
+													<?php echo ew_booking_source_transport_html($conn, is_array($row) ? $row : array()); ?>
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Highload Challan</label>
@@ -1195,7 +1204,7 @@ if ($booking_clients_json === false) {
 												</div>
 												<div class="ew-field" id="vehicle_type_dims_wrap">
 													<label class="control-label" for="vehicle_type_dims_display">Vehicle Dimensions / CBM</label>
-													<input type="text" id="vehicle_type_dims_display" class="form-control" readonly disabled value="<?php echo htmlspecialchars($initial_vehicle_type_dims_display, ENT_QUOTES, 'UTF-8'); ?>" tabindex="-1" aria-readonly="true" placeholder="Select vehicle type" />
+													<input type="text" id="vehicle_type_dims_display" class="form-control" readonly disabled value="<?php echo htmlspecialchars($initial_vehicle_type_dims_display, ENT_QUOTES, 'UTF-8'); ?>" tabindex="-1" aria-readonly="true" placeholder="Select source of transport" />
 												</div>
 												<div class="ew-field">
 													<label class="control-label">Goods Declared Value (INR)</label>
@@ -1370,7 +1379,7 @@ if ($booking_clients_json === false) {
 												<div class="form-group">
 													<label for="gst_type">GST Type</label>
 													<select name="gst_type" id="gst_type" class="form-control">
-														<option value="auto" <?php if ($saved_gst_type === 'auto') echo 'selected'; ?>>Auto (Origin vs Destination)</option>
+														<option value="auto" <?php if ($saved_gst_type === 'auto') echo 'selected'; ?>>Auto (Supplier vs Bill To)</option>
 														<option value="intra" <?php if ($saved_gst_type === 'intra') echo 'selected'; ?>>Intra-State (CGST + SGST)</option>
 														<option value="inter" <?php if ($saved_gst_type === 'inter') echo 'selected'; ?>>Inter-State (IGST)</option>
 														<option value="exempt" <?php if ($saved_gst_type === 'exempt') echo 'selected'; ?>>Exempt</option>
@@ -1641,6 +1650,7 @@ if ($booking_clients_json === false) {
 			});
 		}
 
+		var companyStateId = <?php echo (int) $company_state_id; ?>;
 		var gstProfiles = <?php echo $gst_profiles_json ?: '[]'; ?>;
 		var cachedConsignorBranches = [];
 		var cachedConsigneeBranches = [];
@@ -1780,17 +1790,51 @@ if ($booking_clients_json === false) {
 			var destState = getDestinationStateId();
 			$('#origin_state_id').val(originState || '');
 			$('#destination_state_id').val(destState || '');
-			$('#bill_to_state_id').val(destState || '');
 			return { originState: originState, destState: destState };
 		}
-		function determineGstTypeFromRoute() {
-			var states = syncRouteStateFields();
-			if (!states.originState || !states.destState) return '';
-			return (parseInt(states.originState, 10) === parseInt(states.destState, 10)) ? 'intra' : 'inter';
+		function getBilledCustomerId() {
+			var mode = parseInt($('#mode_of_consignment').val(), 10) || 0;
+			var consignor = parseInt($('#consignor').val(), 10) || 0;
+			var consignee = parseInt($('#consignee').val(), 10) || 0;
+			if (mode === 2) return consignor;
+			if (mode === 1 || mode === 7) return consignee;
+			return consignor || consignee;
+		}
+		function normalizedGstin(val) {
+			return String(val || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+		}
+		function isValidGstin(val) {
+			return /^[0-9]{2}[A-Z0-9]{13}$/.test(normalizedGstin(val));
+		}
+		function getBillToPlaceOfSupplyStateId() {
+			syncRouteStateFields();
+			var billed = getBilledCustomerId();
+			var consignor = parseInt($('#consignor').val(), 10) || 0;
+			var consignee = parseInt($('#consignee').val(), 10) || 0;
+			if (billed > 0 && billed === consignor && isValidGstin($('#gst_no').val())) {
+				var sid = parseInt($('#consignor_state_id').val(), 10) || 0;
+				if (sid) return sid;
+			}
+			if (billed > 0 && billed === consignee && isValidGstin($('#con_gst').val())) {
+				var csid = parseInt($('#consignee_state_id').val(), 10) || 0;
+				if (csid) return csid;
+			}
+			return getOriginStateId();
+		}
+		function syncBillToStateField() {
+			var pos = getBillToPlaceOfSupplyStateId();
+			$('#bill_to_state_id').val(pos || '');
+			return pos;
+		}
+		function determineGstTypeForFreight() {
+			var supplier = parseInt(companyStateId, 10) || 0;
+			var pos = syncBillToStateField();
+			if (!supplier || !pos) return '';
+			return (parseInt(supplier, 10) === parseInt(pos, 10)) ? 'intra' : 'inter';
 		}
 		function syncGstTypeLock() {
 			var profile = getSelectedGstProfile();
-			var routeType = determineGstTypeFromRoute();
+			var routeType = determineGstTypeForFreight();
 			var $gstType = $('#gst_type');
 			if (profile && String(profile.tax_code).toUpperCase() === 'GST0') {
 				$gstType.val('exempt').prop('disabled', true);
@@ -1806,7 +1850,7 @@ if ($booking_clients_json === false) {
 		function determineGstType() {
 			var selected = syncGstTypeLock();
 			if (selected === 'exempt' || selected === 'non_gst') return selected;
-			var routeType = determineGstTypeFromRoute();
+			var routeType = determineGstTypeForFreight();
 			if (routeType) return routeType;
 			if (selected === 'intra' || selected === 'inter') return selected;
 			return '';
@@ -1825,14 +1869,15 @@ if ($booking_clients_json === false) {
 			};
 		}
 		function updateGstTypeHint(resolvedType) {
-			var states = syncRouteStateFields();
+			var pos = syncBillToStateField();
+			var billed = getBilledCustomerId();
 			var hint = '';
-			if (!states.originState || !states.destState) {
-				hint = 'Select origin and destination to auto-determine GST type and breakup.';
+			if (!companyStateId || !pos || !billed) {
+				hint = 'Select consignment mode, billed party, and Bill To GSTIN (or origin for unregistered) to auto-determine GST.';
 			} else if (resolvedType === 'intra') {
-				hint = 'Auto: Same origin & destination state → Intra-State (CGST + SGST)';
+				hint = 'Auto: Supplier and Bill To in same state → Intra-State (CGST + SGST)';
 			} else if (resolvedType === 'inter') {
-				hint = 'Auto: Different origin & destination state → Inter-State (IGST)';
+				hint = 'Auto: Supplier and Bill To in different states → Inter-State (IGST)';
 			}
 			$('#gst_type_hint').text(hint);
 		}
@@ -2342,13 +2387,11 @@ if ($booking_clients_json === false) {
 		var V_mode, T;
 		var bookingVehicleTypeDims = <?php echo $booking_vehicle_type_dims_json; ?>;
 
-		function syncVehicleTypeDimsDisplay() {
+		window.syncVehicleTypeDimsDisplay = function () {
 			var val = $.trim($('#vehicle_type').val() || '');
 			var text = val ? (bookingVehicleTypeDims[val] || '') : '';
 			$('#vehicle_type_dims_display').val(text);
-		}
-
-		$(document).on('change', '#vehicle_type', syncVehicleTypeDimsDisplay);
+		};
 
 		function syncCfsBookingField() {
 			if (!$('#cfs_location_wrap').length) {
@@ -3646,6 +3689,12 @@ if ($booking_clients_json === false) {
 		</div>
 	</div>
 
+<script>
+window.BOOKING_MODE_KIND = <?php echo json_encode($booking_mode_kind_map, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS); ?>;
+window.BOOKING_VEHICLE_NAMES = <?php echo json_encode($booking_vehicle_id_names, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS); ?>;
+</script>
+<script src="javascripts/ew-remote-source.js?v=20261114search"></script>
+<script src="javascripts/booking-source-transport.js?v=20261124"></script>
 </body>
 
 </html>

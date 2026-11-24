@@ -24,4 +24,20 @@ $payload = array(
     'status' => trim($_POST['status'] ?? 'draft'),
 );
 
-echo json_encode(billing_save_credit_note($conn, $payload, $user_id), JSON_UNESCAPED_UNICODE);
+$result = billing_save_credit_note($conn, $payload, $user_id);
+$send_mail = !empty($_POST['send_client_email']);
+$note_status = isset($result['note_status']) ? $result['note_status'] : '';
+if ($send_mail && !empty($result['status']) && $result['status'] === 0 && $note_status === 'final' && !empty($result['billing_note_id'])) {
+    require_once __DIR__ . '/include/credit_note_email.php';
+    $mail = credit_note_send_client_email($conn, (int) $result['billing_note_id'], $user_id);
+    if (!empty($mail['ok'])) {
+        $result['message'] = trim((string) ($result['message'] ?? '')) . ' ' . $mail['message'];
+        $result['email_sent'] = 1;
+        $result['email_sent_to'] = $mail['sent_to'] ?? '';
+    } else {
+        $result['email_error'] = $mail['message'] ?? 'Email could not be sent.';
+        $result['message'] = trim((string) ($result['message'] ?? '')) . ' ' . ($mail['message'] ?? 'Email could not be sent.');
+    }
+}
+
+echo json_encode($result, JSON_UNESCAPED_UNICODE);

@@ -8,9 +8,10 @@ require_once __DIR__ . '/vendor/autoload.php';
 expense_require_admin();
 
 $general_expense_id = (int) ($_GET['general_expense_id'] ?? 0);
+$scope_gcn_key = trim((string) ($_GET['gcn_key'] ?? ''));
 $download = !empty($_GET['download']);
 
-$view = expense_general_view_data($conn, $general_expense_id);
+$view = expense_general_view_data($conn, $general_expense_id, $scope_gcn_key);
 if (!$view || strtolower((string) ($view['voucher_type'] ?? '')) !== 'gcn') {
 	header('HTTP/1.1 404 Not Found');
 	echo 'GCN voucher not found.';

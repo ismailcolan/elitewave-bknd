@@ -98,12 +98,12 @@ $list_rows = expense_bill_fetch_list($conn);
 					<div class="ew-page-v2 ew-page-v2--wide-table">
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
-								<h1 class="ew-page-title">Bill Registration</h1>
+								<h1 class="ew-page-title">Purchase Bill Registration</h1>
 							</div>
 						</div>
 						<div class="ew-card ew-erp-list">
 							<div class="ew-card-toolbar">
-								<h2>Bill Registration List</h2>
+								<h2>Purchase Bill Registration List</h2>
 								<div class="ew-toolbar-right">
 									<div class="ew-list-toolbar__tools"></div>
 									<a href="expense_bill.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
@@ -114,7 +114,7 @@ $list_rows = expense_bill_fetch_list($conn);
 								<div class="ebill-empty" style="padding:24px;text-align:center;color:#64748b;">
 									No bills registered yet.
 									<br><br>
-									<a href="expense_bill.php?create=1" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-plus"></i> Add Bill Registration</a>
+									<a href="expense_bill.php?create=1" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-plus"></i> Add Purchase Bill Registration</a>
 								</div>
 							<?php } else { ?>
 									<table class="table table-bordered table-striped ebill_list_tab" id="dataTable1">
@@ -183,7 +183,7 @@ $list_rows = expense_bill_fetch_list($conn);
 	<div class="ew-v2-modal-backdrop" id="ebillViewModal">
 		<div class="ew-v2-modal ew-v2-modal--lg">
 			<div class="ew-v2-modal-head">
-				<h3 id="ebillViewModalTitle">Bill registration details</h3>
+				<h3 id="ebillViewModalTitle">Purchase bill registration details</h3>
 				<button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
 			</div>
 			<div class="ew-v2-modal-body" id="ebillViewModalBody">
@@ -254,7 +254,7 @@ $list_rows = expense_bill_fetch_list($conn);
 				if (!id) {
 					return;
 				}
-				$('#ebillViewModalTitle').text('Bill registration' + (no ? ' — ' + no : ''));
+				$('#ebillViewModalTitle').text('Purchase bill registration' + (no ? ' — ' + no : ''));
 				$('#ebillViewModalBody').html('<p class="text-muted" style="margin:0;">Loading…</p>');
 				if (typeof ewV2OpenModal === 'function') {
 					ewV2OpenModal('ebillViewModal');
@@ -267,7 +267,7 @@ $list_rows = expense_bill_fetch_list($conn);
 						return;
 					}
 					var titleNo = r.data.bill_entry_no || no || ('#' + id);
-					$('#ebillViewModalTitle').text('Bill registration — ' + titleNo);
+					$('#ebillViewModalTitle').text('Purchase bill registration — ' + titleNo);
 					$('#ebillViewModalBody').html(ebillRenderView(r.data));
 				}).fail(function() {
 					$('#ebillViewModalBody').html('<p class="text-danger">Request failed.</p>');
@@ -277,7 +277,7 @@ $list_rows = expense_bill_fetch_list($conn);
 			$(document).on('click', '.btn-delete-bill', function() {
 				var id = $(this).data('id');
 				var no = $(this).data('no') || '';
-				if (!id || !confirm('Delete bill registration ' + no + '?')) return;
+				if (!id || !confirm('Delete purchase bill registration ' + no + '?')) return;
 				var $btn = $(this);
 				$btn.prop('disabled', true);
 				$.post('expense_bill_data.php', { cmd: 'delete', bill_id: id }, function(r) {

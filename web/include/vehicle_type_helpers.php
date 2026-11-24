@@ -535,3 +535,159 @@ function ew_vehicle_type_empty_row()
 		'status' => 0,
 	);
 }
+
+/**
+ * Resolve train id from stored booking label (train_type or display text).
+ */
+function ew_booking_lookup_train_id_by_label($conn, $label)
+{
+	$label = trim((string) $label);
+	if ($label === '') {
+		return 0;
+	}
+	if (!function_exists('quotation_transport_option_label')) {
+		require_once __DIR__ . '/quotation_multi_mode.php';
+	}
+	$esc = mysqli_real_escape_string($conn, $label);
+	$q = @mysqli_query($conn, "SELECT train_id, train_name, train_number FROM train WHERE status=0 AND (train_name='$esc' OR train_number='$esc' OR CONCAT(train_name,' — ',train_number)='$esc') LIMIT 1");
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
+		return (int) $row['train_id'];
+	}
+	return 0;
+}
+
+function ew_booking_lookup_flight_id_by_label($conn, $label)
+{
+	$label = trim((string) $label);
+	if ($label === '') {
+		return 0;
+	}
+	if (!function_exists('quotation_transport_option_label')) {
+		require_once __DIR__ . '/quotation_multi_mode.php';
+	}
+	$esc = mysqli_real_escape_string($conn, $label);
+	$q = @mysqli_query($conn, "SELECT flight_id, flight_name, flight_number FROM flight WHERE status=0 AND (flight_name='$esc' OR flight_number='$esc' OR CONCAT(flight_name,' — ',flight_number)='$esc') LIMIT 1");
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
+		return (int) $row['flight_id'];
+	}
+	return 0;
+}
+
+/**
+ * Booking GCN: infer active source-of-transport kind and ids from stored row.
+ *
+ * @return array{kind:string,train_id:int,flight_id:int,vehicle_type_id:int,vehicle_name:string,stored_value:string}
+ */
+function ew_booking_parse_source_storage($conn, array $row)
+{
+	$vehicle_type = trim((string) ($row['vehicle_type'] ?? ''));
+	$train_type = trim((string) ($row['train_type'] ?? ''));
+	$mode_id = (int) ($row['mode_of_transportation'] ?? 0);
+	$kind = function_exists('quotation_mode_kind_for_id') ? quotation_mode_kind_for_id($conn, $mode_id) : 'road';
+
+	$train_id = 0;
+	$flight_id = 0;
+	$vehicle_name = '';
+	$vehicle_type_id = 0;
+
+	if (preg_match('/^train:(\d+)$/', $vehicle_type, $m)) {
+		$train_id = (int) $m[1];
+		$kind = 'train';
+	} elseif (preg_match('/^flight:(\d+)$/', $vehicle_type, $m)) {
+		$flight_id = (int) $m[1];
+		$kind = 'flight';
+	} elseif ($kind === 'train') {
+		$train_id = ew_booking_lookup_train_id_by_label($conn, $train_type !== '' ? $train_type : $vehicle_type);
+	} elseif ($kind === 'flight') {
+		$flight_id = ew_booking_lookup_flight_id_by_label($conn, $vehicle_type);
+	} else {
+		$vehicle_name = $vehicle_type;
+	}
+
+	if ($vehicle_name !== '') {
+		foreach (ew_vehicle_type_list($conn, false) as $vt) {
+			$name = trim((string) ($vt['type_name'] ?? ''));
+			$code = trim((string) ($vt['type_code'] ?? ''));
+			if ($vehicle_name !== '' && ($vehicle_name === $name || ($code !== '' && $vehicle_name === $code))) {
+				$vehicle_type_id = (int) $vt['vehicle_type_id'];
+				$vehicle_name = $name;
+				break;
+			}
+		}
+	}
+
+	$stored_value = $vehicle_type;
+	if ($stored_value === '' && $kind === 'train' && $train_id > 0) {
+		$stored_value = 'train:' . $train_id;
+	} elseif ($stored_value === '' && $kind === 'flight' && $flight_id > 0) {
+		$stored_value = 'flight:' . $flight_id;
+	}
+
+	return array(
+		'kind' => $kind,
+		'train_id' => $train_id,
+		'flight_id' => $flight_id,
+		'vehicle_type_id' => $vehicle_type_id,
+		'vehicle_name' => $vehicle_name,
+		'stored_value' => $stored_value,
+	);
+}
+
+/**
+ * GCN booking: searchable train / flight / vehicle source selector (quotation-style).
+ */
+function ew_booking_source_transport_html($conn, array $row, $disabled = false)
+{
+	require_once __DIR__ . '/quotation_multi_mode.php';
+	$parsed = ew_booking_parse_source_storage($conn, $row);
+	$kind = $parsed['kind'];
+	$dis_attr = $disabled ? ' disabled' : '';
+
+	$style = function ($which) use ($kind) {
+		return $kind === $which ? '' : 'display:none;';
+	};
+
+	$stored = htmlspecialchars($parsed['stored_value'], ENT_QUOTES, 'UTF-8');
+	$html = '<input type="hidden" name="vehicle_type" id="vehicle_type" value="' . $stored . '" />';
+	$html .= '<div id="booking_source_transport_slots" class="booking-source-transport">';
+
+	$html .= '<select id="booking_source_vehicle" class="form-control booking-source booking-source-road" data-remote-source="vehicle" data-search-local="1" style="' . $style('road') . '"' . $dis_attr . '>'
+		. '<option value="">Select vehicle</option>';
+	foreach (ew_vehicle_type_list($conn, true) as $vt) {
+		$vid = (int) ($vt['vehicle_type_id'] ?? 0);
+		if ($vid <= 0) {
+			continue;
+		}
+		$name = trim((string) ($vt['type_name'] ?? ''));
+		if ($name === '') {
+			continue;
+		}
+		$lbl = function_exists('quotation_vehicle_type_dropdown_label')
+			? quotation_vehicle_type_dropdown_label($conn, $vid, $name)
+			: $name;
+		$sel = ($kind === 'road' && $parsed['vehicle_type_id'] === $vid) ? ' selected' : '';
+		$html .= '<option value="' . $vid . '" data-type-name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '"' . $sel . '>'
+			. htmlspecialchars($lbl, ENT_QUOTES, 'UTF-8') . '</option>';
+	}
+	$html .= '</select>';
+
+	$html .= quotation_remote_source_select_html(
+		$conn,
+		'train',
+		'id="booking_source_train" class="form-control booking-source booking-source-train" style="' . $style('train') . '"',
+		(int) $parsed['train_id'],
+		'Select train',
+		$disabled || $kind !== 'train'
+	);
+	$html .= quotation_remote_source_select_html(
+		$conn,
+		'flight',
+		'id="booking_source_flight" class="form-control booking-source booking-source-flight" style="' . $style('flight') . '"',
+		(int) $parsed['flight_id'],
+		'Select flight',
+		$disabled || $kind !== 'flight'
+	);
+
+	$html .= '</div>';
+	return $html;
+}

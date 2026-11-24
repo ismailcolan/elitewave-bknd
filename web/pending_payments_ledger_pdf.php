@@ -25,17 +25,18 @@ if (!empty($ledger['error'])) {
     exit($ledger['error']);
 }
 
-$with_narration = !isset($_GET['narration']) || (string) $_GET['narration'] !== '0';
-if ($with_narration) {
-    $html = pending_payments_ledger_build_pdf_html($conn, $filters, $ledger);
-    $file_prefix = 'Ledger_';
-    $page_format = 'A4';
-    $doc_title = 'Client Ledger Statement';
-} else {
+// value 1 = With narration → GCN detail; value 0 = Without narration → ledger statement (Date, Particulars, Dr/Cr)
+$narration_val = isset($_GET['narration']) ? (string) $_GET['narration'] : '1';
+if ($narration_val === '1') {
     $html = pending_payments_ledger_build_gcn_pdf_html($conn, $filters, $ledger);
     $file_prefix = 'Ledger_GCN_';
     $page_format = 'A4-L';
     $doc_title = 'Client Ledger GCN detail';
+} else {
+    $html = pending_payments_ledger_build_pdf_html($conn, $filters, $ledger);
+    $file_prefix = 'Ledger_';
+    $page_format = 'A4';
+    $doc_title = 'Client Ledger Statement';
 }
 
 $mpdf = new \Mpdf\Mpdf(array(

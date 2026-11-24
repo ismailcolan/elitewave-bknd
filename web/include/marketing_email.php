@@ -83,7 +83,7 @@ function marketing_bulk_email_log_send($conn, $payload)
 /** SMTP settings for marketing bulk emails (same mailbox as quotation customer mail). */
 function marketing_default_cc_email()
 {
-	return 'athar@elitewave360.in';
+	return 'info@elitewave360.in';
 }
 
 /**
@@ -113,7 +113,7 @@ function marketing_parse_cc_emails($cc_raw)
 		$rows[] = array($email, '');
 	}
 	if (empty($rows)) {
-		$rows[] = array(marketing_default_cc_email(), 'Mohammed Athar');
+		$rows[] = array(marketing_default_cc_email(), 'Elite Wave 360');
 	}
 	return $rows;
 }

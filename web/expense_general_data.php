@@ -39,7 +39,8 @@ if ($cmd === 'fetch') {
 
 if ($cmd === 'view') {
 	$id = (int) ($_REQUEST['general_expense_id'] ?? 0);
-	$record = expense_general_view_data($conn, $id);
+	$scope_gcn_key = trim((string) ($_REQUEST['gcn_key'] ?? ''));
+	$record = expense_general_view_data($conn, $id, $scope_gcn_key);
 	if (!$record) {
 		expense_general_json_out(array('status' => 1, 'message' => 'Expense record not found.'));
 	}
@@ -73,6 +74,24 @@ if ($cmd === 'fetch_options') {
 		'payment_modes' => ew_company_bank_payment_modes(),
 		'primary_bank_id' => $primary_bank_id,
 	));
+}
+
+if ($cmd === 'purchase_bill_options') {
+	$vendor_id = (int) ($_REQUEST['vendor_id'] ?? 0);
+	expense_general_json_out(array(
+		'status' => 0,
+		'bills' => expense_general_purchase_bill_options($conn, $vendor_id),
+	));
+}
+
+if ($cmd === 'purchase_bill_snapshot') {
+	$bill_id = (int) ($_REQUEST['vendor_bill_id'] ?? $_REQUEST['bill_id'] ?? 0);
+	$exclude = (int) ($_REQUEST['general_expense_id'] ?? 0);
+	$snap = expense_general_purchase_bill_snapshot($conn, $bill_id, $exclude);
+	if (!$snap) {
+		expense_general_json_out(array('status' => 1, 'message' => 'Purchase bill not found.'));
+	}
+	expense_general_json_out(array('status' => 0, 'snapshot' => $snap));
 }
 
 if ($cmd === 'vendor_tax_info') {
@@ -137,6 +156,7 @@ if ($cmd === 'save') {
 		'expense_date' => $_REQUEST['expense_date'] ?? '',
 		'vendor_id' => $_REQUEST['vendor_id'] ?? 0,
 		'voucher_type' => $_REQUEST['voucher_type'] ?? 'general',
+		'vendor_bill_id' => $_REQUEST['vendor_bill_id'] ?? 0,
 		'gst_percent' => $_REQUEST['gst_percent'] ?? 0,
 		'tds_percent' => $_REQUEST['tds_percent'] ?? 0,
 		'lines_json' => $_REQUEST['lines_json'] ?? '[]',

@@ -90,6 +90,31 @@ if ($id > 0) {
 		'gst_amount' => 0,
 		'total_amount' => 0,
 	);
+	$chatbot_request_id = isset($_GET['chatbot_quote_request_id']) ? (int) $_GET['chatbot_quote_request_id'] : 0;
+	if ($is_create && $chatbot_request_id > 0) {
+		require_once('include/chatbot_quote_request_helpers.php');
+		$chatReq = chatbot_quote_request_get($conn, $chatbot_request_id);
+		if ($chatReq) {
+			$master['party_name'] = $chatReq['company_name'] ?? '';
+			$master['party_email'] = $chatReq['email'] ?? '';
+			$master['party_mobile'] = $chatReq['contact_mobile'] ?? '';
+			$master['origin_city_id'] = (int) ($chatReq['origin_city_id'] ?? 0);
+			$master['destination_city_id'] = (int) ($chatReq['destination_city_id'] ?? 0);
+			$master['destination_name'] = $chatReq['destination_text'] ?? '';
+			$master['mode_of_transportation'] = (int) ($chatReq['mode_id'] ?? 0);
+			$master['attn_name'] = $chatReq['company_name'] ?? '';
+			$master['subject'] = 'Quotation from chatbot request ' . ($chatReq['request_no'] ?? '');
+			$note = 'Chatbot request ' . ($chatReq['request_no'] ?? '') . '. Weight: ' . ($chatReq['weight'] ?? '');
+			if (($chatReq['transhipment_type'] ?? '') === 'multiple_location' && !empty($chatReq['locations'])) {
+				$extra = array();
+				foreach ($chatReq['locations'] as $loc) {
+					$extra[] = $loc['label'] ?? '';
+				}
+				$note .= ' Extra locations: ' . implode(', ', $extra);
+			}
+			$master['terms_notes'] = $note;
+		}
+	}
 }
 
 $status = $master['status'] ?? 'draft';
@@ -204,6 +229,9 @@ function ew_quotation_status_pill_class($status)
 						<input type="hidden" name="form_name" value="save_rate_quotation" />
 						<input type="hidden" name="quotation_id" id="quotation_id" value="<?php echo (int) $id; ?>" />
 						<input type="hidden" name="quotation_action" id="quotation_action" value="save_draft" />
+						<?php if ($is_create && !empty($chatbot_request_id)) { ?>
+						<input type="hidden" name="chatbot_quote_request_id" id="chatbot_quote_request_id" value="<?php echo (int) $chatbot_request_id; ?>" />
+						<?php } ?>
 
 						<div id="response" class="alert alert-danger" style="display:none;margin:0 16px 12px;"><div class="message" style="text-align:center"></div></div>
 

@@ -1174,15 +1174,100 @@ if ($cmd == 'get_client_branch') {
 	echo $out_put;
 }
 
+if ($cmd == 'get_booking_attachment_context') {
+	$table_name = preg_replace('/[^a-zA-Z0-9_]/', '', $_REQUEST['table_name'] ?? '');
+	$trans_table_req = preg_replace('/[^a-zA-Z0-9_]/', '', $_REQUEST['trans_table'] ?? '');
+	$transaction_id = (int) ($_REQUEST['transaction_id'] ?? 0);
+	header('Content-Type: application/json; charset=utf-8');
+	if ($transaction_id <= 0) {
+		echo json_encode(array('ok' => 0));
+		exit;
+	}
+	if ($trans_table_req !== '' && strpos($trans_table_req, 'transaction_') === 0 && strpos($trans_table_req, 'transaction_images_') !== 0) {
+		$images_from_trans = ew_transaction_images_table_from_transaction_table($trans_table_req);
+		if ($images_from_trans !== '') {
+			$table_name = $images_from_trans;
+		}
+		$trans_table = $trans_table_req;
+	} else {
+		if ($table_name === '') {
+			echo json_encode(array('ok' => 0));
+			exit;
+		}
+		$trans_table = ew_transaction_table_from_images_table($table_name);
+	}
+	if ($table_name === '') {
+		echo json_encode(array('ok' => 0));
+		exit;
+	}
+	ew_transaction_images_ensure_attachment_schema($conn, $table_name);
+	$inv_table = ew_transaction_invoice_table_from_images_table($table_name);
+	$out = array(
+		'ok' => 1,
+		'grn_no' => '',
+		'grn_date' => '',
+		'eway_number' => '',
+		'eway_expirydate' => '',
+		'party_invoices' => array(),
+	);
+	if ($trans_table !== '') {
+		$tq = mysqli_query($conn, "SELECT grn_no, grn_date, eway_number, eway_expirydate FROM `$trans_table` WHERE transaction_id='$transaction_id' LIMIT 1");
+		$trow = $tq ? mysqli_fetch_assoc($tq) : null;
+		if (is_array($trow)) {
+			$out['grn_no'] = trim((string) ($trow['grn_no'] ?? ''));
+			$out['grn_date'] = ew_format_display_date($trow['grn_date'] ?? '');
+			$out['eway_number'] = trim((string) ($trow['eway_number'] ?? ''));
+			$out['eway_expirydate'] = ew_format_display_date($trow['eway_expirydate'] ?? '');
+		}
+	}
+	if ($inv_table !== '') {
+		$iq = mysqli_query($conn, "SELECT invoice_id, party_invoice_no, party_invoice_date, no_of_pkge, type_of_pkge FROM `$inv_table` WHERE transaction_id='$transaction_id' AND status=0 ORDER BY invoice_id ASC");
+		if ($iq) {
+			while ($irow = mysqli_fetch_assoc($iq)) {
+				$pno = trim((string) ($irow['party_invoice_no'] ?? ''));
+				if ($pno === '') {
+					continue;
+				}
+				$label = $pno;
+				$pkgs = trim((string) ($irow['no_of_pkge'] ?? ''));
+				if ($pkgs !== '') {
+					$label .= ' — ' . $pkgs . ' pkg';
+				}
+				$out['party_invoices'][] = array(
+					'invoice_id' => (int) ($irow['invoice_id'] ?? 0),
+					'party_invoice_no' => $pno,
+					'party_invoice_date' => ew_format_display_date($irow['party_invoice_date'] ?? ''),
+					'label' => $label,
+				);
+			}
+		}
+	}
+	echo json_encode($out);
+	exit;
+}
+
 if ($cmd == 'get_existing_attchment') {
 	$table_name = preg_replace('/[^a-zA-Z0-9_]/', '', $_REQUEST['table_name'] ?? '');
+	$trans_table_req = preg_replace('/[^a-zA-Z0-9_]/', '', $_REQUEST['trans_table'] ?? '');
 	$transaction_id = (int) ($_REQUEST['transaction_id'] ?? 0);
-	if ($table_name === '' || $transaction_id <= 0) {
+	if ($transaction_id <= 0) {
+		echo 0;
+		exit;
+	}
+	if ($trans_table_req !== '' && strpos($trans_table_req, 'transaction_') === 0 && strpos($trans_table_req, 'transaction_images_') !== 0) {
+		$images_from_trans = ew_transaction_images_table_from_transaction_table($trans_table_req);
+		if ($images_from_trans !== '') {
+			$table_name = $images_from_trans;
+		}
+	}
+	if ($table_name === '') {
 		echo 0;
 		exit;
 	}
 
-	$query = "SELECT * FROM `$table_name` WHERE transaction_id='$transaction_id' ORDER BY attachment_id DESC";
+	ew_transaction_images_ensure_attachment_schema($conn, $table_name);
+
+	$query = "SELECT * FROM `$table_name` WHERE transaction_id='$transaction_id' AND status=0 ORDER BY attachment_id DESC";
 	$result = mysqli_query($conn, $query);
 	if (!$result || mysqli_num_rows($result) === 0) {
 		echo 0;
@@ -1193,9 +1278,20 @@ if ($cmd == 'get_existing_attchment') {
 	while ($row = mysqli_fetch_assoc($result)) {
 		$attachment = trim($row['attachment'] ?? '');
 		$file_path = ew_eway_attachment_path($attachment);
+		$type = strtolower(trim($row['attachment_type'] ?? ''));
+		if ($type === '' && trim($row['eway_bill_no'] ?? '') !== '') {
+			$type = 'eway';
+		}
+		if ($type === '') {
+			$type = 'eway';
+		}
+		$type_label = ew_booking_attachment_type_label($type);
 		$bill_no = trim($row['eway_bill_no'] ?? '');
 		$issue_date = ew_format_display_date($row['issue_date'] ?? '');
 		$expire_date = ew_format_display_date($row['expire_date'] ?? '');
+		$grn_no = trim($row['grn_no'] ?? '');
+		$delivery_date = ew_format_display_date($row['delivery_date'] ?? '');
+		$party_invoice_no = trim($row['party_invoice_no'] ?? '');
 		$is_image = ew_eway_attachment_is_image($attachment);
 		$icon_class = ew_eway_attachment_icon_class($attachment);
 
@@ -1203,7 +1299,7 @@ if ($cmd == 'get_existing_attchment') {
 		if ($attachment !== '' && $file_path !== '') {
 			if ($is_image) {
 				$preview_html = '<a href="' . htmlspecialchars($file_path, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">'
-					. '<img src="' . htmlspecialchars($file_path, ENT_QUOTES, 'UTF-8') . '" class="eway-thumb" alt="E-Way attachment" />'
+					. '<img src="' . htmlspecialchars($file_path, ENT_QUOTES, 'UTF-8') . '" class="eway-thumb" alt="Attachment" />'
 					. '</a>';
 			} else {
 				$preview_html = '<a href="' . htmlspecialchars($file_path, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener" class="eway-file-link">'
@@ -1215,12 +1311,22 @@ if ($cmd == 'get_existing_attchment') {
 			$preview_html = '<span class="text-muted">No file found</span>';
 		}
 
+		$meta_grid = '';
+		if ($type === 'gcn') {
+			$meta_grid = '<div class="eway-field"><span class="eway-label">GCN No</span><span class="eway-value">' . htmlspecialchars($grn_no !== '' ? $grn_no : '-', ENT_QUOTES, 'UTF-8') . '</span></div>'
+				. '<div class="eway-field"><span class="eway-label">Delivery date</span><span class="eway-value">' . htmlspecialchars($delivery_date !== '' ? $delivery_date : '-', ENT_QUOTES, 'UTF-8') . '</span></div>';
+		} elseif ($type === 'party_invoice') {
+			$meta_grid = '<div class="eway-field"><span class="eway-label">Party invoice</span><span class="eway-value">' . htmlspecialchars($party_invoice_no !== '' ? $party_invoice_no : '-', ENT_QUOTES, 'UTF-8') . '</span></div>'
+				. '<div class="eway-field"><span class="eway-label">Invoice date</span><span class="eway-value">' . htmlspecialchars($issue_date !== '' ? $issue_date : '-', ENT_QUOTES, 'UTF-8') . '</span></div>';
+		} else {
+			$meta_grid = '<div class="eway-field"><span class="eway-label">E-Way Bill No</span><span class="eway-value">' . htmlspecialchars($bill_no !== '' ? $bill_no : '-', ENT_QUOTES, 'UTF-8') . '</span></div>'
+				. '<div class="eway-field"><span class="eway-label">Date of Issue</span><span class="eway-value">' . htmlspecialchars($issue_date, ENT_QUOTES, 'UTF-8') . '</span></div>'
+				. '<div class="eway-field"><span class="eway-label">Date of Expiry</span><span class="eway-value">' . htmlspecialchars($expire_date, ENT_QUOTES, 'UTF-8') . '</span></div>';
+		}
+
 		$cards .= '<div class="eway-card">'
-			. '<div class="eway-card-grid">'
-			. '<div class="eway-field"><span class="eway-label">E-Way Bill No</span><span class="eway-value">' . htmlspecialchars($bill_no !== '' ? $bill_no : '-', ENT_QUOTES, 'UTF-8') . '</span></div>'
-			. '<div class="eway-field"><span class="eway-label">Date of Issue</span><span class="eway-value">' . htmlspecialchars($issue_date, ENT_QUOTES, 'UTF-8') . '</span></div>'
-			. '<div class="eway-field"><span class="eway-label">Date of Expiry</span><span class="eway-value">' . htmlspecialchars($expire_date, ENT_QUOTES, 'UTF-8') . '</span></div>'
-			. '</div>'
+			. '<div class="eway-card-type"><span class="eway-type-badge">' . htmlspecialchars($type_label, ENT_QUOTES, 'UTF-8') . '</span></div>'
+			. '<div class="eway-card-grid eway-card-grid--' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . '">' . $meta_grid . '</div>'
 			. '<div class="eway-preview-wrap"><span class="eway-label">Attachment</span>' . $preview_html . '</div>'
 			. '</div>';
 	}
@@ -1320,33 +1426,97 @@ if ($cmd == 'get_notification') {
 	}
 }
 if ($cmd == 'get_notification_rfp') {
-	// echo "hello";
 	if (isset($_POST['view'])) {
-		// echo "view";
+		require_once __DIR__ . '/include/chatbot_quote_request_helpers.php';
 
 		if ($_POST['view'] != '') {
-			// echo "view1";
-			$update_rfp_sts = mysqli_query($conn, 'UPDATE user_pickup set `status`=1 where `status`=3');
+			mysqli_query($conn, 'UPDATE user_pickup SET `status`=1 WHERE `status`=3');
+			mysqli_query($conn, 'UPDATE user_inquiry_list SET `status`=1 WHERE `status`=0');
+			chatbot_quote_request_mark_notifications_seen($conn);
 		}
-		$get_rfp_data = mysqli_query($conn, 'select *from user_pickup order by pickup_id DESC LIMIT 5');
-		$output = '';
-		if (mysqli_num_rows($get_rfp_data) > 0) {
+
+		$feed = array();
+
+		$feed_limit = 20;
+
+		$get_inq_data = mysqli_query($conn, 'SELECT id, booking_id, consignor_name, consignee_name, created_at FROM user_inquiry_list ORDER BY id DESC LIMIT ' . $feed_limit);
+		if ($get_inq_data && mysqli_num_rows($get_inq_data) > 0) {
+			while ($row_inq = mysqli_fetch_assoc($get_inq_data)) {
+				$ts = !empty($row_inq['created_at']) ? strtotime((string) $row_inq['created_at']) : false;
+				$ts = $ts !== false ? $ts : null;
+				$consignee = trim((string) ($row_inq['consignee_name'] ?? ''));
+				$feed[] = array(
+					'sort' => $ts !== null ? $ts : (int) ($row_inq['id'] ?? 0),
+					'html' => ew_notification_item_html(
+						'user-inquiry.php',
+						'inquiry',
+						(string) $row_inq['consignor_name'],
+						(string) $row_inq['booking_id'],
+						$consignee !== '' ? 'Booking inquiry → ' . $consignee : 'Booking inquiry',
+						$ts
+					),
+				);
+			}
+		}
+
+		$get_rfp_data = mysqli_query($conn, 'SELECT * FROM user_pickup ORDER BY pickup_id DESC LIMIT ' . $feed_limit);
+		if ($get_rfp_data && mysqli_num_rows($get_rfp_data) > 0) {
 			while ($row_notify1 = mysqli_fetch_assoc($get_rfp_data)) {
-				$output .= '<li>
-				<a href="user-requestpickup-list.php">
-				<strong>' . $row_notify1['consignor_name'] . '</strong><br/>
-				<small><em>' . $row_notify1['pickup_ref_id'] . '</em></small><br/>
-				<small><em>RFP Page</em></small>
-				</a>
-				</li>
-				';
+				$sort = (int) ($row_notify1['pickup_id'] ?? 0);
+				$ts = null;
+				if (!empty($row_notify1['created_at'])) {
+					$ts = strtotime((string) $row_notify1['created_at']);
+					if ($ts !== false) {
+						$sort = $ts;
+					} else {
+						$ts = null;
+					}
+				}
+				$feed[] = array(
+					'sort' => $sort,
+					'html' => ew_notification_item_html(
+						'user-requestpickup-list.php',
+						'pickup',
+						(string) $row_notify1['consignor_name'],
+						(string) $row_notify1['pickup_ref_id'],
+						'Request for Pickup',
+						$ts
+					),
+				);
+			}
+		}
+
+		foreach (chatbot_quote_request_notification_feed($conn, $feed_limit) as $item) {
+			$feed[] = $item;
+		}
+
+		usort($feed, function ($a, $b) {
+			return ($b['sort'] ?? 0) <=> ($a['sort'] ?? 0);
+		});
+		$feed = array_slice($feed, 0, $feed_limit);
+
+		if (count($feed) > 0) {
+			$output = '';
+			foreach ($feed as $item) {
+				$output .= $item['html'];
 			}
 		} else {
-			$output .= "<li><a href=\"#\" class=\"text-bold text-italic\">No Notification
-		\t Found</a></li>";
+			$output = '<li class="ew-notif-empty"><i class="fa fa-bell-slash-o" aria-hidden="true"></i><span>You\'re all caught up</span><small>No notifications yet</small></li>';
 		}
-		$status = mysqli_query($conn, 'SELECT *FROM `user_pickup` where status = 3');
-		$count = mysqli_num_rows($status);
+
+		$pickup_unseen = 0;
+		$pickup_status = mysqli_query($conn, 'SELECT COUNT(*) AS c FROM `user_pickup` WHERE status = 3');
+		if ($pickup_status) {
+			$pickup_row = mysqli_fetch_assoc($pickup_status);
+			$pickup_unseen = (int) ($pickup_row['c'] ?? 0);
+		}
+		$inq_unseen = 0;
+		$inq_status = mysqli_query($conn, 'SELECT COUNT(*) AS c FROM `user_inquiry_list` WHERE status = 0');
+		if ($inq_status) {
+			$inq_row = mysqli_fetch_assoc($inq_status);
+			$inq_unseen = (int) ($inq_row['c'] ?? 0);
+		}
+		$count = $pickup_unseen + $inq_unseen + chatbot_quote_request_unseen_count($conn);
 
 		$data = array(
 			'notification' => $output,
@@ -1891,12 +2061,30 @@ if ($cmd == 'determine_gst_type') {
     if ($destination_state_id <= 0 && !empty($_REQUEST['destination'])) {
         $destination_state_id = gst_tax_get_city_state_id($conn, $_REQUEST['destination']);
     }
-    $gst_type = gst_tax_determine_type_from_route($origin_state_id, $destination_state_id);
+
+    $billed_customer_id = gst_tax_booking_billed_customer_id($_REQUEST);
+    $booking_row = gst_tax_booking_row_from_post($_REQUEST);
+    $booking_row['bill_to_branch_id'] = gst_tax_resolve_bill_to_branch_id($booking_row, $billed_customer_id);
+    $booking_row['origin_state_id'] = $origin_state_id;
+    if (!empty($_REQUEST['consignor_state_id'])) {
+        $booking_row['state'] = (int) $_REQUEST['consignor_state_id'];
+    }
+    if (!empty($_REQUEST['consignee_state_id'])) {
+        $booking_row['con_state'] = (int) $_REQUEST['consignee_state_id'];
+    }
+
+    $ctx = gst_tax_invoice_place_of_supply_context($conn, $billed_customer_id, $booking_row);
+    $gst_type = $ctx['gst_type'] ?? '';
 
     echo json_encode(array(
         'gst_type' => $gst_type,
         'origin_state_id' => $origin_state_id,
         'destination_state_id' => $destination_state_id,
+        'supplier_state_id' => (int) ($ctx['supplier_state_id'] ?? 0),
+        'pos_state_id' => (int) ($ctx['pos_state_id'] ?? 0),
+        'billed_customer_id' => $billed_customer_id,
+        'bill_to_gstin' => $ctx['bill_to_gstin'] ?? '',
+        'pos_source' => $ctx['pos_source'] ?? '',
     ));
     exit;
 }

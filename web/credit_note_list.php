@@ -7,7 +7,8 @@ require_once('include/billing_note_functions.php');
 ensure_billing_tables($conn);
 ensure_billing_note_tables($conn);
 
-$list_q = mysqli_query($conn, "SELECT n.*, m.invoice_no, c.client_company_name
+$list_q = mysqli_query($conn, "SELECT n.*, m.invoice_no, c.client_company_name,
+    n.client_email_sent_at, n.client_email_sent_to
     FROM billing_note_master n
     LEFT JOIN billing_invoice_master m ON m.billing_invoice_id = n.against_invoice_id
     LEFT JOIN client c ON c.client_id = n.party_id
@@ -43,6 +44,7 @@ if ($sum_gst_q && ($sum_row = mysqli_fetch_assoc($sum_gst_q))) {
 		.cn-view-kpi .kpi { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; }
 		.cn-view-kpi .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 4px; }
 		.cn-view-kpi .kpi-value { font-size: 16px; font-weight: 700; color: #0A1E3D; }
+		.cn-view-kpi .kpi-value.kpi-value-split { font-size: 13px; line-height: 1.4; font-weight: 700; }
 		.table-scroll-wrapper {
 			overflow-x: auto;
 			-webkit-overflow-scrolling: touch;
@@ -78,10 +80,17 @@ if ($sum_gst_q && ($sum_row = mysqli_fetch_assoc($sum_gst_q))) {
 		#credit_note_list_table .num { text-align: right; white-space: nowrap; }
 		#credit_note_list_table th.col-actions,
 		#credit_note_list_table td.col-actions {
-			width: 120px;
-			min-width: 120px;
+			width: 152px;
+			min-width: 152px;
 			text-align: center;
 			padding: 4px 2px !important;
+		}
+		#credit_note_list_table .col-actions .act-wrap {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			flex-wrap: nowrap;
+			gap: 2px;
 		}
 		#credit_note_list_table .col-actions .act-link {
 			display: inline-flex;
@@ -107,6 +116,11 @@ if ($sum_gst_q && ($sum_row = mysqli_fetch_assoc($sum_gst_q))) {
 		#credit_note_list_table .col-actions .act-view:hover { background: #d5dde8; }
 		#credit_note_list_table .col-actions .act-delete { background: #fee2e2; color: #dc2626; }
 		#credit_note_list_table .col-actions .act-delete:hover { background: #fecaca; color: #b91c1c; }
+		#credit_note_list_table .col-actions .act-pdf { background: #dcfce7; color: #16a34a; }
+		#credit_note_list_table .col-actions .act-pdf:hover { background: #bbf7d0; color: #15803d; }
+		#credit_note_list_table .col-actions .act-mail { background: #dbeafe; color: #2563eb; }
+		#credit_note_list_table .col-actions .act-mail:hover { background: #bfdbfe; color: #1d4ed8; }
+		#credit_note_list_table .col-actions .act-mail.is-sent { box-shadow: inset 0 0 0 1px #93c5fd; }
 		#credit_note_list_table tr.row-cancelled td { color: #64748b; }
 		table.dataTable#credit_note_list_table thead th {
 			background: var(--rail-bg, #DDE7F0) !important;
@@ -195,16 +209,23 @@ if ($sum_gst_q && ($sum_row = mysqli_fetch_assoc($sum_gst_q))) {
 										echo '<td class="num">' . number_format((float) $row['taxable_value'], 2) . '</td>';
 										echo '<td class="num">' . number_format((float) $row['gst_amount'], 2) . '</td>';
 										echo '<td class="num">' . number_format((float) $row['grand_total'], 2) . '</td>';
-										echo '<td class="col-actions">';
+										echo '<td class="col-actions"><span class="act-wrap">';
 										echo '<button type="button" class="act-link act-view btn-view-credit-note" title="Quick view" data-id="' . $nid . '" data-no="' . htmlspecialchars($note_no, ENT_QUOTES, 'UTF-8') . '"><i class="fa fa-eye"></i></button>';
-										if ($st === 'cancelled') {
-											/* view only */
-										} else {
+										echo '<a class="act-link act-pdf" href="credit_note_pdf.php?id=' . $nid . '" target="_blank" rel="noopener" title="PDF"><i class="fa fa-file-text-o"></i></a>';
+										if ($st === 'final') {
+											$mail_title = 'Email credit note to customer';
+											if (!empty($row['client_email_sent_at'])) {
+												$mail_title = 'Resend email to customer (last: ' . $row['client_email_sent_at'] . ')';
+											}
+											$mail_cls = !empty($row['client_email_sent_at']) ? ' act-mail is-sent' : ' act-mail';
+											echo '<button type="button" class="act-link' . $mail_cls . ' btn-send-credit-note-mail" title="' . htmlspecialchars($mail_title, ENT_QUOTES, 'UTF-8') . '" data-id="' . $nid . '" data-no="' . htmlspecialchars($note_no, ENT_QUOTES, 'UTF-8') . '"><i class="fa fa-envelope"></i></button>';
+										}
+										if ($st !== 'cancelled') {
 											echo '<a class="act-link act-edit" href="create_credit_note.php?id=' . $nid . '" title="' . ($st === 'final' ? 'View credit note' : 'Edit credit note') . '"><i class="fa fa-pencil"></i></a>';
 											$del_title = ($st === 'final') ? 'Delete (cancel credit note)' : 'Delete draft';
 											echo '<button type="button" class="act-link act-delete btn-delete-credit-note" title="' . htmlspecialchars($del_title, ENT_QUOTES, 'UTF-8') . '" data-id="' . $nid . '" data-no="' . htmlspecialchars($note_no, ENT_QUOTES, 'UTF-8') . '" data-status="' . htmlspecialchars($st, ENT_QUOTES, 'UTF-8') . '"><i class="fa fa-trash-o"></i></button>';
 										}
-										echo '</td></tr>';
+										echo '</span></td></tr>';
 									}
 								}
 								?>
@@ -230,7 +251,9 @@ if ($sum_gst_q && ($sum_row = mysqli_fetch_assoc($sum_gst_q))) {
 			</div>
 			<div class="ew-v2-modal-foot">
 				<button type="button" class="btn btn-default-outline" data-ew-v2-close>Close</button>
+				<a href="#" class="btn btn-default-outline" id="btn_cn_view_pdf" style="display:none;" target="_blank" rel="noopener"><i class="fa fa-file-text-o"></i> PDF</a>
 				<a href="#" class="btn btn-primary" id="btn_cn_open_full" style="display:none;">Open full page</a>
+				<button type="button" class="btn btn-primary" id="btn_cn_send_mail" style="display:none;"><i class="fa fa-envelope"></i> Email customer</button>
 			</div>
 		</div>
 	</div>
@@ -264,7 +287,7 @@ function cnRenderView(data) {
 	html += '</div>';
 	html += '<div class="cn-view-kpi">';
 	html += '<div class="kpi"><div class="kpi-label">Credit note amount</div><div class="kpi-value">' + cnEscHtml(data.taxable_value) + '</div></div>';
-	html += '<div class="kpi"><div class="kpi-label">GST claim</div><div class="kpi-value">' + cnEscHtml(data.gst_amount) + '</div></div>';
+	html += '<div class="kpi"><div class="kpi-label">Reverse GST claim</div><div class="kpi-value kpi-value-split">' + cnEscHtml(data.reverse_gst_claim || data.gst_amount) + '</div></div>';
 	html += '<div class="kpi"><div class="kpi-label">Total</div><div class="kpi-value">' + cnEscHtml(data.grand_total) + '</div></div>';
 	html += '</div>';
 	if (data.total_words) {
@@ -272,6 +295,59 @@ function cnRenderView(data) {
 	}
 	return html;
 }
+
+function cnSendMail(noteId, noteNo, $btn) {
+	noteId = parseInt(noteId, 10);
+	if (!noteId) {
+		return;
+	}
+	var title = noteNo ? ('Email credit note ' + noteNo + ' to customer?') : 'Email credit note to customer?';
+	if (typeof window.ewConfirm === 'function' && $('#ewConfirmModal').length) {
+		window.ewConfirm({
+			title: 'Send credit note email',
+			message: title + ' The PDF will be sent from athar@elitewave360.in with info@elitewave360.in in CC.',
+			confirmText: 'Send email',
+			onConfirm: function() { cnSendMailDo(noteId, $btn); }
+		});
+		return;
+	}
+	if (window.confirm(title)) {
+		cnSendMailDo(noteId, $btn);
+	}
+}
+
+function cnSendMailDo(noteId, $btn) {
+	if ($btn && $btn.length) {
+		$btn.prop('disabled', true);
+	}
+	$.post('create_credit_note_data.php', {
+		cmd: 'send_client_email',
+		billing_note_id: noteId
+	}, function(r) {
+		if ($btn && $btn.length) {
+			$btn.prop('disabled', false);
+		}
+		if (!r || r.status !== 0) {
+			if (typeof ewFormToast === 'function') {
+				ewFormToast(r && r.message ? r.message : 'Email failed.', 'error', 6000);
+			}
+			return;
+		}
+		if (typeof ewFormToast === 'function') {
+			ewFormToast(r.message, 'success', 5000);
+		}
+		window.setTimeout(function() { window.location.reload(); }, 800);
+	}, 'json').fail(function() {
+		if ($btn && $btn.length) {
+			$btn.prop('disabled', false);
+		}
+		if (typeof ewFormToast === 'function') {
+			ewFormToast('Network error.', 'error', 5000);
+		}
+	});
+}
+
+var cnViewNoteId = 0;
 
 $(function() {
 	if ($.fn.dataTable && $('#credit_note_list_table').length && !$.fn.dataTable.fnIsDataTable($('#credit_note_list_table')[0])) {
@@ -298,7 +374,8 @@ $(function() {
 		}
 		$('#creditNoteViewModalTitle').text('Credit note — ' + (no || ('#' + id)));
 		$('#creditNoteViewModalBody').html('<p class="text-muted" style="margin:0;">Loading…</p>');
-		$('#btn_cn_open_full').hide().attr('href', '#');
+		cnViewNoteId = id;
+		$('#btn_cn_open_full, #btn_cn_view_pdf, #btn_cn_send_mail').hide().attr('href', '#');
 		if (typeof ewV2OpenModal === 'function') {
 			ewV2OpenModal('creditNoteViewModal');
 		} else {
@@ -313,6 +390,15 @@ $(function() {
 			$('#creditNoteViewModalTitle').text('Credit note — ' + titleNo);
 			$('#creditNoteViewModalBody').html(cnRenderView(r.data));
 			$('#btn_cn_open_full').attr('href', 'create_credit_note.php?id=' + encodeURIComponent(id)).show();
+			$('#btn_cn_view_pdf').attr('href', 'credit_note_pdf.php?id=' + encodeURIComponent(id)).show();
+			if ((r.data.status || '') === 'final') {
+				$('#btn_cn_send_mail').show().data('id', id).data('no', titleNo);
+				if (r.data.mail_sent_at) {
+					$('#btn_cn_send_mail').html('<i class="fa fa-envelope"></i> Resend email');
+				} else {
+					$('#btn_cn_send_mail').html('<i class="fa fa-envelope"></i> Email customer');
+				}
+			}
 		}).fail(function() {
 			$('#creditNoteViewModalBody').html('<p class="text-danger">Request failed.</p>');
 		});
@@ -343,6 +429,18 @@ $(function() {
 			}
 		});
 	}
+
+	$('#btn_cn_send_mail').on('click', function() {
+		var id = $(this).data('id') || cnViewNoteId;
+		var no = $(this).data('no') || '';
+		cnSendMail(id, no, $(this));
+	});
+
+	$(document).on('click', '.btn-send-credit-note-mail', function() {
+		var id = $(this).data('id');
+		var no = $(this).data('no') || '';
+		cnSendMail(id, no, $(this));
+	});
 
 	$(document).on('click', '.btn-delete-credit-note', function() {
 		var id = parseInt($(this).data('id'), 10);

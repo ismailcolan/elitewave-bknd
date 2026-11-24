@@ -228,6 +228,7 @@ function transaction_list_render_row($conn, $row, $i)
 		}
 	}
 	$trans_name = 'transaction_' . $m1 . '_' . $y;
+	$trans_images_name = 'transaction_images_' . $m1 . '_' . $y;
 	$booking = $row['booking_status'];
 	$consignment_mode = $row['mode_of_consignment'];
 	$status = $row['status'];
@@ -279,7 +280,7 @@ function transaction_list_render_row($conn, $row, $i)
                     ' . $track_btn . '
                     <a class="table-actions disable_action"  href="javascript:void(0)" ><i class="fa fa-print"></i></a>
                     <a title="Cancel" href="javascript:void(0) disable_action" class="table-actions cancel_booking disable_action" id="' . $row['transaction_id'] . '" ><i  class="fa fa-ban"></i></a>
-                    <a title="E-way Attachments" href="javascript:void(0) disable_action" class="table-actions btn-eways disable_action" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
+                    <a title="Attachments" href="javascript:void(0) disable_action" class="table-actions btn-eways disable_action" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
 	} else {
 		if ($consignment_mode == '3' && !transaction_gcn_temporary_edit_allowed($row['grn_no'] ?? '')) {
 			$out_put .= '<a title="Edit" href="javascript:void(0)" class="table-actions btn-edits disable_action" id="' . $row['transaction_id'] . '" readonly><i class="fa fa-pencil"></i></a>';
@@ -305,7 +306,7 @@ function transaction_list_render_row($conn, $row, $i)
 	} else {
 		$out_put .= '<a class="table-actions disable_action" href="javascript:void(0)"><i class="fa fa-ban"></i></a>';
 	}
-	$out_put .= '<a title="E-way Attachments" href="javascript:void(0);" class="table-actions btn-eway" id="' . $row['transaction_id'] . '"><i class="fa fa-paperclip"></i></a>';
+	$out_put .= '<a title="Attachments" href="javascript:void(0);" class="table-actions btn-eway" id="' . $row['transaction_id'] . '" data-images-table="' . htmlspecialchars($trans_images_name, ENT_QUOTES, 'UTF-8') . '" data-trans-table="' . htmlspecialchars($trans_name, ENT_QUOTES, 'UTF-8') . '"><i class="fa fa-paperclip"></i></a>';
 	$out_put .= '</div></td></tr>';
 	return $out_put;
 }

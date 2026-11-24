@@ -44,7 +44,18 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 		.bw-table-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
 		.bw-table-l1, .bw-table-l2, .bw-table-l3 { font-size: 12px; min-width: 900px; }
 		.bw-table-l1 td.num, .bw-table-l1 th.num, .bw-table-l2 td.num, .bw-table-l2 th.num, .bw-table-l3 td.num, .bw-table-l3 th.num {
-			text-align: right; font-variant-numeric: tabular-nums;
+			text-align: right !important; font-variant-numeric: tabular-nums;
+		}
+		.ew-page-v2--bill-wise .bw-table-l1 thead th.num {
+			text-align: right !important;
+		}
+		.ew-page-v2--bill-wise .bw-table-l1 thead th.bw-col-status,
+		.ew-page-v2--bill-wise .bw-table-l1 tbody td.bw-col-status {
+			text-align: center !important;
+		}
+		.ew-page-v2--bill-wise #bw_footer_totals.bw-table-l1 {
+			margin-bottom: 0;
+			min-width: 900px;
 		}
 		.bw-table-l1 thead th,
 		.bw-table-l1 tbody td,
@@ -68,7 +79,24 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 		.bw-cust-row.is-open { background: #F4F7FB; }
 		.bw-detail-row > td { padding: 0 !important; background: #F8FAFB; border-top: none; }
 		.bw-panel { padding: 10px 12px 12px; }
-		.bw-panel-title { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: #021659; }
+		.bw-panel-head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-wrap: wrap;
+			gap: 8px 12px;
+			margin-bottom: 10px;
+		}
+		.bw-panel-title { margin: 0; font-size: 13px; font-weight: 700; color: #021659; flex: 1 1 180px; min-width: 0; line-height: 1.35; }
+		.bw-panel-head .btn-bw-ledger-pdf {
+			flex: 0 0 auto;
+			min-height: 32px;
+			padding: 0 12px;
+			font-size: 12px;
+			font-weight: 600;
+			white-space: nowrap;
+		}
+		.bw-panel-head .btn-bw-ledger-pdf i { margin-right: 6px; color: #64748b; }
 		.bw-muted { font-size: 11px; color: #64748b; margin-top: 2px; }
 		.bw-chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: #e2e8f0; color: #334155; }
 		.bw-chip.is-ok { background: #dcfce7; color: #15803d; }
@@ -94,6 +122,121 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 		}
 		.bw-table-l1 .bw-period-range { letter-spacing: 0.01em; white-space: nowrap; }
 		.ew-mis-active-actions .bw-segmented { margin-right: 4px; }
+		.ew-page-v2--bill-wise .bw-list-footer {
+			margin-top: 0;
+			padding: 10px 16px;
+			border-top: 1px solid var(--ew-border-light, #E9ECF0);
+			background: #fafbfc;
+		}
+		.ew-page-v2--bill-wise .bw-list-footer .ew-dt-footer-meta {
+			font-size: 13px;
+			color: var(--ew-text-muted, #6B7A8D);
+			font-weight: 600;
+			white-space: nowrap;
+		}
+		.ew-page-v2--bill-wise #bw_pagination {
+			display: inline-flex !important;
+			align-items: center;
+			justify-content: flex-end;
+			gap: 6px;
+			flex-wrap: wrap;
+		}
+		.ew-page-v2--bill-wise #bw_pagination .paginate_button {
+			cursor: pointer;
+			font-family: inherit;
+			line-height: 1;
+		}
+		.ew-page-v2--bill-wise #bw_pagination .paginate_button:disabled {
+			opacity: .45;
+			cursor: default;
+			pointer-events: none;
+		}
+		.ew-page-v2--bill-wise #bw_pagination .paginate_ellipsis {
+			min-width: 28px;
+			border: none !important;
+			background: transparent !important;
+			color: #94a3b8 !important;
+			cursor: default;
+			pointer-events: none;
+			box-shadow: none !important;
+		}
+		.ew-page-v2--bill-wise #bw_footer_totals { margin-top: 0; border-top: none; }
+		.bw-ledger-pdf-control {
+			display: inline-flex;
+			align-items: stretch;
+			vertical-align: middle;
+			height: 36px;
+			border: 1px solid var(--ew-border, #D8DDE5);
+			border-radius: 8px;
+			background: #fff;
+			overflow: hidden;
+		}
+		.bw-ledger-pdf-control:focus-within {
+			border-color: #9DC3E6;
+			box-shadow: 0 0 0 3px rgba(157, 195, 230, 0.25);
+		}
+		.bw-ledger-pdf-control .bw-ledger-pdf-action {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			height: 100%;
+			margin: 0;
+			padding: 0 12px;
+			border: 0;
+			border-right: 1px solid var(--ew-border, #D8DDE5);
+			border-radius: 0;
+			background: #f8fafc;
+			color: #0A1E3D;
+			font-size: 12px;
+			font-weight: 600;
+			line-height: 1;
+			white-space: nowrap;
+			cursor: pointer;
+		}
+		.bw-ledger-pdf-control .bw-ledger-pdf-action:hover {
+			background: #eef2f7;
+		}
+		.bw-ledger-pdf-control .bw-ledger-pdf-action i {
+			font-size: 13px;
+			color: #64748b;
+		}
+		.bw-ledger-pdf-select {
+			height: 34px !important;
+			min-height: 34px !important;
+			margin: 0 !important;
+			min-width: 148px;
+			max-width: 180px;
+			padding: 0 28px 0 10px !important;
+			font-size: 13px !important;
+			font-weight: 600;
+			color: #0A1E3D !important;
+			border: none !important;
+			border-radius: 0 !important;
+			background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236B7A8D' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E") no-repeat right 10px center !important;
+			background-size: 10px 6px !important;
+			box-shadow: none !important;
+			-webkit-appearance: none;
+			appearance: none;
+			cursor: pointer;
+		}
+		.bw-ledger-pdf-select:focus {
+			outline: none;
+		}
+		@media (max-width: 1280px) {
+			.ew-page-v2--bill-wise .ew-mis-active-actions {
+				width: 100%;
+				margin-left: 0;
+				justify-content: flex-start;
+			}
+			.ew-page-v2--bill-wise .ew-mis-active-actions .bw-ledger-pdf-control {
+				max-width: 100%;
+			}
+			.ew-page-v2--bill-wise .ew-mis-active-actions .bw-ledger-pdf-select {
+				min-width: 130px;
+				flex: 1 1 120px;
+				max-width: none;
+			}
+		}
 	</style>
 </head>
 <body class="page-header-fixed bg-1">
@@ -192,11 +335,15 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 										<button type="button" class="bw-seg-btn" id="bw_seg_completed" data-filter="completed" aria-pressed="false">Completed <span class="bw-count">0</span></button>
 									</div></div>
 									<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="ew_mis_edit_filters">Edit filters</button>
-									<select id="bw_ledger_narration" class="form-control" aria-label="Ledger PDF type" style="width:auto;display:inline-block;height:36px;min-width:168px;margin-right:6px;">
-										<option value="1">With narration</option>
-										<option value="0">Without narration</option>
-									</select>
-									<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_ledger_pdf_results"><i class="fa fa-file-pdf-o"></i> Ledger PDF</button>
+									<div class="bw-ledger-pdf-control" role="group" aria-label="Ledger PDF download">
+										<button type="button" class="bw-ledger-pdf-action" id="btn_ledger_pdf_results" title="Download ledger PDF">
+											<i class="fa fa-file-pdf-o" aria-hidden="true"></i> Ledger PDF
+										</button>
+										<select id="bw_ledger_narration" class="form-control bw-ledger-pdf-select" aria-label="Narration type">
+											<option value="1" selected>With narration</option>
+											<option value="0">Without narration</option>
+										</select>
+									</div>
 								</div>
 							</div>
 
@@ -212,17 +359,26 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 								</div>
 								<div class="ew-table-wrap widget-content padded clearfix">
 									<div id="bw_report_body"><p class="bw-skeleton">Loading…</p></div>
-									<table class="table table-bordered bw-footer-totals" id="bw_footer_totals" style="display:none;margin-top:12px;">
-										<tbody>
-											<tr>
-												<td style="width:55%"><strong>Total (visible customers)</strong></td>
-												<td class="num" id="bw_ft_close"></td>
-												<td class="num" id="bw_ft_bill"></td>
-												<td class="num" id="bw_ft_coll"></td>
-												<td></td>
-											</tr>
-										</tbody>
-									</table>
+									<div class="ew-table-footer bw-list-footer" id="bw_list_footer" style="display:none;">
+										<div class="ew-table-footer-left ew-dt-footer-left">
+											<span class="ew-dt-footer-meta" id="bw_pager_info"></span>
+										</div>
+										<div class="ew-dt-footer-right ew-pagination" id="bw_pagination" aria-label="Customer list pages"></div>
+									</div>
+									<div class="bw-table-scroll">
+										<table class="table table-bordered bw-footer-totals bw-table-l1" id="bw_footer_totals" style="display:none;">
+											<tbody>
+												<tr>
+													<td class="bw-col-toggle"></td>
+													<td colspan="2"><strong>Total (visible customers)</strong></td>
+													<td class="num" id="bw_ft_close"></td>
+													<td class="num" id="bw_ft_bill"></td>
+													<td class="num" id="bw_ft_coll"></td>
+													<td class="bw-col-status"></td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -233,6 +389,6 @@ $customers_q = mysqli_query($conn, 'SELECT client_id, client_company_name FROM c
 		<?php require_once('include/footer.php'); ?>
 	</div>
 	<script src="javascripts/ew-mis-report-views.js?v=20261117"></script>
-	<script src="javascripts/bill-wise.js?v=20261118gcnlabels"></script>
+	<script src="javascripts/bill-wise.js?v=20261119bwpanel"></script>
 </body>
 </html>

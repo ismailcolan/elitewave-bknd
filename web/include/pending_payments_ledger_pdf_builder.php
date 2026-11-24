@@ -11,7 +11,7 @@ function pending_payments_ledger_build_pdf_html($conn, $filters, $ledger)
     $period = $filters['from_date'] . ' to ' . $filters['to_date'];
     $generated = date('d-m-Y H:i');
 
-    $html = elitewave_pdf_letterhead_open($conn, 'Client Ledger Statement', 'Account statement · Receivables', true, true);
+    $html = elitewave_pdf_letterhead_open($conn, 'Client Ledger Statement', 'Without narration · Date, Particulars, Dr/Cr', true, true);
 
     $html .= '
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 10px;font-size:8.5pt;">
@@ -161,7 +161,7 @@ function pending_payments_ledger_build_gcn_pdf_html($conn, $filters, $ledger)
     $invoices = $customer['invoices'] ?? array();
 
     $period = $filters['from_date'] . ' to ' . $filters['to_date'];
-    $html = elitewave_pdf_letterhead_open($conn, 'Client Ledger — GCN detail', 'Without narration · expanded consignments', true, true);
+    $html = elitewave_pdf_letterhead_open($conn, 'Client Ledger — GCN detail', '', true, true);
     $html .= '
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 8px;font-size:8pt;">
 <tr>
@@ -182,6 +182,13 @@ function pending_payments_ledger_build_gcn_pdf_html($conn, $filters, $ledger)
     $th = 'border:1px solid #021659;background:#E8EEF6;color:#021659;padding:3px 2px;font-size:6.5pt;font-weight:bold;';
     $td = 'border:1px solid #C5D3E0;padding:2px 2px;font-size:6.5pt;vertical-align:top;';
     $heads = array('S.No', 'T/A', 'GCN No.', 'GCN Date', 'Package', 'Consignor', 'Station', 'Ship To', 'Inv No', 'Freight', 'D.Tempo', 'DC', 'Weight', 'Rate', 'per', 'Amount');
+    $col_widths = array(
+        'S.No' => '3%', 'T/A' => '6%', 'GCN No.' => '11%', 'GCN Date' => '7%', 'Package' => '5%',
+        'Consignor' => '7%', 'Station' => '5%', 'Ship To' => '7%',
+        'Inv No' => '7%', 'Freight' => '8%', 'D.Tempo' => '6%', 'DC' => '4%', 'Weight' => '6%',
+        'Rate' => '6%', 'per' => '3%', 'Amount' => '10%',
+    );
+    $text_wrap_cols = array(5, 7); // Consignor, Ship To
 
     foreach ($invoices as $inv) {
         $gcns = $inv['gcns'] ?? array();
@@ -195,7 +202,12 @@ function pending_payments_ledger_build_gcn_pdf_html($conn, $filters, $ledger)
         $html .= ' &nbsp; Balance ₹ ' . pending_payments_ledger_pdf_money($inv['balance']);
         $html .= '</td></tr></table>';
 
-        $html .= '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 6px;"><thead><tr>';
+        $html .= '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 6px;table-layout:fixed;width:100%;"><colgroup>';
+        foreach ($heads as $h) {
+            $w = $col_widths[$h] ?? '5%';
+            $html .= '<col style="width:' . $w . ';" />';
+        }
+        $html .= '</colgroup><thead><tr>';
         foreach ($heads as $h) {
             $align = in_array($h, array('Freight', 'D.Tempo', 'DC', 'Rate', 'Amount'), true) ? 'right' : 'left';
             $html .= '<th style="' . $th . 'text-align:' . $align . ';">' . htmlspecialchars($h, ENT_QUOTES, 'UTF-8') . '</th>';
@@ -230,7 +242,10 @@ function pending_payments_ledger_build_gcn_pdf_html($conn, $filters, $ledger)
             $html .= '<tr>';
             foreach ($cells as $i => $val) {
                 $align = ($i >= 9 && $i !== 12 && $i !== 14) ? 'right' : 'left';
-                $html .= '<td style="' . $td . 'text-align:' . $align . ';">' . htmlspecialchars($val, ENT_QUOTES, 'UTF-8') . '</td>';
+                $wrap = in_array($i, $text_wrap_cols, true)
+                    ? 'word-wrap:break-word;overflow-wrap:break-word;line-height:1.25;'
+                    : '';
+                $html .= '<td style="' . $td . $wrap . 'text-align:' . $align . ';">' . htmlspecialchars($val, ENT_QUOTES, 'UTF-8') . '</td>';
             }
             $html .= '</tr>';
         }

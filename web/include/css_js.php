@@ -101,7 +101,7 @@
 	<script src="javascripts/main.js?v=20261111sslist1" type="text/javascript"></script>
 	<script src="javascripts/ew-list-layout.js?v=20261113mis-one-search" type="text/javascript"></script>
 	<script src="javascripts/ew-mis-report-views.js?v=20261113mis-results-view" type="text/javascript"></script>
-	<script src="javascripts/ew-table-drag-scroll.js?v=20261112stickyaction18" type="text/javascript"></script>
+	<script src="javascripts/ew-table-drag-scroll.js?v=20261120ebilldrag" type="text/javascript"></script>
 	<script src="javascripts/ew-pages-v2.js?v=20260930revertmodalfoot" type="text/javascript"></script>
 	<script src="javascripts/ew-cancel-modal.js?v=20261029receiptcancel" type="text/javascript"></script>
 	<script src="javascripts/ew-master-edit.js?v=20261026master-use" type="text/javascript"></script>
@@ -111,7 +111,7 @@
 	<script src="javascripts/bootstrap-multiselect.js" type="text/javascript"></script>
 	<script src="javascripts/jquery.timepicker.js?v=20261027modalpos" type="text/javascript"></script>
 	<script src="javascripts/duplicate_check.js" type="text/javascript"></script>
-	<script src="javascripts/ew-datepicker.js?v=20261027modalpos" type="text/javascript"></script>
+	<script src="javascripts/ew-datepicker.js?v=20261123dismiss" type="text/javascript"></script>
 	<script src="javascripts/ew-form-validation.js?v=20260911reload" type="text/javascript"></script>
 	
 	<!-- Modern UI Toast Notification System -->

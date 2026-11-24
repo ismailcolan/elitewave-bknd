@@ -20,7 +20,7 @@ function day_book_voucher_type_options()
         'receipt' => 'Payment Receipt',
         'credit_note' => 'Credit Note',
         'debit_note' => 'Debit Note',
-        'vendor_bill' => 'Bill Registration',
+        'vendor_bill' => 'Purchase Bill Registration',
         'payment_voucher' => 'Payment Voucher',
         'petty_cash' => 'Petty Cash',
     );

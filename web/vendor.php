@@ -26,7 +26,10 @@ $row = array(
 	'gstin' => '',
 	'gst_exemption' => 0,
 	'tds_applicable' => 0,
+	'gst_rate' => '',
+	'gst_tax_id' => 0,
 	'tds_rate' => '',
+	'tds_tax_id' => 0,
 	'pan_no' => '',
 	'status' => 0,
 	'mode_of_transport' => '',
@@ -431,9 +434,18 @@ if (empty($bank_accounts)) {
 										<input type="text" style="text-transform:uppercase" name="gstin" id="gstin" maxlength="15" placeholder="e.g. 29AABCU9603R1ZM" class="form-control" value="<?php echo htmlspecialchars($row['gstin']); ?>" autocomplete="off" />
 										<span class="gst_dup-check"></span>
 									</div>
+									<div class="ew-field vendor-conditional-field gst-rate-wrap<?php echo ((int) ($row['gst_registered'] ?? 0) === 1) ? ' visible' : ''; ?>">
+										<label class="control-label">GST Rate (Tax Master) <span class="gst-rate-req" style="color:red;">*</span> :</label>
+										<select name="gst_tax_id" id="vendor_gst_tax_id" class="form-control">
+											<?php echo ew_vendor_gst_tax_select_html($conn, (int) ($row['gst_tax_id'] ?? 0), $row['gst_rate'] ?? null); ?>
+										</select>
+										<small class="text-muted gst-rate-hint" style="display:none;">Exempt vendor — GST profile optional (0% applies).</small>
+									</div>
 									<div class="ew-field vendor-conditional-field tds-rate-wrap<?php echo ((int) ($row['tds_applicable'] ?? 0) === 1) ? ' visible' : ''; ?>">
-										<label class="control-label">TDS Rate (%) <span style="color:red;">*</span> :</label>
-										<input type="number" name="tds_rate" id="tds_rate" min="0" max="100" step="0.01" class="form-control" value="<?php echo htmlspecialchars($row['tds_rate'] ?? ''); ?>" autocomplete="off" />
+										<label class="control-label">TDS Rate (Tax Master) <span style="color:red;">*</span> :</label>
+										<select name="tds_tax_id" id="vendor_tds_tax_id" class="form-control">
+											<?php echo ew_vendor_tds_tax_select_html($conn, (int) ($row['tds_tax_id'] ?? 0), $row['tds_rate'] ?? null); ?>
+										</select>
 									</div>
 									<div class="ew-field">
 										<label class="control-label">PAN No :</label>
@@ -580,16 +592,27 @@ if (empty($bank_accounts)) {
 			function toggleVendorTaxFields() {
 				var gstYes = $('input[name="gst_registered"]:checked').val() === '1';
 				var tdsYes = $('input[name="tds_applicable"]:checked').val() === '1';
-				$('.gstin-wrap').toggleClass('visible', gstYes);
+				var gstExempt = $('input[name="gst_exemption"]:checked').val() === '1';
+				$('.gstin-wrap, .gst-rate-wrap').toggleClass('visible', gstYes);
 				if (!gstYes) {
 					$('#gstin').val('');
+					$('#vendor_gst_tax_id').val('');
 					$('.gst_dup-check').html('');
 					dup_gst = true;
 				}
 				$('.tds-rate-wrap').toggleClass('visible', tdsYes);
 				if (!tdsYes) {
-					$('#tds_rate').val('');
+					$('#vendor_tds_tax_id').val('');
 				}
+				if (gstYes && gstExempt) {
+					$('.gst-rate-req').hide();
+					$('.gst-rate-hint').show();
+				} else {
+					$('.gst-rate-req').show();
+					$('.gst-rate-hint').hide();
+				}
+				$('#vendor_gst_tax_id').prop('disabled', !gstYes);
+				$('#vendor_tds_tax_id').prop('disabled', !tdsYes);
 			}
 
 			function bankRowIsEmpty($row) {
@@ -655,7 +678,7 @@ if (empty($bank_accounts)) {
 				return true;
 			}
 
-			$(document).on('change', '.gst-registered-toggle, .tds-applicable-toggle', toggleVendorTaxFields);
+			$(document).on('change', '.gst-registered-toggle, .tds-applicable-toggle, input[name="gst_exemption"]', toggleVendorTaxFields);
 			toggleVendorTaxFields();
 
 			function refreshBankRemoveButtons() {
@@ -1052,10 +1075,17 @@ if (empty($bank_accounts)) {
 					alert('GSTIN is required when vendor is GST registered.');
 					return false;
 				}
-				if ($('input[name="tds_applicable"]:checked').val() === '1' && $.trim($('#tds_rate').val()) === '') {
-					alert('TDS rate is required when TDS is applicable.');
+				if ($('input[name="gst_registered"]:checked').val() === '1' && $('input[name="gst_exemption"]:checked').val() !== '1') {
+					if (!$('#vendor_gst_tax_id').val()) {
+						alert('Select GST rate from GST Tax Master.');
+						return false;
+					}
+				}
+				if ($('input[name="tds_applicable"]:checked').val() === '1' && !$('#vendor_tds_tax_id').val()) {
+					alert('Select TDS rate from GST Tax Master.');
 					return false;
 				}
+				$('#vendor_gst_tax_id, #vendor_tds_tax_id').prop('disabled', false);
 				if (!validateBankAccountsClient()) {
 					return false;
 				}

@@ -63,6 +63,47 @@ function bill_wise_invoice_payment_status($total, $balance)
     return 'Part paid';
 }
 
+/**
+ * Number of packages for a GCN (booking), not charged weight stored on the invoice line.
+ */
+function bill_wise_gcn_package_count($conn, $trans_table, $transaction_id, $trow = null, $detail_weight = 0.0)
+{
+    $trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $trans_table);
+    $transaction_id = (int) $transaction_id;
+    if ($trans_table === '' || $transaction_id <= 0) {
+        return 0;
+    }
+
+    if (!is_array($trow)) {
+        $tq = mysqli_query($conn, "SELECT no_of_pkge, consignment_weight FROM `$trans_table` WHERE transaction_id='$transaction_id' LIMIT 1");
+        $trow = ($tq && ($r = mysqli_fetch_assoc($tq))) ? $r : null;
+    }
+
+    $packages = is_array($trow) ? (int) ($trow['no_of_pkge'] ?? 0) : 0;
+    $weight = round((float) $detail_weight, 2);
+    if ($weight <= 0 && is_array($trow)) {
+        $weight = round((float) ($trow['consignment_weight'] ?? 0), 2);
+    }
+
+    $line_agg = billing_invoice_lines_aggregate($conn, $trans_table, $transaction_id);
+    $line_pkgs = (int) ($line_agg['packages'] ?? 0);
+
+    if ($line_pkgs > 0) {
+        if ($packages <= 0 || ($weight > 0 && abs($packages - $weight) < 0.01)) {
+            $packages = $line_pkgs;
+        }
+    } elseif ($packages <= 0) {
+        $inv_tbl = str_replace('transaction_', 'transaction_invoice_', $trans_table);
+        $iq = @mysqli_query($conn, "SELECT SUM(qty) AS pq FROM `$inv_tbl` WHERE transaction_id='$transaction_id'
+            AND (type_of_pkge IS NULL OR type_of_pkge='' OR type_of_pkge!='Select Package Type')");
+        if ($iq && ($ir = mysqli_fetch_assoc($iq))) {
+            $packages = (int) ($ir['pq'] ?? 0);
+        }
+    }
+
+    return max(0, $packages);
+}
+
 function bill_wise_gcn_rows($conn, $billing_invoice_id)
 {
     $inv = billing_get_invoice($conn, (int) $billing_invoice_id);
@@ -82,8 +123,14 @@ function bill_wise_gcn_rows($conn, $billing_invoice_id)
             }
         }
 
-        $qty = (int) ($detail['packages'] ?? 0);
         $weight = round((float) ($detail['weight'] ?? 0), 2);
+        $qty = bill_wise_gcn_package_count($conn, $tbl, $tid, $trow, $weight);
+        if ($qty <= 0) {
+            $stored = (int) ($detail['packages'] ?? 0);
+            if ($stored > 0 && ($weight <= 0 || abs($stored - $weight) >= 0.01)) {
+                $qty = $stored;
+            }
+        }
         $freight = round((float) ($detail['freight_amount'] ?? 0), 2);
         $dc = round((float) ($detail['other_charges'] ?? 0), 2);
         $d_tempo = 0.0;

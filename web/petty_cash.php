@@ -18,6 +18,7 @@ $entry_types = petty_cash_entry_types();
 $category_rows = petty_cash_category_options($conn);
 $vendor_rows = petty_cash_vendor_options($conn);
 $summary = petty_cash_summary($conn);
+$pc_balance_negative = ((float) ($summary['balance_raw'] ?? 0) < -0.001);
 ?>
 <!DOCTYPE html>
 <html>
@@ -52,6 +53,7 @@ $summary = petty_cash_summary($conn);
 			color: #1e3a8a;
 		}
 		.pc-balance-chip strong { font-size: 15px; color: #1d4ed8; }
+		.pc-balance-chip.is-negative strong { color: #b91c1c; }
 		.pc-type-hint {
 			display: inline;
 			margin-left: 6px;
@@ -94,7 +96,7 @@ $summary = petty_cash_summary($conn);
 							<h1 class="ew-page-title"><?php echo $preselect_id > 0 ? 'Edit Petty Cash' : 'Add Petty Cash'; ?></h1>
 						</div>
 						<div class="ew-toolbar-right">
-							<span class="pc-balance-chip">Balance: <strong>₹ <span id="pc_balance_display"><?php echo htmlspecialchars($summary['balance']); ?></span></strong></span>
+							<span class="pc-balance-chip<?php echo $pc_balance_negative ? ' is-negative' : ''; ?>">Balance: <strong>₹ <span id="pc_balance_display"><?php echo htmlspecialchars($summary['balance']); ?></span></strong></span>
 							<a href="petty_cash_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
 						</div>
 					</div>

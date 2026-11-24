@@ -30,6 +30,10 @@ if (!is_array($payload['lines'])) {
 
 $result = billing_save_invoice($conn, $payload, $user_id);
 
+if ($result['status'] === 0 && !empty($result['billing_invoice_id'])) {
+    billing_invoice_sync_gst_from_rules($conn, (int) $result['billing_invoice_id'], $user_id);
+}
+
 if ($result['status'] === 0 && ($payload['status'] === 'final' || $result['invoice_status'] === 'final')) {
     tax_invoice_save_pdf($conn, $result['billing_invoice_id']);
     $result['pdf_url'] = 'tax_invoice_pdf.php?id=' . (int) $result['billing_invoice_id'];

@@ -14,5 +14,12 @@ $type = strtolower(trim((string) ($_GET['type'] ?? '')));
 $q = trim((string) ($_GET['q'] ?? ''));
 $limit = (int) ($_GET['limit'] ?? 10);
 $limit = $limit < 1 ? 10 : min($limit, 50);
+$exact_id = (int) ($_GET['id'] ?? 0);
+
+if ($exact_id > 0) {
+	$row = quotation_transport_row_by_id($conn, $type, $exact_id);
+	echo json_encode(array('results' => $row ? array($row) : array()));
+	exit;
+}
 
 echo json_encode(array('results' => quotation_transport_search($conn, $type, $q, $limit)));

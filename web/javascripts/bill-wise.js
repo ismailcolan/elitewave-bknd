@@ -2,6 +2,8 @@
 (function($) {
 	'use strict';
 
+	var PAGE_SIZE = 10;
+
 	var state = {
 		period: null,
 		customers: [],
@@ -10,6 +12,7 @@
 		paymentFilter: 'all',
 		search: '',
 		loading: false,
+		page: 1,
 	};
 
 	function fmtMoney(n) {
@@ -77,6 +80,61 @@
 		$('#bw_seg_completed .bw-count').text(c.completed);
 	}
 
+	function hideListFooter() {
+		$('#bw_list_footer').hide();
+		$('#bw_pager_info').text('');
+		$('#bw_pagination').empty();
+	}
+
+	function renderPagination(total) {
+		if (!total) {
+			hideListFooter();
+			return;
+		}
+		var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+		if (state.page > totalPages) {
+			state.page = totalPages;
+		}
+		if (state.page < 1) {
+			state.page = 1;
+		}
+		var start = (state.page - 1) * PAGE_SIZE + 1;
+		var end = Math.min(state.page * PAGE_SIZE, total);
+		$('#bw_pager_info').text('Showing ' + start + ' to ' + end + ' of ' + total + ' customers');
+		$('#bw_list_footer').css('display', 'flex');
+
+		var $p = $('#bw_pagination');
+		if (total <= PAGE_SIZE) {
+			$p.empty();
+			return;
+		}
+
+		var html = '';
+		html += '<button type="button" class="paginate_button bw-pager-btn" data-page="prev"' + (state.page <= 1 ? ' disabled' : '') + '>Prev</button>';
+
+		var leftGap = false;
+		var rightGap = false;
+		for (var p = 1; p <= totalPages; p++) {
+			var near = Math.abs(p - state.page) <= 1;
+			var edge = p === 1 || p === totalPages;
+			if (totalPages <= 7 || edge || near) {
+				var cls = 'paginate_button bw-pager-btn' + (p === state.page ? ' paginate_active' : '');
+				html += '<button type="button" class="' + cls + '" data-page="' + p + '">' + p + '</button>';
+				continue;
+			}
+			if (p < state.page && !leftGap) {
+				html += '<span class="paginate_button paginate_ellipsis">…</span>';
+				leftGap = true;
+			} else if (p > state.page && !rightGap) {
+				html += '<span class="paginate_button paginate_ellipsis">…</span>';
+				rightGap = true;
+			}
+		}
+
+		html += '<button type="button" class="paginate_button bw-pager-btn" data-page="next"' + (state.page >= totalPages ? ' disabled' : '') + '>Next</button>';
+		$p.html(html);
+	}
+
 	function activePeriodLabel() {
 		if (state.period && state.period.from && state.period.to) {
 			return esc(state.period.from) + ' — ' + esc(state.period.to);
@@ -96,53 +154,63 @@
 
 		if (state.loading) {
 			$('#bw_report_body').html('<p class="bw-skeleton">Loading…</p>');
+			hideListFooter();
 			$('#bw_footer_totals').hide();
 			return;
 		}
 
 		if (!state.customers.length) {
 			$('#bw_report_body').html('<p class="bw-empty">No invoices in this date range. Change dates and click Search.</p>');
+			hideListFooter();
 			$('#bw_footer_totals').hide();
 			return;
 		}
 
 		if (!list.length) {
 			$('#bw_report_body').html('<p class="bw-empty">No customers match these filters. Clear the search or choose All.</p>');
+			hideListFooter();
 			$('#bw_footer_totals').hide();
 			return;
 		}
+
+		renderPagination(list.length);
+		var pageOffset = (state.page - 1) * PAGE_SIZE;
+		var pageList = list.slice(pageOffset, pageOffset + PAGE_SIZE);
 
 		var html = '<div class="bw-table-scroll"><table class="table table-bordered bw-table-l1" role="grid">';
 		html += '<thead><tr class="bw-head-month">';
 		html += '<th colspan="4"></th>';
 		html += '<th colspan="2" class="text-center bw-period-range">' + rangeHeader + '</th>';
-		html += '<th colspan="2"></th></tr>';
+		html += '<th colspan="1"></th></tr>';
 		html += '<tr>';
 		html += '<th class="bw-col-toggle"></th><th>S No</th><th>Customer name</th>';
 		html += '<th class="num">Closing balance</th><th class="num">Billing</th>';
-		html += '<th class="num">Collection amt</th><th>Payment status</th>';
+		html += '<th class="num">Collection amt</th><th class="bw-col-status">Payment status</th>';
 		html += '</tr></thead><tbody>';
 
 		var tClose = 0;
 		var tBill = 0;
 		var tColl = 0;
-
-		list.forEach(function(c, idx) {
+		list.forEach(function(c) {
 			var cb = c.closing_balance || {};
 			var dr = cb.dr_cr === 'Cr';
 			tClose += dr ? -cb.amount : cb.amount;
 			tBill += parseFloat(c.billing) || 0;
 			tColl += parseFloat(c.collection) || 0;
+		});
 
+		pageList.forEach(function(c, idx) {
+			var cb = c.closing_balance || {};
+			var dr = cb.dr_cr === 'Cr';
 			var open = !!state.expandCustomers[c.id];
 			html += '<tr class="bw-cust-row' + (open ? ' is-open' : '') + '" data-cid="' + c.id + '">';
 			html += '<td><button type="button" class="bw-toggle" data-level="customer" data-id="' + c.id + '" aria-expanded="' + (open ? 'true' : 'false') + '" aria-label="Show invoices for ' + esc(c.name) + '"><i class="fa fa-chevron-right" aria-hidden="true"></i></button></td>';
-			html += '<td>' + (idx + 1) + '</td>';
+			html += '<td>' + (pageOffset + idx + 1) + '</td>';
 			html += '<td>' + esc(c.name) + '</td>';
 			html += '<td class="num">' + (cb.amount > 0.009 ? fmtMoney(cb.amount) + ' <span class="bw-drcr' + (dr ? ' is-cr' : '') + '">' + esc(cb.dr_cr) + '</span>' : '') + '</td>';
 			html += '<td class="num">' + fmtMoney(c.billing) + '</td>';
 			html += '<td class="num">' + fmtMoney(c.collection) + '</td>';
-			html += '<td>' + chip(c.payment_status) + '</td>';
+			html += '<td class="bw-col-status">' + chip(c.payment_status) + '</td>';
 			html += '</tr>';
 
 			if (open) {
@@ -173,8 +241,10 @@
 	}
 
 	function renderInvoices(c) {
-		var html = '<div class="bw-panel"><h4 class="bw-panel-title">Ledger: ' + esc(c.name)
-			+ ' <button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-bw-ledger-pdf" data-cid="' + c.id + '" style="float:right;padding:4px 10px;min-height:32px;font-size:11px;">Ledger PDF</button></h4>';
+		var html = '<div class="bw-panel"><div class="bw-panel-head">';
+		html += '<h4 class="bw-panel-title">Ledger: ' + esc(c.name) + '</h4>';
+		html += '<button type="button" class="ew-btn-v2 ew-btn-v2-outline btn-bw-ledger-pdf" data-cid="' + c.id + '">';
+		html += '<i class="fa fa-file-pdf-o" aria-hidden="true"></i> Ledger PDF</button></div>';
 		html += '<div class="bw-table-scroll"><table class="table table-bordered bw-table-l2"><thead><tr>';
 		html += '<th class="bw-col-toggle"></th><th>Date</th><th>Particulars</th><th>Vch No.</th>';
 		html += '<th class="num">GCNs</th><th class="num">Invoice amount</th><th class="num">Received</th>';
@@ -285,7 +355,7 @@
 			toast('Filter to one customer (search until one row shows), or expand a customer and use Ledger PDF there.');
 			return;
 		}
-		var narration = $('#bw_ledger_narration').val() === '0' ? '0' : '1';
+		var narration = String($('#bw_ledger_narration').val() || '1');
 		var url = 'pending_payments_ledger_pdf.php'
 			+ '?customer_id=' + encodeURIComponent(cid)
 			+ '&from_date=' + encodeURIComponent(from)
@@ -350,6 +420,7 @@
 			}
 			state.period = resp.period || null;
 			state.customers = resp.customers || [];
+			state.page = 1;
 			var n = state.customers.length;
 			$('#report_count').text(n + ' customer' + (n === 1 ? '' : 's'));
 			render();
@@ -400,6 +471,7 @@
 					state.customers = [];
 					state.period = null;
 					state.search = '';
+					state.page = 1;
 					$('#bw_customer_search').val('');
 				},
 			});
@@ -414,6 +486,7 @@
 
 		$('#bw_customer_search').on('input', function() {
 			state.search = $(this).val();
+			state.page = 1;
 			render();
 		});
 
@@ -422,6 +495,24 @@
 			state.paymentFilter = f || 'all';
 			$('.bw-seg-btn').attr('aria-pressed', 'false');
 			$(this).attr('aria-pressed', 'true');
+			state.page = 1;
+			render();
+		});
+
+		$(document).on('click', '#bw_pagination .bw-pager-btn', function() {
+			if ($(this).prop('disabled')) {
+				return;
+			}
+			var listLen = filteredCustomers().length;
+			var totalPages = Math.max(1, Math.ceil(listLen / PAGE_SIZE));
+			var page = $(this).data('page');
+			if (page === 'prev') {
+				state.page = Math.max(1, state.page - 1);
+			} else if (page === 'next') {
+				state.page = Math.min(totalPages, state.page + 1);
+			} else {
+				state.page = parseInt(page, 10) || 1;
+			}
 			render();
 		});
 

@@ -54,7 +54,7 @@ $summary = $result['summary'];
 
 $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
-$sheet->setTitle('Bill Registration');
+$sheet->setTitle('Purchase Bill Registration');
 $spreadsheet->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
 $spreadsheet->getDefaultStyle()->getFont()->getColor()->setRGB('1F1F1F');
 

@@ -82,6 +82,10 @@ $reasons = billing_credit_note_reasons();
 			align-items: start;
 		}
 		.cn-line-row .ew-field { min-width: 0; }
+		.cn-gst-claim-input {
+			font-size: 13px;
+			letter-spacing: 0.01em;
+		}
 		.cn-line-row textarea.form-control {
 			min-height: 34px;
 			height: 34px;
@@ -125,17 +129,23 @@ $reasons = billing_credit_note_reasons();
 							?></h1>
 						</div>
 						<div class="ew-toolbar-right">
+							<?php if ($is_edit) { ?>
+								<a href="credit_note_pdf.php?id=<?php echo (int) $edit_id; ?>" class="ew-btn-v2 ew-btn-v2-outline" target="_blank" rel="noopener"><i class="fa fa-file-text-o"></i> PDF</a>
+								<?php if ($is_final && !$is_cancelled) { ?>
+									<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_send_client_mail"><i class="fa fa-envelope"></i> <?php echo !empty($note['master']['client_email_sent_at']) ? 'Resend email' : 'Email customer'; ?></button>
+								<?php } ?>
+							<?php } ?>
 							<a href="credit_note_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
 						</div>
 					</div>
 
 					<div class="ew-card ew-invoice-details-card">
-						<h2 class="ew-card-section-title">Note Details</h2>
+						<h2 class="ew-card-section-title">Credit Note Details</h2>
 						<div class="ew-form-body">
 							<input type="hidden" id="billing_note_id" value="<?php echo $edit_id; ?>">
 							<div class="ew-form-grid ew-form-grid--invoice">
 								<div class="ew-field span-2">
-									<label>Note No</label>
+									<label>Credit Note No</label>
 									<div class="ew-invoice-no-display" id="note_no_preview"><?php echo htmlspecialchars($preview_no); ?></div>
 									<p class="ew-field-hint" style="margin-top:6px;">One series for GST and GTA invoices: CN/001/26-27.</p>
 								</div>
@@ -185,8 +195,19 @@ $reasons = billing_credit_note_reasons();
 										<input type="number" step="0.01" min="0" class="form-control" id="taxable_value" value="<?php echo $note ? htmlspecialchars(billing_format_money($note['master']['taxable_value'])) : ''; ?>" <?php echo $form_readonly ? 'readonly' : ''; ?>>
 									</div>
 									<div class="ew-field cn-field-gst">
-										<label>GST Claim</label>
-										<input type="text" class="form-control" id="gst_amount" readonly value="<?php echo $note ? htmlspecialchars(billing_format_money($note['master']['gst_amount'])) : '0.00'; ?>">
+										<label>Reverse GST Claim</label>
+										<input type="text" class="form-control cn-gst-claim-input" id="gst_amount" readonly value="<?php
+										if ($note) {
+											echo htmlspecialchars(billing_format_reverse_gst_claim_display(
+												$note['master']['gst_amount'],
+												$note['master']['cgst_amount'],
+												$note['master']['sgst_amount'],
+												$note['master']['igst_amount']
+											));
+										} else {
+											echo '0.00';
+										}
+										?>">
 									</div>
 									<div class="ew-field cn-field-desc">
 										<label>Description</label>
@@ -197,6 +218,7 @@ $reasons = billing_credit_note_reasons();
 						</div>
 					</div>
 
+					<?php /* Hidden for now — GST claim tracking was confusing users.
 					<div class="ew-card" id="gst_claim_card" style="display:none;">
 						<h2 class="ew-card-section-title">GST claim tracking (this invoice)</h2>
 						<div class="ew-form-body">
@@ -232,6 +254,7 @@ $reasons = billing_credit_note_reasons();
 							</div>
 						</div>
 					</div>
+					*/ ?>
 
 					<div class="ew-card">
 						<h2 class="ew-card-section-title">Invoice after this credit note</h2>
@@ -243,6 +266,15 @@ $reasons = billing_credit_note_reasons();
 								<div class="cn-stat ok"><b id="st_bal">0.00</b><span>To Pay</span></div>
 							</div>
 							<p class="muted" style="margin:12px 0 0;font-size:13px;color:#6B7A8D;">Already paid stays 0 until receipts are allocated to invoices. The original tax invoice PDF is not changed.</p>
+							<?php if (!$form_readonly) { ?>
+							<label class="cn-mail-opt" style="display:flex;align-items:center;gap:10px;margin:16px 0 0;font-size:13px;color:#334155;cursor:pointer;">
+								<input type="checkbox" id="send_client_email" value="1" style="margin:0;">
+								<span>Email credit note PDF to customer after Submit/Update</span>
+							</label>
+							<p class="ew-field-hint" id="cn_mail_hint" style="margin:8px 0 0;display:none;">On finalise, the note is emailed to the customer&apos;s email on the client master.</p>
+							<?php } elseif ($is_final && !empty($note['master']['client_email_sent_at'])) { ?>
+							<p class="ew-field-hint" style="margin:16px 0 0;">Last emailed to <?php echo htmlspecialchars((string) ($note['master']['client_email_sent_to'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> on <?php echo htmlspecialchars((string) $note['master']['client_email_sent_at'], ENT_QUOTES, 'UTF-8'); ?>.</p>
+							<?php } ?>
 							<div class="ew-form-footer ew-invoice-form-footer">
 								<button type="button" class="ew-btn-v2 ew-btn-v2-outline" id="btn_cancel">Cancel</button>
 								<?php if (!$form_readonly && !$is_final) { ?>
@@ -269,11 +301,27 @@ function money(n) {
 	return v.toFixed(2);
 }
 
+function formatReverseGstClaim(amt) {
+	if (!amt) return '0.00';
+	var cgst = parseFloat(amt.cgst_amount) || 0;
+	var sgst = parseFloat(amt.sgst_amount) || 0;
+	var igst = parseFloat(amt.igst_amount) || 0;
+	var gst = parseFloat(amt.gst_amount) || 0;
+	if (igst > 0.009) {
+		return money(gst) + ' (IGST ' + money(igst) + ')';
+	}
+	if (cgst > 0.009 || sgst > 0.009) {
+		return money(gst) + ' (CGST ' + money(cgst) + ' + SGST ' + money(sgst) + ')';
+	}
+	return money(gst);
+}
+
 function toast(msg, type) {
 	if (typeof ewFormToast === 'function') ewFormToast(msg, type || 'error', 5000);
 }
 
 function renderGstTracking(snap, gstThis, gstClaimedAfter, gstRemainingAfter) {
+	return; /* GST claim tracking UI commented out */
 	if (!snap) {
 		$('#gst_claim_card').hide();
 		return;
@@ -328,7 +376,7 @@ function applySnap(snap, amounts) {
 	$('#st_inv').text(money(snap.invoice_amount));
 	$('#st_paid').text(money(snap.already_paid));
 	if (amounts) {
-		$('#gst_amount').val(money(amounts.gst_amount));
+		$('#gst_amount').val(formatReverseGstClaim(amounts));
 		$('#st_cn').text(money(amounts.credit_note_after || amounts.grand_total));
 		$('#st_bal').text(money(amounts.to_pay));
 		renderGstTracking(snap, amounts.gst_amount, amounts.gst_claimed_after, amounts.gst_claim_remaining_after);
@@ -376,7 +424,7 @@ function recalc() {
 		taxable_value: taxable
 	}, function(r) {
 		if (!r || r.status !== 0) return;
-		$('#gst_amount').val(money(r.amounts.gst_amount));
+		$('#gst_amount').val(formatReverseGstClaim(r.amounts));
 		$('#st_cn').text(money(r.credit_note_after));
 		$('#st_bal').text(money(r.to_pay));
 		renderGstTracking(invoiceSnap, r.amounts.gst_amount, r.gst_claimed_after, r.gst_claim_remaining_after);
@@ -401,6 +449,7 @@ function saveNote(status) {
 		return;
 	}
 	$('#btn_draft, #btn_finalise, #btn_update').prop('disabled', true);
+	var sendMail = (status === 'final' && $('#send_client_email').is(':checked')) ? 1 : 0;
 	$.post('save_billing_credit_note.php', {
 		billing_note_id: $('#billing_note_id').val(),
 		against_invoice_id: $('#against_invoice_id').val(),
@@ -408,21 +457,31 @@ function saveNote(status) {
 		reason: $('#reason').val(),
 		line_description: $('#line_description').val(),
 		taxable_value: $('#taxable_value').val(),
-		status: status
+		status: status,
+		send_client_email: sendMail
 	}, function(r) {
 		$('#btn_draft, #btn_finalise, #btn_update').prop('disabled', false);
 		if (!r || r.status !== 0) {
 			toast(r && r.message ? r.message : 'Save failed.');
 			return;
 		}
-		toast(r.message, 'success');
+		var msg = r.message || 'Saved.';
+		if (r.email_error) {
+			toast(msg, 'error');
+		} else {
+			toast(msg, 'success');
+		}
 		if (r.billing_note_id) {
 			$('#billing_note_id').val(r.billing_note_id);
 		}
 		if (r.note_no) {
 			$('#note_no_preview').text(r.note_no);
 		}
-		setTimeout(function() { window.location.href = 'credit_note_list.php'; }, status === 'final' ? 1200 : 900);
+		var delay = status === 'final' ? 1400 : 900;
+		if (r.email_sent) {
+			delay = 1800;
+		}
+		setTimeout(function() { window.location.href = 'credit_note_list.php'; }, delay);
 	}, 'json').fail(function() {
 		$('#btn_draft, #btn_finalise, #btn_update').prop('disabled', false);
 		toast('Network error while saving.');
@@ -441,9 +500,40 @@ $(function() {
 	$inv.on('change', function() { loadInvoice(); });
 	$('#taxable_value').on('input change', recalc);
 	$('#btn_cancel').on('click', function() { window.location.href = 'credit_note_list.php'; });
+	function toggleCnMailHint() {
+		var on = $('#send_client_email').is(':checked');
+		$('#cn_mail_hint').toggle(on);
+	}
+	$('#send_client_email').on('change', toggleCnMailHint);
 	$('#btn_draft').on('click', function() { saveNote('draft'); });
 	$('#btn_finalise').on('click', function() { saveNote('final'); });
 	$('#btn_update').on('click', function() { saveNote('final'); });
+	$('#btn_send_client_mail').on('click', function() {
+		var id = $('#billing_note_id').val();
+		if (!id) return;
+		var $btn = $(this);
+		if (typeof window.ewConfirm === 'function' && $('#ewConfirmModal').length) {
+			window.ewConfirm({
+				title: 'Send credit note email',
+				message: 'Send this credit note PDF to the customer email on file?',
+				confirmText: 'Send email',
+				onConfirm: function() {
+					$btn.prop('disabled', true);
+					$.post('create_credit_note_data.php', { cmd: 'send_client_email', billing_note_id: id }, function(r) {
+						$btn.prop('disabled', false);
+						if (!r || r.status !== 0) {
+							toast(r && r.message ? r.message : 'Email failed.');
+							return;
+						}
+						toast(r.message, 'success');
+					}, 'json').fail(function() {
+						$btn.prop('disabled', false);
+						toast('Network error.');
+					});
+				}
+			});
+		}
+	});
 	if ($inv.val()) {
 		loadInvoice(function() { recalc(); });
 	} else if (!$('#billing_note_id').val()) {

@@ -309,6 +309,7 @@ function ew_quotation_all_modes_status_pill_class($status)
 													<th style="min-width:160px;">Mode</th>
 													<th style="min-width:180px;">Source of transport</th>
 													<th style="min-width:130px;">Delivery days</th>
+													<th style="min-width:100px;">Weight</th>
 													<th style="width:14%">Freight charges</th>
 													<th style="width:14%">Pickup &amp; Delivery</th>
 													<?php if ($form_editable) { ?><th class="text-center mm-row-actions"> </th><?php } ?>

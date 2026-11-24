@@ -253,6 +253,7 @@ $dest_master_singleton_id = $dest_masters ? (int) ($dest_masters[0]['master_id']
 													<th style="min-width:120px;">Mode</th>
 													<th style="min-width:180px;">Source of transport</th>
 													<th style="min-width:110px;">Delivery days <span class="req">*</span></th>
+													<th style="min-width:100px;">Weight</th>
 													<th>Freight charges <span class="req">*</span></th>
 													<th>Pickup &amp; Delivery <span class="req">*</span></th>
 													<?php if ($form_editable) { ?><th class="text-center md-row-actions"> </th><?php } ?>

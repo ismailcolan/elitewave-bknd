@@ -74,7 +74,7 @@ var EW_RBAC_PAGES = [
 	["invoice_register.php", "mis", "Invoice Register", 1, 0],
 	["credit_note_report.php", "mis", "Credit Note Report (From Customer)", 1, 0],
 	["debit_note_report.php", "mis", "Debit Note Report (To Vendor)", 1, 0],
-	["bill_registration_register.php", "mis", "Bill Registration Register", 1, 0],
+	["bill_registration_register.php", "mis", "Purchase Bill Registration Register", 1, 0],
 	["expense_register.php", "mis", "Expense Register", 1, 0],
 	["petty_cash_register.php", "mis", "Petty Cash Register", 1, 0],
 	["gst_output_register.php", "mis", "GST Output Register", 1, 0],

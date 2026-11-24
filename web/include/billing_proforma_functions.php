@@ -252,7 +252,7 @@ function billing_proforma_validate_gcn($conn, $trans_table, $transaction_id, $cu
         );
     }
 
-    $detail = billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing_type, 0, $edit_id);
+    $detail = billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $billing_type, 0, $edit_id, $customer_id);
     if (!$detail) {
         return array('ok' => false, 'message' => 'GCN ' . ($booking['grn_no'] ?? '') . ' is not available.');
     }
@@ -271,7 +271,15 @@ function billing_proforma_line_from_detail_row($conn, $d, $exclude_proforma_id =
         return null;
     }
 
-    $detail = billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $d['billing_type'] ?? '', 0, $exclude_proforma_id);
+    $proforma_customer_id = 0;
+    if ($exclude_proforma_id > 0) {
+        $pf = billing_proforma_get($conn, $exclude_proforma_id);
+        if ($pf && !empty($pf['master']['customer_id'])) {
+            $proforma_customer_id = (int) $pf['master']['customer_id'];
+        }
+    }
+
+    $detail = billing_fetch_gcn_detail($conn, $trans_table, $transaction_id, $d['billing_type'] ?? '', 0, $exclude_proforma_id, $proforma_customer_id);
     if ($detail) {
         return $detail;
     }

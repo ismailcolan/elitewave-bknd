@@ -56,8 +56,9 @@ function expense_general_ensure_schema($conn)
 		'payment_bank_name' => "ALTER TABLE general_expense_header ADD COLUMN payment_bank_name VARCHAR(150) DEFAULT '' AFTER company_bank_id",
 		'payment_ifsc' => "ALTER TABLE general_expense_header ADD COLUMN payment_ifsc VARCHAR(11) DEFAULT '' AFTER payment_bank_name",
 		'payment_bank_branch' => "ALTER TABLE general_expense_header ADD COLUMN payment_bank_branch VARCHAR(150) DEFAULT '' AFTER payment_ifsc",
-		'voucher_type' => "ALTER TABLE general_expense_header ADD COLUMN voucher_type VARCHAR(20) NOT NULL DEFAULT 'general' AFTER expense_date",
+		'voucher_type' => "ALTER TABLE general_expense_header ADD COLUMN voucher_type VARCHAR(40) NOT NULL DEFAULT 'general' AFTER expense_date",
 		'tds_percent' => "ALTER TABLE general_expense_header ADD COLUMN tds_percent DECIMAL(8,2) NOT NULL DEFAULT 0 AFTER gst_percent",
+		'vendor_bill_id' => "ALTER TABLE general_expense_header ADD COLUMN vendor_bill_id INT(11) NOT NULL DEFAULT 0 AFTER vendor_id",
 	);
 	foreach ($header_cols as $col => $sql) {
 		$chk = mysqli_query($conn, "SHOW COLUMNS FROM general_expense_header LIKE '$col'");
@@ -74,6 +75,7 @@ function expense_general_ensure_schema($conn)
 		'gcn_key' => "ALTER TABLE general_expense_lines ADD COLUMN gcn_key VARCHAR(150) DEFAULT '' AFTER category_id",
 		'gcn_no' => "ALTER TABLE general_expense_lines ADD COLUMN gcn_no VARCHAR(50) DEFAULT '' AFTER gcn_key",
 		'gcn_date' => "ALTER TABLE general_expense_lines ADD COLUMN gcn_date VARCHAR(20) DEFAULT '' AFTER gcn_no",
+		'freight_amount' => "ALTER TABLE general_expense_lines ADD COLUMN freight_amount DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER expense_amount",
 	);
 	foreach ($line_cols as $col => $sql) {
 		$chk = mysqli_query($conn, "SHOW COLUMNS FROM general_expense_lines LIKE '$col'");
@@ -361,6 +363,7 @@ function expense_general_format_record($conn, $header)
 		'payment_bank_branch' => $header['payment_bank_branch'] ?? '',
 		'voucher_type' => strtolower(trim((string) ($header['voucher_type'] ?? 'general'))) ?: 'general',
 		'tds_percent' => round((float) ($header['tds_percent'] ?? 0), 2),
+		'vendor_bill_id' => (int) ($header['vendor_bill_id'] ?? 0),
 		'lines' => expense_general_load_lines($conn, (int) ($header['general_expense_id'] ?? 0), $header),
 		'updated_at' => $header['updated_at'] ?? ($header['created_at'] ?? ''),
 	);
@@ -447,6 +450,7 @@ function expense_general_load_lines($conn, $general_expense_id, $header = null)
 				}
 				$gcn_no = trim((string) ($row['gcn_no'] ?? ''));
 				$gcn_date = trim((string) ($row['gcn_date'] ?? ''));
+				$freight = round((float) ($row['freight_amount'] ?? 0), 2);
 				$lines[] = array(
 					'line_id' => (int) ($row['line_id'] ?? 0),
 					'line_no' => (int) ($row['line_no'] ?? 0),
@@ -456,6 +460,8 @@ function expense_general_load_lines($conn, $general_expense_id, $header = null)
 					'gcn_no' => $gcn_no,
 					'gcn_date' => $gcn_date,
 					'gcn_label' => $gcn_no,
+					'freight_amount' => expense_gcn_format_money($freight),
+					'freight_amount_raw' => $freight,
 					'expense_amount' => expense_gcn_format_money($amount),
 					'expense_amount_raw' => $amount,
 					'gst_amount' => expense_gcn_format_money($gst),
@@ -654,13 +660,26 @@ function expense_general_gcn_profit_pack($conn, $record)
 	);
 }
 
-function expense_general_view_data($conn, $general_expense_id)
+function expense_general_view_data($conn, $general_expense_id, $scope_gcn_key = '')
 {
 	$record = expense_general_load($conn, $general_expense_id);
 	if (!$record) {
 		return null;
 	}
 	if (strtolower((string) ($record['voucher_type'] ?? '')) === 'gcn') {
+		$scope_gcn_key = trim((string) $scope_gcn_key);
+		if ($scope_gcn_key !== '') {
+			$scoped_lines = array();
+			foreach (($record['lines'] ?? array()) as $line) {
+				if (trim((string) ($line['gcn_key'] ?? '')) === $scope_gcn_key) {
+					$scoped_lines[] = $line;
+				}
+			}
+			if (!empty($scoped_lines)) {
+				$record['lines'] = $scoped_lines;
+				$record['view_scope_gcn_key'] = $scope_gcn_key;
+			}
+		}
 		$record = array_merge($record, expense_general_gcn_profit_pack($conn, $record));
 	}
 	$modes = ew_company_bank_payment_modes();
@@ -673,6 +692,196 @@ function expense_general_view_data($conn, $general_expense_id)
 		$record['gst_percent_display'] = rtrim(rtrim(number_format($gp, 2, '.', ''), '0'), '.') . '%';
 	}
 	return $record;
+}
+
+function expense_general_voucher_type_options()
+{
+	return array(
+		'general' => 'General',
+		'gcn' => 'GCN',
+		'purchase_bill' => 'Against Purchase Bill',
+	);
+}
+
+function expense_general_vendor_bill_paid_total($conn, $bill_id, $exclude_expense_id = 0)
+{
+	expense_general_ensure_schema($conn);
+	$bill_id = (int) $bill_id;
+	$exclude_expense_id = (int) $exclude_expense_id;
+	if ($bill_id <= 0) {
+		return 0.0;
+	}
+	$sql = "SELECT COALESCE(SUM(net_payable),0) AS amt FROM general_expense_header
+		WHERE vendor_bill_id='$bill_id' AND status=0
+		AND LOWER(IFNULL(voucher_type,''))='purchase_bill'";
+	if ($exclude_expense_id > 0) {
+		$sql .= " AND general_expense_id!='$exclude_expense_id'";
+	}
+	$q = mysqli_query($conn, $sql);
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
+		return round((float) ($row['amt'] ?? 0), 2);
+	}
+	return 0.0;
+}
+
+function expense_general_purchase_bill_options($conn, $vendor_id)
+{
+	require_once __DIR__ . '/expense_bill_helpers.php';
+	expense_bill_ensure_schema($conn);
+	$vendor_id = (int) $vendor_id;
+	$rows = array();
+	if ($vendor_id <= 0) {
+		return $rows;
+	}
+	$q = mysqli_query($conn, "SELECT bill_id, bill_entry_no, net_payable, grand_total
+		FROM vendor_bill
+		WHERE vendor_id='$vendor_id' AND status=0
+		ORDER BY bill_id DESC
+		LIMIT 500");
+	if (!$q) {
+		return $rows;
+	}
+	while ($row = mysqli_fetch_assoc($q)) {
+		$amt = expense_bill_money($row['net_payable'] ?? $row['grand_total'] ?? 0);
+		$no = trim((string) ($row['bill_entry_no'] ?? ''));
+		if ($no === '') {
+			$no = 'Bill #' . (int) $row['bill_id'];
+		}
+		$rows[] = array(
+			'bill_id' => (int) $row['bill_id'],
+			'bill_entry_no' => $no,
+			'net_payable' => $amt,
+			'net_payable_fmt' => expense_bill_format_money($amt),
+			'label' => $no . ' – ₹' . expense_bill_format_money($amt),
+		);
+	}
+	return $rows;
+}
+
+function expense_general_purchase_bill_snapshot($conn, $bill_id, $exclude_expense_id = 0)
+{
+	require_once __DIR__ . '/expense_bill_helpers.php';
+	require_once __DIR__ . '/billing_note_functions.php';
+	$bill = expense_bill_load($conn, (int) $bill_id);
+	if (!$bill) {
+		return null;
+	}
+	$bill_total = expense_bill_money($bill['net_payable'] ?? 0);
+	if ($bill_total <= 0) {
+		$bill_total = expense_bill_money($bill['grand_total'] ?? 0);
+	}
+	$already_paid = expense_general_vendor_bill_paid_total($conn, (int) $bill['bill_id'], $exclude_expense_id);
+	$debit_note_adj = billing_vendor_bill_note_total($conn, (int) $bill['bill_id'], 0);
+	$outstanding = max(0, round($bill_total - $already_paid - $debit_note_adj, 2));
+	$subtotal = expense_bill_money($bill['subtotal'] ?? 0);
+	$gst_total = expense_bill_money($bill['gst_total'] ?? 0);
+	$tds_amount = expense_bill_money($bill['tds_amount'] ?? 0);
+	$tds_percent = expense_bill_money($bill['tds_percent'] ?? 0);
+	$gst_percent = 0.0;
+	if ($subtotal > 0 && $gst_total > 0) {
+		$gst_percent = round($gst_total / $subtotal * 100, 2);
+	}
+	$gcns = $bill['gcns'] ?? array();
+	if ($gst_percent <= 0 && !empty($gcns)) {
+		$gst_percent = expense_bill_money($gcns[0]['gst_percent'] ?? 0);
+	}
+	return array(
+		'bill_id' => (int) $bill['bill_id'],
+		'bill_entry_no' => $bill['bill_entry_no'] ?? '',
+		'vendor_id' => (int) ($bill['vendor_id'] ?? 0),
+		'bill_total' => $bill_total,
+		'bill_total_fmt' => expense_bill_format_money($bill_total),
+		'already_paid' => $already_paid,
+		'already_paid_fmt' => expense_bill_format_money($already_paid),
+		'debit_note_adjustment' => $debit_note_adj,
+		'debit_note_adjustment_fmt' => expense_bill_format_money($debit_note_adj),
+		'outstanding' => $outstanding,
+		'outstanding_fmt' => expense_bill_format_money($outstanding),
+		'subtotal' => $subtotal,
+		'subtotal_fmt' => expense_bill_format_money($subtotal),
+		'gst_total' => $gst_total,
+		'gst_total_fmt' => expense_bill_format_money($gst_total),
+		'tds_amount' => $tds_amount,
+		'tds_amount_fmt' => expense_bill_format_money($tds_amount),
+		'gst_percent' => $gst_percent,
+		'tds_percent' => $tds_percent,
+	);
+}
+
+function expense_general_prepare_purchase_bill_payment($conn, $payload, $exclude_expense_id = 0)
+{
+	$vendor_bill_id = (int) ($payload['vendor_bill_id'] ?? 0);
+	$vendor_id = (int) ($payload['vendor_id'] ?? 0);
+	if ($vendor_bill_id <= 0) {
+		return array('ok' => false, 'message' => 'Please select a purchase bill.');
+	}
+	$snap = expense_general_purchase_bill_snapshot($conn, $vendor_bill_id, $exclude_expense_id);
+	if (!$snap) {
+		return array('ok' => false, 'message' => 'Selected purchase bill is invalid or inactive.');
+	}
+	if ($vendor_id > 0 && (int) $snap['vendor_id'] !== $vendor_id) {
+		return array('ok' => false, 'message' => 'Selected purchase bill does not belong to this vendor.');
+	}
+	$raw = $payload['lines'] ?? ($payload['lines_json'] ?? array());
+	if (is_string($raw)) {
+		$decoded = json_decode($raw, true);
+		$raw = is_array($decoded) ? $decoded : array();
+	}
+	$payment = 0.0;
+	$other = 0.0;
+	$category_id = 0;
+	foreach ($raw as $line) {
+		if (!is_array($line)) {
+			continue;
+		}
+		$payment += expense_gcn_parse_money($line['expense_amount'] ?? 0);
+		$other += expense_gcn_parse_money($line['other_deduction'] ?? 0);
+		$cid = (int) ($line['category_id'] ?? 0);
+		if ($cid > 0) {
+			$category_id = $cid;
+		}
+	}
+	if ($category_id <= 0) {
+		return array('ok' => false, 'message' => 'Please select expense type.');
+	}
+	$payment = round($payment, 2);
+	$other = round($other, 2);
+	if ($payment <= 0) {
+		return array('ok' => false, 'message' => 'Please enter current payment amount greater than zero.');
+	}
+	if ($other < 0) {
+		return array('ok' => false, 'message' => 'Other deduction cannot be negative.');
+	}
+	if ($payment - (float) $snap['outstanding'] > 0.009) {
+		return array('ok' => false, 'message' => 'Payment amount exceeds outstanding balance on ' . ($snap['bill_entry_no'] ?? 'purchase bill') . '.');
+	}
+	$net = round($payment - $other, 2);
+	if ($net < 0) {
+		return array('ok' => false, 'message' => 'Net payable cannot be negative.');
+	}
+	$freight = (float) $snap['subtotal'];
+	$line = array(
+		'category_id' => $category_id,
+		'gcn_key' => '',
+		'gcn_no' => '',
+		'gcn_date' => '',
+		'expense_amount' => $payment,
+		'freight_amount' => $freight,
+		'gst_percent' => (float) $snap['gst_percent'],
+		'gst_amount' => (float) $snap['gst_total'],
+		'tds_percent' => (float) $snap['tds_percent'],
+		'tds_amount' => (float) $snap['tds_amount'],
+		'other_deduction' => $other,
+		'net_amount' => $net,
+	);
+	return array(
+		'ok' => true,
+		'vendor_bill_id' => $vendor_bill_id,
+		'gst_percent' => (float) $snap['gst_percent'],
+		'tds_percent' => (float) $snap['tds_percent'],
+		'snapshot' => $snap,
+		'lines' => array($line),
+	);
 }
 
 function expense_general_parse_rate($value)
@@ -768,9 +977,11 @@ function expense_general_save($conn, $payload, $user_id)
 	$expense_date = trim((string) ($payload['expense_date'] ?? ''));
 	$vendor_id = (int) ($payload['vendor_id'] ?? 0);
 	$voucher_type = strtolower(trim((string) ($payload['voucher_type'] ?? 'general')));
-	if (!in_array($voucher_type, array('gcn', 'general'), true)) {
+	$type_opts = expense_general_voucher_type_options();
+	if (!isset($type_opts[$voucher_type])) {
 		$voucher_type = 'general';
 	}
+	$vendor_bill_id = (int) ($payload['vendor_bill_id'] ?? 0);
 	$gst_percent = expense_general_parse_rate($payload['gst_percent'] ?? 0);
 	$tds_percent = expense_general_parse_rate($payload['tds_percent'] ?? 0);
 	$description = trim((string) ($payload['description'] ?? ''));
@@ -783,11 +994,27 @@ function expense_general_save($conn, $payload, $user_id)
 	if ($expense_date === '') {
 		return array('ok' => false, 'message' => 'Please enter voucher date.');
 	}
-	$prepared = expense_general_prepare_lines($conn, $payload, $voucher_type, $gst_percent, $tds_percent);
-	if (empty($prepared['ok'])) {
-		return array('ok' => false, 'message' => $prepared['message'] ?? 'Please complete the lines.');
+	$existing_id = (int) ($payload['general_expense_id'] ?? 0);
+	if ($voucher_type === 'purchase_bill') {
+		if ($vendor_id <= 0) {
+			return array('ok' => false, 'message' => 'Please select vendor.');
+		}
+		$prepared = expense_general_prepare_purchase_bill_payment($conn, $payload, $existing_id);
+		if (empty($prepared['ok'])) {
+			return array('ok' => false, 'message' => $prepared['message'] ?? 'Please complete purchase bill payment.');
+		}
+		$lines = $prepared['lines'];
+		$vendor_bill_id = (int) ($prepared['vendor_bill_id'] ?? $vendor_bill_id);
+		$gst_percent = round((float) ($prepared['gst_percent'] ?? 0), 2);
+		$tds_percent = round((float) ($prepared['tds_percent'] ?? 0), 2);
+	} else {
+		$vendor_bill_id = 0;
+		$prepared = expense_general_prepare_lines($conn, $payload, $voucher_type, $gst_percent, $tds_percent);
+		if (empty($prepared['ok'])) {
+			return array('ok' => false, 'message' => $prepared['message'] ?? 'Please complete the lines.');
+		}
+		$lines = $prepared['lines'];
 	}
-	$lines = $prepared['lines'];
 	$category_id = (int) $lines[0]['category_id'];
 	$expense_amount = 0;
 	$gst_amount = 0;
@@ -803,6 +1030,27 @@ function expense_general_save($conn, $payload, $user_id)
 	$gst_amount = round($gst_amount, 2);
 	$tds_amount = round($tds_amount, 2);
 	$other_deduction = round($other_deduction, 2);
+	$net_line_total = 0.0;
+	foreach ($lines as $line) {
+		$net_line_total += (float) ($line['net_amount'] ?? 0);
+	}
+	$net_line_total = round($net_line_total, 2);
+	if ($voucher_type === 'purchase_bill') {
+		$gst_amount = 0.0;
+		$tds_amount = 0.0;
+		$net_payable = $net_line_total;
+		$expenses_without_gst = $expense_amount;
+	} else {
+		$amounts = expense_general_calc_amounts($expense_amount, $gst_amount, $tds_amount, $other_deduction);
+		if ($amounts['net_payable'] < 0) {
+			return array('ok' => false, 'message' => 'Net payable cannot be negative.');
+		}
+		$net_payable = $amounts['net_payable'];
+		$expenses_without_gst = $amounts['expense_amount'];
+		$gst_amount = $amounts['gst_amount'];
+		$tds_amount = $amounts['tds_amount'];
+		$other_deduction = $amounts['other_deduction'];
+	}
 	if ($payment_mode === '') {
 		return array('ok' => false, 'message' => 'Please select payment mode.');
 	}
@@ -832,14 +1080,8 @@ function expense_general_save($conn, $payload, $user_id)
 		}
 	}
 
-	$amounts = expense_general_calc_amounts($expense_amount, $gst_amount, $tds_amount, $other_deduction);
-	if ($amounts['net_payable'] < 0) {
-		return array('ok' => false, 'message' => 'Net payable cannot be negative.');
-	}
-
 	$user_id = (int) $user_id;
 	$now = date('d-m-Y');
-	$existing_id = (int) ($payload['general_expense_id'] ?? 0);
 	$expense_date_esc = mysqli_real_escape_string($conn, $expense_date);
 	$voucher_type_esc = mysqli_real_escape_string($conn, $voucher_type);
 	$description_esc = mysqli_real_escape_string($conn, $description);
@@ -848,11 +1090,9 @@ function expense_general_save($conn, $payload, $user_id)
 	$payment_ifsc_esc = mysqli_real_escape_string($conn, $payment_ifsc);
 	$payment_bank_branch_esc = mysqli_real_escape_string($conn, $payment_bank_branch);
 
-	$expenses_without_gst = $amounts['expense_amount'];
-	$total_gst = $amounts['gst_amount'];
-	$total_tds = $amounts['tds_amount'];
-	$other_deduction_val = $amounts['other_deduction'];
-	$net_payable = $amounts['net_payable'];
+	$total_gst = $gst_amount;
+	$total_tds = $tds_amount;
+	$other_deduction_val = $other_deduction;
 
 	if ($existing_id > 0) {
 		$chk = mysqli_query($conn, "SELECT general_expense_id, expense_no FROM general_expense_header WHERE general_expense_id='$existing_id' LIMIT 1");
@@ -864,6 +1104,7 @@ function expense_general_save($conn, $payload, $user_id)
 			expense_date='$expense_date_esc',
 			voucher_type='$voucher_type_esc',
 			vendor_id='$vendor_id',
+			vendor_bill_id='$vendor_bill_id',
 			category_id='$category_id',
 			expense_amount='$expenses_without_gst',
 			gst_percent='$gst_percent',
@@ -888,11 +1129,11 @@ function expense_general_save($conn, $payload, $user_id)
 		$expense_no = $existing['expense_no'] ?? expense_general_next_no($conn, $gid);
 	} else {
 		mysqli_query($conn, "INSERT INTO general_expense_header
-			(expense_no, expense_date, voucher_type, vendor_id, category_id, expense_amount, gst_percent, tds_percent, remarks, description,
+			(expense_no, expense_date, voucher_type, vendor_id, vendor_bill_id, category_id, expense_amount, gst_percent, tds_percent, remarks, description,
 			expenses_without_gst, total_gst, total_tds, other_deduction, net_payable, net_amount, profit_amount,
 			payment_mode, company_bank_id, payment_bank_name, payment_ifsc, payment_bank_branch,
 			status, created_at, created_by, updated_at, updated_by)
-			VALUES ('', '$expense_date_esc', '$voucher_type_esc', '$vendor_id', '$category_id', '$expenses_without_gst', '$gst_percent', '$tds_percent', '$description_esc', '$description_esc',
+			VALUES ('', '$expense_date_esc', '$voucher_type_esc', '$vendor_id', '$vendor_bill_id', '$category_id', '$expenses_without_gst', '$gst_percent', '$tds_percent', '$description_esc', '$description_esc',
 			'$expenses_without_gst', '$total_gst', '$total_tds', '$other_deduction_val', '$net_payable', '0', '0',
 			'$payment_mode_esc', '$company_bank_id', '$payment_bank_name_esc', '$payment_ifsc_esc', '$payment_bank_branch_esc',
 			0, '$now', '$user_id', '$now', '$user_id')");
@@ -912,11 +1153,12 @@ function expense_general_save($conn, $payload, $user_id)
 		$gcn_no_esc = mysqli_real_escape_string($conn, $line['gcn_no']);
 		$gcn_date_esc = mysqli_real_escape_string($conn, $line['gcn_date']);
 		$cat = (int) $line['category_id'];
+		$freight_amt = round((float) ($line['freight_amount'] ?? 0), 2);
 		mysqli_query($conn, "INSERT INTO general_expense_lines
 			(general_expense_id, line_no, vendor_id, category_id, gcn_key, gcn_no, gcn_date, expense_date,
-			expense_amount, gst_percent, gst_amount, tds_percent, tds_amount, other_deduction, net_amount, created_at, created_by)
+			expense_amount, freight_amount, gst_percent, gst_amount, tds_percent, tds_amount, other_deduction, net_amount, created_at, created_by)
 			VALUES ('$gid', '$line_no', '$vendor_id', '$cat', '$gcn_key_esc', '$gcn_no_esc', '$gcn_date_esc', '$expense_date_esc',
-			'{$line['expense_amount']}', '{$line['gst_percent']}', '{$line['gst_amount']}', '{$line['tds_percent']}', '{$line['tds_amount']}',
+			'{$line['expense_amount']}', '$freight_amt', '{$line['gst_percent']}', '{$line['gst_amount']}', '{$line['tds_percent']}', '{$line['tds_amount']}',
 			'{$line['other_deduction']}', '{$line['net_amount']}', '$now', '$user_id')");
 		$line_no++;
 	}
@@ -931,6 +1173,7 @@ function expense_general_save($conn, $payload, $user_id)
 			'expense_no' => $expense_no,
 			'expense_date' => $expense_date,
 			'vendor_id' => $vendor_id,
+			'vendor_bill_id' => $vendor_bill_id,
 			'category_id' => $category_id,
 			'expense_amount' => $expenses_without_gst,
 			'gst_percent' => $gst_percent,
@@ -949,6 +1192,65 @@ function expense_general_save($conn, $payload, $user_id)
 			'updated_at' => $now,
 		)),
 	);
+}
+
+/**
+ * One list row per GCN line (profit tracked per consignment, not per voucher group).
+ */
+function expense_general_gcn_list_per_consignment($conn, $list_rows)
+{
+	$expanded = array();
+	if (!is_array($list_rows)) {
+		return $expanded;
+	}
+	foreach ($list_rows as $row) {
+		$lines = $row['lines'] ?? array();
+		$gcn_lines = array();
+		foreach ($lines as $line) {
+			$key = trim((string) ($line['gcn_key'] ?? ''));
+			if ($key !== '') {
+				$gcn_lines[] = $line;
+			}
+		}
+		if (empty($gcn_lines)) {
+			$expanded[] = array_merge($row, array('expense_mode' => 'single'));
+			continue;
+		}
+		foreach ($gcn_lines as $line) {
+			$key = trim((string) ($line['gcn_key'] ?? ''));
+			$revenue = 0.0;
+			$grn_no = trim((string) ($line['gcn_no'] ?? ''));
+			$grn_date = trim((string) ($line['gcn_date'] ?? ''));
+			if ($key !== '' && strpos($key, '|') !== false) {
+				list($trans_table, $transaction_id) = explode('|', $key, 2);
+				$ctx = expense_gcn_fetch_context($conn, $trans_table, (int) $transaction_id);
+				if (!empty($ctx['ok'])) {
+					$revenue = round((float) ($ctx['revenue_without_gst_raw'] ?? 0), 2);
+					if ($grn_no === '') {
+						$grn_no = trim((string) ($ctx['grn_no'] ?? ''));
+					}
+					if ($grn_date === '') {
+						$grn_date = trim((string) ($ctx['grn_date'] ?? ''));
+					}
+				}
+			}
+			$expense = round((float) ($line['expense_amount_raw'] ?? 0), 2);
+			$profit = round($revenue - $expense, 2);
+			$expanded[] = array_merge($row, array(
+				'list_gcn_key' => $key,
+				'expense_mode' => 'single',
+				'grn_no' => $grn_no !== '' ? $grn_no : '—',
+				'grn_date' => $grn_date !== '' ? $grn_date : '—',
+				'revenue_without_gst' => expense_gcn_format_money($revenue),
+				'revenue_raw' => $revenue,
+				'expenses_without_gst' => expense_gcn_format_money($expense),
+				'expenses_raw' => $expense,
+				'profit_amount' => expense_gcn_format_profit_display($profit),
+				'profit_raw' => $profit,
+			));
+		}
+	}
+	return $expanded;
 }
 
 function expense_general_fetch_list($conn, $voucher_type = '')

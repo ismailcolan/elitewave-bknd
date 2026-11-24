@@ -529,3 +529,88 @@ elseif ($is_full_delivery) {
     return null;
 }
 
+function ew_chatbot_normalize_mobile($mobile)
+{
+    return preg_replace('/\D+/', '', (string) $mobile);
+}
+
+function ew_chatbot_client_phones($conn, $client_id)
+{
+    $phones = array();
+    $id = (int) $client_id;
+    if ($id <= 0) {
+        return $phones;
+    }
+    $q = mysqli_query($conn, "SELECT contact_no, contact_no1 FROM client WHERE client_id='$id' LIMIT 1");
+    if ($q && ($row = mysqli_fetch_assoc($q))) {
+        foreach (array('contact_no', 'contact_no1') as $field) {
+            $digits = ew_chatbot_normalize_mobile($row[$field] ?? '');
+            if (strlen($digits) === 10) {
+                $phones[$digits] = true;
+            }
+        }
+    }
+    return array_keys($phones);
+}
+
+function ew_chatbot_grn_row_for_tracking_code($conn, $tracking_code)
+{
+    $code = mysqli_real_escape_string($conn, ew_chatbot_normalize_mobile($tracking_code));
+    if (strlen($code) !== 12) {
+        return null;
+    }
+    $lookup = mysqli_query($conn, "SELECT grn_no FROM transaction_log WHERE tracking_code='$code' ORDER BY id DESC LIMIT 1");
+    if (!$lookup || !($log = mysqli_fetch_assoc($lookup))) {
+        return null;
+    }
+    $grn_no = mysqli_real_escape_string($conn, $log['grn_no']);
+    $tables = mysqli_query($conn, 'SELECT * FROM transaction_tbls');
+    if (!$tables) {
+        return null;
+    }
+    while ($row2 = mysqli_fetch_assoc($tables)) {
+        $tbl = 'transaction_' . $row2['table_name'];
+        $query = "SELECT * FROM $tbl WHERE grn_no='$grn_no' AND " . ew_sql_not_cancelled_booking('booking_status') . ' LIMIT 1';
+        $result = mysqli_query($conn, $query);
+        if ($result && mysqli_num_rows($result) > 0) {
+            return mysqli_fetch_assoc($result);
+        }
+    }
+    return null;
+}
+
+function ew_tracking_mobile_can_view($conn, $tracking_code, $mobile)
+{
+    $mobile = ew_chatbot_normalize_mobile($mobile);
+    if (strlen($mobile) !== 10) {
+        return false;
+    }
+    $grnr = ew_chatbot_grn_row_for_tracking_code($conn, $tracking_code);
+    if (!$grnr) {
+        return false;
+    }
+    $phones = array();
+    foreach (array('phone', 'con_phone') as $field) {
+        $digits = ew_chatbot_normalize_mobile($grnr[$field] ?? '');
+        if (strlen($digits) === 10) {
+            $phones[$digits] = true;
+        }
+    }
+    foreach (array('consigner', 'consignee') as $role) {
+        foreach (ew_chatbot_client_phones($conn, (int) ($grnr[$role] ?? 0)) as $phone) {
+            $phones[$phone] = true;
+        }
+    }
+    return isset($phones[$mobile]);
+}
+
+function ew_chatbot_customer_exists($conn, $mobile)
+{
+    $mobile = mysqli_real_escape_string($conn, ew_chatbot_normalize_mobile($mobile));
+    if (strlen($mobile) !== 10) {
+        return false;
+    }
+    $q = mysqli_query($conn, "SELECT client_id FROM client WHERE status=0 AND (contact_no='$mobile' OR contact_no1='$mobile') LIMIT 1");
+    return $q && mysqli_num_rows($q) > 0;
+}
+

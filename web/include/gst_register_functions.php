@@ -95,7 +95,7 @@ function gst_input_doc_type_options()
 {
 	return array(
 		'' => 'All documents',
-		'vendor_bill' => 'Bill Registration',
+		'vendor_bill' => 'Purchase Bill Registration',
 		'debit_note' => 'Debit Note',
 	);
 }

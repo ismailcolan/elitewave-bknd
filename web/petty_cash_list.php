@@ -8,6 +8,7 @@ expense_require_admin();
 
 $list_rows = petty_cash_fetch_list($conn, true);
 $summary = petty_cash_summary($conn);
+$pc_balance_negative = ((float) ($summary['balance_raw'] ?? 0) < -0.001);
 ?>
 <!DOCTYPE html>
 <html>
@@ -46,6 +47,8 @@ $summary = petty_cash_summary($conn);
 		.pc-kpi .kpi-receipt .kpi-value { color: #15803d; }
 		.pc-kpi .kpi-payment .kpi-value { color: #b91c1c; }
 		.pc-kpi .kpi-balance .kpi-value { color: #1d4ed8; }
+		.pc-kpi .kpi-balance.is-negative .kpi-value { color: #b91c1c; }
+		#petty_cash_list_table td.pc-balance-negative strong { color: #b91c1c; }
 		@media (max-width: 768px) {
 			.pc-kpi { grid-template-columns: 1fr; padding: 12px 16px 16px; }
 		}
@@ -187,7 +190,7 @@ $summary = petty_cash_summary($conn);
 								<div class="kpi-label">Total Payments (Out)</div>
 								<div class="kpi-value">₹ <?php echo htmlspecialchars($summary['total_payment']); ?></div>
 							</div>
-							<div class="kpi kpi-balance">
+							<div class="kpi kpi-balance<?php echo $pc_balance_negative ? ' is-negative' : ''; ?>">
 								<div class="kpi-label">Current Balance</div>
 								<div class="kpi-value">₹ <?php echo htmlspecialchars($summary['balance']); ?></div>
 							</div>
@@ -242,7 +245,7 @@ $summary = petty_cash_summary($conn);
 													<span class="amt-out">− <?php echo htmlspecialchars($row['payment']); ?></span>
 												<?php } ?>
 											</td>
-											<td class="num"><strong><?php echo htmlspecialchars($row['balance']); ?></strong></td>
+											<td class="num<?php echo ((float) ($row['balance_raw'] ?? 0) < -0.001) ? ' pc-balance-negative' : ''; ?>"><strong><?php echo htmlspecialchars($row['balance']); ?></strong></td>
 											<td class="col-actions">
 												<span class="act-wrap">
 													<button type="button" class="act-link act-view btn-view-pc" title="View"

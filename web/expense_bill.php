@@ -177,17 +177,37 @@ $bank_rows = ew_company_bank_options($conn);
 		}
 
 		/* Selected GCN table — uses the app's standard .ew-table-wrap / .ew-table look (rail header) */
+		.ew-page-v2 .ebill-gcn-table-wrap.ew-table-wrap {
+			border-top: none;
+		}
 		.ew-page-v2 .ebill-gcn-table-wrap {
+			display: flex;
+			flex-direction: column;
 			border: 1px solid var(--panel-border, #C5D3E0);
 			border-radius: 10px;
 			overflow: hidden;
-			overflow-x: auto;
 			background: #fff;
+			margin: 0;
+		}
+		.ew-page-v2 .ebill-gcn-table-wrap .ebill-gcn-scroll.ew-table-scroll-host {
+			overflow-x: auto;
+			overflow-y: visible;
+			-webkit-overflow-scrolling: touch;
+			flex: 0 1 auto;
+			min-width: 0;
+		}
+		.ew-page-v2 .ebill-gcn-table-wrap .ew-table-scroll-host.ew-drag-scroll {
+			cursor: grab;
+		}
+		.ew-page-v2 .ebill-gcn-table-wrap .ew-table-scroll-host.ew-drag-scroll.is-dragging {
+			cursor: grabbing;
+			user-select: none;
 		}
 		.ew-page-v2 .ebill-gcn-table {
-			width: 100%;
-			min-width: 900px;
+			width: max-content;
+			min-width: 100%;
 			margin: 0;
+			table-layout: auto;
 		}
 		.ew-page-v2 .ebill-gcn-table-wrap table thead th.num,
 		.ew-page-v2 .ebill-gcn-table-wrap table tfoot td.num {
@@ -197,14 +217,58 @@ $bank_rows = ew_company_bank_options($conn);
 			text-align: center !important;
 		}
 		.ew-page-v2 .ebill-gcn-table th.c-no,
-		.ew-page-v2 .ebill-gcn-table td.c-no { white-space: nowrap; font-weight: 600; }
+		.ew-page-v2 .ebill-gcn-table td.c-no { min-width: 108px; white-space: nowrap; font-weight: 600; }
 		.ew-page-v2 .ebill-gcn-table th.c-date,
-		.ew-page-v2 .ebill-gcn-table td.c-date { white-space: nowrap; }
-		.ew-page-v2 .ebill-gcn-table th.c-consignor { min-width: 180px; }
-		.ew-page-v2 .ebill-gcn-table th.c-consignee { min-width: 150px; }
-		.ew-page-v2 .ebill-gcn-table th.c-route { min-width: 120px; }
-		.ew-page-v2 .ebill-gcn-table th.c-freight { width: 140px; }
-		.ew-page-v2 .ebill-gcn-table th.c-gst { width: 190px; }
+		.ew-page-v2 .ebill-gcn-table td.c-date { min-width: 104px; white-space: nowrap; }
+		.ew-page-v2 .ebill-gcn-table th.c-consignor,
+		.ew-page-v2 .ebill-gcn-table td.c-consignor { min-width: 168px; max-width: 220px; }
+		.ew-page-v2 .ebill-gcn-table th.c-consignee,
+		.ew-page-v2 .ebill-gcn-table td.c-consignee { min-width: 168px; max-width: 220px; }
+		.ew-page-v2 .ebill-gcn-table th.c-route,
+		.ew-page-v2 .ebill-gcn-table td.c-route { min-width: 120px; }
+		.ew-page-v2 .ebill-gcn-table td.c-consignor,
+		.ew-page-v2 .ebill-gcn-table td.c-consignee,
+		.ew-page-v2 .ebill-gcn-table td.c-route {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		.ew-page-v2 .ebill-gcn-table th.c-freight {
+			min-width: 124px;
+			white-space: nowrap;
+			padding-right: 16px;
+		}
+		.ew-page-v2 .ebill-gcn-table td.c-freight {
+			min-width: 72px;
+			max-width: 104px;
+			width: 96px;
+			padding-right: 16px;
+		}
+		.ew-page-v2 .ebill-gcn-table th.c-gst {
+			min-width: 108px;
+			white-space: nowrap;
+			padding-left: 8px;
+			text-align: right;
+		}
+		.ew-page-v2 .ebill-gcn-table td.c-gst {
+			min-width: 96px;
+			padding-left: 8px;
+			text-align: right;
+		}
+		.ew-page-v2 .ebill-gcn-table th.c-tds,
+		.ew-page-v2 .ebill-gcn-table td.c-tds {
+			min-width: 100px;
+			padding-left: 10px;
+			white-space: nowrap;
+			text-align: right;
+		}
+		.ew-page-v2 .ebill-gcn-table th.c-grand,
+		.ew-page-v2 .ebill-gcn-table td.ebill-grand-cell {
+			min-width: 108px;
+			padding-left: 10px;
+			white-space: nowrap;
+			text-align: right !important;
+		}
 		.ew-page-v2 .ebill-gcn-table .ebill-gst-inline {
 			display: flex;
 			align-items: center;
@@ -220,25 +284,63 @@ $bank_rows = ew_company_bank_options($conn);
 			white-space: nowrap;
 			font-variant-numeric: tabular-nums;
 		}
-		.ew-page-v2 .ebill-gcn-table th.c-total { width: 120px; }
 		.ew-page-v2 .ebill-gcn-table-wrap table tbody td.c-input {
 			padding-top: 8px !important;
 			padding-bottom: 8px !important;
+			vertical-align: middle;
 		}
-		.ew-page-v2 .ebill-gcn-table input.ebill-freight,
-		.ew-page-v2 .ebill-gcn-table select.ebill-gst-pct {
+		.ew-page-v2 .ebill-gcn-table input.ebill-freight {
 			display: block;
-			width: 100%;
-			min-width: 84px;
+			width: 88px;
+			max-width: 100%;
+			margin-left: auto;
+			box-sizing: border-box;
 			height: 34px;
 			margin: 0;
-			padding: 0 26px 0 10px;
+			padding: 0 10px;
 			border: 1.5px solid var(--ew-border, #D8DDE5);
 			border-radius: var(--ew-radius-sm, 6px);
 			font-size: 13px;
 			line-height: 32px;
 			color: var(--ew-text, #1A2332);
-			text-align: left;
+			text-align: right;
+			font-variant-numeric: tabular-nums;
+			cursor: text;
+			box-shadow: none;
+			background: #fff;
+		}
+		.ew-page-v2 .ebill-gcn-table input.ebill-freight:focus {
+			border-color: var(--ew-navy, #0A1E3D);
+			box-shadow: 0 0 0 3px rgba(10, 30, 61, .10);
+			outline: none;
+		}
+		.ew-page-v2 .ebill-gcn-table input.ebill-gst-pct {
+			width: 72px;
+			min-width: 72px;
+			text-align: right;
+			padding: 4px 8px;
+			height: 32px;
+		}
+		.ebill-pct-input.is-locked,
+		.ew-page-v2 .ebill-gcn-table input.ebill-gst-pct.is-locked {
+			background: #f1f5f9;
+			color: #475569;
+			cursor: not-allowed;
+		}
+		.ew-page-v2 .ebill-gcn-table select.ebill-gst-pct {
+			display: block;
+			width: 100%;
+			box-sizing: border-box;
+			height: 34px;
+			margin: 0;
+			padding: 0 26px 0 8px;
+			border: 1.5px solid var(--ew-border, #D8DDE5);
+			border-radius: var(--ew-radius-sm, 6px);
+			font-size: 13px;
+			line-height: 32px;
+			color: var(--ew-text, #1A2332);
+			text-align: right;
+			font-variant-numeric: tabular-nums;
 			-webkit-appearance: none;
 			-moz-appearance: none;
 			appearance: none;
@@ -255,8 +357,21 @@ $bank_rows = ew_company_bank_options($conn);
 			border-color: #DC2626;
 			box-shadow: 0 0 0 3px rgba(220, 38, 38, .12);
 		}
-		.ew-page-v2 .ebill-gcn-table td.ebill-total-cell {
+		.ew-page-v2 .ebill-gcn-table td.ebill-grand-cell {
 			font-weight: 700;
+			text-align: right !important;
+			font-variant-numeric: tabular-nums;
+		}
+		.ew-page-v2 .ebill-gcn-table td.c-tds,
+		.ew-page-v2 .ebill-gcn-table td.ebill-tds-cell {
+			font-variant-numeric: tabular-nums;
+		}
+		.ew-page-v2 .ebill-gcn-table tfoot td.c-gst-foot {
+			padding: 12px 16px 12px 8px !important;
+		}
+		.ew-page-v2 .ebill-gcn-table .ebill-foot-gst-inline .ebill-gst-pct-spacer {
+			flex: 0 0 84px;
+			width: 84px;
 		}
 		.ew-page-v2 .ebill-gcn-table tfoot td {
 			background: #F4F7FA;
@@ -279,59 +394,62 @@ $bank_rows = ew_company_bank_options($conn);
 			padding: 20px 16px !important;
 		}
 
-		.ebill-totals {
-			margin-top: 12px;
-			max-width: 420px;
-			margin-left: auto;
-			border: 1px solid var(--ew-border-light, #E9ECF0);
-			border-radius: 8px;
-			padding: 12px 14px;
-			background: #FAFBFC;
+		.ew-page-v2 .ebill-gcn-table tfoot tr.ebill-foot-meta td {
+			border-top: 1px solid var(--ew-border-light, #E9ECF0);
+			font-weight: 600;
+		}
+		.ew-page-v2 .ebill-gcn-table td.c-freight input.ebill-freight {
+			text-align: right !important;
 		}
 
-		.ebill-totals-row {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			gap: 12px;
-			margin-bottom: 8px;
-			font-size: 13px;
-			color: #334155;
+		.ew-page-v2 .ebill-gcn-net-bar {
+			display: none;
+			flex: 0 0 auto;
+			background: #F4F7FA;
+			border-top: 1px solid var(--panel-border, #C5D3E0);
+			border-radius: 0 0 9px 9px;
+			font-variant-numeric: tabular-nums;
 		}
-
-		.ebill-totals-row:last-child {
-			margin-bottom: 0;
+		.ew-page-v2 .ebill-gcn-net-bar.is-on {
+			display: block;
 		}
-
-		.ebill-totals-row strong {
-			font-size: 14px;
-			color: #0f172a;
-		}
-
-		.ebill-totals-row .egen-select-wrap,
-		.ebill-totals-row select.form-control {
-			width: 160px;
-			max-width: 46%;
-		}
-		.ebill-tds-row .ebill-tds-inline {
+		.ew-page-v2 .ebill-gcn-net-bar__row {
 			display: flex;
 			align-items: center;
 			justify-content: flex-end;
-			gap: 14px;
-			flex: 1;
+			gap: 18px;
+			padding: 11px 16px;
+			line-height: 1.2;
+			min-height: 0;
+			margin: 0;
 		}
-		.ebill-tds-row .ebill-tds-inline .egen-select-wrap {
-			width: 170px;
-			max-width: none;
+		.ew-page-v2 .ebill-gcn-net-bar .ebill-net-lbl {
+			margin: 0;
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: .04em;
+			text-transform: uppercase;
+			color: var(--ew-navy, #0A1E3D);
+			white-space: nowrap;
 		}
-		.ebill-tds-row .ebill-tds-inline strong {
-			min-width: 72px;
+		.ew-page-v2 .ebill-gcn-net-bar .ebill-net-val {
+			margin: 0;
+			min-width: 96px;
 			text-align: right;
+			font-size: 15px;
+			font-weight: 700;
+			line-height: 1.2;
+			color: var(--ew-navy, #0A1E3D);
 		}
 
 		#due_date[readonly] {
 			background: #F8FAFC;
 			cursor: default;
+		}
+		.ebill-tax-select.is-locked + .select2-container .select2-choice {
+			background: #f1f5f9;
+			color: #475569;
+			cursor: not-allowed;
 		}
 	</style>
 </head>
@@ -349,7 +467,7 @@ $bank_rows = ew_company_bank_options($conn);
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
 								<a href="expense_bill_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
-								<h1 class="ew-page-title"><?php echo $preselect_id > 0 ? 'Edit Bill Registration' : 'Add Bill Registration'; ?></h1>
+								<h1 class="ew-page-title"><?php echo $preselect_id > 0 ? 'Edit Purchase Bill Registration' : 'Add Purchase Bill Registration'; ?></h1>
 							</div>
 							<div class="ew-toolbar-right">
 								<a href="expense_bill_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
@@ -402,65 +520,48 @@ $bank_rows = ew_company_bank_options($conn);
 										<input type="text" id="due_date" name="due_date" class="form-control" value="" readonly autocomplete="off">
 										<span class="ew-field-hint" id="due_date_hint">Auto: vendor invoice date + vendor credit days</span>
 									</div>
+									<div class="ew-field">
+										<label class="control-label">GST % :</label>
+										<div class="egen-select-wrap">
+											<select id="gst_percent" name="gst_percent" class="form-control egen-select ebill-tax-select"></select>
+										</div>
+									</div>
+									<div class="ew-field">
+										<label class="control-label">TDS % :</label>
+										<div class="egen-select-wrap">
+											<select id="tds_percent" name="tds_percent" class="form-control egen-select ebill-tax-select"></select>
+										</div>
+									</div>
 
 									<div class="ew-field span-3" id="gcn_summary_wrap">
 										<label class="control-label">Selected GCN Details :</label>
+								
 										<div class="ew-table-wrap ebill-gcn-table-wrap">
-											<table class="table ew-table ebill-gcn-table" id="gcn_summary_table">
-												<thead>
-													<tr>
-														<th class="c-no">GCN No.</th>
-														<th class="c-date">GCN Date</th>
-														<th class="c-consignor">Consignor</th>
-														<th class="c-consignee">Consignee</th>
-														<th class="c-route">Route</th>
-														<th class="num c-freight">Freight Amount <span style="color:#DC2626;">*</span></th>
-														<th class="c-gst">GST</th>
-														<th class="num c-total">Total</th>
-													</tr>
-												</thead>
-												<tbody id="gcn_summary_body">
-													<tr><td colspan="8" class="ebill-empty">No GCNs selected.</td></tr>
-												</tbody>
-												<tfoot id="gcn_summary_foot" style="display:none;">
-													<tr>
-														<td colspan="5" class="ebill-foot-label">Total</td>
-														<td class="num" id="gcn_foot_freight">0.00</td>
-														<td class="num" id="gcn_foot_gst">0.00</td>
-														<td class="num" id="gcn_foot_total">0.00</td>
-													</tr>
-												</tfoot>
-											</table>
-										</div>
-										<div class="ebill-totals" id="gcn_totals_block">
-											<div class="ebill-totals-row">
-												<span>Sub Total</span>
-												<strong id="bill_subtotal_display">0.00</strong>
+											<div class="ew-table-scroll-host ebill-gcn-scroll">
+												<table class="table ew-table ebill-gcn-table ew-form-drag-table" id="gcn_summary_table">
+													<thead>
+														<tr>
+															<th class="c-no">GCN No.</th>
+															<th class="c-date">GCN Date</th>
+															<th class="c-consignor">Consignor</th>
+															<th class="c-consignee">Consignee</th>
+															<th class="c-route">Route</th>
+															<th class="num c-freight">Freight Amount <span style="color:#DC2626;">*</span></th>
+															<th class="num c-gst">GST Amount</th>
+															<th class="num c-tds">TDS Amount</th>
+															<th class="num c-grand">Grand Total</th>
+														</tr>
+													</thead>
+													<tbody id="gcn_summary_body">
+														<tr><td colspan="9" class="ebill-empty">No GCNs selected.</td></tr>
+													</tbody>
+												</table>
 											</div>
-											<div class="ebill-totals-row">
-												<span>GST Total</span>
-												<strong id="bill_gst_total_display">0.00</strong>
-											</div>
-											<div class="ebill-totals-row">
-												<span>Grand Total</span>
-												<strong id="bill_grand_total_display">0.00</strong>
-											</div>
-											<div class="ebill-totals-row ebill-tds-row">
-												<span>TDS</span>
-												<div class="ebill-tds-inline">
-													<div class="egen-select-wrap">
-														<select id="tds_percent" name="tds_percent" class="form-control egen-select">
-															<?php foreach ($tds_percent_options as $opt) { ?>
-																<option value="<?php echo htmlspecialchars((string) $opt['rate']); ?>"><?php echo htmlspecialchars($opt['label']); ?></option>
-															<?php } ?>
-														</select>
-													</div>
-													<strong id="bill_tds_amount_display">0.00</strong>
+											<div class="ebill-gcn-net-bar" id="gcn_summary_totals" aria-live="polite">
+												<div class="ebill-gcn-net-bar__row">
+													<span class="ebill-net-lbl">Net Payable</span>
+													<strong id="bill_net_payable_display" class="ebill-net-val">0.00</strong>
 												</div>
-											</div>
-											<div class="ebill-totals-row">
-												<span>Net Payable</span>
-												<strong id="bill_net_payable_display">0.00</strong>
 											</div>
 										</div>
 										<input type="hidden" id="bill_subtotal" name="subtotal" value="0">
@@ -553,15 +654,18 @@ $bank_rows = ew_company_bank_options($conn);
 		var billId = <?php echo (int) $preselect_id; ?>;
 		var nextBillNoPreview = <?php echo json_encode($preview_bill_no, JSON_UNESCAPED_UNICODE); ?>;
 		var vendorOptions = <?php echo json_encode($vendor_rows, JSON_UNESCAPED_UNICODE); ?>;
-		var tdsPercentOptions = <?php echo json_encode($tds_percent_options, JSON_UNESCAPED_UNICODE); ?>;
 		var bankOptions = <?php echo json_encode($bank_rows, JSON_UNESCAPED_UNICODE); ?>;
-		var billDueDays = <?php echo (int) $bill_due_days; ?>;
 		var gstPercentOptions = <?php echo json_encode($gst_percent_options, JSON_UNESCAPED_UNICODE); ?>;
+		var tdsPercentOptions = <?php echo json_encode($tds_percent_options, JSON_UNESCAPED_UNICODE); ?>;
+		var billDueDays = <?php echo (int) $bill_due_days; ?>;
 		var gcnAmounts = {}; // gcn_key => { freight, gst_percent } entered manually from vendor invoice
 		var vendorCreditDays = 0;
 		var gcnOptions = [];
 		var selectedGcnDetails = [];
+		var vendorDefaultGstPercent = 0;
+		var vendorGstLocked = false;
 		var vendorDefaultTdsPercent = 0;
+		var vendorTdsLocked = false;
 		var removeAttachmentIds = [];
 		var gcnDetailsRequestSeq = 0;
 
@@ -721,29 +825,105 @@ $bank_rows = ew_company_bank_options($conn);
 			if (vendor.payment_terms) parts.push('Terms: ' + vendor.payment_terms);
 			var cd = parseInt(vendor.credit_days, 10) || 0;
 			parts.push(cd > 0 ? ('Credit: ' + cd + ' day' + (cd === 1 ? '' : 's')) : 'Credit: not set (due on invoice date)');
-			if (parseInt(vendor.tds_applicable, 10) === 1 && moneyNum(vendor.tds_rate) > 0) {
-				parts.push('Vendor TDS: ' + moneyFmt(vendor.tds_rate) + '%');
+			if (parseInt(vendor.gst_percent_configured, 10) === 1) {
+				parts.push('Vendor GST: ' + moneyFmt(vendor.default_gst_percent || vendor.gst_rate || 0) + '% (fixed)');
+			}
+			if (parseInt(vendor.tds_percent_configured, 10) === 1) {
+				parts.push('Vendor TDS: ' + moneyFmt(vendor.default_tds_percent || vendor.tds_rate || 0) + '% (fixed)');
 			}
 			$('#vendor_terms_hint').text(parts.join(' · '));
 		}
-		function buildTdsSelect(selected) {
-			var $el = $('#tds_percent');
-			if (!$el.length) return;
-			var rate = moneyNum(selected);
+		function pctRateKey(rate) {
+			var n = moneyNum(rate);
+			return n % 1 === 0 ? String(n) : String(n);
+		}
+		function pctOptionsWithRate(options, rate) {
+			options = (options || []).slice();
+			rate = moneyNum(rate);
 			var found = false;
-			var html = '';
-			$.each(tdsPercentOptions || [], function(i, opt) {
-				var optRate = moneyNum(opt.rate);
-				if (optRate === rate) found = true;
-				html += '<option value="' + escHtml(optRate) + '"' + (optRate === rate ? ' selected' : '') + '>' + escHtml(opt.label || (optRate + '%')) + '</option>';
+			$.each(options, function(i, opt) {
+				if (Math.abs(moneyNum(opt.rate) - rate) < 0.009) found = true;
 			});
-			if (!found && rate > 0) {
-				html += '<option value="' + escHtml(rate) + '" selected>TDS ' + escHtml(moneyFmt(rate)) + '%</option>';
+			if (!found && (rate > 0 || rate === 0)) {
+				var lbl = rate > 0 ? (rate + '%') : '0%';
+				options.push({ rate: rate, label: lbl });
 			}
+			return options;
+		}
+		function buildPctSelect($el, options, selected, locked, placeholder) {
+			if (!$el || !$el.length) return;
+			var sel = '';
+			if (selected !== '' && selected !== null && selected !== undefined) {
+				sel = pctRateKey(selected);
+			}
+			var rows = sel !== '' ? pctOptionsWithRate(options, sel) : (options || []);
+			var html = '<option value=""></option>';
+			$.each(rows, function(i, opt) {
+				var r = pctRateKey(opt.rate);
+				html += '<option value="' + escHtml(r) + '"' + (sel !== '' && r === sel ? ' selected' : '') + '>' + escHtml(opt.label || (r + '%')) + '</option>';
+			});
 			if ($el.data('select2')) $el.select2('destroy');
 			$el.html(html);
-			initSelect2($el, 'TDS %');
-			setSelectVal($el, String(rate));
+			$el.toggleClass('is-locked', !!locked);
+			initSelect2($el, placeholder || 'Select');
+			setSelectVal($el, sel);
+			$el.prop('disabled', !!locked);
+			if ($el.data('select2')) {
+				if (locked) $el.select2('enable', false);
+				else $el.select2('enable', true);
+			}
+			syncSelectTitle($el);
+		}
+		function buildGstPercentSelect(selected, locked) {
+			buildPctSelect($('#gst_percent'), gstPercentOptions, selected, locked, 'Select GST %');
+		}
+		function buildTdsPercentSelect(selected, locked) {
+			buildPctSelect($('#tds_percent'), tdsPercentOptions, selected, locked, 'Select TDS %');
+		}
+		function syncVendorTaxLocks(vendor, billTdsOverride, billGstOverride) {
+			vendor = vendor || {};
+			vendorGstLocked = parseInt(vendor.gst_percent_configured, 10) === 1;
+			vendorTdsLocked = parseInt(vendor.tds_percent_configured, 10) === 1;
+			vendorDefaultGstPercent = vendorGstLocked ? moneyNum(vendor.default_gst_percent || vendor.gst_rate || 0) : 0;
+			vendorDefaultTdsPercent = vendorTdsLocked ? moneyNum(vendor.default_tds_percent || vendor.tds_rate || 0) : 0;
+			var gstVal;
+			if (billGstOverride !== undefined) {
+				gstVal = vendorGstLocked ? vendorDefaultGstPercent : moneyNum(billGstOverride);
+			} else if (vendorGstLocked) {
+				gstVal = vendorDefaultGstPercent;
+			} else {
+				gstVal = '';
+			}
+			var tdsVal;
+			if (billTdsOverride !== undefined) {
+				tdsVal = vendorTdsLocked ? vendorDefaultTdsPercent : moneyNum(billTdsOverride);
+			} else if (vendorTdsLocked) {
+				tdsVal = vendorDefaultTdsPercent;
+			} else {
+				tdsVal = '';
+			}
+			buildGstPercentSelect(gstVal, vendorGstLocked);
+			buildTdsPercentSelect(tdsVal, vendorTdsLocked);
+		}
+		function getGstPercentVal() {
+			if (vendorGstLocked) {
+				return moneyNum(vendorDefaultGstPercent);
+			}
+			return moneyNum(getSelectVal($('#gst_percent')));
+		}
+		function getTdsPercentVal() {
+			if (vendorTdsLocked) {
+				return moneyNum(vendorDefaultTdsPercent);
+			}
+			return moneyNum(getSelectVal($('#tds_percent')));
+		}
+		function applyVendorTaxProfile(vendor, billTdsOverride, billGstOverride) {
+			syncVendorTaxLocks(vendor, billTdsOverride, billGstOverride);
+			if (selectedGcnDetails.length) {
+				renderGcnSummary(selectedGcnDetails, null);
+			} else {
+				recalcBillTotals();
+			}
 		}
 		function addDaysDmy(dateStr, days) {
 			var parts = String(dateStr || '').split('-');
@@ -787,10 +967,6 @@ $bank_rows = ew_company_bank_options($conn);
 			$('#bill_grand_total').val(grandTotal);
 			$('#bill_tds_amount').val(tdsAmount);
 			$('#bill_net_payable').val(netPayable);
-			$('#bill_subtotal_display').text(moneyFmt(subtotal));
-			$('#bill_gst_total_display').text(moneyFmt(gstTotal));
-			$('#bill_grand_total_display').text(moneyFmt(grandTotal));
-			$('#bill_tds_amount_display').text(moneyFmt(tdsAmount));
 			$('#bill_net_payable_display').text(moneyFmt(netPayable));
 		}
 		function calcLocalTotals(rows, tdsPercent) {
@@ -831,9 +1007,9 @@ $bank_rows = ew_company_bank_options($conn);
 				$('#gcn_summary_wrap').show();
 			}
 			var $body = $('#gcn_summary_body').empty();
-			$('#gcn_summary_foot').toggle(show);
+			$('#gcn_summary_totals').toggleClass('is-on', show);
 			if (!show) {
-				$body.html('<tr><td colspan="8" class="ebill-empty">No GCNs selected.</td></tr>');
+				$body.html('<tr><td colspan="9" class="ebill-empty">No GCNs selected.</td></tr>');
 				setTotalsDisplay({ subtotal: 0, gst_total: 0, grand_total: 0, tds_amount: 0, net_payable: 0 });
 				return;
 			}
@@ -844,41 +1020,32 @@ $bank_rows = ew_company_bank_options($conn);
 				var $tr = $('<tr class="ebill-gcn-row"></tr>').attr('data-key', key);
 				$tr.append('<td class="c-no">' + escHtml(row.gcn_no || row.grn_no || '') + '</td>');
 				$tr.append('<td class="c-date">' + escHtml(row.gcn_date || row.grn_date || '') + '</td>');
-				$tr.append('<td>' + escHtml(row.consignor || '') + '</td>');
-				$tr.append('<td>' + escHtml(row.consignee || '') + '</td>');
-				$tr.append('<td>' + escHtml(row.route_label || '') + '</td>');
-				$tr.append('<td class="c-input"><input type="text" inputmode="decimal" class="form-control ebill-freight" autocomplete="off" placeholder="0.00" value="' + escHtml(amt.freight ? String(amt.freight) : '0') + '"></td>');
-				$tr.append('<td class="c-input"><div class="ebill-gst-inline">' + gstSelectHtml(amt.gst_percent) +
-					'<span class="ebill-gst-amt">' + moneyFmt(calc.gst) + '</span></div></td>');
-				$tr.append('<td class="num ebill-total-cell">' + moneyFmt(calc.total) + '</td>');
+				$tr.append('<td class="c-consignor">' + escHtml(row.consignor || '') + '</td>');
+				$tr.append('<td class="c-consignee">' + escHtml(row.consignee || '') + '</td>');
+				$tr.append('<td class="c-route">' + escHtml(row.route_label || '') + '</td>');
+				$tr.append('<td class="c-input c-freight num"><input type="text" inputmode="decimal" class="form-control ebill-freight" autocomplete="off" placeholder="0.00" value="' + escHtml(amt.freight ? String(amt.freight) : '0') + '"></td>');
+				$tr.append('<td class="num c-gst"><span class="ebill-gst-amt">' + moneyFmt(calc.gst) + '</span></td>');
+				$tr.append('<td class="num c-tds"><span class="ebill-tds-amt">' + moneyFmt(calc.tds) + '</span></td>');
+				$tr.append('<td class="num ebill-grand-cell c-grand">' + moneyFmt(calc.total) + '</td>');
 				$body.append($tr);
 			});
 			recalcBillTotals();
+			if (typeof window.ewInitTableScroll === 'function') {
+				window.setTimeout(window.ewInitTableScroll, 0);
+			}
 		}
 		function gcnAmountFor(key) {
-			if (!gcnAmounts[key]) gcnAmounts[key] = { freight: 0, gst_percent: 0 };
+			if (!gcnAmounts[key]) gcnAmounts[key] = { freight: 0 };
 			return gcnAmounts[key];
 		}
 		function gcnRowCalc(key) {
 			var a = gcnAmountFor(key);
 			var freight = Math.max(0, moneyNum(a.freight));
-			var pct = Math.max(0, moneyNum(a.gst_percent));
+			var pct = getGstPercentVal();
 			var gst = moneyNum(freight * pct / 100);
-			return { freight: freight, pct: pct, gst: gst, total: moneyNum(freight + gst) };
-		}
-		function gstSelectHtml(selected) {
-			var rate = moneyNum(selected);
-			var found = false;
-			var html = '<select class="ebill-gst-pct" title="GST %">';
-			$.each(gstPercentOptions || [], function(i, opt) {
-				var r = moneyNum(opt.rate);
-				if (r === rate) found = true;
-				html += '<option value="' + r + '"' + (r === rate ? ' selected' : '') + '>' + escHtml(r > 0 ? (r + '%') : '0%') + '</option>';
-			});
-			if (!found) {
-				html += '<option value="' + rate + '" selected>' + escHtml(rate + '%') + '</option>';
-			}
-			return html + '</select>';
+			var tdsPct = getTdsPercentVal();
+			var tds = (tdsPct > 0 && freight > 0) ? moneyNum(freight * tdsPct / 100) : 0;
+			return { freight: freight, pct: pct, gst: gst, tds: tds, total: moneyNum(freight + gst) };
 		}
 		function selectedGcnRowsWithAmounts() {
 			return $.map(selectedGcnDetails || [], function(row) {
@@ -895,16 +1062,14 @@ $bank_rows = ew_company_bank_options($conn);
 		}
 		function recalcBillTotals() {
 			var rows = selectedGcnRowsWithAmounts();
-			var totals = calcLocalTotals(rows, getSelectVal($('#tds_percent')));
+			var totals = calcLocalTotals(rows, getTdsPercentVal());
 			setTotalsDisplay(totals);
-			$('#gcn_foot_freight').text(moneyFmt(totals.subtotal));
-			$('#gcn_foot_gst').text(moneyFmt(totals.gst_total));
-			$('#gcn_foot_total').text(moneyFmt(totals.grand_total));
 		}
 		function updateGcnRowDisplay($tr) {
 			var c = gcnRowCalc(String($tr.attr('data-key') || ''));
 			$tr.find('.ebill-gst-amt').text(moneyFmt(c.gst));
-			$tr.find('.ebill-total-cell').text(moneyFmt(c.total));
+			$tr.find('.ebill-tds-amt').text(moneyFmt(c.tds));
+			$tr.find('.ebill-grand-cell').text(moneyFmt(c.total));
 		}
 		function refreshSelectedGcnDetails(done) {
 			var keys = getMultiSelectVal($('#gcn_keys'));
@@ -917,7 +1082,7 @@ $bank_rows = ew_company_bank_options($conn);
 			var seq = ++gcnDetailsRequestSeq;
 			var data = {
 				cmd: 'fetch_gcn_details',
-				tds_percent: getSelectVal($('#tds_percent')) || 0
+				tds_percent: getTdsPercentVal()
 			};
 			// Use gcn_keys[] so PHP receives a full array (not only the last value).
 			$.each(keys, function(i, key) {
@@ -939,11 +1104,6 @@ $bank_rows = ew_company_bank_options($conn);
 				renderGcnSummary([], null);
 				if (done) done();
 			});
-		}
-		function applyVendorDefaultTds(force) {
-			var rate = moneyNum(vendorDefaultTdsPercent);
-			if (!force && moneyNum(getSelectVal($('#tds_percent'))) > 0) return;
-			buildTdsSelect(rate);
 		}
 		function loadGcns(selected, done) {
 			$.getJSON('expense_bill_data.php', { cmd: 'fetch_gcns' }, function(r) {
@@ -1060,20 +1220,20 @@ $bank_rows = ew_company_bank_options($conn);
 			$('#vendor_invoice_date').val(data.vendor_invoice_date || '');
 			$('#invoice_received_date').val(data.invoice_received_date || '');
 			$('#narration').val(data.narration || '');
-			vendorDefaultTdsPercent = moneyNum(data.default_tds_percent || data.tds_rate || 0);
 			vendorCreditDays = parseInt(data.credit_days, 10) || 0;
 			gcnAmounts = {};
+			var billGstFromLines = 0;
 			$.each(data.gcns || [], function(i, g) {
 				var k = String(g.gcn_key || g.key || '');
-				if (k) gcnAmounts[k] = { freight: moneyNum(g.freight_amount), gst_percent: moneyNum(g.gst_percent) };
+				if (k) {
+					gcnAmounts[k] = { freight: moneyNum(g.freight_amount) };
+					if (i === 0 || billGstFromLines <= 0) {
+						billGstFromLines = moneyNum(g.gst_percent);
+					}
+				}
 			});
-			updateVendorHint({
-				payment_terms: data.payment_terms || '',
-				credit_days: data.credit_days || 0,
-				tds_applicable: data.tds_applicable || 0,
-				tds_rate: data.tds_rate || 0
-			});
-			buildTdsSelect(moneyNum(data.tds_percent));
+			updateVendorHint(data);
+			syncVendorTaxLocks(data, moneyNum(data.tds_percent), billGstFromLines);
 			refreshDueDate();
 			initPaymentModeSelect(data.payment_mode || '');
 			buildBankSelect(data.company_bank_id || '');
@@ -1111,13 +1271,13 @@ $bank_rows = ew_company_bank_options($conn);
 			fd.append('invoice_received_date', $('#invoice_received_date').val() || '');
 			fd.append('due_date', $('#due_date').val() || '');
 			fd.append('due_date_overridden', 0);
-			fd.append('tds_percent', getSelectVal($('#tds_percent')) || 0);
+			fd.append('tds_percent', getTdsPercentVal());
 			var amounts = {};
 			$.each(selectedGcnDetails || [], function(i, row) {
 				var k = String(row.gcn_key || row.key || '');
 				if (!k) return;
 				var c = gcnRowCalc(k);
-				amounts[k] = { freight: c.freight, gst_percent: c.pct };
+				amounts[k] = { freight: c.freight, gst_percent: getGstPercentVal() };
 			});
 			fd.append('gcn_amounts', JSON.stringify(amounts));
 			fd.append('narration', $('#narration').val() || '');
@@ -1141,7 +1301,8 @@ $bank_rows = ew_company_bank_options($conn);
 		$(function() {
 			buildVendorSelect('');
 			buildGcnSelect([]);
-			buildTdsSelect(0);
+			buildGstPercentSelect('', false);
+			buildTdsPercentSelect('', false);
 			buildBankSelect('');
 			initPaymentModeSelect('');
 			togglePaymentBankRequirement();
@@ -1177,22 +1338,27 @@ $bank_rows = ew_company_bank_options($conn);
 				var vendorId = getSelectVal($(this)) || 0;
 				syncSelectTitle($(this));
 				if (!vendorId) {
+					vendorDefaultGstPercent = 0;
+					vendorGstLocked = false;
 					vendorDefaultTdsPercent = 0;
+					vendorTdsLocked = false;
 					vendorCreditDays = 0;
 					updateVendorHint({});
-					applyVendorDefaultTds(true);
+					buildGstPercentSelect('', false);
+					buildTdsPercentSelect('', false);
+					gcnAmounts = {};
+					selectedGcnDetails = [];
+					renderGcnSummary([], null);
 					refreshDueDate();
 					return;
 				}
 				$.getJSON('expense_bill_data.php', { cmd: 'vendor_info', vendor_id: vendorId }, function(r) {
 					if (!r || r.status !== 0) return;
 					var vendor = r.vendor || {};
-					vendorDefaultTdsPercent = moneyNum(vendor.default_tds_percent || 0);
 					vendorCreditDays = parseInt(vendor.credit_days, 10) || 0;
 					updateVendorHint(vendor);
-					applyVendorDefaultTds(true);
+					applyVendorTaxProfile(vendor);
 					refreshDueDate();
-					recalcBillTotals();
 				});
 			});
 			$('#vendor_invoice_date').on('change blur', function() {
@@ -1201,8 +1367,20 @@ $bank_rows = ew_company_bank_options($conn);
 			$(document).on('change', '#gcn_keys', function() {
 				refreshSelectedGcnDetails();
 			});
-			$('#tds_percent').on('change', function() {
+			$('#gst_percent').on('change', function() {
+				if (vendorGstLocked) return;
 				syncSelectTitle($(this));
+				$('#gcn_summary_body tr.ebill-gcn-row').each(function() {
+					updateGcnRowDisplay($(this));
+				});
+				recalcBillTotals();
+			});
+			$('#tds_percent').on('change', function() {
+				if (vendorTdsLocked) return;
+				syncSelectTitle($(this));
+				$('#gcn_summary_body tr.ebill-gcn-row').each(function() {
+					updateGcnRowDisplay($(this));
+				});
 				recalcBillTotals();
 			});
 			$(document).on('focus', '.ebill-freight', function() {
@@ -1222,12 +1400,6 @@ $bank_rows = ew_company_bank_options($conn);
 			});
 			$(document).on('blur', '.ebill-freight', function() {
 				if ($.trim($(this).val()) === '') $(this).val('0');
-			});
-			$(document).on('change', '.ebill-gst-pct', function() {
-				var $tr = $(this).closest('tr.ebill-gcn-row');
-				gcnAmountFor(String($tr.attr('data-key') || '')).gst_percent = moneyNum($(this).val());
-				updateGcnRowDisplay($tr);
-				recalcBillTotals();
 			});
 			$(document).on('click', '.btn-remove-att', function() {
 				var $card = $(this).closest('.ebill-attach-card');

@@ -5,27 +5,116 @@
 (function($) {
 	'use strict';
 
-	function unlockFutureDates($input) {
-		if ($input.attr('data-allow-future') !== '1') {
+	function syncDatepickerBounds($input) {
+		if (!$input || !$input.length) {
 			return;
 		}
 		var dp = $input.data('datepicker');
 		if (!dp) {
 			return;
 		}
-		dp.o.endDate = Infinity;
-		dp.o.startDate = -Infinity;
+		if ($input.data('ew-bounds-syncing')) {
+			return;
+		}
+		$input.data('ew-bounds-syncing', true);
+
+		var format = $input.attr('data-date-format') || 'dd-mm-yyyy';
+		var startRaw = $input.attr('data-start-date');
+		var endRaw = $input.attr('data-end-date');
+
+		if ($input.attr('data-allow-future') === '1') {
+			dp.o.endDate = Infinity;
+		} else if (endRaw === 'today') {
+			dp.o.endDate = new Date();
+		} else if (endRaw) {
+			var pe = parseEwBoundDate(endRaw, format);
+			if (pe !== null) {
+				dp.o.endDate = pe;
+			}
+		}
+
+		if (startRaw) {
+			var ps = parseEwBoundDate(startRaw, format);
+			if (ps !== null) {
+				dp.o.startDate = ps;
+			}
+		} else if ($input.attr('data-allow-future') === '1') {
+			dp.o.startDate = -Infinity;
+		}
+
+		dp.update();
 		dp.updateNavArrows();
+		$input.removeData('ew-bounds-syncing');
 	}
 
 	function bindFutureDateHandlers($input) {
-		if ($input.attr('data-allow-future') !== '1' || $input.data('ew-future-bound')) {
+		if ($input.data('ew-future-bound')) {
 			return;
 		}
-		$input.on('show.ewFutureDate', function() {
-			unlockFutureDates($input);
-		});
 		$input.data('ew-future-bound', true);
+	}
+
+	function ewDatepickerKeepOpen($input, target) {
+		if (!$input || !$input.length || !target) {
+			return false;
+		}
+		var dp = $input.data('datepicker');
+		if (!dp || !dp.picker) {
+			return false;
+		}
+		var $t = $(target);
+		var $picker = dp.picker;
+		if ($picker.is(target) || $picker.has(target).length) {
+			return true;
+		}
+		if ($input.is(target)) {
+			return true;
+		}
+		if ($t.closest('.date-field-icon').length && $t.closest('.date-input-inside').find($input).length) {
+			return true;
+		}
+		return false;
+	}
+
+	function dismissOpenEwDatepickers(target) {
+		collectDateInputs($(document)).add($('input.party-invoice-date')).each(function() {
+			var $input = $(this);
+			var dp = $input.data('datepicker');
+			if (!dp || !dp.picker || !dp.picker.is(':visible')) {
+				return;
+			}
+			if (ewDatepickerKeepOpen($input, target)) {
+				return;
+			}
+			try {
+				$input.datepicker('hide');
+			} catch (ignore) {}
+		});
+	}
+
+	function parseEwBoundDate(str, format) {
+		if (!str) {
+			return null;
+		}
+		str = $.trim(String(str));
+		if (str === 'today') {
+			var t = new Date();
+			t.setHours(0, 0, 0, 0);
+			return t;
+		}
+		format = format || 'dd-mm-yyyy';
+		if (format === 'dd-mm-yyyy') {
+			var m = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(str);
+			if (m) {
+				var d = new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+				if (!isNaN(d.getTime())) {
+					d.setHours(0, 0, 0, 0);
+					return d;
+				}
+			}
+		}
+		var parsed = new Date(str);
+		return isNaN(parsed.getTime()) ? null : parsed;
 	}
 
 	function getDatepickerOptions($input) {
@@ -43,17 +132,21 @@
 		if (endDate === 'today') {
 			opts.endDate = new Date();
 		} else if (endDate) {
-			opts.endDate = endDate;
+			var parsedEnd = parseEwBoundDate(endDate, format);
+			opts.endDate = parsedEnd !== null ? parsedEnd : endDate;
 		}
 		if (startDate) {
-			opts.startDate = startDate;
+			var parsedStart = parseEwBoundDate(startDate, format);
+			opts.startDate = parsedStart !== null ? parsedStart : startDate;
 		}
 		if ($input.closest('.modal, .ew-v2-modal-backdrop, .ew-v2-modal').length) {
 			opts.container = 'body';
 		}
 		if ($input.attr('data-allow-future') === '1') {
 			opts.endDate = Infinity;
-			opts.startDate = -Infinity;
+			if (!startDate) {
+				opts.startDate = -Infinity;
+			}
 		}
 		return opts;
 	}
@@ -186,11 +279,24 @@
 		bindDayPickerHandlers($input);
 		bindFutureDateHandlers($input);
 		if ($input.data('datepicker')) {
+			syncDatepickerBounds($input);
 			return;
 		}
 		$input.datepicker(getDatepickerOptions($input));
-		unlockFutureDates($input);
+		syncDatepickerBounds($input);
 	}
+
+	window.ewSetDatepickerStartDate = function($input, dateStr) {
+		if (!$input || !$input.length) {
+			return;
+		}
+		$input.attr('data-start-date', dateStr || '');
+		if (!$input.data('datepicker')) {
+			initOne($input);
+		} else {
+			syncDatepickerBounds($input);
+		}
+	};
 
 	function wrapPlainDateInput($input) {
 		if (!$input.length || $input.closest('.date-input-inside').length) {
@@ -290,6 +396,12 @@
 			}, 0);
 		}
 	});
+
+	// Capture phase: modal panels stopPropagation on bubble, which blocks
+	// bootstrap-datepicker's document mousedown close handler.
+	document.addEventListener('mousedown', function(e) {
+		dismissOpenEwDatepickers(e.target);
+	}, true);
 
 	$(function() {
 		initEwDatepickers();

@@ -157,9 +157,63 @@ $logged_id = $_SESSION['user_id'];
     cursor: pointer;
 }
 
-/* ===== E-Way Attachments modal ===== */
+/* ===== Attachments modal ===== */
 #eway_popup .ew-v2-modal {
     max-width: 720px;
+}
+.eway-card-type {
+    margin-bottom: 10px;
+}
+.eway-type-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #1e40af;
+    background: #dbeafe;
+    border-radius: 6px;
+    padding: 4px 10px;
+}
+.eway-card-grid--gcn,
+.eway-card-grid--party_invoice {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.attach-type-panel {
+    display: none;
+}
+.attach-type-panel.is-active {
+    display: block;
+}
+#attach_grn_no.ew-field-locked {
+    background-color: #f1f5f9;
+    color: #475569;
+    cursor: not-allowed;
+}
+#eway_popup .ew-attach-select-wrap {
+    position: relative;
+    width: 100%;
+}
+#eway_popup select.ew-attach-select {
+    width: 100%;
+    padding-right: 36px !important;
+    cursor: pointer;
+    font-weight: 600;
+    color: #0A1E3D;
+    border: 1px solid #D8DDE5 !important;
+    background-color: #fff !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236B7A8D' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 10px 6px !important;
+    -webkit-appearance: none;
+    appearance: none;
+}
+#party_invoice_line:disabled,
+#attachment_type:disabled {
+    background-color: #f1f5f9;
+    cursor: not-allowed;
+    opacity: 0.85;
 }
 .eway-list {
     display: flex;
@@ -818,7 +872,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                         <a class="table-actions disable_action " href="javascript:void(0);" data-status="<?php echo $row['status'] ?>" title="Invoice" id="<?php echo $row['transaction_id'] ?>"><i class="fa fa-file"></i></a>
                                                         */ ?>
                                                         <a title="Cancel" class="table-actions btn-edit disable_action" href="javascript:void(0);" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-ban"></i></a>
-                                                        <a title="E-way Attachments" href="javascript:void(0);" class="table-actions btn-eway disable_action" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-paperclip"></i></a>
+                                                        <a title="Attachments" href="javascript:void(0);" class="table-actions btn-eway disable_action" id="<?php echo $row['transaction_id']; ?>" data-images-table="<?php echo htmlspecialchars($trans_image_name, ENT_QUOTES, 'UTF-8'); ?>" data-trans-table="<?php echo htmlspecialchars($trans_table_name, ENT_QUOTES, 'UTF-8'); ?>"><i class="fa fa-paperclip"></i></a>
                                                         <?php
                                                         $invoice_query = mysqli_query($conn, 'select * from transaction_images_' . $m1 . '_' . $dt[2] . " where transaction_id='" . $row['transaction_id'] . "' ");
                                                         $invoice_count = mysqli_num_rows($invoice_query);
@@ -887,7 +941,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                                     	<?php } else { ?>
                                                             <a class="table-actions disable_action" href="javascript:void(0)"><i class="fa fa-ban"></i></a>
                                                         <?php } ?>
-                                                        <a title="E-way Attachments" href="javascript:void(0);" class="table-actions btn-eway" id="<?php echo $row['transaction_id']; ?>"><i class="fa fa-paperclip"></i></a>
+                                                        <a title="Attachments" href="javascript:void(0);" class="table-actions btn-eway" id="<?php echo $row['transaction_id']; ?>" data-images-table="<?php echo htmlspecialchars($trans_image_name, ENT_QUOTES, 'UTF-8'); ?>" data-trans-table="<?php echo htmlspecialchars($trans_table_name, ENT_QUOTES, 'UTF-8'); ?>"><i class="fa fa-paperclip"></i></a>
                                                         <?php
                                                         $invoice_query = mysqli_query($conn, 'select * from transaction_images_' . $m1 . '_' . $dt[2] . " where transaction_id='" . $row['transaction_id'] . "' ");
                                                         $invoice_count = mysqli_num_rows($invoice_query);
@@ -1172,12 +1226,97 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                 $('#eway_upload_wrap .ew-upload-image__filename').text('').attr('title', '');
             }
 
+            window._attachBookingCtx = null;
+
+            function refreshGcnDeliveryDatepicker() {
+                var $delivery = $('#gcn_delivery_date');
+                var minStr = (window._attachBookingCtx && window._attachBookingCtx.grn_date) ? window._attachBookingCtx.grn_date : '';
+                $delivery.attr('data-start-date', minStr);
+                $delivery.attr('data-allow-future', '1');
+                if ($delivery.data('datepicker')) {
+                    $delivery.datepicker('destroy');
+                }
+                if (typeof initEwDatepickers === 'function') {
+                    initEwDatepickers('#attach_fields_gcn');
+                }
+                if (minStr && typeof window.ewSetDatepickerStartDate === 'function' && $delivery.data('datepicker')) {
+                    window.ewSetDatepickerStartDate($delivery, minStr);
+                }
+                var curVal = $.trim($delivery.val());
+                if (curVal && minStr) {
+                    var parseD = function(s) {
+                        var m = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(s);
+                        if (!m) {
+                            return null;
+                        }
+                        return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10)).getTime();
+                    };
+                    if (parseD(curVal) !== null && parseD(minStr) !== null && parseD(curVal) < parseD(minStr)) {
+                        $delivery.val('');
+                    }
+                }
+            }
+
+            function attachmentTypePanelId(type) {
+                if (type === 'party_invoice') {
+                    return 'attach_fields_party';
+                }
+                return 'attach_fields_' + (type || 'eway');
+            }
+
+            function applyAttachmentTypeUi() {
+                var type = $('#attachment_type').val() || 'eway';
+                $('.attach-type-panel').removeClass('is-active');
+                $('#' + attachmentTypePanelId(type)).addClass('is-active');
+                var $ewayNo = $('input[name="eway_bill_no"]');
+                var $delivery = $('#gcn_delivery_date');
+                var $party = $('#party_invoice_line');
+                var hasParty = window._attachBookingCtx && window._attachBookingCtx.party_invoices && window._attachBookingCtx.party_invoices.length > 0;
+                if (type === 'eway') {
+                    $ewayNo.prop('required', true);
+                    $delivery.prop('required', false);
+                    $party.prop('required', false).prop('disabled', true);
+                } else if (type === 'gcn') {
+                    $ewayNo.prop('required', false);
+                    $delivery.prop('required', true);
+                    $party.prop('required', false).prop('disabled', true);
+                    refreshGcnDeliveryDatepicker();
+                } else {
+                    $ewayNo.prop('required', false);
+                    $delivery.prop('required', false);
+                    $party.prop('required', true).prop('disabled', !hasParty);
+                }
+            }
+
+            function applyAttachmentContext(ctx) {
+                ctx = ctx || {};
+                $('#attach_grn_no').val(ctx.grn_no || '');
+                $('input[name="eway_bill_no"]').val(ctx.eway_number || '');
+                $('#eway_expire_date').val(ctx.eway_expirydate || '');
+                var $sel = $('#party_invoice_line');
+                $sel.empty().append('<option value="">Select party invoice</option>');
+                if (ctx.party_invoices && ctx.party_invoices.length) {
+                    $.each(ctx.party_invoices, function(_, row) {
+                        $sel.append(
+                            $('<option></option>')
+                                .val(row.invoice_id)
+                                .attr('data-party-invoice-no', row.party_invoice_no || '')
+                                .text(row.label || row.party_invoice_no)
+                        );
+                    });
+                } else {
+                    $sel.append('<option value="" disabled>No party invoices on this booking</option>');
+                }
+                applyAttachmentTypeUi();
+            }
+
             function resetEwayModal() {
                 if ($('#eway_form').length && $('#eway_form')[0]) {
                     $('#eway_form')[0].reset();
                 }
+                $('#attachment_type').val('eway');
                 resetEwayUploadUi();
-                $('#eway_issue_date, #eway_expire_date').each(function() {
+                $('#eway_issue_date, #eway_expire_date, #gcn_delivery_date').each(function() {
                     var $inp = $(this);
                     $inp.val('');
                     if ($inp.data('datepicker')) {
@@ -1187,6 +1326,8 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                 $('#old_attach_div').html('').show();
                 $('#attachment_body').hide();
                 $('#eway_modal_foot').hide();
+                window._attachBookingCtx = null;
+                applyAttachmentTypeUi();
             }
 
             function closeEwayModal() {
@@ -1205,6 +1346,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                     if (typeof initEwDatepickers === 'function') {
                         initEwDatepickers('#attachment_body');
                     }
+                    applyAttachmentTypeUi();
                 } else {
                     $('#attachment_body').hide();
                     $('#eway_modal_foot').hide();
@@ -1292,10 +1434,71 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
 
             initEwayUploadMulti();
 
+            $(document).on('change', '#attachment_type', function() {
+                applyAttachmentTypeUi();
+            });
+
+            $(document).on('change', '#party_invoice_line', function() {
+                var no = $(this).find('option:selected').attr('data-party-invoice-no') || '';
+                $('#party_invoice_no_hidden').val(no);
+            });
+
             $(document).on('click', '#new_eway', function() {
                 $('#old_attach_div').hide();
+                if (window._attachBookingCtx) {
+                    applyAttachmentContext(window._attachBookingCtx);
+                }
                 showEwayForm(true);
             });
+
+            function validateBookingAttachmentForm() {
+                var type = $('#attachment_type').val() || 'eway';
+                var $file = $('#eway_upload_file')[0];
+                if (!$file || !$file.files || !$file.files.length) {
+                    if (typeof ewFormToast === 'function') {
+                        ewFormToast('Please choose a file to upload.', 'error', 4000);
+                    }
+                    return false;
+                }
+                if (type === 'eway' && !$('input[name="eway_bill_no"]').val().trim()) {
+                    if (typeof ewFormToast === 'function') {
+                        ewFormToast('Enter E-Way bill number.', 'error', 4000);
+                    }
+                    return false;
+                }
+                if (type === 'gcn') {
+                    var delVal = $('#gcn_delivery_date').val().trim();
+                    var minVal = (window._attachBookingCtx && window._attachBookingCtx.grn_date) ? window._attachBookingCtx.grn_date : '';
+                    if (!delVal) {
+                        if (typeof ewFormToast === 'function') {
+                            ewFormToast('Select delivery date (on or after booking date).', 'error', 4000);
+                        }
+                        return false;
+                    }
+                    if (minVal) {
+                        var parseD = function(s) {
+                            var m = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(s);
+                            if (!m) {
+                                return null;
+                            }
+                            return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10)).getTime();
+                        };
+                        if (parseD(delVal) !== null && parseD(minVal) !== null && parseD(delVal) < parseD(minVal)) {
+                            if (typeof ewFormToast === 'function') {
+                                ewFormToast('Delivery date cannot be before GCN booking date (' + minVal + ').', 'error', 5000);
+                            }
+                            return false;
+                        }
+                    }
+                }
+                if (type === 'party_invoice' && !$('#party_invoice_line').val()) {
+                    if (typeof ewFormToast === 'function') {
+                        ewFormToast('Select a party invoice from this booking.', 'error', 4000);
+                    }
+                    return false;
+                }
+                return true;
+            }
 
             $(document).on('click', '#eway_cancel', function(e) {
                 e.preventDefault();
@@ -1325,13 +1528,22 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             });
             //Button Delete
 
+            function ewAttachDeferredPayload(res) {
+                if (res == null) {
+                    return null;
+                }
+                return Array.isArray(res) ? res[0] : res;
+            }
+
             $(document).on('click', '.btn-eway', function(ev) {
                 ev.preventDefault();
                 if ($(this).hasClass('disable_action')) {
                     return;
                 }
-                var id = $(this).attr('id');
-                var table_name = '<?php echo $trans_image_name; ?>';
+                var $btn = $(this);
+                var id = $btn.attr('id');
+                var table_name = $btn.attr('data-images-table') || '<?php echo $trans_image_name; ?>';
+                var trans_table = $btn.attr('data-trans-table') || '';
                 resetEwayModal();
                 $("#attachment_id").val(id);
                 $("#table_name").val(table_name);
@@ -1340,27 +1552,44 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                 } else {
                     $('#eway_popup').addClass('open');
                 }
-                $.ajax({
-                    url: 'fetch_details.php',
-                    type: "GET",
-                    data: {
-                        cmd: "get_existing_attchment",
-                        transaction_id: id,
-                        table_name: table_name
-                    },
-                    success: function(result) {
-                        if (result != 0 && String(result).trim() !== '0') {
-                            $('#old_attach_div').html(result).show();
-                            showEwayForm(false);
-                        } else {
-                            $('#old_attach_div').html('').hide();
-                            showEwayForm(true);
+                $.when(
+                    $.ajax({
+                        url: 'fetch_details.php',
+                        type: 'GET',
+                        data: {
+                            cmd: 'get_existing_attchment',
+                            transaction_id: id,
+                            table_name: table_name,
+                            trans_table: trans_table
                         }
-                    },
-                    error: function() {
-                        $('#old_attach_div').html('<p class="text-danger">Could not load attachments.</p>').show();
-                        showEwayForm(false);
+                    }),
+                    $.getJSON('fetch_details.php', {
+                        cmd: 'get_booking_attachment_context',
+                        transaction_id: id,
+                        table_name: table_name,
+                        trans_table: trans_table
+                    })
+                ).done(function(listRes, ctxRes) {
+                    var result = ewAttachDeferredPayload(listRes);
+                    if (result == null) {
+                        result = 0;
                     }
+                    var ctx = ewAttachDeferredPayload(ctxRes) || {};
+                    if (!ctx.ok) {
+                        ctx = {};
+                    }
+                    window._attachBookingCtx = ctx;
+                    applyAttachmentContext(ctx);
+                    if (result != 0 && String(result).trim() !== '0') {
+                        $('#old_attach_div').html(result).show();
+                        showEwayForm(false);
+                    } else {
+                        $('#old_attach_div').html('').hide();
+                        showEwayForm(true);
+                    }
+                }).fail(function() {
+                    $('#old_attach_div').html('<p class="text-danger">Could not load attachments.</p>').show();
+                    showEwayForm(false);
                 });
 
             });
@@ -1466,11 +1695,13 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
 
 
             $(document).on('click', '#save_eway', function(ev) {
+                if (!validateBookingAttachmentForm()) {
+                    return;
+                }
                 var formData = new FormData(document.getElementById("eway_form"));
-                if ($('#eway_form').valid() == true) {
-                    var $btn = $(this);
-                    $btn.prop("disabled", true);
-                    $.ajax({
+                var $btn = $(this);
+                $btn.prop("disabled", true);
+                $.ajax({
                         url: "save_details.php",
                         type: "post",
                         data: formData,
@@ -1480,7 +1711,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                             $btn.prop("disabled", false);
                             if (result == 1) {
                                 if (typeof ewFormToast === 'function') {
-                                    ewFormToast('E-Way attachment saved successfully.', 'success', 4000);
+                                    ewFormToast('Attachment saved successfully.', 'success', 4000);
                                 }
                                 closeEwayModal();
                                 setTimeout(function() { location.reload(); }, 800);
@@ -1495,7 +1726,6 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                             }
                         }
                     });
-                }
 
             });
 
@@ -1768,7 +1998,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
     <div class="ew-v2-modal-backdrop" id="eway_popup">
         <div class="ew-v2-modal ew-v2-modal--wide">
             <div class="ew-v2-modal-head">
-                <h3>E-Way Attachments</h3>
+                <h3>Attachments</h3>
                 <button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
             </div>
             <div class="ew-v2-modal-body">
@@ -1778,12 +2008,64 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                         <input type="hidden" name="form_name" value="add_eway_bill">
                         <input type="hidden" name="attachment_id" id="attachment_id" value="">
                         <input type="hidden" name="table_name" id="table_name" value="">
+                        <input type="hidden" name="party_invoice_no" id="party_invoice_no_hidden" value="">
 
                         <div class="form-group">
-                            <label class="control-label">E-Way Attachment</label>
+                            <label class="control-label">Attachment type</label>
+                            <div class="ew-attach-select-wrap">
+                                <select class="form-control ew-attach-select" name="attachment_type" id="attachment_type" aria-label="Attachment type">
+                                    <option value="eway">E-Way</option>
+                                    <option value="gcn">GCN - Proof Of Delivery</option>
+                                    <option value="party_invoice">Party Invoice</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="attach_fields_eway" class="attach-type-panel is-active">
+                            <div class="form-group">
+                                <label class="control-label">E-Way Bill No</label>
+                                <input type="text" class="form-control" name="eway_bill_no" placeholder="Enter e-way bill number">
+                            </div>
+                            <div class="eway-form-grid">
+                                <div class="form-group">
+                                    <label class="control-label">Date of Issue</label>
+                                    <?php echo ew_date_input(array('id' => 'eway_issue_date', 'name' => 'issue_date', 'placeholder' => 'dd-mm-yyyy')); ?>
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">Date of Expiry</label>
+                                    <?php echo ew_date_input(array('id' => 'eway_expire_date', 'name' => 'expire_date', 'placeholder' => 'dd-mm-yyyy')); ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="attach_fields_gcn" class="attach-type-panel">
+                            <div class="form-group">
+                                <label class="control-label">GCN No</label>
+                                <input type="text" class="form-control ew-field-locked" id="attach_grn_no" name="grn_no" readonly tabindex="-1" aria-disabled="true">
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">Delivery date</label>
+                                <?php echo ew_date_input(array('id' => 'gcn_delivery_date', 'name' => 'delivery_date', 'placeholder' => 'dd-mm-yyyy', 'attrs' => 'data-allow-future="1"')); ?>
+                                <p class="help-block text-muted" style="margin-top:6px;font-size:12px;">Dates before the GCN booking date are not allowed.</p>
+                            </div>
+                        </div>
+
+                        <div id="attach_fields_party" class="attach-type-panel">
+                            <div class="form-group">
+                                <label class="control-label">Party invoice (from this booking)</label>
+                                <div class="ew-attach-select-wrap">
+                                    <select class="form-control ew-attach-select" name="transaction_invoice_id" id="party_invoice_line" aria-label="Party invoice from this booking">
+                                        <option value="">Select party invoice</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="control-label">File</label>
                             <div class="ew-upload-image ew-upload-image--multi" id="eway_upload_wrap">
-                                <div class="ew-upload-image__zone" tabindex="0" role="button" aria-label="Upload E-Way files">
-                                    <input type="file" name="attachment[]" id="eway_upload_file" class="ew-upload-image__input" required multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,image/*,application/pdf">
+                                <div class="ew-upload-image__zone" tabindex="0" role="button" aria-label="Upload files">
+                                    <input type="file" name="attachment[]" id="eway_upload_file" class="ew-upload-image__input" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,image/*,application/pdf">
                                     <div class="ew-upload-image__body">
                                         <i class="fa fa-cloud-upload" aria-hidden="true"></i>
                                         <span class="ew-upload-image__hint">Drag &amp; drop or browse</span>
@@ -1792,20 +2074,6 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                                         <span class="ew-btn-v2 ew-btn-v2-outline ew-upload-image__browse">Browse</span>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label">E-Way Bill No</label>
-                            <input type="text" class="form-control" name="eway_bill_no" required placeholder="Enter e-way bill number">
-                        </div>
-                        <div class="eway-form-grid">
-                            <div class="form-group">
-                                <label class="control-label">Date of Issue</label>
-                                <?php echo ew_date_input(array('id' => 'eway_issue_date', 'name' => 'issue_date', 'placeholder' => 'dd-mm-yyyy')); ?>
-                            </div>
-                            <div class="form-group">
-                                <label class="control-label">Date of Expiry</label>
-                                <?php echo ew_date_input(array('id' => 'eway_expire_date', 'name' => 'expire_date', 'placeholder' => 'dd-mm-yyyy')); ?>
                             </div>
                         </div>
                     </form>

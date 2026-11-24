@@ -264,9 +264,11 @@
 			$s.find('option').filter(function() {
 				return this.value !== '';
 			}).remove();
+			var hrs = row.hours || '';
 			$('<option></option>')
 				.attr('value', row.id)
-				.attr('data-hours', row.hours || '')
+				.attr('data-hours', hrs)
+				.attr('data-journey-hours', hrs)
 				.text(row.text)
 				.appendTo($s);
 		}
@@ -356,5 +358,50 @@
 
 	window.ewRemoteSourceClose = function() {
 		close(false);
+	};
+
+	window.ewRemoteSourceReset = function(selector, placeholder) {
+		var $s = $(selector);
+		if (!$s.length) {
+			return;
+		}
+		placeholder = placeholder == null ? 'Select' : String(placeholder);
+		$s.html('<option value="">' + esc(placeholder) + '</option>');
+		$s.val('');
+	};
+
+	window.ewRemoteSourcePrime = function(selector, kind, id) {
+		id = parseInt(id, 10) || 0;
+		kind = String(kind || '').trim();
+		if (id <= 0 || (kind !== 'train' && kind !== 'flight')) {
+			return;
+		}
+		var $s = $(selector);
+		if (!$s.length) {
+			return;
+		}
+		$.ajax({
+			url: ENDPOINT,
+			data: { type: kind, id: id, limit: 1 },
+			dataType: 'json',
+			cache: false
+		}).done(function(res) {
+			var rows = (res && res.results) || [];
+			if (!rows.length) {
+				return;
+			}
+			var row = rows[0];
+			$s.find('option').filter(function() {
+				return this.value !== '';
+			}).remove();
+			var hrs = row.hours || '';
+			$('<option></option>')
+				.attr('value', row.id)
+				.attr('data-hours', hrs)
+				.attr('data-journey-hours', hrs)
+				.text(row.text)
+				.appendTo($s);
+			$s.val(String(row.id));
+		});
 	};
 })(window.jQuery);

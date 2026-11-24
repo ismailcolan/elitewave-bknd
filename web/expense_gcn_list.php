@@ -7,7 +7,7 @@ require_once('include/expense_schema.php');
 expense_general_ensure_schema($conn);
 expense_require_admin();
 
-$list_rows = expense_general_fetch_list($conn, 'gcn');
+$list_rows = expense_general_gcn_list_per_consignment($conn, expense_general_fetch_list($conn, 'gcn'));
 ?>
 <!DOCTYPE html>
 <html>
@@ -228,7 +228,6 @@ $list_rows = expense_general_fetch_list($conn, 'gcn');
 										<thead>
 											<tr>
 												<th>S.No</th>
-												<th>Type</th>
 												<th class="col-gcn">GCN No</th>
 												<th>GCN Date</th>
 												<th>Voucher Code</th>
@@ -248,41 +247,16 @@ $list_rows = expense_general_fetch_list($conn, 'gcn');
 												$profit_class = ((float) ($row['profit_raw'] ?? 0) >= 0) ? 'profit-positive' : 'profit-negative';
 												$voucher_id = (int) $row['general_expense_id'];
 												$edit_url = 'expense_general.php?id=' . $voucher_id;
-												$gcn_nos = array();
-												$gcn_dates = array();
-												$unique_gcn_keys = array();
-												foreach (($row['lines'] ?? array()) as $line) {
-													if (!empty($line['gcn_no'])) {
-														$gcn_nos[] = $line['gcn_no'];
-													}
-													if (!empty($line['gcn_date'])) {
-														$gcn_dates[] = $line['gcn_date'];
-													}
-													if (!empty($line['gcn_key'])) {
-														$unique_gcn_keys[$line['gcn_key']] = true;
-													}
-												}
-												$expense_mode = strtolower((string) ($row['expense_mode'] ?? ''));
-												if ($expense_mode !== 'group' && $expense_mode !== 'single') {
-													$expense_mode = count($unique_gcn_keys) > 1 ? 'group' : 'single';
-												}
-												$is_group = ($expense_mode === 'group');
+												$gcn_no = trim((string) ($row['grn_no'] ?? ''));
+												$gcn_date = trim((string) ($row['grn_date'] ?? ''));
+												$list_gcn_key = trim((string) ($row['list_gcn_key'] ?? ''));
 												?>
 												<tr>
 													<td><?php echo $i++; ?></td>
-													<td>
-														<span class="egcn-mode-badge <?php echo $is_group ? 'mode-group' : 'mode-single'; ?>"><?php echo $is_group ? 'Group' : 'Single'; ?></span>
-													</td>
 													<td class="col-gcn">
-														<?php if (empty($gcn_nos)) { ?>
-															<span class="txn-gcn-no">—</span>
-														<?php } else { ?>
-															<?php foreach (array_values(array_unique($gcn_nos)) as $gcn_no) { ?>
-																<span class="txn-gcn-no"><?php echo htmlspecialchars($gcn_no); ?></span>
-															<?php } ?>
-														<?php } ?>
+														<span class="txn-gcn-no"><?php echo htmlspecialchars($gcn_no !== '' ? $gcn_no : '—'); ?></span>
 													</td>
-													<td><?php echo htmlspecialchars(!empty($gcn_dates) ? implode(', ', array_unique($gcn_dates)) : '—'); ?></td>
+													<td><?php echo htmlspecialchars($gcn_date !== '' ? $gcn_date : '—'); ?></td>
 													<td><strong><?php echo htmlspecialchars($row['expense_no']); ?></strong></td>
 													<td><?php echo htmlspecialchars($row['expense_date']); ?></td>
 													<td><?php echo htmlspecialchars($row['vendor_label'] ?: '—'); ?></td>
@@ -294,6 +268,8 @@ $list_rows = expense_general_fetch_list($conn, 'gcn');
 														<span class="act-wrap">
 															<button type="button" class="act-link act-view btn-view-gcn-voucher" title="View"
 																data-id="<?php echo $voucher_id; ?>"
+																data-gcn-key="<?php echo htmlspecialchars($list_gcn_key, ENT_QUOTES, 'UTF-8'); ?>"
+																data-gcn-no="<?php echo htmlspecialchars($gcn_no, ENT_QUOTES, 'UTF-8'); ?>"
 																data-no="<?php echo htmlspecialchars($row['expense_no'], ENT_QUOTES, 'UTF-8'); ?>">
 																<i class="fa fa-eye"></i>
 															</button>
@@ -368,14 +344,12 @@ $list_rows = expense_general_fetch_list($conn, 'gcn');
 					return '<p class="text-danger">No data.</p>';
 				}
 				var profitClass = (parseFloat(data.profit_raw) >= 0) ? 'profit-positive' : 'profit-negative';
-				var isGroup = data.expense_mode === 'group';
-				var modeLabel = isGroup ? 'Group' : 'Single';
+				var isGroup = data.expense_mode === 'group' && !data.view_scope_gcn_key;
 				var html = '';
 				var metaFields = [];
 				if (data.expense_no) {
 					metaFields.push(['Voucher code', data.expense_no]);
 				}
-				metaFields.push(['Type', modeLabel]);
 				metaFields.push(['GCN No', data.grn_no]);
 				metaFields.push(['GCN date', data.grn_date]);
 				metaFields.push(['Route', data.route_label]);
@@ -462,8 +436,11 @@ $list_rows = expense_general_fetch_list($conn, 'gcn');
 			$(document).on('click', '.btn-view-gcn-voucher', function() {
 				var id = $(this).data('id');
 				var no = $(this).data('no') || '';
+				var gcnKey = $(this).data('gcnKey') || $(this).attr('data-gcn-key') || '';
+				var gcnNo = $(this).data('gcnNo') || $(this).attr('data-gcn-no') || '';
 				if (!id) return;
-				$('#egcnViewModalTitle').text('GCN voucher' + (no ? ' — ' + no : ''));
+				var titleGcn = gcnNo ? (' — ' + gcnNo) : (no ? ' — ' + no : '');
+				$('#egcnViewModalTitle').text('GCN profit & loss' + titleGcn);
 				$('#egcnViewModalBody').html('<p class="text-muted" style="margin:0;">Loading…</p>');
 				$('#btn_egcn_download_pdf').hide();
 				if (typeof ewV2OpenModal === 'function') {
@@ -471,14 +448,23 @@ $list_rows = expense_general_fetch_list($conn, 'gcn');
 				} else {
 					$('#egcnViewModal').addClass('open');
 				}
-				$.getJSON('expense_general_data.php', { cmd: 'view', general_expense_id: id }, function(r) {
+				var req = { cmd: 'view', general_expense_id: id };
+				if (gcnKey) {
+					req.gcn_key = gcnKey;
+				}
+				$.getJSON('expense_general_data.php', req, function(r) {
 					if (!r || r.status !== 0 || !r.data) {
 						$('#egcnViewModalBody').html('<p class="text-danger">' + egcnEscHtml(r && r.message ? r.message : 'Could not load details.') + '</p>');
 						return;
 					}
-					$('#egcnViewModalTitle').text('GCN voucher — ' + (r.data.expense_no || no || id));
+					var modalGcn = r.data.grn_no && r.data.grn_no.indexOf(',') < 0 ? r.data.grn_no : gcnNo;
+					$('#egcnViewModalTitle').text('GCN profit & loss' + (modalGcn ? ' — ' + modalGcn : ' — ' + (r.data.expense_no || no || id)));
 					$('#egcnViewModalBody').html(egcnRenderView(r.data));
-					$('#btn_egcn_download_pdf').attr('href', 'expense_gcn_voucher_pdf.php?general_expense_id=' + encodeURIComponent(id) + '&download=1').show();
+					var pdfUrl = 'expense_gcn_voucher_pdf.php?general_expense_id=' + encodeURIComponent(id) + '&download=1';
+					if (gcnKey) {
+						pdfUrl += '&gcn_key=' + encodeURIComponent(gcnKey);
+					}
+					$('#btn_egcn_download_pdf').attr('href', pdfUrl).show();
 				}).fail(function() {
 					$('#egcnViewModalBody').html('<p class="text-danger">Request failed.</p>');
 				});

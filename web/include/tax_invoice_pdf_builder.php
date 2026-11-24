@@ -123,9 +123,20 @@ function tax_invoice_build_pdf_html($conn, $billing_invoice_id, $options = array
         $line_sgst = (float) $detail['sgst_amount'];
         $line_igst = (float) $detail['igst_amount'];
         if ($line_cgst <= 0 && $line_sgst <= 0 && $line_igst <= 0) {
-            $line_cgst = (float) ($trow['cgst_amount'] ?? 0);
-            $line_sgst = (float) ($trow['sgst_amount'] ?? 0);
-            $line_igst = (float) ($trow['igst_amount'] ?? 0);
+            $invoice_customer_id = (int) ($master['customer_id'] ?? 0);
+            $line_taxable = (float) $detail['taxable_value'];
+            if ($line_taxable <= 0) {
+                $line_taxable = $freight + $dc;
+            }
+            $gst_recalc = gst_tax_recalc_booking_for_freight_invoice($conn, $trow, $invoice_customer_id, $line_taxable);
+            $line_cgst = (float) ($gst_recalc['cgst_amount'] ?? 0);
+            $line_sgst = (float) ($gst_recalc['sgst_amount'] ?? 0);
+            $line_igst = (float) ($gst_recalc['igst_amount'] ?? 0);
+            if ($line_cgst <= 0 && $line_sgst <= 0 && $line_igst <= 0) {
+                $line_cgst = (float) ($trow['cgst_amount'] ?? 0);
+                $line_sgst = (float) ($trow['sgst_amount'] ?? 0);
+                $line_igst = (float) ($trow['igst_amount'] ?? 0);
+            }
         }
         $total_line = (float) $detail['total_amount'];
         if ($total_line <= 0) {

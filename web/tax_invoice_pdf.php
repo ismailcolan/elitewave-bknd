@@ -10,6 +10,13 @@ if ($id <= 0) {
     die('Invalid invoice.');
 }
 
+$sync_user = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
+if (billing_invoice_sync_gst_from_rules($conn, $id, $sync_user)) {
+    if (function_exists('tax_invoice_save_pdf')) {
+        tax_invoice_save_pdf($conn, $id);
+    }
+}
+
 $data = billing_get_invoice($conn, $id);
 $inv_status = $data['master']['status'] ?? '';
 if (!$data || ($inv_status !== 'final' && $inv_status !== 'cancelled')) {
@@ -46,4 +53,6 @@ if ($inv_status === 'cancelled') {
 $mpdf->WriteHTML($html);
 $filename = 'Tax_Invoice_' . preg_replace('/[^a-zA-Z0-9_\-]/', '_', $data['master']['invoice_no']) . '.pdf';
 $download = isset($_GET['download']) && $_GET['download'] === '1';
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 $mpdf->Output($filename, $download ? 'D' : 'I');

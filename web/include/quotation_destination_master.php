@@ -43,6 +43,7 @@ function quotation_dest_master_ensure_tables($conn)
 	if (!$chk_origin || mysqli_num_rows($chk_origin) === 0) {
 		@mysqli_query($conn, 'ALTER TABLE rate_quotation_dest_master_rows ADD COLUMN origin_city_id INT(11) NOT NULL DEFAULT 0 AFTER sort_no');
 	}
+	quotation_ensure_table_weight_column($conn, 'rate_quotation_dest_master_rows');
 }
 
 function quotation_dest_master_list($conn, $active_only = true)
@@ -139,6 +140,7 @@ function quotation_dest_master_hydrate_rows_for_form($conn, $master_id)
 			'vehicle_type_id' => (int) ($row['vehicle_type_id'] ?? 0),
 			'vehicle_text' => trim((string) ($row['vehicle_text'] ?? '')),
 			'delivery_days' => $row['delivery_days'] ?? '',
+			'weight' => trim((string) ($row['weight'] ?? '')),
 			'freight_charges' => rtrim(rtrim(number_format((float) ($row['freight_charges'] ?? 0), 2, '.', ''), '0'), '.'),
 			'tempo_charges' => rtrim(rtrim(number_format((float) ($row['tempo_charges'] ?? 0), 2, '.', ''), '0'), '.'),
 			'doc_charges' => '',
@@ -191,11 +193,12 @@ function quotation_dest_master_save_rows($conn, $master_id, $rows)
 		$vt_sql = $vt > 0 ? "'$vt'" : 'NULL';
 		$vtxt_sql = "'" . $esc($row['vehicle_text'] ?? '') . "'";
 		$ok_ins = mysqli_query($conn, "INSERT INTO rate_quotation_dest_master_rows (
-			master_id, sort_no, origin_city_id, destination_city_id, mode_id, vehicle_type_id, vehicle_text, delivery_days,
+			master_id, sort_no, origin_city_id, destination_city_id, mode_id, vehicle_type_id, vehicle_text, delivery_days, weight,
 			freight_charges, tempo_charges, doc_charges, others, row_total
 		) VALUES (
 			'$master_id', '$sort', '" . (int) ($row['origin_city_id'] ?? 0) . "', '" . (int) $row['destination_city_id'] . "', '" . (int) $row['mode_id'] . "', $vt_sql, $vtxt_sql,
 			'" . $esc($row['delivery_days'] ?? '') . "',
+			'" . $esc($row['weight'] ?? '') . "',
 			'" . $esc($row['freight_charges'] ?? 0) . "', '" . $esc($row['tempo_charges'] ?? 0) . "',
 			'" . $esc($row['doc_charges'] ?? 0) . "', '" . $esc($row['others'] ?? 0) . "',
 			'" . $esc($row['row_total'] ?? 0) . "'

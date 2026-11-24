@@ -91,7 +91,7 @@ $inv_kpi_cards = array(
 	<?php include('include/css_js.php'); ?>
 	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-	<link href="stylesheets/dashboard-booking.css?v=20261117kpiref1" rel="stylesheet" type="text/css" />
+	<link href="stylesheets/dashboard-booking.css?v=20261119nometax2" rel="stylesheet" type="text/css" />
 	<link href="stylesheets/dashboard-invoice.css?v=20261117kpi7" rel="stylesheet" type="text/css" />
 </head>
 <body class="page-header-fixed bg-1 dash-booking-page">

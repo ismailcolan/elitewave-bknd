@@ -28,6 +28,9 @@ $page_module_map = array(
   'quotation_destination_master_list.php' => 'marketing', 'quotation_destination_master.php' => 'marketing',
   'marketing_bulk_email.php' => 'marketing',
   'marketing_bulk_email_list.php' => 'marketing',
+  'chatbot_qa_list.php' => 'marketing',
+  'chatbot_quote_request_list.php' => 'marketing',
+  'chatbot_quote_request_view.php' => 'marketing',
   'client.php' => 'party', 'client_list.php' => 'party',
   'client_branch.php' => 'party', 'client_branch_list.php' => 'party',
   'vendor.php' => 'party', 'vendor_list.php' => 'party',
@@ -40,6 +43,7 @@ $page_module_map = array(
   'expense_gcn.php' => 'expense', 'expense_gcn_list.php' => 'expense',
   'expense_general.php' => 'expense', 'expense_general_list.php' => 'expense',
   'expense_bill.php' => 'expense', 'expense_bill_list.php' => 'expense',
+  'purchase_voucher.php' => 'expense', 'purchase_voucher_list.php' => 'expense',
   'petty_cash.php' => 'expense', 'petty_cash_list.php' => 'expense',
   'qrcode_master.php' => 'tools', 'bulkmail.php' => 'tools', 'users.php' => 'tools', 'user_list.php' => 'tools',
   'database_backup.php' => 'tools',
@@ -665,7 +669,7 @@ function ew_panel_head($title) {
     <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
     <button type="button" class="rail-item<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice" data-tooltip="Invoice" title="Invoice">
       <?php echo ew_rail_icon('invoicing'); ?>
-      <span class="rail-label">Invoicing</span>
+      <span class="rail-label">Accounting</span>
     </button>
     <button type="button" class="rail-item<?php echo ew_module_active('party', $active_module); ?>" data-module="party" data-tooltip="Customer Masters" title="Customer Masters">
       <?php echo ew_rail_icon('customers'); ?>
@@ -764,7 +768,10 @@ function ew_panel_head($title) {
       <div class="panel-scroll">
         <a class="panel-link<?php echo ew_menu_active_any(array('expense_gcn_list.php', 'expense_gcn.php'), $current_page); ?>" href="expense_gcn_list.php">GCN Profit &amp; Loss</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('expense_general_list.php', 'expense_general.php'), $current_page); ?>" href="expense_general_list.php">Payment Voucher</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('expense_bill_list.php', 'expense_bill.php'), $current_page); ?>" href="expense_bill_list.php">Bill Registration</a>
+        <?php if (defined('EW_PURCHASE_VOUCHER_LIVE') && EW_PURCHASE_VOUCHER_LIVE) { ?>
+        <a class="panel-link<?php echo ew_menu_active_any(array('purchase_voucher_list.php', 'purchase_voucher.php'), $current_page); ?>" href="purchase_voucher_list.php">Purchase Voucher</a>
+        <?php } ?>
+        <a class="panel-link<?php echo ew_menu_active_any(array('expense_bill_list.php', 'expense_bill.php'), $current_page); ?>" href="expense_bill_list.php">Purchase Bill Registration</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('petty_cash_list.php', 'petty_cash.php'), $current_page); ?>" href="petty_cash_list.php">Petty Cash</a>
       </div>
     </div>
@@ -849,6 +856,8 @@ function ew_panel_head($title) {
         <a class="panel-link<?php echo ew_menu_active_any(array('quotation_consignor_multi_dest_list.php', 'quotation_consignor_multi_dest.php'), $current_page); ?>" href="quotation_consignor_multi_dest_list.php">Multi Destination Quotation</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('quotation_destination_master_list.php', 'quotation_destination_master.php'), $current_page); ?>" href="quotation_destination_master.php">Master Quotation</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('marketing_bulk_email_list.php', 'marketing_bulk_email.php'), $current_page); ?>" href="marketing_bulk_email_list.php">Bulk Email</a>
+        <a class="panel-link<?php echo ew_menu_active('chatbot_qa_list.php', $current_page); ?>" href="chatbot_qa_list.php">ELWA360 Chat Log</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('chatbot_quote_request_list.php', 'chatbot_quote_request_view.php'), $current_page); ?>" href="chatbot_quote_request_list.php">Quote Requests</a>
       </div>
     </div>
     <div class="panel-module<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice">
@@ -914,7 +923,7 @@ function ew_panel_head($title) {
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_invoice_ageing.php', $current_page); ?>" href="pending_invoice_ageing.php">Pending Invoice Register / Ageing</a>
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('credit_note_report.php', $current_page); ?>" href="credit_note_report.php">Credit Note Report (From Customer)</a>
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('debit_note_report.php', $current_page); ?>" href="debit_note_report.php">Debit Note Report (To Vendor)</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('bill_registration_register.php', $current_page); ?>" href="bill_registration_register.php">Bill Registration Register</a>
+              <a class="panel-link panel-link--nested<?php echo ew_menu_active('bill_registration_register.php', $current_page); ?>" href="bill_registration_register.php">Purchase Bill Registration Register</a>
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('expense_register.php', $current_page); ?>" href="expense_register.php">Expense Register</a>
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('petty_cash_register.php', $current_page); ?>" href="petty_cash_register.php">Petty Cash Register</a>
               <a class="panel-link panel-link--nested<?php echo ew_menu_active('gst_output_register.php', $current_page); ?>" href="gst_output_register.php">GST Output Register</a>

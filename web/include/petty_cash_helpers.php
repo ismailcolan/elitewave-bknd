@@ -379,27 +379,6 @@ function petty_cash_save($conn, $payload, $user_id)
 		$category_id = 0;
 	}
 
-	/* Soft guard: payment should not push balance deeply negative on create;
-	   allow edit of existing payment even if balance is low. */
-	if ($entry_type === 'payment') {
-		$sum = petty_cash_summary($conn);
-		$available = (float) $sum['balance_raw'];
-		if ($petty_cash_id > 0) {
-			$existing = petty_cash_load($conn, $petty_cash_id);
-			if ($existing && ($existing['entry_type'] ?? '') === 'payment') {
-				$available = round($available + (float) ($existing['amount_raw'] ?? 0), 2);
-			} elseif ($existing && ($existing['entry_type'] ?? '') === 'receipt') {
-				$available = round($available - (float) ($existing['amount_raw'] ?? 0), 2);
-			}
-		}
-		if ($amount > $available + 0.001) {
-			return array(
-				'status' => 1,
-				'message' => 'Payment exceeds available petty cash balance (₹' . petty_cash_format_money($available) . '). Add a receipt (top-up) first.',
-			);
-		}
-	}
-
 	$voucher_date_esc = mysqli_real_escape_string($conn, $voucher_date);
 	$entry_type_esc = mysqli_real_escape_string($conn, $entry_type);
 	$particulars_esc = mysqli_real_escape_string($conn, $particulars);

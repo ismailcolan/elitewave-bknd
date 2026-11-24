@@ -8,15 +8,8 @@ require_once __DIR__ . '/quotation_consignor_multi_dest.php';
 /** SMTP settings used only for quotation approve / resend emails. */
 function quotation_mail_smtp_options()
 {
-	return array(
-		'username' => 'athar@elitewave360.in',
-		'password' => 'EliteWave@360#',
-		'from' => 'athar@elitewave360.in',
-		'from_name' => 'Mohammed Athar | EliteWave360',
-		'cc' => array(
-			array('info@elitewave360.in', 'Elite Wave 360'),
-		),
-	);
+	require_once __DIR__ . '/ew_mail_config.php';
+	return ew_mail_smtp_options();
 }
 
 function quotation_pdf_write_temp_file($conn, $quotation_id)

@@ -1543,6 +1543,13 @@ if ($form_name == 'save_rate_quotation') {
         $action = 'save_draft';
     }
     $result = quotation_save($conn, $_POST, $created_by, $action);
+    if (!empty($result['ok']) && !empty($result['quotation_id'])) {
+        $chatbotReqId = (int) ($_POST['chatbot_quote_request_id'] ?? 0);
+        if ($chatbotReqId > 0) {
+            require_once __DIR__ . '/include/chatbot_quote_request_helpers.php';
+            chatbot_quote_request_mark_forwarded($conn, $chatbotReqId, (int) $result['quotation_id']);
+        }
+    }
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($result);
     exit;
@@ -1654,7 +1661,7 @@ if ($form_name == 'add_vendor') {
     $contact_no = mysqli_real_escape_string($conn, trim($_POST['contact_no'] ?? ''));
     $contact_no2 = mysqli_real_escape_string($conn, trim($_POST['contact_no2'] ?? ''));
     $pan_no = strtoupper(trim($_POST['pan_no'] ?? ''));
-    $tax_flags = ew_vendor_parse_tax_flags($_POST);
+    $tax_flags = ew_vendor_parse_tax_flags($conn, $_POST);
     if (empty($tax_flags['ok'])) {
         echo $tax_flags['message'] ?? 'Invalid tax details.';
         exit;
@@ -1663,7 +1670,13 @@ if ($form_name == 'add_vendor') {
     $gst_exemption = (int) $tax_flags['gst_exemption'];
     $tds_applicable = (int) $tax_flags['tds_applicable'];
     $tds_rate = $tax_flags['tds_rate'];
+    $gst_rate = $tax_flags['gst_rate'];
+    $gst_tax_id = (int) ($tax_flags['gst_tax_id'] ?? 0);
+    $tds_tax_id = (int) ($tax_flags['tds_tax_id'] ?? 0);
     $tds_rate_sql = ($tds_rate === null) ? 'NULL' : "'" . mysqli_real_escape_string($conn, (string) $tds_rate) . "'";
+    $gst_rate_sql = ($gst_rate === null) ? 'NULL' : "'" . mysqli_real_escape_string($conn, (string) $gst_rate) . "'";
+    $gst_tax_id_sql = $gst_tax_id > 0 ? "'" . $gst_tax_id . "'" : 'NULL';
+    $tds_tax_id_sql = $tds_tax_id > 0 ? "'" . $tds_tax_id . "'" : 'NULL';
     $gstin = $tax_flags['gstin'];
     $mode_of_transport = mysqli_real_escape_string($conn, trim($_POST['mode_of_transport'] ?? ''));
     $service_type = mysqli_real_escape_string($conn, trim($_POST['service_type'] ?? ''));
@@ -1749,8 +1762,11 @@ if ($form_name == 'add_vendor') {
             gst_registered='$gst_registered',
             gstin='$gstin_esc',
             gst_exemption='$gst_exemption',
+            gst_rate=$gst_rate_sql,
+            gst_tax_id=$gst_tax_id_sql,
             tds_applicable='$tds_applicable',
             tds_rate=$tds_rate_sql,
+            tds_tax_id=$tds_tax_id_sql,
             pan_no='$pan_esc',
             mode_of_transport='$mode_of_transport',
             service_type='$service_type',
@@ -1785,14 +1801,14 @@ if ($form_name == 'add_vendor') {
     $query = "INSERT INTO vendor_master (
         vendor_code, vendor_code_id, vendor_name, vendor_type, contact_person, contact_designation,
         address1, address2, state, city, pincode, email, email_alt, website,
-        contact_no, contact_no2, gst_registered, gstin, gst_exemption, tds_applicable, tds_rate, pan_no,
+        contact_no, contact_no2, gst_registered, gstin, gst_exemption, gst_rate, gst_tax_id, tds_applicable, tds_rate, tds_tax_id, pan_no,
         mode_of_transport, service_type, operating_from, operating_to, payment_terms, credit_days,
         account_holder_name, bank_name, account_number, ifsc, bank_branch,
         status, created_at, created_by
     ) VALUES (
         '$vendor_code', '$vendor_code_id', '$vendor_name', '$vendor_type', '$contact_person', '$contact_designation',
         '$address1', '$address2', '$state', '$city', '$pincode', '$email', '$email_alt', '$website',
-        '$contact_no', '$contact_no2', '$gst_registered', '$gstin_esc', '$gst_exemption', '$tds_applicable', $tds_rate_sql, '$pan_esc',
+        '$contact_no', '$contact_no2', '$gst_registered', '$gstin_esc', '$gst_exemption', $gst_rate_sql, $gst_tax_id_sql, '$tds_applicable', $tds_rate_sql, $tds_tax_id_sql, '$pan_esc',
         '$mode_of_transport', '$service_type', '$operating_from', '$operating_to', '$payment_terms', $credit_days_sql,
         '$account_holder_name', '$bank_name', '$account_number', '$ifsc_esc', '$bank_branch',
         '$status', '$created_at', '$created_by'
@@ -4673,20 +4689,103 @@ vehicle_loading_unloading='$vehicle_loading_unloading',other_train_name='$other_
 if ($form_name == 'add_eway_bill') {
     $id = (int) ($_POST['attachment_id'] ?? 0);
     $table_name = preg_replace('/[^a-zA-Z0-9_]/', '', $_POST['table_name'] ?? '');
+    $attachment_type = strtolower(trim($_POST['attachment_type'] ?? 'eway'));
+    if (!in_array($attachment_type, array('eway', 'gcn', 'party_invoice'), true)) {
+        $attachment_type = 'eway';
+    }
     $issue_date = ew_normalize_input_date($_POST['issue_date'] ?? '');
     $expire_date = ew_normalize_input_date($_POST['expire_date'] ?? '');
+    $delivery_date = ew_normalize_input_date($_POST['delivery_date'] ?? '');
     $eway_bill_no = trim($_POST['eway_bill_no'] ?? '');
+    $grn_no = trim($_POST['grn_no'] ?? '');
+    $transaction_invoice_id = (int) ($_POST['transaction_invoice_id'] ?? 0);
+    $party_invoice_no = trim($_POST['party_invoice_no'] ?? '');
     $fr_result = false;
 
-    if ($id <= 0 || $table_name === '' || $eway_bill_no === '') {
+    if ($id <= 0 || $table_name === '') {
         echo 0;
         exit;
     }
 
+    ew_transaction_images_ensure_attachment_schema($conn, $table_name);
+
+    if ($attachment_type === 'eway' && $eway_bill_no === '') {
+        echo 0;
+        exit;
+    }
+    if ($attachment_type === 'gcn') {
+        if ($grn_no === '') {
+            $trans_table = ew_transaction_table_from_images_table($table_name);
+            if ($trans_table !== '') {
+                $gq = mysqli_query($conn, "SELECT grn_no FROM `$trans_table` WHERE transaction_id='$id' LIMIT 1");
+                $grow = $gq ? mysqli_fetch_assoc($gq) : null;
+                if (is_array($grow)) {
+                    $grn_no = trim((string) ($grow['grn_no'] ?? ''));
+                }
+            }
+        }
+        if ($grn_no === '' || $delivery_date === '') {
+            echo 0;
+            exit;
+        }
+        $trans_table = ew_transaction_table_from_images_table($table_name);
+        if ($trans_table !== '') {
+            $gdq = mysqli_query($conn, "SELECT grn_date FROM `$trans_table` WHERE transaction_id='$id' LIMIT 1");
+            $gdrow = $gdq ? mysqli_fetch_assoc($gdq) : null;
+            if (is_array($gdrow)) {
+                $grn_date_booking = ew_normalize_input_date($gdrow['grn_date'] ?? '');
+                if ($grn_date_booking !== '' && $delivery_date !== '') {
+                    $booking_ts = strtotime(str_replace('/', '-', $grn_date_booking));
+                    $delivery_ts = strtotime(str_replace('/', '-', $delivery_date));
+                    if ($booking_ts !== false && $delivery_ts !== false && $delivery_ts < $booking_ts) {
+                        echo 0;
+                        exit;
+                    }
+                }
+            }
+        }
+    }
+    if ($attachment_type === 'party_invoice') {
+        $inv_table = ew_transaction_invoice_table_from_images_table($table_name);
+        if ($transaction_invoice_id > 0 && $inv_table !== '') {
+            $inv_q = mysqli_query($conn, "SELECT party_invoice_no, party_invoice_date FROM `$inv_table` WHERE invoice_id='$transaction_invoice_id' AND transaction_id='$id' AND status=0 LIMIT 1");
+            $inv_row = $inv_q ? mysqli_fetch_assoc($inv_q) : null;
+            if (is_array($inv_row)) {
+                $party_invoice_no = trim((string) ($inv_row['party_invoice_no'] ?? ''));
+                if ($issue_date === '' && !empty($inv_row['party_invoice_date'])) {
+                    $issue_date = ew_normalize_input_date($inv_row['party_invoice_date']);
+                }
+            }
+        }
+        if ($party_invoice_no === '') {
+            echo 0;
+            exit;
+        }
+    }
+
     $esc_table = mysqli_real_escape_string($conn, $table_name);
+    $esc_type = mysqli_real_escape_string($conn, $attachment_type);
     $esc_bill = mysqli_real_escape_string($conn, $eway_bill_no);
     $esc_issue = mysqli_real_escape_string($conn, $issue_date);
     $esc_expire = mysqli_real_escape_string($conn, $expire_date);
+    $esc_delivery = mysqli_real_escape_string($conn, $delivery_date);
+    $esc_grn = mysqli_real_escape_string($conn, $grn_no);
+    $esc_party_inv = mysqli_real_escape_string($conn, $party_invoice_no);
+    $esc_tx_inv_id = $transaction_invoice_id > 0 ? (string) $transaction_invoice_id : 'NULL';
+
+    if ($attachment_type === 'gcn') {
+        $esc_issue = $esc_delivery;
+        $esc_bill = '';
+        $esc_expire = '';
+    } elseif ($attachment_type === 'party_invoice') {
+        $esc_bill = '';
+        $esc_expire = '';
+    }
+
+    if (!isset($_FILES['attachment']['error']) || !is_array($_FILES['attachment']['error'])) {
+        echo 0;
+        exit;
+    }
 
     foreach ($_FILES['attachment']['error'] as $key => $error) {
         if ($error != UPLOAD_ERR_OK) {
@@ -4694,16 +4793,36 @@ if ($form_name == 'add_eway_bill') {
         }
         $orig_name = basename($_FILES['attachment']['name'][$key]);
         $safe_name = preg_replace('/[^a-zA-Z0-9._-]/', '_', $orig_name);
-        $name = preg_replace('/[^a-zA-Z0-9._-]/', '', $eway_bill_no) . $id . $safe_name;
+        $name_key = $attachment_type === 'eway'
+            ? preg_replace('/[^a-zA-Z0-9._-]/', '', $eway_bill_no)
+            : ($attachment_type . $id);
+        $name = $name_key . $id . $safe_name;
         $target_dir = 'eway/';
         if (!is_dir($target_dir)) {
             @mkdir($target_dir, 0755, true);
         }
         if (move_uploaded_file($_FILES['attachment']['tmp_name'][$key], $target_dir . $name)) {
             $esc_name = mysqli_real_escape_string($conn, $name);
-            $fr_query = "INSERT INTO `$esc_table` (transaction_id,attachment,eway_bill_no,issue_date,eway_status,expire_date,created_at,created_by,status)
-                VALUES('$id','$esc_name','$esc_bill','$esc_issue','1','$esc_expire','$created_at','$created_by','0')";
+            $fr_query = "INSERT INTO `$esc_table` (
+                transaction_id, attachment, attachment_type, eway_bill_no, issue_date, expire_date,
+                grn_no, delivery_date, party_invoice_no, transaction_invoice_id,
+                created_at, created_by, status
+            ) VALUES (
+                '$id', '$esc_name', '$esc_type', '$esc_bill', '$esc_issue', '$esc_expire',
+                '$esc_grn', '$esc_delivery', '$esc_party_inv', $esc_tx_inv_id,
+                '$created_at', '$created_by', '0'
+            )";
             $fr_result = mysqli_query($conn, $fr_query);
+            if (!$fr_result) {
+                @unlink($target_dir . $name);
+            }
+        }
+    }
+
+    if ($fr_result && $attachment_type === 'eway') {
+        $trans_table = ew_transaction_table_from_images_table($table_name);
+        if ($trans_table !== '') {
+            @mysqli_query($conn, "UPDATE `$trans_table` SET eway_number='$esc_bill', eway_expirydate='$esc_expire' WHERE transaction_id='$id' LIMIT 1");
         }
     }
 

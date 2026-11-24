@@ -381,11 +381,36 @@ function expense_bill_gst_percent_options($conn)
 	return $out;
 }
 
+/** Clamp GST/TDS percent to 0–100 for bill entry (vendor or manual). */
+function expense_bill_normalize_gst_percent($conn, $rate)
+{
+	$rate = expense_bill_money($rate);
+	if ($rate < 0) {
+		$rate = 0;
+	}
+	if ($rate > 100) {
+		$rate = 100;
+	}
+	return $rate;
+}
+
+function expense_bill_normalize_tds_percent($rate)
+{
+	$rate = expense_bill_money($rate);
+	if ($rate < 0) {
+		$rate = 0;
+	}
+	if ($rate > 100) {
+		$rate = 100;
+	}
+	return $rate;
+}
+
 /**
  * Apply manually entered vendor amounts to resolved GCN rows.
  * $amounts = [gcn_key => ['freight' => x, 'gst_percent' => y]] — GST = freight × % ; Total = freight + GST.
  */
-function expense_bill_apply_manual_amounts(array $gcn_rows, $amounts)
+function expense_bill_apply_manual_amounts($conn, array $gcn_rows, $amounts)
 {
 	if (is_string($amounts)) {
 		$decoded = json_decode($amounts, true);
@@ -398,8 +423,7 @@ function expense_bill_apply_manual_amounts(array $gcn_rows, $amounts)
 		$key = (string) ($gcn['gcn_key'] ?? '');
 		$a = isset($amounts[$key]) && is_array($amounts[$key]) ? $amounts[$key] : array();
 		$freight = max(0, expense_bill_money($a['freight'] ?? 0));
-		$pct = expense_bill_money($a['gst_percent'] ?? 0);
-		$pct = max(0, min(100, $pct));
+		$pct = expense_bill_normalize_gst_percent($conn, $a['gst_percent'] ?? 0);
 		$gst = expense_bill_money($freight * $pct / 100);
 		$total = expense_bill_money($freight + $gst);
 		$gcn_rows[$i]['freight_amount'] = $freight;
@@ -468,10 +492,7 @@ function expense_bill_gcns($conn, $bill_id)
 			$freight = expense_bill_money($row['freight_amount'] ?? 0);
 			$gst = expense_bill_money($row['gst_amount'] ?? 0);
 			$total = expense_bill_money($row['total_amount'] ?? ($freight + $gst));
-			$gst_pct = expense_bill_money($row['gst_percent'] ?? 0);
-			if ($gst_pct <= 0 && $gst > 0 && $freight > 0) {
-				$gst_pct = expense_bill_money($gst / $freight * 100);
-			}
+			$gst_pct = expense_bill_normalize_gst_percent($conn, $row['gst_percent'] ?? 0);
 			$rows[] = array(
 				'gcn_key' => $row['gcn_key'] ?? '',
 				'key' => $row['gcn_key'] ?? '',
@@ -645,9 +666,14 @@ function expense_bill_vendor_info($conn, $vendor_id)
 		'label' => '',
 		'payment_terms' => '',
 		'credit_days' => 0,
+		'gst_registered' => 0,
+		'gst_rate' => 0,
+		'default_gst_percent' => 0,
+		'gst_percent_configured' => 0,
 		'tds_applicable' => 0,
 		'tds_rate' => 0,
 		'default_tds_percent' => 0,
+		'tds_percent_configured' => 0,
 	);
 	if ($vendor_id <= 0) {
 		return $defaults;
@@ -661,8 +687,12 @@ function expense_bill_vendor_info($conn, $vendor_id)
 	$name = trim((string) ($row['vendor_name'] ?? ''));
 	$label = trim($code . ' - ' . $name, ' -');
 	$tax = expense_gcn_vendor_tax_info($conn, $vendor_id);
+	$gst_rate = expense_bill_money($tax['gst_rate'] ?? 0);
 	$tds_rate = expense_bill_money($tax['tds_rate'] ?? 0);
-	$default_tds = (!empty($tax['tds_applicable']) && $tds_rate > 0) ? $tds_rate : 0;
+	$gst_configured = !empty($tax['gst_percent_configured']);
+	$tds_configured = !empty($tax['tds_percent_configured']);
+	$default_gst = $gst_configured ? $gst_rate : 0;
+	$default_tds = $tds_configured ? $tds_rate : 0;
 	return array(
 		'vendor_id' => (int) $row['vendor_id'],
 		'active' => ((int) ($row['status'] ?? 1) === 0) ? 1 : 0,
@@ -671,9 +701,14 @@ function expense_bill_vendor_info($conn, $vendor_id)
 		'label' => $label,
 		'payment_terms' => trim((string) ($row['payment_terms'] ?? '')),
 		'credit_days' => (int) ($row['credit_days'] ?? 0),
+		'gst_registered' => (int) ($tax['gst_registered'] ?? 0),
+		'gst_rate' => $gst_rate,
+		'default_gst_percent' => $default_gst,
+		'gst_percent_configured' => $gst_configured ? 1 : 0,
 		'tds_applicable' => (int) ($tax['tds_applicable'] ?? 0),
 		'tds_rate' => $tds_rate,
 		'default_tds_percent' => $default_tds,
+		'tds_percent_configured' => $tds_configured ? 1 : 0,
 	);
 }
 
@@ -761,7 +796,10 @@ function expense_bill_format_record($conn, $row)
 		'payment_terms' => $vendor['payment_terms'] ?? '',
 		'tds_applicable' => (int) ($vendor['tds_applicable'] ?? 0),
 		'tds_rate' => expense_bill_money($vendor['tds_rate'] ?? 0),
+		'default_gst_percent' => expense_bill_money($vendor['default_gst_percent'] ?? 0),
+		'gst_percent_configured' => (int) ($vendor['gst_percent_configured'] ?? 0),
 		'default_tds_percent' => expense_bill_money($vendor['default_tds_percent'] ?? 0),
+		'tds_percent_configured' => (int) ($vendor['tds_percent_configured'] ?? 0),
 		'payment_mode' => strtoupper(trim((string) ($row['payment_mode'] ?? ''))),
 		'payment_mode_label' => '',
 		'company_bank_id' => (int) ($row['company_bank_id'] ?? 0),
@@ -1055,7 +1093,7 @@ function expense_bill_save($conn, $payload, $user_id, $files = null)
 		$tds_percent = 0;
 	}
 	// Freight / GST % are entered manually per GCN (vendor's invoice), not taken from the GCN.
-	$resolved_gcns = expense_bill_apply_manual_amounts($resolved_gcns, $payload['gcn_amounts'] ?? array());
+	$resolved_gcns = expense_bill_apply_manual_amounts($conn, $resolved_gcns, $payload['gcn_amounts'] ?? array());
 	if ($bill_type === 'transaction') {
 		foreach ($resolved_gcns as $g) {
 			if (expense_bill_money($g['freight_amount'] ?? 0) <= 0) {
@@ -1197,7 +1235,7 @@ function expense_bill_save($conn, $payload, $user_id, $files = null)
 
 	return array(
 		'ok' => true,
-		'message' => 'Bill registration saved successfully.',
+		'message' => 'Purchase bill registration saved successfully.',
 		'bill_id' => $bill_id,
 		'bill_entry_no' => $bill_entry_no,
 		'record' => expense_bill_load($conn, $bill_id),
@@ -1219,5 +1257,5 @@ function expense_bill_delete($conn, $bill_id)
 	mysqli_query($conn, "UPDATE vendor_bill SET status=1, updated_at='$now' WHERE bill_id='$bill_id' LIMIT 1");
 	mysqli_query($conn, "UPDATE vendor_bill_attachment SET status=1 WHERE bill_id='$bill_id' AND status=0");
 	mysqli_query($conn, "DELETE FROM vendor_bill_gcn WHERE bill_id='$bill_id'");
-	return array('ok' => true, 'message' => 'Bill registration deleted successfully.');
+	return array('ok' => true, 'message' => 'Purchase bill registration deleted successfully.');
 }

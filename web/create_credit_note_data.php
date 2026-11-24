@@ -80,4 +80,22 @@ if ($cmd === 'delete_credit_note') {
     billing_cn_json(billing_delete_credit_note($conn, $billing_note_id, $user_id));
 }
 
+if ($cmd === 'send_client_email') {
+    if ($user_id <= 0) {
+        billing_cn_json(array('status' => 1, 'message' => 'Session expired. Please login again.'));
+    }
+    $billing_note_id = (int) ($_POST['billing_note_id'] ?? $_REQUEST['billing_note_id'] ?? 0);
+    require_once __DIR__ . '/include/credit_note_email.php';
+    $mail = credit_note_send_client_email($conn, $billing_note_id, $user_id);
+    if (empty($mail['ok'])) {
+        billing_cn_json(array('status' => 1, 'message' => $mail['message'] ?? 'Email could not be sent.'));
+    }
+    billing_cn_json(array(
+        'status' => 0,
+        'message' => $mail['message'],
+        'sent_to' => $mail['sent_to'] ?? '',
+        'sent_at' => $mail['sent_at'] ?? '',
+    ));
+}
+
 billing_cn_json(array('status' => 1, 'message' => 'Unknown command.'));

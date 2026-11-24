@@ -101,6 +101,7 @@ foreach ($vehicle_types as $vt) {
 											<th style="min-width:120px;">Mode</th>
 											<th style="min-width:180px;">Source of transport</th>
 											<th style="min-width:110px;">Delivery days <span class="req">*</span></th>
+											<th style="min-width:100px;">Weight</th>
 											<th>Freight charges <span class="req">*</span></th>
 											<th>Pickup &amp; Delivery <span class="req">*</span></th>
 											<th class="text-center md-row-actions"> </th>

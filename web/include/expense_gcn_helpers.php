@@ -106,12 +106,15 @@ function expense_gcn_vendor_tax_info($conn, $vendor_id)
 		'gst_exemption' => 0,
 		'tds_applicable' => 0,
 		'tds_rate' => 0,
+		'gst_rate' => 0,
 		'gst_applicable' => 0,
+		'gst_percent_configured' => 0,
+		'tds_percent_configured' => 0,
 	);
 	if ($vendor_id <= 0) {
 		return $info;
 	}
-	$q = mysqli_query($conn, "SELECT vendor_id, gst_registered, gst_exemption, tds_applicable, tds_rate, gstin
+	$q = mysqli_query($conn, "SELECT vendor_id, gst_registered, gst_exemption, gst_rate, tds_applicable, tds_rate, gstin
 		FROM vendor_master WHERE vendor_id='$vendor_id' LIMIT 1");
 	if (!$q || !($row = mysqli_fetch_assoc($q))) {
 		return $info;
@@ -121,11 +124,17 @@ function expense_gcn_vendor_tax_info($conn, $vendor_id)
 		$gst_registered = 1;
 	}
 	$gst_exemption = (int) ($row['gst_exemption'] ?? 0);
+	$gst_rate = ($row['gst_rate'] !== null && $row['gst_rate'] !== '') ? round((float) $row['gst_rate'], 2) : null;
+	$tds_applicable = (int) ($row['tds_applicable'] ?? 0);
+	$tds_rate = ($row['tds_rate'] !== null && $row['tds_rate'] !== '') ? round((float) $row['tds_rate'], 2) : null;
 	$info['gst_registered'] = $gst_registered;
 	$info['gst_exemption'] = $gst_exemption;
-	$info['tds_applicable'] = (int) ($row['tds_applicable'] ?? 0);
-	$info['tds_rate'] = round((float) ($row['tds_rate'] ?? 0), 2);
+	$info['tds_applicable'] = $tds_applicable;
+	$info['tds_rate'] = $tds_rate !== null ? $tds_rate : 0;
+	$info['gst_rate'] = $gst_rate !== null ? $gst_rate : 0;
 	$info['gst_applicable'] = ($gst_registered === 1 && $gst_exemption !== 1) ? 1 : 0;
+	$info['gst_percent_configured'] = ($gst_registered === 1) && ($gst_rate !== null || $gst_exemption === 1) ? 1 : 0;
+	$info['tds_percent_configured'] = ($tds_applicable === 1 && $tds_rate !== null) ? 1 : 0;
 	return $info;
 }
 

@@ -81,8 +81,11 @@ function ew_vendor_ensure_master_columns($conn)
 		'website' => "ALTER TABLE vendor_master ADD COLUMN website VARCHAR(200) DEFAULT '' AFTER email_alt",
 		'gst_registered' => "ALTER TABLE vendor_master ADD COLUMN gst_registered TINYINT(1) NOT NULL DEFAULT 0 AFTER contact_no2",
 		'gst_exemption' => "ALTER TABLE vendor_master ADD COLUMN gst_exemption TINYINT(1) NOT NULL DEFAULT 0 AFTER gstin",
-		'tds_applicable' => "ALTER TABLE vendor_master ADD COLUMN tds_applicable TINYINT(1) NOT NULL DEFAULT 0 AFTER gst_exemption",
+		'gst_rate' => "ALTER TABLE vendor_master ADD COLUMN gst_rate DECIMAL(5,2) DEFAULT NULL AFTER gst_exemption",
+		'tds_applicable' => "ALTER TABLE vendor_master ADD COLUMN tds_applicable TINYINT(1) NOT NULL DEFAULT 0 AFTER gst_rate",
 		'tds_rate' => "ALTER TABLE vendor_master ADD COLUMN tds_rate DECIMAL(5,2) DEFAULT NULL AFTER tds_applicable",
+		'gst_tax_id' => 'ALTER TABLE vendor_master ADD COLUMN gst_tax_id INT(11) DEFAULT NULL AFTER gst_rate',
+		'tds_tax_id' => 'ALTER TABLE vendor_master ADD COLUMN tds_tax_id INT(11) DEFAULT NULL AFTER tds_rate',
 	);
 	foreach ($columns as $col => $sql) {
 		$chk = mysqli_query($conn, "SHOW COLUMNS FROM vendor_master LIKE '$col'");
@@ -141,20 +144,77 @@ function ew_vendor_account_type_select_html($selected = '')
 	return $html;
 }
 
-function ew_vendor_parse_tax_flags($post)
+function ew_vendor_tax_option_selected_id($options, $tax_id, $rate_value, $rate_field = 'gst_rate')
 {
+	$tax_id = (int) $tax_id;
+	if ($tax_id > 0) {
+		return $tax_id;
+	}
+	if ($rate_value === null || $rate_value === '') {
+		return 0;
+	}
+	$target = round((float) $rate_value, 2);
+	foreach ($options as $row) {
+		$match = round((float) ($row[$rate_field] ?? 0), 2);
+		if (abs($match - $target) < 0.01) {
+			return (int) ($row['gst_tax_id'] ?? 0);
+		}
+	}
+	return 0;
+}
+
+function ew_vendor_gst_tax_select_html($conn, $selected_id = 0, $fallback_rate = null)
+{
+	require_once __DIR__ . '/gst_tax_functions.php';
+	$options = gst_tax_vendor_gst_options($conn);
+	$selected_id = ew_vendor_tax_option_selected_id($options, $selected_id, $fallback_rate);
+	$html = '<option value="">Select GST from Tax Master</option>';
+	foreach ($options as $row) {
+		$id = (int) ($row['gst_tax_id'] ?? 0);
+		$sel = ($id === $selected_id) ? ' selected' : '';
+		$label = trim((string) ($row['tax_code'] ?? '')) . ' — ' . trim((string) ($row['tax_name'] ?? ''));
+		$html .= '<option value="' . $id . '"'
+			. ' data-gst-rate="' . htmlspecialchars((string) $row['gst_rate'], ENT_QUOTES, 'UTF-8') . '"'
+			. $sel . '>'
+			. htmlspecialchars($label, ENT_QUOTES, 'UTF-8')
+			. '</option>';
+	}
+	return $html;
+}
+
+function ew_vendor_tds_tax_select_html($conn, $selected_id = 0, $fallback_rate = null)
+{
+	require_once __DIR__ . '/gst_tax_functions.php';
+	$options = gst_tax_vendor_tds_options($conn);
+	$selected_id = ew_vendor_tax_option_selected_id($options, $selected_id, $fallback_rate, 'tds_rate');
+	$html = '<option value="">Select TDS from Tax Master</option>';
+	foreach ($options as $row) {
+		$id = (int) ($row['gst_tax_id'] ?? 0);
+		$sel = ($id === $selected_id) ? ' selected' : '';
+		$label = trim((string) ($row['tax_code'] ?? '')) . ' — ' . trim((string) ($row['tax_name'] ?? ''));
+		$html .= '<option value="' . $id . '"'
+			. ' data-tds-rate="' . htmlspecialchars((string) $row['tds_rate'], ENT_QUOTES, 'UTF-8') . '"'
+			. $sel . '>'
+			. htmlspecialchars($label, ENT_QUOTES, 'UTF-8')
+			. '</option>';
+	}
+	return $html;
+}
+
+function ew_vendor_parse_tax_flags($conn, $post)
+{
+	require_once __DIR__ . '/gst_tax_functions.php';
+	ensure_gst_tax_master_table($conn);
+
 	$gst_registered = ((int) ($post['gst_registered'] ?? 0) === 1) ? 1 : 0;
 	$gst_exemption = ((int) ($post['gst_exemption'] ?? 0) === 1) ? 1 : 0;
 	$tds_applicable = ((int) ($post['tds_applicable'] ?? 0) === 1) ? 1 : 0;
-	$tds_rate_raw = trim($post['tds_rate'] ?? '');
+	$gst_tax_id = (int) ($post['gst_tax_id'] ?? 0);
+	$tds_tax_id = (int) ($post['tds_tax_id'] ?? 0);
+	$gst_rate = null;
 	$tds_rate = null;
-	if ($tds_applicable === 1) {
-		if ($tds_rate_raw === '' || !is_numeric($tds_rate_raw) || (float) $tds_rate_raw < 0) {
-			return array('ok' => false, 'message' => 'Enter valid TDS rate when TDS is applicable.');
-		}
-		$tds_rate = round((float) $tds_rate_raw, 2);
-	}
 	$gstin = ew_vendor_normalize_gstin($post['gstin'] ?? '');
+
 	if ($gst_registered === 1) {
 		if ($gstin === '') {
 			return array('ok' => false, 'message' => 'GSTIN is required when vendor is GST registered.');
@@ -162,15 +222,54 @@ function ew_vendor_parse_tax_flags($post)
 		if (!ew_vendor_validate_gstin($gstin)) {
 			return array('ok' => false, 'message' => 'Invalid GSTIN. Enter 15 characters (example: 29AABCU9603R1ZM).');
 		}
+		if ($gst_exemption === 1) {
+			$gst_rate = 0.0;
+			if ($gst_tax_id > 0) {
+				$prof = gst_tax_fetch_profile($conn, $gst_tax_id);
+				if (is_array($prof)) {
+					$gst_rate = round((float) ($prof['gst_rate'] ?? 0), 2);
+				}
+			}
+		} else {
+			if ($gst_tax_id <= 0) {
+				return array('ok' => false, 'message' => 'Select GST rate from GST Tax Master.');
+			}
+			$prof = gst_tax_fetch_profile($conn, $gst_tax_id);
+			if (!is_array($prof) || (int) ($prof['status'] ?? 0) !== 1) {
+				return array('ok' => false, 'message' => 'Selected GST tax profile is invalid or inactive.');
+			}
+			$gst_rate = round((float) ($prof['gst_rate'] ?? 0), 2);
+		}
 	} else {
 		$gstin = '';
+		$gst_tax_id = 0;
 	}
+
+	if ($tds_applicable === 1) {
+		if ($tds_tax_id <= 0) {
+			return array('ok' => false, 'message' => 'Select TDS rate from GST Tax Master.');
+		}
+		$prof = gst_tax_fetch_profile($conn, $tds_tax_id);
+		if (!is_array($prof) || (int) ($prof['status'] ?? 0) !== 1) {
+			return array('ok' => false, 'message' => 'Selected TDS tax profile is invalid or inactive.');
+		}
+		$tds_rate = round((float) ($prof['tds_rate'] ?? 0), 2);
+		if ($tds_rate <= 0) {
+			return array('ok' => false, 'message' => 'Selected profile has no TDS rate. Choose a TDS profile from Tax Master.');
+		}
+	} else {
+		$tds_tax_id = 0;
+	}
+
 	return array(
 		'ok' => true,
 		'gst_registered' => $gst_registered,
 		'gst_exemption' => $gst_exemption,
 		'tds_applicable' => $tds_applicable,
 		'tds_rate' => $tds_rate,
+		'tds_tax_id' => $tds_tax_id,
+		'gst_rate' => $gst_rate,
+		'gst_tax_id' => $gst_tax_id,
 		'gstin' => $gstin,
 	);
 }

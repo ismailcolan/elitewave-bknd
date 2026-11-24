@@ -33,6 +33,12 @@ function ensure_billing_note_tables($conn)
         KEY idx_type (note_type)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+    $cn_mail_at = mysqli_query($conn, "SHOW COLUMNS FROM billing_note_master LIKE 'client_email_sent_at'");
+    if ($cn_mail_at && mysqli_num_rows($cn_mail_at) === 0) {
+        mysqli_query($conn, "ALTER TABLE billing_note_master ADD COLUMN client_email_sent_at DATETIME DEFAULT NULL AFTER updated_by");
+        mysqli_query($conn, "ALTER TABLE billing_note_master ADD COLUMN client_email_sent_to VARCHAR(500) DEFAULT NULL AFTER client_email_sent_at");
+    }
+
     mysqli_query($conn, "CREATE TABLE IF NOT EXISTS billing_note_lines (
         line_id INT AUTO_INCREMENT PRIMARY KEY,
         billing_note_id INT NOT NULL,
@@ -76,6 +82,125 @@ function billing_invoice_gst_profile($master)
         'gst_split' => $split,
         'gst_label' => $label,
     );
+}
+
+function billing_format_reverse_gst_claim_display($gst_amount, $cgst_amount = 0, $sgst_amount = 0, $igst_amount = 0)
+{
+    $gst = round((float) $gst_amount, 2);
+    $cgst = round((float) $cgst_amount, 2);
+    $sgst = round((float) $sgst_amount, 2);
+    $igst = round((float) $igst_amount, 2);
+    $base = number_format($gst, 2, '.', '');
+    if ($igst > 0.009) {
+        return $base . ' (IGST ' . number_format($igst, 2, '.', '') . ')';
+    }
+    if ($cgst > 0.009 || $sgst > 0.009) {
+        return $base . ' (CGST ' . number_format($cgst, 2, '.', '') . ' + SGST ' . number_format($sgst, 2, '.', '') . ')';
+    }
+
+    return $base;
+}
+
+/**
+ * Credit note GST lines from the linked tax invoice profile (not legacy stored IGST on the note).
+ */
+function billing_credit_note_resolve_amounts($conn, array $note_master)
+{
+    $invoice_id = (int) ($note_master['against_invoice_id'] ?? 0);
+    $taxable = (float) ($note_master['taxable_value'] ?? 0);
+    if ($invoice_id > 0) {
+        $invoice = billing_get_invoice($conn, $invoice_id);
+        if ($invoice && !empty($invoice['master'])) {
+            $profile = billing_invoice_gst_profile($invoice['master']);
+
+            return billing_note_compute_gst($taxable, $profile);
+        }
+    }
+
+    $profile = array(
+        'gst_rate' => (float) ($note_master['gst_rate'] ?? 0),
+        'gst_split' => trim((string) ($note_master['gst_split'] ?? 'igst')) !== '' ? $note_master['gst_split'] : 'igst',
+    );
+
+    return billing_note_compute_gst($taxable, $profile);
+}
+
+function billing_credit_note_tax_needs_resync(array $note_master, array $resolved, array $invoice_profile = array())
+{
+    $mismatch = abs((float) ($note_master['cgst_amount'] ?? 0) - (float) ($resolved['cgst_amount'] ?? 0)) > 0.009
+        || abs((float) ($note_master['sgst_amount'] ?? 0) - (float) ($resolved['sgst_amount'] ?? 0)) > 0.009
+        || abs((float) ($note_master['igst_amount'] ?? 0) - (float) ($resolved['igst_amount'] ?? 0)) > 0.009;
+    if ($mismatch) {
+        return true;
+    }
+    if (!empty($invoice_profile['gst_split'])) {
+        $stored = trim((string) ($note_master['gst_split'] ?? ''));
+
+        return $stored !== '' && $stored !== ($invoice_profile['gst_split'] ?? '');
+    }
+
+    return false;
+}
+
+function billing_credit_note_sync_tax_from_invoice($conn, $billing_note_id, $user_id = 0)
+{
+    $billing_note_id = (int) $billing_note_id;
+    $user_id = (int) $user_id;
+    if ($billing_note_id <= 0) {
+        return false;
+    }
+    $note = billing_get_credit_note($conn, $billing_note_id);
+    if (!$note || ($note['master']['status'] ?? '') === 'cancelled') {
+        return false;
+    }
+    $m = $note['master'];
+    $resolved = billing_credit_note_resolve_amounts($conn, $m);
+    $invoice_profile = array();
+    $invoice_id = (int) ($m['against_invoice_id'] ?? 0);
+    if ($invoice_id > 0) {
+        $invoice = billing_get_invoice($conn, $invoice_id);
+        if ($invoice) {
+            $invoice_profile = billing_invoice_gst_profile($invoice['master']);
+        }
+    }
+    if (!billing_credit_note_tax_needs_resync($m, $resolved, $invoice_profile)) {
+        return false;
+    }
+
+    $esc_split = mysqli_real_escape_string($conn, $invoice_profile['gst_split'] ?? ($m['gst_split'] ?? 'igst'));
+    $gst_rate = billing_format_money((float) ($invoice_profile['gst_rate'] ?? $m['gst_rate'] ?? 0));
+    $grand = (float) ($resolved['grand_total'] ?? 0);
+    $words = '';
+    if (function_exists('gst_tax_report_amount_in_words')) {
+        $words = gst_tax_report_amount_in_words($grand);
+    }
+    $esc_words = mysqli_real_escape_string($conn, $words);
+    $now = date('Y-m-d H:i:s');
+
+    mysqli_query($conn, "UPDATE billing_note_master SET
+        taxable_value='{$resolved['taxable_value']}',
+        cgst_amount='{$resolved['cgst_amount']}',
+        sgst_amount='{$resolved['sgst_amount']}',
+        igst_amount='{$resolved['igst_amount']}',
+        gst_amount='{$resolved['gst_amount']}',
+        grand_total='{$resolved['grand_total']}',
+        gst_split='$esc_split',
+        gst_rate='$gst_rate',
+        total_words='$esc_words',
+        updated_at='$now',
+        updated_by='$user_id'
+        WHERE billing_note_id='$billing_note_id'");
+
+    mysqli_query($conn, "UPDATE billing_note_lines SET
+        taxable_value='{$resolved['taxable_value']}',
+        cgst_amount='{$resolved['cgst_amount']}',
+        sgst_amount='{$resolved['sgst_amount']}',
+        igst_amount='{$resolved['igst_amount']}',
+        gst_amount='{$resolved['gst_amount']}',
+        total_amount='{$resolved['grand_total']}'
+        WHERE billing_note_id='$billing_note_id'");
+
+    return true;
 }
 
 function billing_note_compute_gst($taxable, $profile)
@@ -535,6 +660,13 @@ function billing_credit_note_fetch_view($conn, $billing_note_id)
         $note_no = 'DRAFT-' . $billing_note_id;
     }
 
+    $resolved = billing_credit_note_resolve_amounts($conn, $m);
+    $cgst_v = (float) ($resolved['cgst_amount'] ?? 0);
+    $sgst_v = (float) ($resolved['sgst_amount'] ?? 0);
+    $igst_v = (float) ($resolved['igst_amount'] ?? 0);
+    $gst_v = (float) ($resolved['gst_amount'] ?? 0);
+    $grand_v = (float) ($resolved['grand_total'] ?? $m['grand_total'] ?? 0);
+
     return array(
         'ok' => true,
         'billing_note_id' => $billing_note_id,
@@ -548,10 +680,17 @@ function billing_credit_note_fetch_view($conn, $billing_note_id)
         'line_description' => $m['line_description'] ?? '',
         'gcn_label' => $gcn_label,
         'gst_label' => $gst_label,
-        'taxable_value' => billing_format_money($m['taxable_value'] ?? 0),
-        'gst_amount' => billing_format_money($m['gst_amount'] ?? 0),
-        'grand_total' => billing_format_money($m['grand_total'] ?? 0),
+        'taxable_value' => $resolved['taxable_value'] ?? billing_format_money($m['taxable_value'] ?? 0),
+        'gst_amount' => $resolved['gst_amount'] ?? billing_format_money($m['gst_amount'] ?? 0),
+        'cgst_amount' => billing_format_money($cgst_v),
+        'sgst_amount' => billing_format_money($sgst_v),
+        'igst_amount' => billing_format_money($igst_v),
+        'reverse_gst_claim' => billing_format_reverse_gst_claim_display($gst_v, $cgst_v, $sgst_v, $igst_v),
+        'grand_total' => billing_format_money($grand_v),
         'total_words' => $m['total_words'] ?? '',
+        'party_id' => (int) ($m['party_id'] ?? 0),
+        'mail_sent_at' => $m['client_email_sent_at'] ?? '',
+        'mail_sent_to' => $m['client_email_sent_to'] ?? '',
     );
 }
 

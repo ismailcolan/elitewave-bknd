@@ -44,6 +44,7 @@ if ($cmd === 'fetch_gcn_details') {
     $customer_id = (int) ($_REQUEST['customer_id'] ?? 0);
     $lines = array();
     $skipped = array();
+    $gst_warnings = array();
     foreach ($keys as $key) {
         $parsed = billing_parse_trans_key($key);
         if (!$parsed) {
@@ -60,6 +61,11 @@ if ($cmd === 'fetch_gcn_details') {
         );
         if (!empty($validated['ok'])) {
             $lines[] = $validated['detail'];
+            if (!empty($validated['detail']['gst_warnings']) && is_array($validated['detail']['gst_warnings'])) {
+                foreach ($validated['detail']['gst_warnings'] as $w) {
+                    $gst_warnings[$w] = true;
+                }
+            }
             continue;
         }
         if ($exclude > 0 && billing_gcn_on_current_invoice($conn, $parsed['trans_table'], $parsed['transaction_id'], $exclude)) {
@@ -79,6 +85,7 @@ if ($cmd === 'fetch_gcn_details') {
         'lines' => $lines,
         'summary' => billing_sum_lines($lines),
         'skipped' => $skipped,
+        'gst_warnings' => array_keys($gst_warnings),
     ));
 }
 

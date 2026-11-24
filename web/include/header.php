@@ -145,47 +145,151 @@ body.page-header-fixed {
   cursor: pointer;
   transition: background 0.2s ease, transform 0.15s ease;
 }
-.top-bar .notif-bell:hover { background: #06416F; transform: scale(1.05); }
-.top-bar .notif-bell i { font-size: 17px; color: var(--ew-navy); opacity: .85; transition: color 0.2s ease; }
-.top-bar .notif-bell:hover i { color: #fff; opacity: 1; }
+.top-bar .notif-bell:hover { background: #06416F; }
+.top-bar .notif-bell > i { font-size: 17px; color: var(--ew-navy); opacity: .85; transition: color 0.2s ease; }
+.top-bar .notif-bell:hover > i { color: #fff; opacity: 1; }
 .top-bar .notif-bell .notif-count {
   position: absolute;
-  top: 2px; right: 2px;
+  top: -4px; right: -4px;
   background: var(--ew-accent);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 50%;
+  line-height: 1;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 3px;
+  padding: 0 5px;
   font-family: 'Inter', sans-serif;
   box-shadow: 0 0 0 2px #fff;
 }
-.top-bar .notif-bell .dropdown-menu1 {
-  right: 0; left: auto;
-  top: 48px;
-  min-width: 300px;
-  max-width: 360px;
-  background: #fff;
-  border: 1px solid var(--ew-border);
-  border-radius: 14px;
-  box-shadow: 0 14px 40px rgba(6,65,111,.16);
-  padding: 6px;
-  list-style: none;
+
+/* notification drawer (right slide-in panel, moved to <body> by JS) */
+.ew-notif-scrim {
+  position: fixed; inset: 0;
+  background: rgba(11, 27, 54, .25);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s;
+  z-index: 1290;
 }
-.top-bar .notif-bell .dropdown-menu1 li a {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px;
-  font-size: 0.85rem;
+.ew-notif-scrim.on { opacity: 1; pointer-events: auto; }
+.ew-notif-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(440px, 100%);
+  display: flex; flex-direction: column;
+  background: #fff;
+  border-left: 1px solid var(--ew-border);
+  box-shadow: -24px 0 50px -30px rgba(11, 27, 54, .5);
+  transform: translateX(105%);
+  visibility: hidden;
+  transition: transform .25s, visibility 0s linear .25s;
+  z-index: 1300;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+}
+.ew-notif-drawer.on { transform: none; visibility: visible; transition: transform .25s; }
+.ew-notif-drawer .ew-notif-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--ew-border);
+}
+.ew-notif-drawer .ew-notif-head-l { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ew-notif-drawer .ew-notif-head-title { font-size: 18px; font-weight: 700; color: var(--ew-text); }
+.ew-notif-drawer .ew-notif-head-badge {
+  font-size: 11px; font-weight: 600;
+  color: var(--ew-accent);
+  background: rgba(221,17,30,.08);
+  padding: 3px 9px; border-radius: 999px;
+}
+.ew-notif-drawer .ew-notif-x {
+  flex: 0 0 34px; width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--ew-border); border-radius: 9px;
+  background: #fff; color: var(--ew-text);
+  font-size: 20px; line-height: 1; cursor: pointer; padding: 0;
+}
+.ew-notif-drawer .ew-notif-x:hover { border-color: var(--ew-navy); color: var(--ew-navy); }
+.ew-notif-drawer .ew-notif-list {
+  flex: 1 1 auto; overflow-y: auto;
+  list-style: none; margin: 0; padding: 8px 10px;
+}
+.ew-notif-drawer .ew-notif-item + .ew-notif-item { margin-top: 2px; }
+.ew-notif-drawer .ew-notif-item a {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 11px 10px;
+  border-radius: 10px;
   color: var(--ew-text);
-  border-radius: 8px;
+  text-decoration: none;
+  white-space: normal;
   transition: background 0.15s;
 }
-.top-bar .notif-bell .dropdown-menu1 li a:hover { background: #D6E4F2; }
+.ew-notif-drawer .ew-notif-item a:hover { background: #EEF4FA; }
+.ew-notif-drawer .ew-notif-icon {
+  flex: 0 0 36px; width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: #E3EDF7; color: var(--ew-navy);
+}
+.ew-notif-drawer .ew-notif-pickup .ew-notif-icon { background: #FDECEC; color: var(--ew-accent); }
+.ew-notif-drawer .ew-notif-inquiry .ew-notif-icon { background: #E6F6EC; color: #16A34A; }
+.ew-notif-drawer .ew-notif-icon i { font-size: 15px; color: inherit; }
+.ew-notif-drawer .ew-notif-body {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ew-notif-drawer .ew-notif-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.ew-notif-drawer .ew-notif-type {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ew-text-muted);
+}
+.ew-notif-drawer .ew-notif-time { font-size: 11px; color: var(--ew-text-muted); white-space: nowrap; }
+.ew-notif-drawer .ew-notif-title {
+  font-size: 0.88rem; font-weight: 600; color: var(--ew-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ew-notif-drawer .ew-notif-ref {
+  align-self: flex-start;
+  font-size: 11px; font-weight: 600;
+  color: var(--ew-navy);
+  background: #E3EDF7;
+  padding: 1px 7px; border-radius: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.ew-notif-drawer .ew-notif-meta {
+  font-size: 12px; color: var(--ew-text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ew-notif-drawer .ew-notif-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 48px 16px; text-align: center; color: var(--ew-text-muted);
+}
+.ew-notif-drawer .ew-notif-empty i { font-size: 28px; color: #B7C3D1; margin-bottom: 6px; }
+.ew-notif-drawer .ew-notif-empty span { font-size: 0.9rem; font-weight: 600; color: var(--ew-text); }
+.ew-notif-drawer .ew-notif-empty small { font-size: 12px; }
+.ew-notif-drawer .ew-notif-foot {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--ew-border);
+  background: #F7F9FC;
+}
+.ew-notif-drawer .ew-notif-foot a {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 8px 6px;
+  border: 1px solid var(--ew-border); border-radius: 9px;
+  background: #fff;
+  font-size: 12px; font-weight: 600;
+  color: var(--ew-navy); text-decoration: none; white-space: nowrap;
+}
+.ew-notif-drawer .ew-notif-foot a:hover { border-color: var(--ew-navy); background: #EEF4FA; }
+@media (prefers-reduced-motion: reduce) {
+  .ew-notif-drawer, .ew-notif-scrim { transition: none; }
+}
+body.ew-notif-open { overflow: hidden; }
 
 /* divider */
 .top-bar .header-divider {
@@ -340,11 +444,26 @@ body.page-header-fixed {
     $inq_count = (int) ($inq_row['c'] ?? 0);
     if ($_SESSION['role'] == 'AD'):
       ?>
-      <div class="dropdowns notifications hidden-xs notif-bell" data-toggle="dropdown">
+      <div class="dropdowns notifications hidden-xs notif-bell" id="ewNotifBell" role="button" tabindex="0" aria-label="Notifications" aria-controls="ewNotifDrawer" aria-expanded="false">
         <i class="fa fa-bell" aria-hidden="true"></i>
-        <span class="notif-count counter"></span>
-        <ul class="dropdown-menu dropdown-menu1"></ul>
+        <span class="notif-count counter" style="display:none"></span>
       </div>
+      <div class="ew-notif-scrim" id="ewNotifScrim" hidden></div>
+      <aside class="ew-notif-drawer" id="ewNotifDrawer" role="dialog" aria-modal="true" aria-labelledby="ewNotifTitle" aria-hidden="true">
+        <div class="ew-notif-head">
+          <div class="ew-notif-head-l">
+            <span class="ew-notif-head-title" id="ewNotifTitle">Notifications</span>
+            <span class="ew-notif-head-badge" style="display:none"></span>
+          </div>
+          <button type="button" class="ew-notif-x" data-notif-close="1" aria-label="Close notifications">&times;</button>
+        </div>
+        <ul class="ew-notif-list"></ul>
+        <div class="ew-notif-foot">
+          <a href="chatbot_quote_request_list.php">Quotes <i class="fa fa-angle-right" aria-hidden="true"></i></a>
+          <a href="user-requestpickup-list.php">Pickups <i class="fa fa-angle-right" aria-hidden="true"></i></a>
+          <a href="user-inquiry.php">Inquiries <i class="fa fa-angle-right" aria-hidden="true"></i></a>
+        </div>
+      </aside>
     <?php endif; ?>
 
     <?php if ($_SESSION['role'] == 'CL'):
@@ -456,20 +575,60 @@ $(document).ready(function(){
     $.ajax({ url:"./fetch_details.php", type:"post",
       data:{ view:view, cmd:"get_notification_rfp" }, dataType:"json",
       success:function(data){
-        $('.dropdown-menu1').html(data.notification);
-        if(data.unseen_notification > 0) $('.counter').html(data.unseen_notification);
-        else $('.counter').text("0");
+        $('.ew-notif-list').html(data.notification);
+        var n = parseInt(data.unseen_notification, 10) || 0;
+        if(n > 0){
+          $('.counter').text(n > 99 ? '99+' : n).show();
+          $('.ew-notif-head-badge').text(n + ' new').show();
+        } else {
+          $('.counter').text('').hide();
+          $('.ew-notif-head-badge').text('').hide();
+        }
       }
     });
   }
   load_unseen_notification();
 
-  $(document).on('click', '.notif-bell', function(e){
-    $('.counter').html('');
+  // Notification drawer: lives on <body> so the top bar's backdrop-filter
+  // doesn't trap its position:fixed inside the header.
+  var $notifDrawer = $('#ewNotifDrawer'), $notifScrim = $('#ewNotifScrim');
+  $notifScrim.appendTo('body');
+  $notifDrawer.appendTo('body');
+  function openNotifDrawer(){
+    $('.counter').text('').hide();
     load_unseen_notification('yes');
-    $(this).find('.dropdown-menu1').toggle();
+    $notifScrim.prop('hidden', false);
+    requestAnimationFrame(function(){
+      $notifScrim.addClass('on');
+      $notifDrawer.addClass('on').attr('aria-hidden', 'false');
+      $('body').addClass('ew-notif-open');
+      $('#ewNotifBell').attr('aria-expanded', 'true');
+      $notifDrawer.find('.ew-notif-x').trigger('focus');
+    });
+  }
+  function closeNotifDrawer(){
+    if(!$notifDrawer.hasClass('on')) return;
+    $notifDrawer.removeClass('on').attr('aria-hidden', 'true');
+    $notifScrim.removeClass('on');
+    $('body').removeClass('ew-notif-open');
+    $('#ewNotifBell').attr('aria-expanded', 'false').trigger('focus');
+    setTimeout(function(){ if(!$notifScrim.hasClass('on')) $notifScrim.prop('hidden', true); }, 220);
+  }
+  $(document).on('click', '#ewNotifBell', function(e){
     e.stopPropagation();
+    $notifDrawer.hasClass('on') ? closeNotifDrawer() : openNotifDrawer();
   });
+  $(document).on('keydown', '#ewNotifBell', function(e){
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openNotifDrawer(); }
+  });
+  $(document).on('click', '[data-notif-close], #ewNotifScrim', function(e){
+    e.preventDefault();
+    closeNotifDrawer();
+  });
+  $(document).on('keydown', function(e){
+    if(e.key === 'Escape') closeNotifDrawer();
+  });
+  $(document).on('click', '#ewNotifDrawer', function(e){ e.stopPropagation(); });
 
   setInterval(function(){ load_unseen_notification(); }, 5000);
 
@@ -477,7 +636,7 @@ $(document).ready(function(){
     $(this).toggleClass('menu-open');
     e.stopPropagation();
   });
-  $(document).on('click', function(){
+  $(document).on('click', function(e){
     $('#userMenuToggle').removeClass('menu-open');
     $('.dropdown-menu1').hide();
   });

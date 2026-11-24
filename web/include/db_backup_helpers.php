@@ -237,17 +237,11 @@ function ew_db_backup_email_zip($zipPath, $to = 'elitewave360@gmail.com')
 
     $fileName = basename($zipPath);
     $sizeMb = round(filesize($zipPath) / 1048576, 2);
+    require_once __DIR__ . '/ew_mail_config.php';
     $mail = new PHPMailer();
-    $mail->isSMTP();
-    $mail->Host = 'smtpout.secureserver.net';
-    $mail->SMTPAuth = true;
-    $mail->Username = 'info@elitewave360.in';
-    $mail->Password = 'EliteWave@360#';
-    $mail->SMTPSecure = 'tls';
-    $mail->Port = 587;
-    $mail->From = 'info@elitewave360.in';
-    $mail->FromName = 'Elite Wave 360';
+    ew_mail_configure_phpmailer($mail);
     $mail->addAddress($to, 'Elite Wave 360');
+    ew_mail_add_default_cc($mail);
     $mail->addAttachment($zipPath, $fileName);
     $mail->isHTML(true);
     $mail->CharSet = 'UTF-8';
