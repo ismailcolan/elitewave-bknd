@@ -78,6 +78,39 @@ $list_rows = expense_bill_fetch_list($conn);
 			margin: 4px 0;
 		}
 
+		#dataTable1 th.col-num,
+		#dataTable1 td.col-num {
+			text-align: right;
+			white-space: nowrap;
+		}
+
+		#dataTable1 td.ebill-col-attach {
+			min-width: 120px;
+			max-width: 200px;
+			font-size: 13px;
+			line-height: 1.45;
+		}
+
+		#dataTable1 td.ebill-col-attach a,
+		#dataTable1 td.ebill-col-entry a.ebill-bill-entry-link {
+			font-weight: 600;
+			color: #06416F;
+			text-decoration: none;
+		}
+
+		#dataTable1 td.ebill-col-attach a:hover,
+		#dataTable1 td.ebill-col-entry a.ebill-bill-entry-link:hover {
+			text-decoration: underline;
+		}
+
+		.ebill-attach-preview-img {
+			display: block;
+			max-width: 100%;
+			max-height: 72vh;
+			margin: 0 auto;
+			border-radius: 6px;
+		}
+
 		@media (max-width: 640px) {
 			.ebill-view-meta {
 				grid-template-columns: 1fr;
@@ -127,9 +160,10 @@ $list_rows = expense_bill_fetch_list($conn);
 												<th>Vendor</th>
 												<th>GCN</th>
 												<th>Vendor Invoice No</th>
-												<th>Payment</th>
+												<th class="col-num">Freight amount</th>
 												<th>Invoice Date</th>
 												<th>Due Date</th>
+												<th>Vendor bill</th>
 												<th class="table-title sorting_disabled col-actions">Action</th>
 											</tr>
 										</thead>
@@ -142,15 +176,16 @@ $list_rows = expense_bill_fetch_list($conn);
 												?>
 												<tr>
 													<td><?php echo $i++; ?></td>
-													<td><strong><?php echo htmlspecialchars($row['bill_entry_no']); ?></strong></td>
+													<td class="ebill-col-entry"><?php echo expense_bill_list_bill_entry_no_html($row); ?></td>
 													<td><?php echo htmlspecialchars($row['bill_date']); ?></td>
 													<td><?php echo htmlspecialchars($row['bill_type_label']); ?></td>
 													<td><?php echo htmlspecialchars($row['vendor_label'] ?: '—'); ?></td>
 													<td><?php echo htmlspecialchars($row['gcn_label'] ?: '—'); ?></td>
 													<td><?php echo htmlspecialchars($row['vendor_invoice_no'] ?: '—'); ?></td>
-													<td><?php echo htmlspecialchars($row['payment_mode_label'] ?: '—'); ?></td>
+													<td class="col-num"><?php echo htmlspecialchars($row['subtotal_fmt'] ?: '0.00'); ?></td>
 													<td><?php echo htmlspecialchars($row['vendor_invoice_date'] ?: '—'); ?></td>
 													<td><?php echo htmlspecialchars($row['due_date'] ?: '—'); ?></td>
+													<td class="ebill-col-attach"><?php echo expense_bill_render_attachment_links($row['attachments'] ?? array()); ?></td>
 													<td class="col-actions">
 														<span class="act-wrap">
 															<button type="button" class="act-link act-view btn-view-bill" title="View"
@@ -195,6 +230,22 @@ $list_rows = expense_bill_fetch_list($conn);
 		</div>
 	</div>
 
+	<div class="ew-v2-modal-backdrop" id="ebillAttachPreviewModal">
+		<div class="ew-v2-modal ew-v2-modal--lg">
+			<div class="ew-v2-modal-head">
+				<h3 id="ebillAttachPreviewTitle">Vendor bill</h3>
+				<button type="button" class="ew-v2-modal-close" data-ew-v2-close aria-label="Close">&times;</button>
+			</div>
+			<div class="ew-v2-modal-body" style="text-align:center;">
+				<img id="ebillAttachPreviewImg" class="ebill-attach-preview-img" src="" alt="">
+			</div>
+			<div class="ew-v2-modal-foot">
+				<a id="ebillAttachPreviewOpenTab" href="#" target="_blank" rel="noopener" class="btn btn-default-outline" style="margin-right:8px;">Open in new tab</a>
+				<button type="button" class="btn btn-default-outline" data-ew-v2-close>Close</button>
+			</div>
+		</div>
+	</div>
+
 	<?php if (!empty($list_rows)) { ?>
 	<script>
 		$(function() {
@@ -209,6 +260,48 @@ $list_rows = expense_bill_fetch_list($conn);
 					.replace(/>/g, '&gt;')
 					.replace(/"/g, '&quot;');
 			}
+
+			function ebillIsImageAttachment(att) {
+				var mime = String((att && att.mime_type) || '').toLowerCase();
+				var name = String((att && (att.original_name || att.stored_name)) || '').toLowerCase();
+				if (mime.indexOf('image/') === 0) {
+					return true;
+				}
+				return /\.(jpe?g|png|gif|webp)$/i.test(name);
+			}
+
+			function ebillIsImageUrl(url) {
+				return /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(String(url || ''));
+			}
+
+			function ebillOpenAttachPreview(url, title) {
+				if (!url) {
+					return;
+				}
+				var safeTitle = title || 'Vendor bill';
+				$('#ebillAttachPreviewTitle').text(safeTitle);
+				$('#ebillAttachPreviewImg').attr('src', url).attr('alt', safeTitle);
+				$('#ebillAttachPreviewOpenTab').attr('href', url);
+				if (typeof ewV2OpenModal === 'function') {
+					ewV2OpenModal('ebillAttachPreviewModal');
+				} else {
+					$('#ebillAttachPreviewModal').addClass('open');
+				}
+			}
+
+			$(document).on('click', '.ebill-attach-preview', function(e) {
+				e.preventDefault();
+				var url = $(this).data('url') || '';
+				var title = $(this).data('title') || $(this).text();
+				if (!url) {
+					return;
+				}
+				if (!ebillIsImageUrl(url)) {
+					window.open(url, '_blank', 'noopener');
+					return;
+				}
+				ebillOpenAttachPreview(url, title);
+			});
 
 			function ebillRenderView(data) {
 				if (!data) {
@@ -226,6 +319,8 @@ $list_rows = expense_bill_fetch_list($conn);
 				html += '<div><dt>Invoice date</dt><dd>' + ebillEscHtml(data.vendor_invoice_date || '—') + '</dd></div>';
 				html += '<div><dt>Received date</dt><dd>' + ebillEscHtml(data.invoice_received_date || '—') + '</dd></div>';
 				html += '<div><dt>Due date</dt><dd>' + ebillEscHtml(data.due_date || '—') + '</dd></div>';
+				html += '<div><dt>Freight amount</dt><dd>' + ebillEscHtml(data.subtotal_fmt || '0.00') + '</dd></div>';
+				html += '<div><dt>Net payable</dt><dd>' + ebillEscHtml(data.net_payable_fmt || '0.00') + '</dd></div>';
 				html += '</div>';
 
 				if (data.narration) {
@@ -234,10 +329,12 @@ $list_rows = expense_bill_fetch_list($conn);
 
 				var attachments = data.attachments || [];
 				if (attachments.length) {
-					html += '<div class="ebill-view-desc"><strong>Attachments</strong><ul class="ebill-attach-list">';
+					html += '<div class="ebill-view-desc"><strong>Vendor bill / attachments</strong><ul class="ebill-attach-list">';
 					$.each(attachments, function(i, att) {
 						var label = att.original_name || att.stored_name || ('File ' + (i + 1));
-						if (att.url) {
+						if (att.url && ebillIsImageAttachment(att)) {
+							html += '<li><a href="#" class="ebill-attach-preview" data-url="' + ebillEscHtml(att.url) + '" data-title="' + ebillEscHtml(label) + '">' + ebillEscHtml(label) + '</a></li>';
+						} else if (att.url) {
 							html += '<li><a href="' + ebillEscHtml(att.url) + '" target="_blank" rel="noopener">' + ebillEscHtml(label) + '</a></li>';
 						} else {
 							html += '<li>' + ebillEscHtml(label) + '</li>';

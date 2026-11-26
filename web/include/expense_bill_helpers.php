@@ -2,6 +2,7 @@
 require_once __DIR__ . '/expense_schema.php';
 require_once __DIR__ . '/expense_gcn_helpers.php';
 require_once __DIR__ . '/vendor_master_helpers.php';
+require_once __DIR__ . '/expense_vendor_gst_helpers.php';
 require_once __DIR__ . '/billing_functions.php';
 require_once __DIR__ . '/company_bank_helpers.php';
 
@@ -19,6 +20,90 @@ function expense_bill_upload_dir()
 function expense_bill_upload_url_base()
 {
 	return 'bill_uploads/';
+}
+
+function expense_bill_attachment_is_image($att)
+{
+	$mime = strtolower(trim((string) ($att['mime_type'] ?? '')));
+	if (strpos($mime, 'image/') === 0) {
+		return true;
+	}
+	$name = strtolower(trim((string) ($att['original_name'] ?? $att['stored_name'] ?? '')));
+	return (bool) preg_match('/\.(jpe?g|png|gif|webp)$/i', $name);
+}
+
+/** Hyperlinks for list / detail: images open in-app preview via JS class ebill-attach-preview. */
+function expense_bill_render_attachment_links($attachments, $link_class = 'ebill-attach-preview')
+{
+	$attachments = is_array($attachments) ? $attachments : array();
+	if (empty($attachments)) {
+		return '—';
+	}
+	$parts = array();
+	foreach ($attachments as $i => $att) {
+		$url = trim((string) ($att['url'] ?? ''));
+		$label = trim((string) ($att['original_name'] ?? $att['stored_name'] ?? ''));
+		if ($label === '') {
+			$label = 'Vendor bill' . (count($attachments) > 1 ? ' ' . ($i + 1) : '');
+		}
+		if ($url === '') {
+			$parts[] = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+			continue;
+		}
+		$esc_url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+		$esc_label = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+		$esc_class = htmlspecialchars($link_class, ENT_QUOTES, 'UTF-8');
+		if (expense_bill_attachment_is_image($att)) {
+			$parts[] = '<a href="#" class="' . $esc_class . '" data-url="' . $esc_url . '" data-title="' . $esc_label . '">' . $esc_label . '</a>';
+		} else {
+			$parts[] = '<a href="' . $esc_url . '" target="_blank" rel="noopener">' . $esc_label . '</a>';
+		}
+	}
+	return implode('<br>', $parts);
+}
+
+function expense_bill_first_list_attachment($attachments)
+{
+	$attachments = is_array($attachments) ? $attachments : array();
+	$fallback = null;
+	foreach ($attachments as $att) {
+		$url = trim((string) ($att['url'] ?? ''));
+		if ($url === '') {
+			continue;
+		}
+		if (expense_bill_attachment_is_image($att)) {
+			return $att;
+		}
+		if ($fallback === null) {
+			$fallback = $att;
+		}
+	}
+	return $fallback;
+}
+
+/** Bill entry no in list — link opens vendor bill preview when an attachment exists. */
+function expense_bill_list_bill_entry_no_html($row)
+{
+	$no = trim((string) ($row['bill_entry_no'] ?? ''));
+	if ($no === '') {
+		return '—';
+	}
+	$esc_no = htmlspecialchars($no, ENT_QUOTES, 'UTF-8');
+	$att = expense_bill_first_list_attachment($row['attachments'] ?? array());
+	if (!$att) {
+		return '<strong>' . $esc_no . '</strong>';
+	}
+	$url = htmlspecialchars(trim((string) ($att['url'] ?? '')), ENT_QUOTES, 'UTF-8');
+	$title = htmlspecialchars(
+		trim((string) ($att['original_name'] ?? $att['stored_name'] ?? $no)),
+		ENT_QUOTES,
+		'UTF-8'
+	);
+	$img = expense_bill_attachment_is_image($att);
+	$class = 'ebill-bill-entry-link' . ($img ? ' ebill-attach-preview' : '');
+	$target = $img ? '' : ' target="_blank" rel="noopener"';
+	$href = $img ? '#' : $url;
+	return '<a href="' . $href . '" class="' . $class . '" data-url="' . $url . '" data-title="' . $title . '"' . $target . '><strong>' . $esc_no . '</strong></a>';
 }
 
 function expense_bill_ensure_upload_dir()
@@ -158,17 +243,17 @@ function expense_bill_ensure_schema($conn)
 		}
 	}
 
+	expense_vendor_gst_ensure_bill_columns($conn);
 	expense_bill_ensure_upload_dir();
 }
 
-function expense_bill_gcn_label($gcn_no, $gcn_date)
+function expense_bill_gcn_label($gcn_no, $gcn_date = '')
 {
 	$gcn_no = trim((string) $gcn_no);
-	$gcn_date = trim((string) $gcn_date);
 	if ($gcn_no === '') {
 		return '';
 	}
-	return $gcn_date !== '' ? ($gcn_no . ' | ' . $gcn_date) : $gcn_no;
+	return $gcn_no;
 }
 
 function expense_bill_fetch_gcns($conn, $search = '')
@@ -674,11 +759,13 @@ function expense_bill_vendor_info($conn, $vendor_id)
 		'tds_rate' => 0,
 		'default_tds_percent' => 0,
 		'tds_percent_configured' => 0,
+		'vendor_state_id' => 0,
+		'gstin' => '',
 	);
 	if ($vendor_id <= 0) {
 		return $defaults;
 	}
-	$q = mysqli_query($conn, "SELECT vendor_id, vendor_code, vendor_name, status, payment_terms, credit_days
+	$q = mysqli_query($conn, "SELECT vendor_id, vendor_code, vendor_name, status, payment_terms, credit_days, state, gstin
 		FROM vendor_master WHERE vendor_id='$vendor_id' LIMIT 1");
 	if (!$q || !($row = mysqli_fetch_assoc($q))) {
 		return $defaults;
@@ -709,6 +796,8 @@ function expense_bill_vendor_info($conn, $vendor_id)
 		'tds_rate' => $tds_rate,
 		'default_tds_percent' => $default_tds,
 		'tds_percent_configured' => $tds_configured ? 1 : 0,
+		'vendor_state_id' => (int) ($row['state'] ?? 0),
+		'gstin' => trim((string) ($row['gstin'] ?? '')),
 	);
 }
 
@@ -785,6 +874,17 @@ function expense_bill_format_record($conn, $row)
 		'subtotal_fmt' => expense_bill_format_money($row['subtotal'] ?? 0),
 		'gst_total' => expense_bill_money($row['gst_total'] ?? 0),
 		'gst_total_fmt' => expense_bill_format_money($row['gst_total'] ?? 0),
+		'gst_percent' => expense_bill_money($row['gst_percent'] ?? 0),
+		'cgst_amount' => expense_bill_money($row['cgst_amount'] ?? 0),
+		'cgst_amount_fmt' => expense_bill_format_money($row['cgst_amount'] ?? 0),
+		'sgst_amount' => expense_bill_money($row['sgst_amount'] ?? 0),
+		'sgst_amount_fmt' => expense_bill_format_money($row['sgst_amount'] ?? 0),
+		'igst_amount' => expense_bill_money($row['igst_amount'] ?? 0),
+		'igst_amount_fmt' => expense_bill_format_money($row['igst_amount'] ?? 0),
+		'pos_state_id' => (int) ($row['pos_state_id'] ?? 0),
+		'pos_state_label' => expense_vendor_gst_state_label($conn, (int) ($row['pos_state_id'] ?? 0)),
+		'gst_supply_type' => trim((string) ($row['gst_supply_type'] ?? '')),
+		'gst_supply_type_label' => expense_vendor_gst_supply_type_label($row['gst_supply_type'] ?? ''),
 		'grand_total' => expense_bill_money($row['grand_total'] ?? 0),
 		'grand_total_fmt' => expense_bill_format_money($row['grand_total'] ?? 0),
 		'tds_percent' => expense_bill_money($row['tds_percent'] ?? 0),
@@ -1047,36 +1147,52 @@ function expense_bill_save($conn, $payload, $user_id, $files = null)
 	if (expense_bill_invoice_exists($conn, $vendor_id, $vendor_invoice_no, $existing_id)) {
 		return array('ok' => false, 'message' => 'This vendor invoice/memo no. already exists for the selected vendor.');
 	}
-	if ($payment_mode === '') {
-		return array('ok' => false, 'message' => 'Please select payment mode.');
-	}
-	$modes = ew_company_bank_payment_modes();
-	if (!isset($modes[$payment_mode])) {
-		return array('ok' => false, 'message' => 'Invalid payment mode selected.');
-	}
-	if (ew_company_bank_mode_requires_account($payment_mode)) {
-		if ($company_bank_id <= 0) {
-			return array('ok' => false, 'message' => 'Please select company bank account for this payment mode.');
+	// Bill registration records the vendor invoice only; payment is via Payment Voucher.
+	if ($existing_id > 0 && $payment_mode === '') {
+		$pm_q = mysqli_query($conn, "SELECT payment_mode, company_bank_id, payment_bank_name, payment_ifsc, payment_bank_branch
+			FROM vendor_bill WHERE bill_id='$existing_id' AND status=0 LIMIT 1");
+		if ($pm_q && ($pm_row = mysqli_fetch_assoc($pm_q))) {
+			$payment_mode = strtoupper(trim((string) ($pm_row['payment_mode'] ?? '')));
+			$company_bank_id = (int) ($pm_row['company_bank_id'] ?? 0);
+			$payment_bank_name = trim((string) ($pm_row['payment_bank_name'] ?? ''));
+			$payment_ifsc = strtoupper(trim((string) ($pm_row['payment_ifsc'] ?? '')));
+			$payment_bank_branch = trim((string) ($pm_row['payment_bank_branch'] ?? ''));
 		}
-		$bank = ew_company_bank_get($conn, $company_bank_id);
-		if (!$bank || (int) ($bank['status'] ?? 0) !== 0) {
-			return array('ok' => false, 'message' => 'Selected company bank account is invalid.');
+	}
+	if ($payment_mode !== '') {
+		$modes = ew_company_bank_payment_modes();
+		if (!isset($modes[$payment_mode])) {
+			return array('ok' => false, 'message' => 'Invalid payment mode selected.');
 		}
-		$payment_bank_name = $bank['bank_name'] ?? $payment_bank_name;
-		$payment_ifsc = strtoupper($bank['ifsc'] ?? $payment_ifsc);
-		$payment_bank_branch = $bank['bank_branch'] ?? $payment_bank_branch;
-	} elseif ($payment_mode === 'CASH') {
+		if (ew_company_bank_mode_requires_account($payment_mode)) {
+			if ($company_bank_id <= 0) {
+				return array('ok' => false, 'message' => 'Please select company bank account for this payment mode.');
+			}
+			$bank = ew_company_bank_get($conn, $company_bank_id);
+			if (!$bank || (int) ($bank['status'] ?? 0) !== 0) {
+				return array('ok' => false, 'message' => 'Selected company bank account is invalid.');
+			}
+			$payment_bank_name = $bank['bank_name'] ?? $payment_bank_name;
+			$payment_ifsc = strtoupper($bank['ifsc'] ?? $payment_ifsc);
+			$payment_bank_branch = $bank['bank_branch'] ?? $payment_bank_branch;
+		} elseif ($payment_mode === 'CASH') {
+			$company_bank_id = 0;
+			$payment_bank_name = '';
+			$payment_ifsc = '';
+			$payment_bank_branch = '';
+		} elseif ($company_bank_id > 0) {
+			$bank = ew_company_bank_get($conn, $company_bank_id);
+			if ($bank && (int) ($bank['status'] ?? 0) === 0) {
+				$payment_bank_name = $bank['bank_name'] ?? $payment_bank_name;
+				$payment_ifsc = strtoupper($bank['ifsc'] ?? $payment_ifsc);
+				$payment_bank_branch = $bank['bank_branch'] ?? $payment_bank_branch;
+			}
+		}
+	} else {
 		$company_bank_id = 0;
 		$payment_bank_name = '';
 		$payment_ifsc = '';
 		$payment_bank_branch = '';
-	} elseif ($company_bank_id > 0) {
-		$bank = ew_company_bank_get($conn, $company_bank_id);
-		if ($bank && (int) ($bank['status'] ?? 0) === 0) {
-			$payment_bank_name = $bank['bank_name'] ?? $payment_bank_name;
-			$payment_ifsc = strtoupper($bank['ifsc'] ?? $payment_ifsc);
-			$payment_bank_branch = $bank['bank_branch'] ?? $payment_bank_branch;
-		}
 	}
 
 	$resolved_gcns = expense_bill_resolve_gcn_list($conn, $gcn_keys);
@@ -1127,6 +1243,19 @@ function expense_bill_save($conn, $payload, $user_id, $files = null)
 	$tds_amount = $totals['tds_amount'];
 	$net_payable = $totals['net_payable'];
 
+	$payload['gst_percent'] = $payload['gst_percent'] ?? $payload['bill_gst_percent'] ?? 0;
+	$gst_snap = expense_vendor_gst_build_bill_snapshot($conn, $vendor_id, $payload, $subtotal, $gst_total, $grand_total);
+	if (empty($gst_snap['ok'])) {
+		return array('ok' => false, 'message' => $gst_snap['message'] ?? 'Invalid GST breakdown.');
+	}
+	$bill_gst_percent = expense_bill_money($gst_snap['gst_percent']);
+	$bill_cgst = expense_bill_money($gst_snap['cgst_amount']);
+	$bill_sgst = expense_bill_money($gst_snap['sgst_amount']);
+	$bill_igst = expense_bill_money($gst_snap['igst_amount']);
+	$gst_total = expense_bill_money($gst_snap['gst_total']);
+	$pos_state_id = (int) ($gst_snap['pos_state_id'] ?? 0);
+	$gst_supply_type_esc = mysqli_real_escape_string($conn, (string) ($gst_snap['gst_supply_type'] ?? ''));
+
 	$due_date = expense_bill_calc_due_date($vendor_invoice_date, max(0, (int) ($vendor['credit_days'] ?? 0)));
 	$due_date_overridden = 0;
 	if ($due_date === '') {
@@ -1172,6 +1301,12 @@ function expense_bill_save($conn, $payload, $user_id, $files = null)
 			narration='$narration_esc',
 			subtotal='$subtotal',
 			gst_total='$gst_total',
+			gst_percent='$bill_gst_percent',
+			cgst_amount='$bill_cgst',
+			sgst_amount='$bill_sgst',
+			igst_amount='$bill_igst',
+			pos_state_id='$pos_state_id',
+			gst_supply_type='$gst_supply_type_esc',
 			grand_total='$grand_total',
 			tds_percent='$tds_percent',
 			tds_amount='$tds_amount',
@@ -1189,12 +1324,12 @@ function expense_bill_save($conn, $payload, $user_id, $files = null)
 		mysqli_query($conn, "INSERT INTO vendor_bill
 			(bill_entry_no, bill_date, bill_type, vendor_id, gcn_key, gcn_no, gcn_date,
 			vendor_invoice_no, vendor_invoice_date, invoice_received_date, due_date, due_date_overridden,
-			narration, subtotal, gst_total, grand_total, tds_percent, tds_amount, net_payable,
+			narration, subtotal, gst_total, gst_percent, cgst_amount, sgst_amount, igst_amount, pos_state_id, gst_supply_type, grand_total, tds_percent, tds_amount, net_payable,
 			payment_mode, company_bank_id, payment_bank_name, payment_ifsc, payment_bank_branch,
 			status, created_at, created_by, updated_at, updated_by)
 			VALUES ('', '$bill_date_esc', '$bill_type_esc', '$vendor_id', '$gcn_key_esc', '$gcn_no_esc', '$gcn_date_esc',
 			'$invoice_no_esc', '$invoice_date_esc', '$received_esc', '$due_esc', '$due_date_overridden',
-			'$narration_esc', '$subtotal', '$gst_total', '$grand_total', '$tds_percent', '$tds_amount', '$net_payable',
+			'$narration_esc', '$subtotal', '$gst_total', '$bill_gst_percent', '$bill_cgst', '$bill_sgst', '$bill_igst', '$pos_state_id', '$gst_supply_type_esc', '$grand_total', '$tds_percent', '$tds_amount', '$net_payable',
 			'$payment_mode_esc', '$company_bank_id', '$payment_bank_name_esc', '$payment_ifsc_esc', '$payment_bank_branch_esc',
 			0, '$now', '$user_id', '$now', '$user_id')");
 		$bill_id = (int) mysqli_insert_id($conn);

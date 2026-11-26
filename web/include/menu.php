@@ -41,7 +41,8 @@ $page_module_map = array(
   'expense_type_master.php' => 'setup', 'expense_type_form.php' => 'setup',
   'expense_group_master.php' => 'setup',
   'expense_gcn.php' => 'expense', 'expense_gcn_list.php' => 'expense',
-  'expense_general.php' => 'expense', 'expense_general_list.php' => 'expense',
+  'expense_gcn_backup.php' => 'expense', 'expense_gcn_list_backup.php' => 'expense',
+  'expense_general.php' => 'expense', 'expense_general_list.php' => 'expense', 'expense_general_list_backup.php' => 'expense',
   'expense_bill.php' => 'expense', 'expense_bill_list.php' => 'expense',
   'purchase_voucher.php' => 'expense', 'purchase_voucher_list.php' => 'expense',
   'petty_cash.php' => 'expense', 'petty_cash_list.php' => 'expense',
@@ -673,7 +674,7 @@ function ew_panel_head($title) {
     </button>
     <button type="button" class="rail-item<?php echo ew_module_active('party', $active_module); ?>" data-module="party" data-tooltip="Customer Masters" title="Customer Masters">
       <?php echo ew_rail_icon('customers'); ?>
-      <span class="rail-label">Customers</span>
+      <span class="rail-label">Partners</span>
     </button>
     <?php endif; ?>
     <?php if ($_SESSION['role'] == 'AD'): ?>
@@ -766,13 +767,30 @@ function ew_panel_head($title) {
     <div class="panel-module<?php echo ew_module_active('expense', $active_module); ?>" data-module="expense">
       <?php ew_panel_head('Expense'); ?>
       <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active_any(array('expense_gcn_list.php', 'expense_gcn.php'), $current_page); ?>" href="expense_gcn_list.php">GCN Profit &amp; Loss</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('petty_cash_list.php', 'petty_cash.php'), $current_page); ?>" href="petty_cash_list.php">Petty Cash</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('expense_bill_list.php', 'expense_bill.php'), $current_page); ?>" href="expense_bill_list.php">Purchase Bill Registration</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('expense_general_list.php', 'expense_general.php'), $current_page); ?>" href="expense_general_list.php">Payment Voucher</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('expense_gcn_list.php', 'expense_gcn.php'), $current_page); ?>" href="expense_gcn_list.php">GCN Profit &amp; Loss</a>
         <?php if (defined('EW_PURCHASE_VOUCHER_LIVE') && EW_PURCHASE_VOUCHER_LIVE) { ?>
         <a class="panel-link<?php echo ew_menu_active_any(array('purchase_voucher_list.php', 'purchase_voucher.php'), $current_page); ?>" href="purchase_voucher_list.php">Purchase Voucher</a>
         <?php } ?>
-        <a class="panel-link<?php echo ew_menu_active_any(array('expense_bill_list.php', 'expense_bill.php'), $current_page); ?>" href="expense_bill_list.php">Purchase Bill Registration</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('petty_cash_list.php', 'petty_cash.php'), $current_page); ?>" href="petty_cash_list.php">Petty Cash</a>
+        <?php
+        $expense_existing_backup_open = in_array($current_page, array(
+          'expense_gcn_list_backup.php',
+          'expense_gcn_backup.php',
+          'expense_general_list_backup.php',
+        ), true);
+        ?>
+        <div class="panel-accordion<?php echo $expense_existing_backup_open ? ' is-open' : ''; ?>" data-accordion-id="expense-existing-backup" data-accordion-label="Existing Backup">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $expense_existing_backup_open ? 'true' : 'false'; ?>">
+            <span>Existing Backup</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('expense_general_list_backup.php', $current_page); ?>" href="expense_general_list_backup.php">Payment Voucher</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('expense_gcn_list_backup.php', 'expense_gcn_backup.php'), $current_page); ?>" href="expense_gcn_list_backup.php">GCN Profit &amp; Loss</a>
+          </div>
+        </div>
       </div>
     </div>
 

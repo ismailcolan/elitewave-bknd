@@ -14,11 +14,34 @@ if ($preselect_id <= 0 && empty($_GET['create'])) {
 }
 $is_create = ($preselect_id <= 0 && !empty($_GET['create']));
 $preview_expense_no = expense_general_preview_next_no($conn);
+$voucher_type_form_options = expense_general_voucher_type_form_options();
+$default_voucher_type = 'purchase_bill';
+if ($is_create && !empty($_GET['voucher_type'])) {
+	$vt_req = strtolower(trim((string) $_GET['voucher_type']));
+	if (isset($voucher_type_form_options[$vt_req])) {
+		$default_voucher_type = $vt_req;
+	}
+}
+$list_return_tab = 'purchase_bill';
+if (!empty($_GET['list_tab']) && in_array($_GET['list_tab'], array('purchase_bill', 'general_expense'), true)) {
+	$list_return_tab = (string) $_GET['list_tab'];
+} elseif ($default_voucher_type === 'general_expense') {
+	$list_return_tab = 'general_expense';
+}
+$list_return_url = 'expense_general_list.php?tab=' . urlencode($list_return_tab);
+$voucher_type_all_options = expense_general_voucher_type_options();
 $payment_modes = ew_company_bank_payment_modes();
 $vendor_rows = expense_gcn_vendor_options($conn);
 $category_rows = expense_gcn_category_options($conn);
 $bank_rows = ew_company_bank_options($conn);
 $tax_profiles = expense_general_tax_profiles($conn);
+require_once('include/expense_vendor_gst_helpers.php');
+$gst_state_options = expense_vendor_gst_state_options($conn);
+$company_state_id = gst_register_company_state($conn);
+$gst_state_by_id = array();
+foreach ($gst_state_options as $st) {
+	$gst_state_by_id[(int) ($st['state_id'] ?? 0)] = (string) ($st['state_name'] ?? '');
+}
 $tds_percent_options = array(
 	array('value' => '0.00', 'label' => 'No TDS (0%)'),
 );
@@ -256,6 +279,15 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			min-width: 110px;
 		}
 
+		#pv_lines thead th.pv-col-num,
+		#pv_lines tbody td.pv-col-num {
+			text-align: right !important;
+		}
+
+		#pv_lines tbody td.pv-col-num .form-control {
+			text-align: right !important;
+		}
+
 		#pv_lines .pv-col-gcn {
 			display: none !important;
 		}
@@ -263,27 +295,148 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 		#pv_gst_tds_fields.is-hidden {
 			display: none !important;
 		}
-		#pv_bill_settlement {
+
+		.pv-voucher-layout {
+			grid-column: span 3;
+			display: grid;
+			grid-template-columns: minmax(0, 1fr);
+			gap: 20px 24px;
+			align-items: start;
+			width: 100%;
+		}
+
+		.pv-voucher-layout.is-purchase-bill,
+		.pv-voucher-layout.is-general-expense {
+			grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+		}
+
+		.pv-voucher-fields {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 20px 16px;
+			align-content: start;
+			min-width: 0;
+		}
+
+		@media (min-width: 992px) {
+			.pv-voucher-layout.is-general-expense .pv-voucher-fields,
+			.pv-voucher-layout.is-purchase-bill .pv-voucher-fields {
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+			}
+		}
+
+		@media (max-width: 767px) {
+			.pv-voucher-layout.is-purchase-bill {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		#pv_bill_settlement,
+		#pv_general_gst_card {
 			border: 1px solid var(--ew-border-light, #E9ECF0);
 			border-radius: 8px;
 			padding: 12px 14px;
 			background: #FAFBFC;
+			width: 100%;
+			box-sizing: border-box;
+		}
+		#pv_general_gst_card .pv-gst-card-title {
+			font-size: 12px;
+			font-weight: 600;
+			color: #334155;
+			margin-bottom: 12px;
+		}
+		#pv_general_gst_card .pv-gst-card-pos {
+			margin-bottom: 12px;
+			padding-bottom: 10px;
+			border-bottom: 1px dashed #E2E8F0;
+		}
+		#pv_general_gst_card .pv-gst-card-pos strong {
+			display: block;
+			font-size: 13px;
+			color: #0F172A;
+			line-height: 1.35;
+		}
+		#pv_general_gst_card .pv-gst-card-pos .lbl {
+			display: block;
+			font-size: 10px;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			color: #64748B;
+			margin-bottom: 4px;
+		}
+		#pv_general_gst_card .pv-supply-badge {
+			display: inline-block;
+			margin-top: 6px;
+			font-size: 10px;
+			font-weight: 600;
+			padding: 2px 8px;
+			border-radius: 999px;
+			background: #EEF2FF;
+			color: #4338CA;
 		}
 		.pv-bill-settle-grid {
-			display: grid;
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-			gap: 10px 16px;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+		.pv-bill-settle-item {
+			display: flex;
+			align-items: baseline;
+			justify-content: space-between;
+			gap: 16px;
 		}
 		.pv-bill-settle-item span {
-			display: block;
+			flex: 1 1 auto;
 			font-size: 11px;
 			color: #64748b;
 			text-transform: uppercase;
 			letter-spacing: .04em;
 		}
 		.pv-bill-settle-item strong {
+			flex: 0 0 auto;
 			font-size: 14px;
+			font-weight: 700;
 			color: #0f172a;
+			text-align: right;
+			font-variant-numeric: tabular-nums;
+			min-width: 7.5rem;
+		}
+		.pv-bill-pay-history {
+			margin-top: 12px;
+			padding-top: 12px;
+			border-top: 1px solid #e2e8f0;
+		}
+		.pv-bill-pay-history-title {
+			font-size: 11px;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: .04em;
+			color: #64748b;
+			margin: 0 0 8px;
+		}
+		.pv-bill-pay-history table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 12px;
+		}
+		.pv-bill-pay-history th,
+		.pv-bill-pay-history td {
+			padding: 6px 8px;
+			border: 1px solid #e2e8f0;
+			text-align: left;
+		}
+		.pv-bill-pay-history th {
+			background: #f1f5f9;
+			font-weight: 700;
+		}
+		.pv-bill-pay-history td.num {
+			text-align: right;
+			white-space: nowrap;
+		}
+		.pv-bill-pay-history tr.is-current td {
+			background: #eff6ff;
+			font-weight: 700;
 		}
 		#pv_lines .pv-col-freight {
 			display: none;
@@ -358,11 +511,11 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 					<div class="ew-page-v2">
 						<div class="ew-page-head">
 							<div class="ew-page-head-left">
-								<a href="expense_general_list.php" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
+								<a href="<?php echo htmlspecialchars($list_return_url); ?>" class="ew-back-btn"><i class="fa fa-arrow-left"></i></a>
 								<h1 class="ew-page-title"><?php echo $preselect_id > 0 ? 'Edit Payment Voucher' : 'Add Payment Voucher'; ?></h1>
 							</div>
 							<div class="ew-toolbar-right">
-								<a href="expense_general_list.php" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
+								<a href="<?php echo htmlspecialchars($list_return_url); ?>" class="ew-btn-v2 ew-btn-v2-outline">View List</a>
 								<a href="company_bank.php" class="ew-btn-v2 ew-btn-v2-outline">Company Banks</a>
 							</div>
 						</div>
@@ -373,60 +526,114 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 								<div class="ew-form-grid ew-form-grid--general">
 									<div class="ew-section-label">Voucher Details</div>
 
-									<div class="ew-field">
-										<label class="control-label">Voucher Code :</label>
-										<input type="text" id="expense_no_display" class="form-control" readonly value="<?php echo $preselect_id > 0 ? '' : htmlspecialchars($preview_expense_no); ?>">
-									</div>
-									<div class="ew-field">
-										<label class="control-label">Voucher Date <span style="color:red;">*</span> :</label>
-										<input type="text" id="expense_date" name="expense_date" class="form-control ew-date-field" value="<?php echo htmlspecialchars($c_date); ?>" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
-									</div>
-									<div class="ew-field">
-										<label class="control-label">Vendor :</label>
-										<div class="egen-select-wrap">
-											<select id="vendor_id" name="vendor_id" class="form-control egen-select"></select>
-										</div>
-									</div>
+									<div class="pv-voucher-layout" id="pv_voucher_layout">
+										<div class="pv-voucher-fields">
+											<div class="ew-field pv-f-code">
+												<label class="control-label">Voucher Code :</label>
+												<input type="text" id="expense_no_display" class="form-control" readonly value="<?php echo $preselect_id > 0 ? '' : htmlspecialchars($preview_expense_no); ?>">
+											</div>
+											<div class="ew-field pv-f-date">
+												<label class="control-label">Voucher Date <span style="color:red;">*</span> :</label>
+												<input type="text" id="expense_date" name="expense_date" class="form-control ew-date-field" value="<?php echo htmlspecialchars($c_date); ?>" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
+											</div>
+											<div class="ew-field pv-f-type">
+												<label class="control-label">Voucher Type <span style="color:red;">*</span> :</label>
+												<div class="egen-select-wrap">
+													<select id="voucher_type" name="voucher_type" class="form-control egen-select">
+														<?php foreach ($voucher_type_form_options as $vt_key => $vt_label) { ?>
+															<option value="<?php echo htmlspecialchars($vt_key); ?>"<?php echo $vt_key === $default_voucher_type ? ' selected' : ''; ?>>
+																<?php echo htmlspecialchars($vt_label); ?>
+															</option>
+														<?php } ?>
+													</select>
+												</div>
+											</div>
+											<div class="ew-field pv-f-vendor">
+												<label class="control-label">Vendor :</label>
+												<div class="egen-select-wrap">
+													<select id="vendor_id" name="vendor_id" class="form-control egen-select"></select>
+												</div>
+											</div>
+											<div class="ew-field pv-f-bill" id="vendor_bill_wrap" style="display:none;">
+												<label class="control-label">Purchase Bill <span style="color:red;">*</span> :</label>
+												<div class="egen-select-wrap">
+													<select id="vendor_bill_id" name="vendor_bill_id" class="form-control egen-select"></select>
+												</div>
+											</div>
 
-									<div class="ew-field">
-										<label class="control-label">Voucher Type <span style="color:red;">*</span> :</label>
-										<div class="egen-select-wrap">
-											<select id="voucher_type" name="voucher_type" class="form-control egen-select">
-												<option value="general">General</option>
-												<option value="gcn">GCN</option>
-												<option value="purchase_bill">Against Purchase Bill</option>
-											</select>
-										</div>
-									</div>
-									<div class="ew-field" id="vendor_bill_wrap" style="display:none;">
-										<label class="control-label">Purchase Bill <span style="color:red;">*</span> :</label>
-										<div class="egen-select-wrap">
-											<select id="vendor_bill_id" name="vendor_bill_id" class="form-control egen-select"></select>
-										</div>
-									</div>
-									<div id="pv_gst_tds_fields" class="ew-field-span-tax" style="display:contents;">
-									<div class="ew-field">
-										<label class="control-label">GST % :</label>
-										<div class="egen-select-wrap">
-											<select id="gst_percent" name="gst_percent" class="form-control egen-select"></select>
-										</div>
-									</div>
-									<div class="ew-field">
-										<label class="control-label">TDS % :</label>
-										<div class="egen-select-wrap">
-											<select id="tds_percent" name="tds_percent" class="form-control egen-select"></select>
-										</div>
-									</div>
-									</div>
+											<div id="pv_gst_tds_fields" class="ew-field-span-tax" style="display:contents;">
+												<div class="ew-field pv-f-gst">
+													<label class="control-label">GST % :</label>
+													<div class="egen-select-wrap">
+														<select id="gst_percent" name="gst_percent" class="form-control egen-select"></select>
+													</div>
+												</div>
+												<div class="ew-field pv-f-tds">
+													<label class="control-label">TDS % :</label>
+													<div class="egen-select-wrap">
+														<select id="tds_percent" name="tds_percent" class="form-control egen-select"></select>
+													</div>
+												</div>
+											</div>
 
-									<div class="ew-field span-3" id="pv_bill_settlement" style="display:none;">
-										<div class="pv-bill-settle-grid">
-											<div class="pv-bill-settle-item"><span>Bill Total</span><strong id="pb_bill_total">0.00</strong></div>
-											<div class="pv-bill-settle-item"><span>Already Paid</span><strong id="pb_already_paid">0.00</strong></div>
-											<div class="pv-bill-settle-item"><span>Debit Note Adjustment</span><strong id="pb_debit_note">0.00</strong></div>
-											<div class="pv-bill-settle-item"><span>Outstanding Balance</span><strong id="pb_outstanding">0.00</strong></div>
-											<div class="pv-bill-settle-item"><span>GST (on bill)</span><strong id="pb_gst_ref">0.00</strong></div>
-											<div class="pv-bill-settle-item"><span>TDS (on bill)</span><strong id="pb_tds_ref">0.00</strong></div>
+											<div class="ew-field pv-f-inv-date pv-general-invoice-field" id="pv_field_vendor_invoice_date" style="display:none;">
+												<label class="control-label">Vendor invoice date</label>
+												<input type="text" id="vendor_invoice_date" name="vendor_invoice_date" class="form-control ew-date-field" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off" placeholder="Optional">
+											</div>
+											<div class="ew-field pv-f-inv-no pv-general-invoice-field" id="pv_field_vendor_invoice_no" style="display:none;">
+												<label class="control-label">Vendor invoice no.</label>
+												<input type="text" id="vendor_invoice_no" name="vendor_invoice_no" class="form-control" maxlength="100" autocomplete="off" placeholder="Optional">
+											</div>
+										</div>
+
+										<aside id="pv_general_gst_card" class="pv-voucher-bill-card" style="display:none;" aria-labelledby="pv_gst_card_title">
+											<div class="pv-gst-card-title" id="pv_gst_card_title">GST on vendor invoice</div>
+											<div class="pv-gst-card-pos">
+												<span class="lbl">Place of supply</span>
+												<strong id="pv_pos_disp">—</strong>
+												<span class="pv-supply-badge" id="pv_supply_badge" style="display:none;"></span>
+												<input type="hidden" id="pos_state_id" name="pos_state_id" value="">
+											</div>
+											<div class="pv-bill-settle-grid">
+												<div class="pv-bill-settle-item"><span>Taxable amount</span><strong id="pv_taxable_disp">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>CGST</span><strong id="pv_cgst_disp">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>SGST</span><strong id="pv_sgst_disp">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>IGST</span><strong id="pv_igst_disp">0.00</strong></div>
+											</div>
+											<div class="ew-field" style="margin-top:12px;margin-bottom:0;">
+												<label class="control-label" style="display:flex;align-items:center;gap:8px;">
+													<input type="checkbox" id="rcm_applicable" name="rcm_applicable" value="1"> Reverse charge (RCM)
+												</label>
+												<input type="text" id="rcm_gst_amount" name="rcm_gst_amount" class="form-control text-right" placeholder="RCM GST amount" style="margin-top:6px;display:none;">
+											</div>
+										</aside>
+
+										<div id="pv_bill_settlement" class="pv-voucher-bill-card" style="display:none;">
+											<div class="pv-bill-settle-grid">
+												<div class="pv-bill-settle-item"><span>Total Freight</span><strong id="pb_total_freight">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>Bill Total Paid</span><strong id="pb_already_paid">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>Debit Note Adjustment</span><strong id="pb_debit_note">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>Balance Payable</span><strong id="pb_outstanding">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>Taxable freight</span><strong id="pb_taxable_ref">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>CGST</span><strong id="pb_cgst_ref">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>SGST</span><strong id="pb_sgst_ref">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>IGST</span><strong id="pb_igst_ref">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>Invoice total</span><strong id="pb_invoice_total_ref">0.00</strong></div>
+												<div class="pv-bill-settle-item"><span>TDS (on bill)</span><strong id="pb_tds_ref">0.00</strong></div>
+											</div>
+											<div id="pb_payment_history_wrap" class="pv-bill-pay-history" style="display:none;">
+												<p class="pv-bill-pay-history-title">Payments on this purchase bill</p>
+												<table>
+													<thead>
+														<tr>
+															<th>Voucher</th>
+															<th>Date</th>
+															<th class="num">Amount</th>
+														</tr>
+													</thead>
+													<tbody id="pb_payment_history_body"></tbody>
+												</table>
+											</div>
 										</div>
 									</div>
 
@@ -441,14 +648,14 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 													<tr>
 														<th class="pv-col-gcn">GCN No.</th>
 														<th class="pv-col-type">Expense Type</th>
-														<th class="pv-col-freight">Freight Amount</th>
-														<th class="pv-th-amount-general">Expense Amount</th>
-														<th class="pv-th-amount-bill">Current Payment Amount</th>
-														<th>GST Amount</th>
-														<th>TDS Amount</th>
-														<th>Other Deduction</th>
-														<th>Net Amount</th>
-														<th style="width:48px;"></th>
+														<th class="pv-col-freight pv-col-num">Freight Amount</th>
+														<th class="pv-th-amount-general pv-col-num">Expense Amount</th>
+														<th class="pv-th-amount-bill pv-col-num">Current Payment Amount</th>
+														<th class="pv-col-num">GST Amount</th>
+														<th class="pv-col-num">TDS Amount</th>
+														<th class="pv-col-num">Other Deduction</th>
+														<th class="pv-col-num">Net Amount</th>
+														<th class="pv-col-action"></th>
 													</tr>
 												</thead>
 												<tbody id="pv_lines_body"></tbody>
@@ -525,6 +732,8 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 	<script type="text/javascript">
 		var generalExpenseId = <?php echo (int) $preselect_id; ?>;
 		var isVoucherEdit = generalExpenseId > 0;
+		window.PV_VOUCHER_TYPE_FORM = <?php echo json_encode($voucher_type_form_options, JSON_UNESCAPED_UNICODE); ?>;
+		window.PV_VOUCHER_TYPE_ALL = <?php echo json_encode($voucher_type_all_options, JSON_UNESCAPED_UNICODE); ?>;
 		var nextExpenseNoPreview = <?php echo json_encode($preview_expense_no, JSON_UNESCAPED_UNICODE); ?>;
 		var vendorOptions = <?php echo json_encode($vendor_rows, JSON_UNESCAPED_UNICODE); ?>;
 		var categoryOptions = <?php echo json_encode($category_rows, JSON_UNESCAPED_UNICODE); ?>;
@@ -535,6 +744,12 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 		var tdsOptions = <?php echo json_encode($tds_percent_options, JSON_UNESCAPED_UNICODE); ?>;
 		var primaryBankId = 0;
 		var purchaseBillSnap = null;
+		var companyStateId = <?php echo (int) $company_state_id; ?>;
+		var gstStateById = <?php echo json_encode($gst_state_by_id, JSON_UNESCAPED_UNICODE); ?>;
+		var vendorStateById = {};
+		$.each(vendorOptions || [], function(i, row) {
+			if (row && row.vendor_id) vendorStateById[String(row.vendor_id)] = parseInt(row.state, 10) || 0;
+		});
 
 		function escHtml(v) {
 			if (v === null || v === undefined) return '';
@@ -591,7 +806,7 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			$el.html(html);
 		}
 		function voucherType() {
-			return String(getSelectVal($('#voucher_type')) || 'general').toLowerCase();
+			return String(getSelectVal($('#voucher_type')) || 'purchase_bill').toLowerCase();
 		}
 		function isPurchaseBill() {
 			return voucherType() === 'purchase_bill';
@@ -645,7 +860,20 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			var $el = $('#voucher_type');
 			if ($el.data('select2')) $el.select2('destroy');
 			initSelect2($el, 'Select type');
-			setSelectVal($el, selected || 'general');
+			var formOpts = window.PV_VOUCHER_TYPE_FORM || {};
+			var allOpts = window.PV_VOUCHER_TYPE_ALL || {};
+			selected = String(selected || 'purchase_bill').toLowerCase();
+			var html = '';
+			$.each(formOpts, function(key, label) {
+				html += '<option value="' + escHtml(key) + '">' + escHtml(label) + '</option>';
+			});
+			if (selected && !formOpts[selected] && allOpts[selected]) {
+				html += '<option value="' + escHtml(selected) + '">' + escHtml(allOpts[selected]) + '</option>';
+			}
+			if ($el.data('select2')) $el.select2('destroy');
+			$el.html(html);
+			initSelect2($el, 'Select type');
+			setSelectVal($el, selected);
 			toggleGcnColumn();
 		}
 		function toggleGcnColumn() {
@@ -654,26 +882,131 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			if (!show) return;
 			refreshGcnSelects();
 		}
+		function isGeneralVoucher() {
+			var vt = voucherType();
+			return vt === 'general_expense' || vt === 'general';
+		}
+		function posStateIdVal() {
+			return parseInt($('#pos_state_id').val(), 10) || 0;
+		}
+		function syncPosDisplay() {
+			var id = posStateIdVal();
+			$('#pv_pos_disp').text(id > 0 ? (gstStateById[String(id)] || '—') : '—');
+			var supply = (companyStateId > 0 && id > 0 && companyStateId === id) ? 'intra' : (id > 0 ? 'inter' : '');
+			var $badge = $('#pv_supply_badge');
+			if (!supply) {
+				$badge.hide().text('');
+			} else {
+				$badge.text(supply === 'intra' ? 'Intra-state (CGST + SGST)' : 'Inter-state (IGST)').show();
+			}
+		}
+		function setPosStateId(stateId) {
+			$('#pos_state_id').val(stateId ? String(stateId) : '');
+			syncPosDisplay();
+		}
+		function defaultPosForVendor(vendorId) {
+			var st = vendorStateById[String(vendorId || '')];
+			if (st) setPosStateId(st);
+		}
+		function gstSplitAmounts(gstTotal, posId) {
+			gstTotal = parseMoney(gstTotal);
+			posId = parseInt(posId, 10) || 0;
+			if (gstTotal <= 0) return { cgst: 0, sgst: 0, igst: 0 };
+			var intra = companyStateId > 0 && posId > 0 && companyStateId === posId;
+			if (intra) {
+				var cgst = Math.round(gstTotal * 50) / 100;
+				var sgst = Math.round((gstTotal - cgst) * 100) / 100;
+				return { cgst: cgst, sgst: sgst, igst: 0 };
+			}
+			return { cgst: 0, sgst: 0, igst: gstTotal };
+		}
+		function syncGeneralGstBreakdown() {
+			if (!isGeneralVoucher()) return;
+			var taxable = 0;
+			var gst = 0;
+			$('#pv_lines_body tr').each(function() {
+				taxable += parseMoney($(this).find('.line-amount').val());
+				gst += parseMoney($(this).find('.line-gst').val());
+			});
+			$('#pv_taxable_disp').text(formatMoney(taxable));
+			var rcm = $('#rcm_applicable').is(':checked') ? parseMoney($('#rcm_gst_amount').val()) : 0;
+			var vendorGst = Math.max(0, Math.round((gst - rcm) * 100) / 100);
+			var split = gstSplitAmounts(vendorGst, posStateIdVal());
+			$('#pv_cgst_disp').text(formatMoney(split.cgst));
+			$('#pv_sgst_disp').text(formatMoney(split.sgst));
+			$('#pv_igst_disp').text(formatMoney(split.igst));
+			syncPosDisplay();
+		}
 		function togglePurchaseBillUi() {
 			var pb = isPurchaseBill();
+			var gen = isGeneralVoucher();
 			$('#pv_gst_tds_fields').toggleClass('is-hidden', pb);
+			$('.pv-general-invoice-field').toggle(gen);
+			$('#pv_general_gst_card').toggle(gen);
 			$('#vendor_bill_wrap').toggle(pb);
 			$('#pv_bill_settlement').toggle(pb);
+			$('#pv_voucher_layout').toggleClass('is-purchase-bill', pb);
+			$('#pv_voucher_layout').toggleClass('is-general-expense', gen);
 			$('#pv_lines').toggleClass('is-purchase-bill', pb);
 			$('#btn_add_line').toggle(!pb && !isVoucherEdit);
 			if (!pb) {
 				purchaseBillSnap = null;
 				setSelectVal($('#vendor_bill_id'), '');
 			}
+			if (gen) syncGeneralGstBreakdown();
 		}
 		function renderPurchaseBillSettlement(snap) {
 			snap = snap || {};
-			$('#pb_bill_total').text(snap.bill_total_fmt || formatMoney(snap.bill_total || 0));
-			$('#pb_already_paid').text(snap.already_paid_fmt || formatMoney(snap.already_paid || 0));
+			var already = parseMoney(snap.already_paid || 0);
+			var outstanding = parseMoney(snap.outstanding || 0);
+			var thisNet = 0;
+			$('#pv_lines_body tr').each(function() {
+				thisNet += parseMoney($(this).find('.line-net').val());
+				if (thisNet <= 0) {
+					var amt = parseMoney($(this).find('.line-amount').val());
+					var other = parseMoney($(this).find('.line-other').val());
+					var gst = parseMoney($(this).find('.line-gst').val());
+					var tds = parseMoney($(this).find('.line-tds').val());
+					thisNet += Math.max(0, amt + gst - tds + other);
+				}
+			});
+			if (generalExpenseId > 0 && thisNet > 0) {
+				already = Math.round((already + thisNet) * 100) / 100;
+				outstanding = Math.max(0, Math.round((outstanding - thisNet) * 100) / 100);
+			}
+			$('#pb_total_freight').text(snap.total_freight_fmt || snap.subtotal_fmt || formatMoney(snap.subtotal || snap.total_freight || 0));
+			$('#pb_taxable_ref').text(snap.subtotal_fmt || formatMoney(snap.subtotal || 0));
+			$('#pb_already_paid').text(formatMoney(already));
 			$('#pb_debit_note').text(snap.debit_note_adjustment_fmt || formatMoney(snap.debit_note_adjustment || 0));
-			$('#pb_outstanding').text(snap.outstanding_fmt || formatMoney(snap.outstanding || 0));
-			$('#pb_gst_ref').text((snap.gst_total_fmt || formatMoney(snap.gst_total || 0)) + (snap.gst_percent ? ' (' + snap.gst_percent + '%)' : ''));
+			$('#pb_outstanding').text(formatMoney(outstanding));
+			$('#pb_cgst_ref').text(snap.cgst_amount_fmt || formatMoney(snap.cgst_amount || 0));
+			$('#pb_sgst_ref').text(snap.sgst_amount_fmt || formatMoney(snap.sgst_amount || 0));
+			$('#pb_igst_ref').text(snap.igst_amount_fmt || formatMoney(snap.igst_amount || 0));
+			$('#pb_invoice_total_ref').text(snap.bill_total_fmt || formatMoney(snap.bill_total || snap.grand_total || 0));
 			$('#pb_tds_ref').text((snap.tds_amount_fmt || formatMoney(snap.tds_amount || 0)) + (snap.tds_percent ? ' (' + snap.tds_percent + '%)' : ''));
+			renderPurchaseBillPaymentHistory(snap);
+		}
+		function renderPurchaseBillPaymentHistory(snap) {
+			snap = snap || {};
+			var list = snap.payment_history || [];
+			var $wrap = $('#pb_payment_history_wrap');
+			var $body = $('#pb_payment_history_body').empty();
+			if (!list.length) {
+				$wrap.hide();
+				return;
+			}
+			$.each(list, function(i, row) {
+				var trClass = row.is_current ? ' class="is-current"' : '';
+				var no = escHtml(row.expense_no || '—');
+				if (row.is_current) {
+					no += ' <span style="font-weight:600;color:#0369a1;">(this voucher)</span>';
+				}
+				$body.append(
+					'<tr' + trClass + '><td>' + no + '</td><td>' + escHtml(row.expense_date || '—') + '</td>' +
+					'<td class="num">' + escHtml(row.payment_amount_fmt || formatMoney(row.payment_amount || 0)) + '</td></tr>'
+				);
+			});
+			$wrap.show();
 		}
 		function buildPurchaseBillSelect(rows, selected) {
 			var $el = $('#vendor_bill_id');
@@ -716,23 +1049,62 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 				}
 				purchaseBillSnap = r.snapshot || null;
 				renderPurchaseBillSettlement(purchaseBillSnap);
-				applyPurchaseBillToLines();
+				applyPurchaseBillToLines(!done);
 				if (done) done();
 			}).fail(function() {
 				purchaseBillSnap = null;
 				if (done) done();
 			});
 		}
-		function applyPurchaseBillToLines() {
+		function lineMoneyInput(val) {
+			if (val === null || val === undefined || val === '') return '';
+			if (typeof val === 'number' || (typeof val === 'string' && /^-?\d+(\.\d+)?$/.test(String(val).trim()))) {
+				return formatMoney(val);
+			}
+			return val;
+		}
+		function applyPurchaseBillToLines(addIfEmpty) {
 			if (!purchaseBillSnap) return;
 			$('#pv_lines_body tr').each(function() {
 				var $row = $(this);
-				$row.find('.line-freight').val(formatMoney(purchaseBillSnap.subtotal || 0));
+				$row.find('.line-freight').val(formatMoney(purchaseBillSnap.subtotal || purchaseBillSnap.total_freight || 0));
 				recalcRow($row);
 			});
-			if ($('#pv_lines_body tr').length === 0) {
+			if (addIfEmpty !== false && $('#pv_lines_body tr').length === 0) {
 				addLine({});
 			}
+		}
+		function setPurchaseBillLineData(data) {
+			data = data || {};
+			var $row = $('#pv_lines_body tr').first();
+			if (!$row.length) {
+				return addLine(data);
+			}
+			var $type = $row.find('.line-type');
+			if ($type.data('select2')) {
+				$type.select2('destroy');
+			}
+			$type.html(lineOptionsHtml(categoryOptions, 'category_id', 'label', data.category_id || ''));
+			initSelect2($type, 'Expense type');
+			if (data.category_id) {
+				setSelectVal($type, data.category_id);
+			}
+			if (data.freight_amount !== undefined && data.freight_amount !== '') {
+				$row.find('.line-freight').val(lineMoneyInput(data.freight_amount));
+			} else if (purchaseBillSnap) {
+				$row.find('.line-freight').val(formatMoney(purchaseBillSnap.subtotal || purchaseBillSnap.total_freight || 0));
+			}
+			if (data.expense_amount !== undefined && data.expense_amount !== '') {
+				$row.find('.line-amount').val(lineMoneyInput(data.expense_amount));
+			}
+			if (data.other_deduction !== undefined && data.other_deduction !== '') {
+				$row.find('.line-other').val(lineMoneyInput(data.other_deduction));
+			}
+			recalcRow($row);
+			if (isVoucherEdit) {
+				setRowLocked($row, true);
+			}
+			return $row;
 		}
 		function rememberGcn(key, label) {
 			key = key ? String(key) : '';
@@ -804,7 +1176,7 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			if (isPurchaseBill()) {
 				var gst = purchaseBillSnap ? parseMoney(purchaseBillSnap.gst_total) : 0;
 				var tds = purchaseBillSnap ? parseMoney(purchaseBillSnap.tds_amount) : 0;
-				var net = Math.round((amount - other) * 100) / 100;
+				var net = Math.round((amount + gst - tds + other) * 100) / 100;
 				$row.find('.line-gst').val(formatMoney(gst));
 				$row.find('.line-tds').val(formatMoney(tds));
 				$row.find('.line-net').val(formatMoney(net));
@@ -813,7 +1185,7 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			}
 			var gst = Math.round((amount * currentGst() / 100) * 100) / 100;
 			var tds = currentTds() > 0 && amount > 0 ? Math.round(amount * currentTds() / 100 * 100) / 100 : 0;
-			var net = Math.round((amount + gst - tds - other) * 100) / 100;
+			var net = Math.round((amount + gst - tds + other) * 100) / 100;
 			$row.find('.line-gst').val(formatMoney(gst));
 			$row.find('.line-tds').val(formatMoney(tds));
 			$row.find('.line-net').val(formatMoney(net));
@@ -827,6 +1199,10 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			var total = 0;
 			$('#pv_lines_body .line-net').each(function() { total += parseMoney($(this).val()); });
 			$('#net_payable_display').val(formatMoney(total));
+			syncGeneralGstBreakdown();
+			if (isPurchaseBill() && purchaseBillSnap) {
+				renderPurchaseBillSettlement(purchaseBillSnap);
+			}
 		}
 		function syncAddLineButton() {
 			$('#btn_add_line').toggle(!isVoucherEdit);
@@ -860,7 +1236,12 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			initSelect2($type, 'Expense type');
 			$type.on('change', function() { syncSelectTitle($(this)); });
 			$row.find('.line-gcn').on('change', function() { syncSelectTitle($(this)); });
-			$row.find('.line-amount, .line-other').on('input blur', function() { recalcRow($row); });
+			$row.find('.line-amount, .line-other').on('input blur', function() {
+				recalcRow($row);
+				if (isPurchaseBill() && purchaseBillSnap) {
+					renderPurchaseBillSettlement(purchaseBillSnap);
+				}
+			});
 			$row.find('.btn-edit-line').on('click', function() {
 				if ($(this).prop('disabled')) return;
 				setRowLocked($row, !$row.hasClass('line-locked'));
@@ -888,12 +1269,12 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			$row.append('<td class="pv-col-gcn"><select class="form-control line-gcn">' + lineOptionsHtml(gcnOptions, 'key', 'label', data.gcn_key || '') + '</select></td>');
 			$row.append('<td class="pv-col-type"><select class="form-control line-type">' + lineOptionsHtml(categoryOptions, 'category_id', 'label', data.category_id || '') + '</select></td>');
 			var freightVal = data.freight_amount !== undefined ? data.freight_amount : (purchaseBillSnap ? purchaseBillSnap.subtotal : '');
-			$row.append('<td class="pv-col-freight"><input type="text" class="form-control text-right line-freight" readonly tabindex="-1" value="' + escHtml(freightVal !== '' && freightVal !== undefined ? formatMoney(freightVal) : '') + '"></td>');
-			$row.append('<td><input type="text" class="form-control text-right line-amount" value="' + escHtml(data.expense_amount || '') + '" autocomplete="off"></td>');
-			$row.append('<td><input type="text" class="form-control text-right line-gst" readonly tabindex="-1"></td>');
-			$row.append('<td><input type="text" class="form-control text-right line-tds" readonly tabindex="-1"></td>');
-			$row.append('<td><input type="text" class="form-control text-right line-other" value="' + escHtml(data.other_deduction || '') + '" autocomplete="off"></td>');
-			$row.append('<td><input type="text" class="form-control text-right line-net" readonly tabindex="-1"></td>');
+			$row.append('<td class="pv-col-freight pv-col-num"><input type="text" class="form-control text-right line-freight" readonly tabindex="-1" value="' + escHtml(freightVal !== '' && freightVal !== undefined ? formatMoney(freightVal) : '') + '"></td>');
+			$row.append('<td class="pv-col-num"><input type="text" class="form-control text-right line-amount" value="' + escHtml(data.expense_amount || '') + '" autocomplete="off"></td>');
+			$row.append('<td class="pv-col-num"><input type="text" class="form-control text-right line-gst" readonly tabindex="-1"></td>');
+			$row.append('<td class="pv-col-num"><input type="text" class="form-control text-right line-tds" readonly tabindex="-1"></td>');
+			$row.append('<td class="pv-col-num"><input type="text" class="form-control text-right line-other" value="' + escHtml(data.other_deduction || '') + '" autocomplete="off"></td>');
+			$row.append('<td class="pv-col-num"><input type="text" class="form-control text-right line-net" readonly tabindex="-1"></td>');
 			var editBtn = isVoucherEdit
 				? '<button type="button" class="act-link act-edit btn-edit-line" title="Edit"><i class="fa fa-pencil"></i></button>'
 				: '';
@@ -984,6 +1365,14 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			$('#expense_date').val(data.expense_date || '');
 			buildVendorSelect(data.vendor_id || '');
 			initVoucherType(data.voucher_type || 'general');
+			$('#vendor_invoice_no').val(data.vendor_invoice_no || '');
+			$('#vendor_invoice_date').val(data.vendor_invoice_date || '');
+			setPosStateId(data.pos_state_id || 0);
+			$('#rcm_applicable').prop('checked', parseInt(data.rcm_applicable, 10) === 1);
+			$('#rcm_gst_amount').val(data.rcm_gst_amount || '').toggle(parseInt(data.rcm_applicable, 10) === 1);
+			if (!data.pos_state_id && data.vendor_id) {
+				defaultPosForVendor(data.vendor_id);
+			}
 			togglePurchaseBillUi();
 			buildGstSelect(data.gst_percent_raw !== undefined ? data.gst_percent_raw : data.gst_percent);
 			buildTdsSelect(data.tds_percent);
@@ -1004,23 +1393,18 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 			if ((data.voucher_type || '') === 'purchase_bill') {
 				loadPurchaseBillOptions(data.vendor_id || '', data.vendor_bill_id || '', function() {
 					loadPurchaseBillSnapshot(data.vendor_bill_id || '', function() {
-						if (!lines.length) {
-							addLine({
-								category_id: data.category_id || '',
-								expense_amount: data.expense_amount || '',
-								other_deduction: data.other_deduction || ''
-							});
-						} else {
-							$.each(lines, function(i, line) {
-								addLine({
-									category_id: line.category_id,
-									freight_amount: line.freight_amount_raw || line.freight_amount || '',
-									expense_amount: line.expense_amount,
-									other_deduction: line.other_deduction
-								});
-							});
+						var lineData = {};
+						if (lines.length) {
+							lineData = lines[0];
 						}
-						recalcAllRows();
+						setPurchaseBillLineData({
+							category_id: lineData.category_id || data.category_id || '',
+							freight_amount: lineData.freight_amount_raw != null ? lineData.freight_amount_raw : (lineData.freight_amount || ''),
+							expense_amount: lineData.expense_amount_raw != null ? lineData.expense_amount_raw : (lineData.expense_amount || data.expense_amount_raw || data.expense_amount || ''),
+							other_deduction: lineData.other_deduction_raw != null ? lineData.other_deduction_raw : (lineData.other_deduction || data.other_deduction_raw || data.other_deduction || '')
+						});
+						renderPurchaseBillSettlement(purchaseBillSnap);
+						recalcTotal();
 					});
 				});
 			} else if (!lines.length) {
@@ -1053,8 +1437,8 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 				if (parseInt(b.is_primary, 10) === 1) primaryBankId = parseInt(b.bank_account_id, 10) || 0;
 			});
 			buildVendorSelect('');
-			initVoucherType('general');
-			buildPurchaseBillSelect([], '');
+			initVoucherType(<?php echo json_encode($default_voucher_type); ?>);
+			syncPosDisplay();
 			togglePurchaseBillUi();
 			buildGstSelect(0);
 			buildTdsSelect('');
@@ -1102,7 +1486,7 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 					recalcAllRows();
 				}
 			});
-			$('#vendor_id').on('change', function() {
+			$('#vendor_id').on('change select2-selected', function() {
 				syncSelectTitle($(this));
 				var vid = getSelectVal($(this)) || 0;
 				if (isPurchaseBill()) {
@@ -1112,7 +1496,17 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 					loadPurchaseBillOptions(vid, '');
 					$('#pv_lines_body .line-freight').val('');
 					recalcAllRows();
+				} else if (isGeneralVoucher() && vid) {
+					defaultPosForVendor(vid);
+					syncGeneralGstBreakdown();
 				}
+			});
+			$('#rcm_applicable').on('change', function() {
+				$('#rcm_gst_amount').toggle($(this).is(':checked'));
+				syncGeneralGstBreakdown();
+			});
+			$('#rcm_gst_amount').on('input change', function() {
+				syncGeneralGstBreakdown();
 			});
 			$('#vendor_bill_id').on('change', function() {
 				syncSelectTitle($(this));
@@ -1172,10 +1566,12 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 						alert('Please select expense type.');
 						return;
 					}
-					var pay = 0;
-					$.each(lines, function(i, line) { pay += parseMoney(line.expense_amount); });
-					if (purchaseBillSnap && pay - parseMoney(purchaseBillSnap.outstanding) > 0.009) {
-						alert('Payment amount exceeds outstanding balance.');
+					var payNet = 0;
+					$('#pv_lines_body tr').each(function() {
+						payNet += parseMoney($(this).find('.line-net').val());
+					});
+					if (purchaseBillSnap && payNet - parseMoney(purchaseBillSnap.outstanding) > 0.009) {
+						alert('Payment exceeds outstanding net payable on this purchase bill.');
 						return;
 					}
 				}
@@ -1188,6 +1584,14 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 					vendor_bill_id: isPurchaseBill() ? getSelectVal($('#vendor_bill_id')) : 0,
 					gst_percent: isPurchaseBill() ? 0 : getSelectVal($('#gst_percent')),
 					tds_percent: isPurchaseBill() ? 0 : getSelectVal($('#tds_percent')),
+					vendor_invoice_no: isGeneralVoucher() ? ($('#vendor_invoice_no').val() || '') : '',
+					vendor_invoice_date: isGeneralVoucher() ? ($('#vendor_invoice_date').val() || '') : '',
+					pos_state_id: isGeneralVoucher() ? posStateIdVal() : 0,
+					rcm_applicable: isGeneralVoucher() && $('#rcm_applicable').is(':checked') ? 1 : 0,
+					rcm_gst_amount: isGeneralVoucher() ? parseMoney($('#rcm_gst_amount').val()) : 0,
+					cgst_amount: isGeneralVoucher() ? parseMoney($('#pv_cgst_disp').text()) : 0,
+					sgst_amount: isGeneralVoucher() ? parseMoney($('#pv_sgst_disp').text()) : 0,
+					igst_amount: isGeneralVoucher() ? parseMoney($('#pv_igst_disp').text()) : 0,
 					lines_json: JSON.stringify(lines),
 					description: $('#description').val(),
 					payment_mode: getSelectVal($('#payment_mode')),
@@ -1203,7 +1607,8 @@ foreach (billing_receipt_tds_percent_options($conn) as $opt) {
 						alert(r && r.message ? r.message : 'Save failed.');
 						return;
 					}
-					window.location.href = 'expense_general_list.php';
+					var listTab = isGeneralVoucher() ? 'general_expense' : 'purchase_bill';
+					window.location.href = 'expense_general_list.php?tab=' + encodeURIComponent(listTab);
 				}, 'json').fail(function() {
 					$('#btn_save').prop('disabled', false);
 					alert('Save request failed.');

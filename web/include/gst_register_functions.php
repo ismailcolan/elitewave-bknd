@@ -3,6 +3,8 @@
 require_once __DIR__ . '/billing_functions.php';
 require_once __DIR__ . '/billing_note_functions.php';
 require_once __DIR__ . '/expense_bill_helpers.php';
+require_once __DIR__ . '/expense_vendor_gst_helpers.php';
+require_once __DIR__ . '/expense_general_helpers.php';
 
 function gst_register_format_money($val)
 {
@@ -96,6 +98,7 @@ function gst_input_doc_type_options()
 	return array(
 		'' => 'All documents',
 		'vendor_bill' => 'Purchase Bill Registration',
+		'general_expense' => 'Payment Voucher (General)',
 		'debit_note' => 'Debit Note',
 	);
 }
@@ -308,18 +311,22 @@ function gst_input_fetch_rows($conn, $filters)
 	$events = array();
 
 	$vendor_sql = '';
+	$vendor_sql_header = '';
 	$note_vendor_sql = '';
 	if (!empty($filters['vendors'])) {
 		$ids = array_filter(array_map('intval', explode(',', $filters['vendors'])));
 		if (!empty($ids)) {
-			$vendor_sql = ' AND b.vendor_id IN (' . implode(',', $ids) . ')';
-			$note_vendor_sql = ' AND n.party_id IN (' . implode(',', $ids) . ')';
+			$in = implode(',', $ids);
+			$vendor_sql = ' AND b.vendor_id IN (' . $in . ')';
+			$vendor_sql_header = ' AND h.vendor_id IN (' . $in . ')';
+			$note_vendor_sql = ' AND n.party_id IN (' . $in . ')';
 		}
 	}
 
 	if (gst_register_want_doc($filters, 'vendor_bill')) {
-		$sql = "SELECT b.bill_id, b.bill_entry_no, b.bill_date, b.vendor_invoice_no, b.vendor_id,
-				b.subtotal, b.gst_total, b.grand_total, b.net_payable,
+		$sql = "SELECT b.bill_id, b.bill_entry_no, b.bill_date, b.vendor_invoice_no, b.vendor_invoice_date, b.vendor_id,
+				b.subtotal, b.gst_total, b.gst_percent, b.cgst_amount, b.sgst_amount, b.igst_amount,
+				b.pos_state_id, b.gst_supply_type, b.grand_total, b.net_payable,
 				v.vendor_code, v.vendor_name, v.gstin, v.state AS vendor_state
 			FROM vendor_bill b
 			LEFT JOIN vendor_master v ON v.vendor_id = b.vendor_id
@@ -332,8 +339,18 @@ function gst_input_fetch_rows($conn, $filters)
 		if ($q) {
 			while ($r = mysqli_fetch_assoc($q)) {
 				$taxable = round((float) ($r['subtotal'] ?? 0), 2);
-				$gst_total = round((float) ($r['gst_total'] ?? 0), 2);
-				$split = gst_register_split_by_state($conn, $gst_total, (int) ($r['vendor_state'] ?? 0));
+				$gst_comp = expense_vendor_gst_format_components($r);
+				$cgst = $gst_comp['cgst_amount'];
+				$sgst = $gst_comp['sgst_amount'];
+				$igst = $gst_comp['igst_amount'];
+				$gst_total = $gst_comp['gst_amount'];
+				if ($gst_total <= 0) {
+					$gst_total = round((float) ($r['gst_total'] ?? 0), 2);
+					$split = gst_register_split_by_state($conn, $gst_total, (int) ($r['pos_state_id'] ?? 0) ?: (int) ($r['vendor_state'] ?? 0));
+					$cgst = $split['cgst'];
+					$sgst = $split['sgst'];
+					$igst = $split['igst'];
+				}
 				$grand = round((float) ($r['grand_total'] ?? 0), 2);
 				if ($grand <= 0) {
 					$grand = round((float) ($r['net_payable'] ?? 0), 2);
@@ -357,10 +374,74 @@ function gst_input_fetch_rows($conn, $filters)
 					'party' => $party !== '' ? $party : '—',
 					'gstin' => $gstin !== '' ? $gstin : '—',
 					'taxable' => $taxable,
-					'cgst' => $split['cgst'],
-					'sgst' => $split['sgst'],
-					'igst' => $split['igst'],
-					'gst' => $split['gst'],
+					'cgst' => $cgst,
+					'sgst' => $sgst,
+					'igst' => $igst,
+					'gst' => $gst_total > 0 ? $gst_total : round($cgst + $sgst + $igst, 2),
+					'doc_value' => $grand,
+					'against' => $vinv,
+				);
+			}
+		}
+	}
+
+	if (gst_register_want_doc($filters, 'general_expense')) {
+		expense_general_ensure_schema($conn);
+		$sql = "SELECT h.general_expense_id, h.expense_no, h.expense_date, h.vendor_invoice_no, h.vendor_invoice_date,
+				h.expenses_without_gst, h.total_gst, h.cgst_amount, h.sgst_amount, h.igst_amount, h.net_payable,
+				h.pos_state_id, h.gst_supply_type, h.rcm_applicable, h.rcm_gst_amount,
+				v.vendor_code, v.vendor_name, v.gstin, v.state AS vendor_state
+			FROM general_expense_header h
+			LEFT JOIN vendor_master v ON v.vendor_id = h.vendor_id
+			WHERE h.status=0
+				AND LOWER(IFNULL(h.voucher_type,'')) IN ('general','general_expense')
+				AND STR_TO_DATE(h.expense_date, '%d-%m-%Y') >= '$from_esc'
+				AND STR_TO_DATE(h.expense_date, '%d-%m-%Y') <= '$to_esc'
+				$vendor_sql_header
+			ORDER BY STR_TO_DATE(h.expense_date, '%d-%m-%Y') ASC, h.general_expense_id ASC";
+		$vq = mysqli_query($conn, $sql);
+		if ($vq) {
+			while ($r = mysqli_fetch_assoc($vq)) {
+				$taxable = round((float) ($r['expenses_without_gst'] ?? 0), 2);
+				$gst_comp = expense_vendor_gst_format_components($r);
+				$cgst = $gst_comp['cgst_amount'];
+				$sgst = $gst_comp['sgst_amount'];
+				$igst = $gst_comp['igst_amount'];
+				$gst_total = $gst_comp['gst_amount'];
+				if ($gst_total <= 0) {
+					$gst_total = round((float) ($r['total_gst'] ?? 0), 2);
+					if ((int) ($r['rcm_applicable'] ?? 0) === 1) {
+						$gst_total = max(0, round($gst_total - (float) ($r['rcm_gst_amount'] ?? 0), 2));
+					}
+					$split = gst_register_split_by_state($conn, $gst_total, (int) ($r['pos_state_id'] ?? 0) ?: (int) ($r['vendor_state'] ?? 0));
+					$cgst = $split['cgst'];
+					$sgst = $split['sgst'];
+					$igst = $split['igst'];
+				}
+				$grand = round((float) ($r['net_payable'] ?? 0), 2);
+				$dt = DateTime::createFromFormat('d-m-Y', trim((string) ($r['expense_date'] ?? '')));
+				if (!$dt) {
+					continue;
+				}
+				$party = trim((string) (($r['vendor_code'] ?? '') . ' - ' . ($r['vendor_name'] ?? '')), ' -');
+				$gstin = strtoupper(trim((string) ($r['gstin'] ?? '')));
+				$ref = trim((string) ($r['expense_no'] ?? ''));
+				$vinv = trim((string) ($r['vendor_invoice_no'] ?? ''));
+				$events[] = array(
+					'sort_date' => $dt->format('Y-m-d'),
+					'doc_id' => (int) $r['general_expense_id'],
+					'doc_order' => 15,
+					'doc_type' => 'general_expense',
+					'doc_type_label' => 'Payment Voucher (General)',
+					'doc_no' => $ref !== '' ? $ref : ('PV-' . (int) $r['general_expense_id']),
+					'doc_date' => $dt->format('d-m-Y'),
+					'party' => $party !== '' ? $party : '—',
+					'gstin' => $gstin !== '' ? $gstin : '—',
+					'taxable' => $taxable,
+					'cgst' => $cgst,
+					'sgst' => $sgst,
+					'igst' => $igst,
+					'gst' => $gst_total > 0 ? $gst_total : round($cgst + $sgst + $igst, 2),
 					'doc_value' => $grand,
 					'against' => $vinv,
 				);

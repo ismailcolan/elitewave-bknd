@@ -91,7 +91,7 @@ function ew_list_table_export_pdf_send($conn, array $payload, array $options)
 		$html .= '</tr>';
 	}
 	$html .= '</tbody></table>';
-	$html .= elitewave_pdf_letterhead_close(false);
+	$html .= elitewave_pdf_letterhead_close(true);
 
 	require_once dirname(__DIR__) . '/vendor/autoload.php';
 

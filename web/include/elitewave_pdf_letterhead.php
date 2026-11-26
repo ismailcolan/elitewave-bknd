@@ -139,22 +139,32 @@ function elitewave_pdf_letterhead_open($conn, $document_title, $document_sub = '
 	return $html;
 }
 
+/**
+ * Standard PDF closing: Thanks & Regards, signatory, logo, navy/red bar, tagline.
+ */
+function elitewave_pdf_standard_signatory_block_html()
+{
+	if (!function_exists('quotation_pdf_terms_signatory_html')) {
+		require_once __DIR__ . '/quotation_pdf_gcn_terms.php';
+	}
+
+	return quotation_pdf_terms_signatory_html()
+		. quotation_pdf_terms_brand_bar_html()
+		. quotation_pdf_terms_brand_footer_html();
+}
+
+/** @deprecated Use elitewave_pdf_standard_signatory_block_html() — kept as alias for letterhead close. */
 function elitewave_pdf_letterhead_footer_html()
 {
-	return '
-<div style="margin-top:28px;padding-top:12px;border-top:1px solid ' . EW_LH_LINE . ';">
-	<table width="100%" cellpadding="0" cellspacing="0">
-	<tr>
-		<td style="border:0;padding:0;width:65%;vertical-align:bottom;">
-			<div style="font-size:9pt;color:#000;font-weight:bold;">EliteWave360 Logistics · Expectations Delivered</div>
-		</td>
-		<td style="border:0;padding:0;width:35%;text-align:right;vertical-align:bottom;">
-			<div style="font-size:9pt;font-weight:bold;color:' . EW_LH_NAVY . ';">For EliteWave360 Logistics</div>
-			<div style="font-size:9pt;color:#000;margin-top:2px;font-weight:bold;">Authorised Signatory</div>
-		</td>
-	</tr>
-	</table>
-</div>';
+	return elitewave_pdf_standard_signatory_block_html();
+}
+
+/** Close content area, append standard signatory block, end document wrapper. */
+function elitewave_pdf_letterhead_finish_with_signatory()
+{
+	return elitewave_pdf_letterhead_close_content()
+		. elitewave_pdf_standard_signatory_block_html()
+		. '</div>';
 }
 
 /** Close main content area only (outer wrapper stays open until full close). */

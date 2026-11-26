@@ -360,7 +360,7 @@ function expense_gcn_vendor_options($conn)
 {
 	ew_vendor_ensure_table($conn);
 	$rows = array();
-	$q = mysqli_query($conn, "SELECT vendor_id, vendor_code, vendor_name FROM vendor_master WHERE status=0 ORDER BY vendor_name ASC");
+	$q = mysqli_query($conn, "SELECT vendor_id, vendor_code, vendor_name, state FROM vendor_master WHERE status=0 ORDER BY vendor_name ASC");
 	if ($q) {
 		while ($row = mysqli_fetch_assoc($q)) {
 			$rows[] = array(
@@ -368,6 +368,7 @@ function expense_gcn_vendor_options($conn)
 				'vendor_code' => $row['vendor_code'],
 				'vendor_name' => $row['vendor_name'],
 				'label' => trim((string) ($row['vendor_name'] ?? '')),
+				'state' => (int) ($row['state'] ?? 0),
 			);
 		}
 	}

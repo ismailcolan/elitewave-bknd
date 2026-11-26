@@ -666,7 +666,8 @@ $(document).ready(function(){
       try { blob += '&' + $.param(data); } catch (e) {}
     }
     return blob.indexOf('sessions_check.php') !== -1
-      || blob.indexOf('get_notification') !== -1;
+      || blob.indexOf('get_notification') !== -1
+      || blob.indexOf('petty_cash_data.php') !== -1;
   }
   $(document).ajaxSend(function (event, xhr, settings) {
     if (ewLoaderSkip(settings)) {

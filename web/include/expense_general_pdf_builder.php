@@ -72,10 +72,6 @@ function expense_general_build_pdf_html($conn, array $view)
 		$html .= '</tr></table>';
 	}
 
-	$html .= elitewave_pdf_letterhead_close_content();
-	$html .= quotation_pdf_terms_signatory_html();
-	$html .= quotation_pdf_terms_brand_bar_html();
-	$html .= quotation_pdf_terms_brand_footer_html();
-	$html .= '</div>';
+	$html .= elitewave_pdf_letterhead_finish_with_signatory();
 	return $html;
 }

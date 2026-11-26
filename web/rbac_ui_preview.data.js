@@ -47,8 +47,11 @@ var EW_RBAC_PAGES = [
 	["request_for_new_pickup.php", "consignment", "Request For Pickup", 1, 0],
 
 	["expense_gcn_list.php", "expense", "GCN Profit & Loss — List", 1, 0],
+	["expense_gcn_list_backup.php", "expense", "GCN Profit & Loss — List (backup)", 1, 0],
 	["expense_gcn.php", "expense", "GCN Profit & Loss — Form", 0, 0],
-	["expense_general_list.php", "expense", "General Expense — List", 1, 0],
+	["expense_gcn_backup.php", "expense", "GCN Profit & Loss — Form (backup)", 0, 0],
+	["expense_general_list.php", "expense", "Payment Voucher — List", 1, 0],
+	["expense_general_list_backup.php", "expense", "Payment Voucher — List (backup)", 1, 0],
 	["expense_general.php", "expense", "General Expense — Form", 0, 0],
 	["petty_cash_list.php", "expense", "Petty Cash — List", 1, 0],
 	["petty_cash.php", "expense", "Petty Cash — Form", 0, 0],

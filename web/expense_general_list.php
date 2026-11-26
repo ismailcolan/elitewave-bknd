@@ -6,7 +6,13 @@ require_once('include/expense_general_helpers.php');
 expense_general_ensure_schema($conn);
 expense_require_admin();
 
-$list_rows = expense_general_fetch_list($conn, 'general');
+$list_tab = isset($_GET['tab']) ? strtolower(trim((string) $_GET['tab'])) : 'purchase_bill';
+if (!in_array($list_tab, array('purchase_bill', 'general_expense'), true)) {
+	$list_tab = 'purchase_bill';
+}
+$list_filter = ($list_tab === 'general_expense') ? 'general_expense_tab' : 'purchase_bill';
+$list_rows = expense_general_fetch_list($conn, $list_filter);
+$create_url = 'expense_general.php?create=1' . ($list_tab === 'general_expense' ? '&voucher_type=general_expense' : '&voucher_type=purchase_bill');
 ?>
 <!DOCTYPE html>
 <html>
@@ -104,6 +110,17 @@ $list_rows = expense_general_fetch_list($conn, 'general');
 				grid-template-columns: 1fr;
 			}
 		}
+
+		.egen-list-remark {
+			display: inline-block;
+			max-width: 220px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			vertical-align: bottom;
+		}
+
+		<?php echo expense_general_list_tab_css(); ?>
 	</style>
 </head>
 
@@ -123,36 +140,45 @@ $list_rows = expense_general_fetch_list($conn, 'general');
 							</div>
 						</div>
 						<div class="ew-card ew-erp-list">
+							<?php echo expense_general_list_tabs_html('expense_general_list.php', $list_tab); ?>
 							<div class="ew-card-toolbar">
 								<h2>Payment Voucher List</h2>
 								<div class="ew-toolbar-right">
 									<div class="ew-list-toolbar__tools"></div>
-									<a href="expense_general.php?create=1" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
+									<a href="<?php echo htmlspecialchars($create_url, ENT_QUOTES, 'UTF-8'); ?>" class="ew-btn-v2 ew-btn-v2-primary">Create <i class="fa fa-plus"></i></a>
 								</div>
 							</div>
 							<div class="ew-table-wrap widget-content padded clearfix new_dept">
 							<?php if (empty($list_rows)) { ?>
 								<div class="egen-empty" style="padding:24px;text-align:center;color:#64748b;">
-									No payment vouchers saved yet.
+									No <?php echo $list_tab === 'general_expense' ? 'general expense' : 'purchase bill'; ?> payment vouchers yet.
 									<br><br>
-									<a href="expense_general.php?create=1" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-plus"></i> Add Payment Voucher</a>
+									<a href="<?php echo htmlspecialchars($create_url, ENT_QUOTES, 'UTF-8'); ?>" class="ew-btn-v2 ew-btn-v2-primary"><i class="fa fa-plus"></i> Add Payment Voucher</a>
 								</div>
 							<?php } else { ?>
 									<table class="table table-bordered table-striped egen_list_tab" id="dataTable1">
 										<thead>
 											<tr>
 												<th>S.No</th>
-												<th>Voucher Code</th>
+												<th>Voucher</th>
 												<th>Voucher Date</th>
+												<?php if ($list_tab === 'purchase_bill') { ?>
+												<th>GCN No.</th>
+												<th>Purchase Bill No.</th>
 												<th>Vendor</th>
-												<th>Expense Type</th>
-												<th>Amount</th>
-												<th>GST</th>
-												<th>TDS</th>
-												<th>Net Payable</th>
+												<th class="num">Total Freight</th>
+												<th class="num">Payment Amount</th>
+												<th class="num">Bill Paid (till date)</th>
+												<th class="num" title="Remaining on purchase bill after this voucher">Balance After</th>
+												<th>Status</th>
+												<th>Remarks</th>
+												<?php } else { ?>
+												<th>Paid to</th>
+												<th>Particulars</th>
+												<th>Remarks</th>
+												<th class="num">Amount paid</th>
+												<?php } ?>
 												<th>Payment</th>
-												<th>Description</th>
-												<th>Last Updated</th>
 												<th class="table-title sorting_disabled col-actions">Action</th>
 											</tr>
 										</thead>
@@ -161,21 +187,47 @@ $list_rows = expense_general_fetch_list($conn, 'general');
 											$i = 1;
 											foreach ($list_rows as $row) {
 												$expense_id = (int) $row['general_expense_id'];
-												$edit_url = 'expense_general.php?id=' . $expense_id;
+												$edit_url = 'expense_general.php?id=' . $expense_id . '&list_tab=' . urlencode($list_tab);
 												?>
 												<tr>
 													<td><?php echo $i++; ?></td>
 													<td><strong><?php echo htmlspecialchars($row['expense_no']); ?></strong></td>
-													<td><?php echo htmlspecialchars($row['expense_date']); ?></td>
-													<td><?php echo htmlspecialchars($row['vendor_label'] ?: '—'); ?></td>
-													<td><?php echo htmlspecialchars($row['category_label'] ?: '—'); ?></td>
-													<td class="num"><?php echo htmlspecialchars($row['expense_amount']); ?></td>
-													<td class="num"><?php echo htmlspecialchars($row['gst_amount']); ?></td>
-													<td class="num"><?php echo htmlspecialchars($row['tds_amount']); ?></td>
-													<td class="num"><strong><?php echo htmlspecialchars($row['net_payable']); ?></strong></td>
-													<td><?php echo htmlspecialchars($row['payment_mode'] ?: '—'); ?></td>
-													<td><span class="egen-desc" title="<?php echo htmlspecialchars($row['description'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($row['description'] ?: '—'); ?></span></td>
-													<td><?php echo htmlspecialchars($row['updated_at']); ?></td>
+													<td><?php echo htmlspecialchars($row['expense_date'] ?: '—'); ?></td>
+													<?php if ($list_tab === 'purchase_bill') { ?>
+													<td><span title="<?php echo htmlspecialchars($row['gcn_label'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($row['gcn_label'] ?? '—'); ?></span></td>
+													<td><?php echo htmlspecialchars($row['vendor_bill_label'] ?? '—'); ?></td>
+													<td><?php echo htmlspecialchars(expense_general_list_vendor_name($row)); ?></td>
+													<td class="num"><?php echo htmlspecialchars($row['total_freight'] ?? '—'); ?></td>
+													<td class="num"><strong><?php echo htmlspecialchars($row['voucher_payment_fmt'] ?? ($row['expense_amount'] ?? '—')); ?></strong></td>
+													<td class="num"><?php echo htmlspecialchars($row['bill_total_paid'] ?? '—'); ?></td>
+													<td class="num"><strong><?php echo htmlspecialchars($row['bill_balance'] ?? '—'); ?></strong></td>
+													<td><?php echo htmlspecialchars($row['bill_status'] ?? '—'); ?></td>
+													<td>
+														<?php
+														$desc_pb = trim((string) ($row['description'] ?? ''));
+														if ($desc_pb !== '') {
+															echo '<span class="egen-list-remark" title="' . htmlspecialchars($desc_pb, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($desc_pb) . '</span>';
+														} else {
+															echo '—';
+														}
+														?>
+													</td>
+													<?php } else {
+														$desc_ge = trim((string) ($row['description'] ?? ''));
+														$particulars = expense_general_list_particulars_label($row);
+														?>
+													<td><?php echo htmlspecialchars(expense_general_list_vendor_name($row)); ?></td>
+													<td><?php echo htmlspecialchars($particulars); ?></td>
+													<td>
+														<?php if ($desc_ge !== '') { ?>
+															<span class="egen-list-remark" title="<?php echo htmlspecialchars($desc_ge, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($desc_ge); ?></span>
+														<?php } else {
+															echo '—';
+														} ?>
+													</td>
+													<td class="num"><strong><?php echo htmlspecialchars($row['net_payable'] ?? ($row['voucher_payment_fmt'] ?? '—')); ?></strong></td>
+													<?php } ?>
+													<td><?php echo htmlspecialchars($row['payment_mode_label'] ?? ($row['payment_mode'] ?: '—')); ?></td>
 													<td class="col-actions">
 														<span class="act-wrap">
 															<button type="button" class="act-link act-view btn-view-general-expense" title="View"
@@ -245,10 +297,28 @@ $list_rows = expense_general_fetch_list($conn, 'general');
 				html += '<div><dt>Voucher Code</dt><dd>' + egenEscHtml(data.expense_no || '—') + '</dd></div>';
 				html += '<div><dt>Voucher date</dt><dd>' + egenEscHtml(data.expense_date || '—') + '</dd></div>';
 				html += '<div><dt>Vendor</dt><dd>' + egenEscHtml(data.vendor_label || '—') + '</dd></div>';
-				html += '<div><dt>Expense type</dt><dd>' + egenEscHtml(data.category_label || '—') + '</dd></div>';
-				html += '<div><dt>Payment mode</dt><dd>' + egenEscHtml(data.payment_mode_label || data.payment_mode || '—') + '</dd></div>';
+				html += '<div><dt>Voucher type</dt><dd>' + egenEscHtml(data.voucher_type_label || data.voucher_type || '—') + '</dd></div>';
+				html += '<div><dt>Vendor</dt><dd>' + egenEscHtml(data.vendor_label || '—') + '</dd></div>';
+				html += '<div><dt>Purchase bill</dt><dd>' + egenEscHtml(data.vendor_bill_label || '—') + '</dd></div>';
 				html += '<div><dt>Last updated</dt><dd>' + egenEscHtml(data.updated_at || '—') + '</dd></div>';
+				if ((data.voucher_type || '') === 'purchase_bill') {
+					html += '<div><dt>This payment</dt><dd>' + egenEscHtml(data.voucher_payment_fmt || data.expense_amount || '—') + '</dd></div>';
+					html += '<div><dt>Bill paid (through this voucher)</dt><dd>' + egenEscHtml(data.bill_total_paid || '—') + '</dd></div>';
+					html += '<div><dt>Balance after this payment</dt><dd>' + egenEscHtml(data.bill_balance || '—') + ' · ' + egenEscHtml(data.bill_status || '—') + '</dd></div>';
+				}
 				html += '</div>';
+
+				var payHist = data.payment_history || [];
+				if (payHist.length && (data.voucher_type || '') === 'purchase_bill') {
+					html += '<table class="egen-view-amounts"><thead><tr><th>Earlier / other payments on this bill</th><th>Date</th><th class="num">Amount (₹)</th></tr></thead><tbody>';
+					$.each(payHist, function(i, row) {
+						var rowClass = row.is_current ? ' style="font-weight:700;background:#f0f9ff;"' : '';
+						html += '<tr' + rowClass + '><td>' + egenEscHtml(row.expense_no || '—') + (row.is_current ? ' (this voucher)' : '') + '</td>';
+						html += '<td>' + egenEscHtml(row.expense_date || '—') + '</td>';
+						html += '<td class="num">' + egenEscHtml(row.payment_amount_fmt || '—') + '</td></tr>';
+					});
+					html += '</tbody></table>';
+				}
 
 				if (data.description) {
 					html += '<div class="egen-view-desc"><strong>Description</strong><br>' + egenEscHtml(data.description) + '</div>';

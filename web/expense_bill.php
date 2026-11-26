@@ -18,8 +18,13 @@ $vendor_rows = expense_gcn_vendor_options($conn);
 $tds_percent_options = expense_bill_tds_percent_options($conn);
 $gst_percent_options = expense_bill_gst_percent_options($conn);
 $bill_due_days = expense_bill_due_days();
-$payment_modes = ew_company_bank_payment_modes();
-$bank_rows = ew_company_bank_options($conn);
+require_once('include/expense_vendor_gst_helpers.php');
+$gst_state_options = expense_vendor_gst_state_options($conn);
+$company_state_id = gst_register_company_state($conn);
+$gst_state_by_id = array();
+foreach ($gst_state_options as $st) {
+	$gst_state_by_id[(int) ($st['state_id'] ?? 0)] = (string) ($st['state_name'] ?? '');
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -62,8 +67,117 @@ $bank_rows = ew_company_bank_options($conn);
 		}
 
 		.ew-page-v2 .ew-field input.form-control,
-		.ew-page-v2 .ew-field select.form-control {
+		.ew-page-v2 .ew-field select.form-control:not([multiple]) {
 			height: 34px;
+		}
+		/* GCN multi-select — one row inside standard control (full border intact) */
+		#gcn_wrap .select2-container-multi {
+			display: block !important;
+			width: 100% !important;
+			max-width: 100% !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices {
+			position: relative !important;
+			display: flex !important;
+			flex-direction: row !important;
+			flex-wrap: nowrap !important;
+			align-items: center !important;
+			height: var(--ew-control-h, 34px) !important;
+			max-height: var(--ew-control-h, 34px) !important;
+			min-height: var(--ew-control-h, 34px) !important;
+			overflow: hidden !important;
+			padding: 0 34px 0 6px !important;
+			box-sizing: border-box !important;
+			border-radius: var(--ew-control-radius, 8px) !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices::after {
+			top: 1px !important;
+			right: 1px !important;
+			bottom: 1px !important;
+			width: 32px !important;
+			height: auto !important;
+			z-index: 2 !important;
+			background: #f8fafc !important;
+			border-radius: 0 calc(var(--ew-control-radius, 8px) - 1px) calc(var(--ew-control-radius, 8px) - 1px) 0 !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices::before {
+			z-index: 3 !important;
+			right: 12px !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices li {
+			float: none !important;
+			display: block !important;
+			flex: 0 1 auto !important;
+			min-width: 0 !important;
+			margin: 0 !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices .select2-search-choice {
+			max-width: 88px !important;
+			margin: 2px 4px 2px 0 !important;
+			overflow: hidden !important;
+			text-overflow: ellipsis !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices .select2-search-choice div {
+			overflow: hidden !important;
+			text-overflow: ellipsis !important;
+			white-space: nowrap !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices .select2-search-field {
+			flex: 1 1 20px !important;
+			width: auto !important;
+			min-width: 0 !important;
+			max-width: 100% !important;
+			margin: 0 !important;
+			padding: 0 !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices .select2-search-field:only-child {
+			flex: 1 1 auto !important;
+			width: 100% !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices .select2-search-field input {
+			width: 100% !important;
+			min-width: 0 !important;
+			max-width: 100% !important;
+			height: calc(var(--ew-control-h, 34px) - 2px) !important;
+			min-height: calc(var(--ew-control-h, 34px) - 2px) !important;
+			line-height: calc(var(--ew-control-h, 34px) - 2px) !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices .select2-search-choice ~ .select2-search-field {
+			flex: 0 0 18px !important;
+			width: 18px !important;
+			min-width: 18px !important;
+			max-width: 56px !important;
+		}
+		#gcn_wrap .select2-container-multi .select2-choices .select2-search-choice ~ .select2-search-field input {
+			width: 18px !important;
+			min-width: 18px !important;
+			max-width: 56px !important;
+		}
+		#gcn_wrap .select2-container-multi.select2-container-active .select2-choices .select2-search-choice ~ .select2-search-field,
+		#gcn_wrap .select2-container-multi.select2-dropdown-open .select2-choices .select2-search-choice ~ .select2-search-field {
+			flex: 1 1 48px !important;
+			width: auto !important;
+			min-width: 48px !important;
+			max-width: 100% !important;
+		}
+		#gcn_wrap .select2-container-multi.select2-container-active .select2-choices .select2-search-choice ~ .select2-search-field input,
+		#gcn_wrap .select2-container-multi.select2-dropdown-open .select2-choices .select2-search-choice ~ .select2-search-field input {
+			width: 100% !important;
+			min-width: 48px !important;
+			max-width: none !important;
+		}
+		#gcn_wrap .select2-drop {
+			z-index: 10050 !important;
+			max-width: 100% !important;
+			box-sizing: border-box !important;
+		}
+		#gcn_wrap .select2-results {
+			max-width: 100% !important;
+		}
+		#gcn_wrap .select2-results .select2-result-label {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 
 		.ew-form-footer.ebill-form-footer {
@@ -441,7 +555,6 @@ $bank_rows = ew_company_bank_options($conn);
 			line-height: 1.2;
 			color: var(--ew-navy, #0A1E3D);
 		}
-
 		#due_date[readonly] {
 			background: #F8FAFC;
 			cursor: default;
@@ -450,6 +563,106 @@ $bank_rows = ew_company_bank_options($conn);
 			background: #f1f5f9;
 			color: #475569;
 			cursor: not-allowed;
+		}
+
+		.ebill-details-shell {
+			grid-column: span 3;
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) minmax(220px, 268px);
+			gap: 18px;
+			align-items: start;
+		}
+		.ebill-details-grid {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 12px 16px;
+			min-width: 0;
+		}
+		.ebill-details-grid .ew-field {
+			margin: 0;
+			min-width: 0;
+		}
+		#gcn_wrap .ebill-gcn-multi-wrap {
+			max-width: 100%;
+		}
+		.ebill-tax-card {
+			border: 1px solid var(--ew-border-light, #E9ECF0);
+			border-radius: 10px;
+			padding: 14px 16px;
+			background: #FAFBFC;
+			position: sticky;
+			top: 72px;
+		}
+		.ebill-tax-card__title {
+			font-size: 12px;
+			font-weight: 600;
+			color: #334155;
+			margin-bottom: 12px;
+			letter-spacing: 0.01em;
+		}
+		.ebill-tax-card__pos {
+			margin-bottom: 14px;
+			padding-bottom: 12px;
+			border-bottom: 1px dashed #E2E8F0;
+		}
+		.ebill-tax-card__pos .lbl {
+			display: block;
+			font-size: 10px;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			color: #64748B;
+			margin-bottom: 4px;
+		}
+		.ebill-tax-card__pos strong {
+			display: block;
+			font-size: 13px;
+			color: #0F172A;
+			line-height: 1.35;
+		}
+		.ebill-supply-badge {
+			display: inline-block;
+			margin-top: 6px;
+			font-size: 10px;
+			font-weight: 600;
+			padding: 2px 8px;
+			border-radius: 999px;
+			background: #EEF2FF;
+			color: #4338CA;
+		}
+		.ebill-tax-card__rows {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+		.ebill-tax-card__row {
+			display: flex;
+			justify-content: space-between;
+			align-items: baseline;
+			gap: 12px;
+			font-size: 11px;
+			color: #64748B;
+		}
+		.ebill-tax-card__row strong {
+			font-size: 13px;
+			color: #0F172A;
+			font-weight: 600;
+		}
+
+		@media (max-width: 991px) {
+			.ebill-details-shell {
+				grid-template-columns: 1fr;
+			}
+			.ebill-tax-card {
+				position: static;
+			}
+			.ebill-details-grid {
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+			}
+		}
+		@media (max-width: 640px) {
+			.ebill-details-grid {
+				grid-template-columns: 1fr;
+			}
 		}
 	</style>
 </head>
@@ -477,60 +690,81 @@ $bank_rows = ew_company_bank_options($conn);
 							<div class="ew-form-body">
 							<form id="bill_registration_form" enctype="multipart/form-data">
 								<div class="ew-form-grid ew-form-grid--bill">
-									<div class="ew-section-label">Bill Details</div>
+									<div class="ew-section-label span-3">Bill Details</div>
 
-									<div class="ew-field">
-										<label class="control-label">Bill Entry No. :</label>
-										<input type="text" id="bill_entry_no_display" class="form-control" readonly value="<?php echo $preselect_id > 0 ? '' : htmlspecialchars($preview_bill_no); ?>">
-									</div>
-									<div class="ew-field">
-										<label class="control-label">Bill Date <span style="color:red;">*</span> :</label>
-										<input type="text" id="bill_date" name="bill_date" class="form-control ew-date-field" value="<?php echo htmlspecialchars($c_date); ?>" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
-									</div>
-									<input type="hidden" id="bill_type" name="bill_type" value="transaction">
+									<div class="ebill-details-shell">
+										<div class="ebill-details-grid">
+											<div class="ew-field">
+												<label class="control-label">Bill Entry No. :</label>
+												<input type="text" id="bill_entry_no_display" class="form-control" readonly value="<?php echo $preselect_id > 0 ? '' : htmlspecialchars($preview_bill_no); ?>">
+											</div>
+											<div class="ew-field">
+												<label class="control-label">Bill Date <span style="color:red;">*</span> :</label>
+												<input type="text" id="bill_date" name="bill_date" class="form-control ew-date-field" value="<?php echo htmlspecialchars($c_date); ?>" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
+											</div>
+											<input type="hidden" id="bill_type" name="bill_type" value="transaction">
 
-									<div class="ew-field">
-										<label class="control-label">Vendor <span style="color:red;">*</span> :</label>
-										<div class="egen-select-wrap">
-											<select id="vendor_id" name="vendor_id" class="form-control egen-select"></select>
-										</div>
-										<span class="ew-field-hint" id="vendor_terms_hint"></span>
-									</div>
-									<div class="ew-field" id="gcn_wrap">
-										<label class="control-label">GCN No. &amp; Date <span style="color:red;">*</span> : (Select one or more GCNs)</label>
-										<div class="egen-select-wrap">
-											<select id="gcn_keys" name="gcn_keys[]" class="form-control egen-select" multiple="multiple"></select>
-										</div>
-									</div>
-									<div class="ew-field">
-										<label class="control-label">Vendor Invoice/Memo No. <span style="color:red;">*</span> :</label>
-										<input type="text" id="vendor_invoice_no" name="vendor_invoice_no" class="form-control" maxlength="100" autocomplete="off">
-									</div>
+											<div class="ew-field">
+												<label class="control-label">Vendor <span style="color:red;">*</span> :</label>
+												<div class="egen-select-wrap">
+													<select id="vendor_id" name="vendor_id" class="form-control egen-select"></select>
+												</div>
+												<span class="ew-field-hint" id="vendor_terms_hint"></span>
+											</div>
+											<div class="ew-field" id="gcn_wrap">
+												<label class="control-label">GCN No. <span style="color:red;">*</span></label>
+												<div class="egen-select-wrap ebill-gcn-multi-wrap">
+													<select id="gcn_keys" name="gcn_keys[]" class="form-control ebill-gcn-multi" multiple="multiple" data-placeholder="Search & select GCN no."></select>
+												</div>
+											</div>
+											<div class="ew-field">
+												<label class="control-label">Vendor Invoice/Memo No. <span style="color:red;">*</span> :</label>
+												<input type="text" id="vendor_invoice_no" name="vendor_invoice_no" class="form-control" maxlength="100" autocomplete="off">
+											</div>
 
-									<div class="ew-field">
-										<label class="control-label">Vendor Invoice/Memo Date <span style="color:red;">*</span> :</label>
-										<input type="text" id="vendor_invoice_date" name="vendor_invoice_date" class="form-control ew-date-field" value="" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
-									</div>
-									<div class="ew-field">
-										<label class="control-label">Invoice/Memo Received Date <span style="color:red;">*</span> :</label>
-										<input type="text" id="invoice_received_date" name="invoice_received_date" class="form-control ew-date-field" value="<?php echo htmlspecialchars($c_date); ?>" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
-									</div>
-									<div class="ew-field">
-										<label class="control-label">Due Date <span style="color:red;">*</span> :</label>
-										<input type="text" id="due_date" name="due_date" class="form-control" value="" readonly autocomplete="off">
-										<span class="ew-field-hint" id="due_date_hint">Auto: vendor invoice date + vendor credit days</span>
-									</div>
-									<div class="ew-field">
-										<label class="control-label">GST % :</label>
-										<div class="egen-select-wrap">
-											<select id="gst_percent" name="gst_percent" class="form-control egen-select ebill-tax-select"></select>
+											<div class="ew-field">
+												<label class="control-label">Vendor Invoice/Memo Date <span style="color:red;">*</span> :</label>
+												<input type="text" id="vendor_invoice_date" name="vendor_invoice_date" class="form-control ew-date-field" value="" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
+											</div>
+											<div class="ew-field">
+												<label class="control-label">Invoice/Memo Received Date <span style="color:red;">*</span> :</label>
+												<input type="text" id="invoice_received_date" name="invoice_received_date" class="form-control ew-date-field" value="<?php echo htmlspecialchars($c_date); ?>" data-ew-datepicker="1" data-date-format="dd-mm-yyyy" autocomplete="off">
+											</div>
+											<div class="ew-field">
+												<label class="control-label">Due Date <span style="color:red;">*</span> :</label>
+												<input type="text" id="due_date" name="due_date" class="form-control" value="" readonly autocomplete="off">
+											</div>
+											<div class="ew-field">
+												<label class="control-label">GST % :</label>
+												<div class="egen-select-wrap">
+													<select id="gst_percent" name="gst_percent" class="form-control egen-select ebill-tax-select"></select>
+												</div>
+											</div>
+											<div class="ew-field">
+												<label class="control-label">TDS % :</label>
+												<div class="egen-select-wrap">
+													<select id="tds_percent" name="tds_percent" class="form-control egen-select ebill-tax-select"></select>
+												</div>
+											</div>
 										</div>
-									</div>
-									<div class="ew-field">
-										<label class="control-label">TDS % :</label>
-										<div class="egen-select-wrap">
-											<select id="tds_percent" name="tds_percent" class="form-control egen-select ebill-tax-select"></select>
-										</div>
+
+										<aside class="ebill-tax-card" aria-labelledby="ebill_tax_card_title">
+											<div class="ebill-tax-card__title" id="ebill_tax_card_title">GST on vendor invoice</div>
+											<div class="ebill-tax-card__pos">
+												<span class="lbl">Place of supply</span>
+												<strong id="ebill_pos_disp">—</strong>
+												<span class="ebill-supply-badge" id="ebill_supply_badge" style="display:none;"></span>
+											</div>
+											<div class="ebill-tax-card__rows" id="ebill_gst_split_display">
+												<div class="ebill-tax-card__row"><span>CGST</span><strong id="ebill_cgst_disp">0.00</strong></div>
+												<div class="ebill-tax-card__row"><span>SGST</span><strong id="ebill_sgst_disp">0.00</strong></div>
+												<div class="ebill-tax-card__row"><span>IGST</span><strong id="ebill_igst_disp">0.00</strong></div>
+											</div>
+											<input type="hidden" id="pos_state_id" name="pos_state_id" value="">
+											<input type="hidden" id="bill_cgst" name="bill_cgst" value="0">
+											<input type="hidden" id="bill_sgst" name="bill_sgst" value="0">
+											<input type="hidden" id="bill_igst" name="bill_igst" value="0">
+										</aside>
 									</div>
 
 									<div class="ew-field span-3" id="gcn_summary_wrap">
@@ -576,46 +810,6 @@ $bank_rows = ew_company_bank_options($conn);
 										<textarea id="narration" name="narration" class="form-control" maxlength="1000" rows="3" placeholder="Optional notes"></textarea>
 									</div>
 
-									<div class="ew-section-label">Payment Details</div>
-
-									<div class="ew-field">
-										<label class="control-label">Payment Mode <span style="color:red;">*</span> :</label>
-										<div class="egen-select-wrap">
-											<select id="payment_mode" name="payment_mode" class="form-control egen-select">
-												<option value=""></option>
-												<?php foreach ($payment_modes as $code => $label) { ?>
-													<option value="<?php echo htmlspecialchars($code); ?>"><?php echo htmlspecialchars($label); ?></option>
-												<?php } ?>
-											</select>
-										</div>
-									</div>
-									<div class="ew-field" id="payment_bank_account_wrap" style="display:none;">
-										<label class="control-label">Company Bank Account :</label>
-										<div class="bank-link-wrap">
-											<div class="egen-select-wrap">
-												<select id="company_bank_id" name="company_bank_id" class="form-control egen-select"></select>
-											</div>
-											<a href="company_bank.php" class="ew-btn-v2 ew-btn-v2-outline btn-add-inline" title="Manage company bank accounts">Manage</a>
-										</div>
-									</div>
-
-									<div class="ew-field span-3" id="bank_details_row" style="display:none;">
-										<div class="ew-form-grid--bank-inline">
-											<div class="ew-field">
-												<label class="control-label">Bank Name :</label>
-												<input type="text" id="payment_bank_name" name="payment_bank_name" class="form-control bank-readonly" readonly autocomplete="off">
-											</div>
-											<div class="ew-field">
-												<label class="control-label">IFSC Code :</label>
-												<input type="text" id="payment_ifsc" name="payment_ifsc" class="form-control bank-readonly" readonly autocomplete="off">
-											</div>
-											<div class="ew-field">
-												<label class="control-label">Branch :</label>
-												<input type="text" id="payment_bank_branch" name="payment_bank_branch" class="form-control bank-readonly" readonly autocomplete="off">
-											</div>
-										</div>
-									</div>
-
 									<div class="ew-field span-3">
 										<label class="control-label">Attachments :</label>
 										<div class="ew-upload-image ew-upload-image--multi" id="bill_attach_drop_wrap">
@@ -654,8 +848,10 @@ $bank_rows = ew_company_bank_options($conn);
 		var billId = <?php echo (int) $preselect_id; ?>;
 		var nextBillNoPreview = <?php echo json_encode($preview_bill_no, JSON_UNESCAPED_UNICODE); ?>;
 		var vendorOptions = <?php echo json_encode($vendor_rows, JSON_UNESCAPED_UNICODE); ?>;
-		var bankOptions = <?php echo json_encode($bank_rows, JSON_UNESCAPED_UNICODE); ?>;
 		var gstPercentOptions = <?php echo json_encode($gst_percent_options, JSON_UNESCAPED_UNICODE); ?>;
+		var companyStateId = <?php echo (int) $company_state_id; ?>;
+		var gstStateById = <?php echo json_encode($gst_state_by_id, JSON_UNESCAPED_UNICODE); ?>;
+		var vendorStateById = {};
 		var tdsPercentOptions = <?php echo json_encode($tds_percent_options, JSON_UNESCAPED_UNICODE); ?>;
 		var billDueDays = <?php echo (int) $bill_due_days; ?>;
 		var gcnAmounts = {}; // gcn_key => { freight, gst_percent } entered manually from vendor invoice
@@ -736,10 +932,15 @@ $bank_rows = ew_company_bank_options($conn);
 			$el.html(html);
 		}
 		function buildVendorSelect(selected) {
+			vendorStateById = {};
+			$.each(vendorOptions || [], function(i, row) {
+				if (row && row.vendor_id) vendorStateById[String(row.vendor_id)] = parseInt(row.state, 10) || 0;
+			});
 			var $el = $('#vendor_id');
 			fillSelectOptions($el, vendorOptions, 'vendor_id', 'label', selected);
 			initSelect2($el, 'Select vendor');
 			setSelectVal($el, selected || '');
+			defaultPosForVendor(getSelectVal($el));
 		}
 		function buildGcnSelect(selected) {
 			var $el = $('#gcn_keys');
@@ -747,70 +948,29 @@ $bank_rows = ew_company_bank_options($conn);
 			if ($el.data('select2')) $el.select2('destroy');
 			$el.select2({
 				width: '100%',
-				placeholder: 'Select GCN(s)',
+				placeholder: 'Search & select GCN no.',
 				allowClear: true,
-				minimumResultsForSearch: 0
+				minimumResultsForSearch: 0,
+				closeOnSelect: false
 			});
 			setMultiSelectVal($el, selected || []);
 			$el.off('change.ebillGcn').on('change.ebillGcn', function() {
+				syncGcnSelectTitle();
 				refreshSelectedGcnDetails();
 			});
+			syncGcnSelectTitle();
 		}
-		function buildBankSelect(selected) {
-			var $el = $('#company_bank_id');
-			fillSelectOptions($el, bankOptions, 'bank_account_id', 'label', selected);
-			initSelect2($el, 'Select company bank account');
-			setSelectVal($el, selected || '');
-		}
-		function initPaymentModeSelect(selected) {
-			var $el = $('#payment_mode');
-			if ($el.data('select2')) $el.select2('destroy');
-			initSelect2($el, 'Select payment mode');
-			setSelectVal($el, selected || '');
-		}
-		function getBankById(id) {
-			var found = null;
-			$.each(bankOptions, function(i, b) {
-				if (String(b.bank_account_id) === String(id)) found = b;
+		function syncGcnSelectTitle() {
+			var labels = [];
+			var $sel = $('#gcn_keys');
+			$sel.find('option:selected').each(function() {
+				var t = $.trim($(this).text());
+				if (t) labels.push(t);
 			});
-			return found;
-		}
-		function applyBankDetails(bankId) {
-			var bank = getBankById(bankId);
-			$('#payment_bank_name').val(bank ? bank.bank_name : '');
-			$('#payment_ifsc').val(bank ? bank.ifsc : '');
-			$('#payment_bank_branch').val(bank ? bank.bank_branch : '');
-		}
-		function paymentModeRequiresBank(mode) {
-			mode = String(mode || '').toUpperCase();
-			return $.inArray(mode, ['CHEQUE', 'NEFT', 'RTGS', 'IMPS', 'DD']) >= 0;
-		}
-		function clearBankSelection() {
-			setSelectVal($('#company_bank_id'), '');
-			applyBankDetails('');
-		}
-		function togglePaymentBankRequirement() {
-			var mode = String(getSelectVal($('#payment_mode')) || '').toUpperCase();
-			var required = paymentModeRequiresBank(mode);
-			var showBank = mode !== '' && mode !== 'CASH';
-
-			$('#payment_bank_account_wrap').toggle(showBank);
-			$('#bank_details_row').toggle(showBank && !!getSelectVal($('#company_bank_id')));
-
-			if (!showBank) {
-				clearBankSelection();
-			} else if (required && !getSelectVal($('#company_bank_id')) && bankOptions.length === 1) {
-				var onlyBankId = String(bankOptions[0].bank_account_id);
-				setSelectVal($('#company_bank_id'), onlyBankId);
-				applyBankDetails(onlyBankId);
-				$('#bank_details_row').show();
-			}
-
-			if (required) {
-				$('#payment_bank_account_wrap').find('label.control-label').first().html('Company Bank Account <span style="color:red;">*</span> :');
-			} else {
-				$('#payment_bank_account_wrap').find('label.control-label').first().html('Company Bank Account :');
-			}
+			var title = labels.length ? labels.join(', ') : '';
+			var $box = $('#gcn_wrap .select2-container-multi');
+			$box.attr('title', title);
+			$box.toggleClass('ebill-gcn-has-many', labels.length > 2);
 		}
 		function moneyNum(v) {
 			var n = parseFloat(v);
@@ -1060,10 +1220,56 @@ $bank_rows = ew_company_bank_options($conn);
 				});
 			});
 		}
+		function gstSupplyType(posId) {
+			posId = parseInt(posId, 10) || 0;
+			if (companyStateId <= 0 || posId <= 0) return '';
+			return companyStateId === posId ? 'intra' : 'inter';
+		}
+		function splitGstAmount(gstTotal, supply) {
+			gstTotal = moneyNum(gstTotal);
+			if (gstTotal <= 0) return { cgst: 0, sgst: 0, igst: 0 };
+			if (supply === 'inter') return { cgst: 0, sgst: 0, igst: gstTotal };
+			var cgst = moneyNum(gstTotal / 2);
+			var sgst = moneyNum(gstTotal - cgst);
+			return { cgst: cgst, sgst: sgst, igst: 0 };
+		}
+		function posStateIdVal() {
+			return parseInt($('#pos_state_id').val(), 10) || 0;
+		}
+		function syncPosDisplay() {
+			var id = posStateIdVal();
+			var name = id > 0 ? (gstStateById[String(id)] || '—') : '—';
+			$('#ebill_pos_disp').text(name);
+			var supply = gstSupplyType(id);
+			var $badge = $('#ebill_supply_badge');
+			if (!supply) {
+				$badge.hide().text('');
+			} else {
+				$badge.text(supply === 'intra' ? 'Intra-state (CGST + SGST)' : 'Inter-state (IGST)').show();
+			}
+		}
+		function setPosStateId(stateId) {
+			$('#pos_state_id').val(stateId ? String(stateId) : '');
+			syncPosDisplay();
+		}
+		function syncBillGstSplit(gstTotal) {
+			var split = splitGstAmount(gstTotal, gstSupplyType(posStateIdVal()));
+			$('#bill_cgst').val(split.cgst);
+			$('#bill_sgst').val(split.sgst);
+			$('#bill_igst').val(split.igst);
+			$('#ebill_cgst_disp').text(moneyFmt(split.cgst));
+			$('#ebill_sgst_disp').text(moneyFmt(split.sgst));
+			$('#ebill_igst_disp').text(moneyFmt(split.igst));
+		}
+		function defaultPosForVendor(vendorId) {
+			var st = vendorStateById[String(vendorId || '')];
+			if (st) setPosStateId(st);
+		}
 		function recalcBillTotals() {
 			var rows = selectedGcnRowsWithAmounts();
 			var totals = calcLocalTotals(rows, getTdsPercentVal());
 			setTotalsDisplay(totals);
+			syncBillGstSplit(totals.gst_total);
 		}
 		function updateGcnRowDisplay($tr) {
 			var c = gcnRowCalc(String($tr.attr('data-key') || ''));
@@ -1082,7 +1288,8 @@ $bank_rows = ew_company_bank_options($conn);
 			var seq = ++gcnDetailsRequestSeq;
 			var data = {
 				cmd: 'fetch_gcn_details',
-				tds_percent: getTdsPercentVal()
+				tds_percent: getTdsPercentVal(),
+				vendor_id: getSelectVal($('#vendor_id'))
 			};
 			// Use gcn_keys[] so PHP receives a full array (not only the last value).
 			$.each(keys, function(i, key) {
@@ -1235,17 +1442,9 @@ $bank_rows = ew_company_bank_options($conn);
 			updateVendorHint(data);
 			syncVendorTaxLocks(data, moneyNum(data.tds_percent), billGstFromLines);
 			refreshDueDate();
-			initPaymentModeSelect(data.payment_mode || '');
-			buildBankSelect(data.company_bank_id || '');
-			if (data.company_bank_id) {
-				setSelectVal($('#company_bank_id'), String(data.company_bank_id));
-				applyBankDetails(data.company_bank_id);
-			} else {
-				applyBankDetails('');
-			}
-			togglePaymentBankRequirement();
 			loadGcns(data.gcn_keys || [], function() {
 				setMultiSelectVal($('#gcn_keys'), data.gcn_keys || []);
+				syncGcnSelectTitle();
 				if (data.gcns && data.gcns.length) {
 					selectedGcnDetails = data.gcns;
 					renderGcnSummary(data.gcns, null);
@@ -1253,6 +1452,14 @@ $bank_rows = ew_company_bank_options($conn);
 					refreshSelectedGcnDetails();
 				}
 			});
+			setPosStateId(data.pos_state_id || 0);
+			if (!data.pos_state_id && data.vendor_id) {
+				defaultPosForVendor(data.vendor_id);
+			}
+			$('#bill_cgst').val(moneyNum(data.cgst_amount));
+			$('#bill_sgst').val(moneyNum(data.sgst_amount));
+			$('#bill_igst').val(moneyNum(data.igst_amount));
+			syncBillGstSplit(moneyNum(data.gst_total));
 			renderExistingAttachments(data.attachments || []);
 		}
 		function collectFormData() {
@@ -1271,7 +1478,12 @@ $bank_rows = ew_company_bank_options($conn);
 			fd.append('invoice_received_date', $('#invoice_received_date').val() || '');
 			fd.append('due_date', $('#due_date').val() || '');
 			fd.append('due_date_overridden', 0);
+			fd.append('gst_percent', getGstPercentVal());
 			fd.append('tds_percent', getTdsPercentVal());
+			fd.append('pos_state_id', posStateIdVal());
+			fd.append('bill_cgst', $('#bill_cgst').val() || 0);
+			fd.append('bill_sgst', $('#bill_sgst').val() || 0);
+			fd.append('bill_igst', $('#bill_igst').val() || 0);
 			var amounts = {};
 			$.each(selectedGcnDetails || [], function(i, row) {
 				var k = String(row.gcn_key || row.key || '');
@@ -1281,11 +1493,6 @@ $bank_rows = ew_company_bank_options($conn);
 			});
 			fd.append('gcn_amounts', JSON.stringify(amounts));
 			fd.append('narration', $('#narration').val() || '');
-			fd.append('payment_mode', getSelectVal($('#payment_mode')) || '');
-			fd.append('company_bank_id', getSelectVal($('#company_bank_id')) || 0);
-			fd.append('payment_bank_name', $('#payment_bank_name').val() || '');
-			fd.append('payment_ifsc', $('#payment_ifsc').val() || '');
-			fd.append('payment_bank_branch', $('#payment_bank_branch').val() || '');
 			if (removeAttachmentIds.length) {
 				fd.append('remove_attachment_ids', removeAttachmentIds.join(','));
 			}
@@ -1303,9 +1510,6 @@ $bank_rows = ew_company_bank_options($conn);
 			buildGcnSelect([]);
 			buildGstPercentSelect('', false);
 			buildTdsPercentSelect('', false);
-			buildBankSelect('');
-			initPaymentModeSelect('');
-			togglePaymentBankRequirement();
 			refreshDueDate();
 			loadGcns([]);
 			initEwUploadMulti($('#bill_attach_drop_wrap'));
@@ -1324,16 +1528,6 @@ $bank_rows = ew_company_bank_options($conn);
 				$('#bill_entry_no_display').val(nextBillNoPreview);
 			}
 
-			$('#payment_mode').on('change', function() {
-				togglePaymentBankRequirement();
-				syncSelectTitle($(this));
-			});
-			$('#company_bank_id').on('change', function() {
-				var bankId = getSelectVal($(this)) || '';
-				applyBankDetails(bankId);
-				$('#bank_details_row').toggle(!!bankId && String(getSelectVal($('#payment_mode')) || '').toUpperCase() !== 'CASH');
-				syncSelectTitle($(this));
-			});
 			$('#vendor_id').on('change', function() {
 				var vendorId = getSelectVal($(this)) || 0;
 				syncSelectTitle($(this));
@@ -1358,9 +1552,12 @@ $bank_rows = ew_company_bank_options($conn);
 					vendorCreditDays = parseInt(vendor.credit_days, 10) || 0;
 					updateVendorHint(vendor);
 					applyVendorTaxProfile(vendor);
+					defaultPosForVendor(vendorId);
 					refreshDueDate();
+					refreshSelectedGcnDetails();
 				});
 			});
+			syncPosDisplay();
 			$('#vendor_invoice_date').on('change blur', function() {
 				refreshDueDate();
 			});
@@ -1462,16 +1659,6 @@ $bank_rows = ew_company_bank_options($conn);
 					alert('Please enter due date.');
 					return;
 				}
-				var paymentMode = String(getSelectVal($('#payment_mode')) || '').toUpperCase();
-				if (!paymentMode) {
-					alert('Please select payment mode.');
-					return;
-				}
-				if (paymentModeRequiresBank(paymentMode) && !getSelectVal($('#company_bank_id'))) {
-					alert('Please select company bank account for this payment mode.');
-					return;
-				}
-
 				$btn.prop('disabled', true).text('Saving…');
 				$.ajax({
 					url: 'expense_bill_data.php',

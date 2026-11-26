@@ -3,6 +3,9 @@
 require_once __DIR__ . '/expense_schema.php';
 require_once __DIR__ . '/expense_type_helpers.php';
 require_once __DIR__ . '/vendor_master_helpers.php';
+require_once __DIR__ . '/billing_functions.php';
+require_once __DIR__ . '/expense_gcn_helpers.php';
+require_once __DIR__ . '/expense_general_helpers.php';
 
 function petty_cash_ensure_schema($conn)
 {
@@ -39,6 +42,86 @@ function petty_cash_ensure_schema($conn)
 		mysqli_query($conn, "ALTER TABLE petty_cash_voucher ADD COLUMN vendor_id INT(11) NOT NULL DEFAULT 0 AFTER paid_to");
 		mysqli_query($conn, "ALTER TABLE petty_cash_voucher ADD KEY idx_petty_cash_vendor (vendor_id)");
 	}
+
+	$chk_cash = mysqli_query($conn, "SHOW COLUMNS FROM petty_cash_voucher LIKE 'cash_type'");
+	if ($chk_cash && mysqli_num_rows($chk_cash) === 0) {
+		mysqli_query($conn, 'DELETE FROM petty_cash_voucher');
+		mysqli_query($conn, "ALTER TABLE petty_cash_voucher
+			ADD COLUMN cash_type VARCHAR(24) NOT NULL DEFAULT 'general_expense' AFTER entry_type,
+			ADD COLUMN narration TEXT NULL AFTER remarks,
+			ADD KEY idx_petty_cash_cash_type (cash_type)");
+	}
+
+	mysqli_query($conn, "CREATE TABLE IF NOT EXISTS petty_cash_gcn (
+		link_id INT(11) NOT NULL AUTO_INCREMENT,
+		petty_cash_id INT(11) NOT NULL,
+		trans_table VARCHAR(80) NOT NULL DEFAULT '',
+		transaction_id INT(11) NOT NULL DEFAULT 0,
+		grn_no VARCHAR(60) DEFAULT NULL,
+		sort_no INT(11) NOT NULL DEFAULT 0,
+		PRIMARY KEY (link_id),
+		KEY idx_pc_gcn_pc (petty_cash_id),
+		KEY idx_pc_gcn_ref (trans_table, transaction_id)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+	mysqli_query($conn, "CREATE TABLE IF NOT EXISTS petty_cash_line (
+		line_id INT(11) NOT NULL AUTO_INCREMENT,
+		petty_cash_id INT(11) NOT NULL,
+		line_no INT(11) NOT NULL DEFAULT 1,
+		expense_date VARCHAR(20) DEFAULT '',
+		category_id INT(11) NOT NULL DEFAULT 0,
+		paid_to VARCHAR(150) DEFAULT '',
+		amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+		remarks VARCHAR(500) DEFAULT '',
+		gcn_key VARCHAR(120) DEFAULT '',
+		vendor_id INT(11) NOT NULL DEFAULT 0,
+		PRIMARY KEY (line_id),
+		KEY idx_pc_line_pc (petty_cash_id),
+		KEY idx_pc_line_vendor (vendor_id)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+	$chk_line_vendor = mysqli_query($conn, "SHOW COLUMNS FROM petty_cash_line LIKE 'vendor_id'");
+	if ($chk_line_vendor && mysqli_num_rows($chk_line_vendor) === 0) {
+		mysqli_query($conn, "ALTER TABLE petty_cash_line ADD COLUMN vendor_id INT(11) NOT NULL DEFAULT 0 AFTER category_id");
+		mysqli_query($conn, "ALTER TABLE petty_cash_line ADD KEY idx_pc_line_vendor (vendor_id)");
+	}
+
+	$chk_pc_gst = mysqli_query($conn, "SHOW COLUMNS FROM petty_cash_voucher LIKE 'gst_percent'");
+	if ($chk_pc_gst && mysqli_num_rows($chk_pc_gst) === 0) {
+		mysqli_query($conn, "ALTER TABLE petty_cash_voucher
+			ADD COLUMN gst_percent DECIMAL(8,2) NOT NULL DEFAULT 0 AFTER cash_type,
+			ADD COLUMN tds_percent DECIMAL(8,2) NOT NULL DEFAULT 0 AFTER gst_percent");
+	}
+
+	$line_tax_cols = array(
+		'gst_percent' => "DECIMAL(8,2) NOT NULL DEFAULT 0 AFTER amount",
+		'gst_amount' => "DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER gst_percent",
+		'tds_amount' => "DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER gst_amount",
+		'net_amount' => "DECIMAL(14,2) NOT NULL DEFAULT 0 AFTER tds_amount",
+	);
+	foreach ($line_tax_cols as $col => $def) {
+		$chk = mysqli_query($conn, "SHOW COLUMNS FROM petty_cash_line LIKE '$col'");
+		if ($chk && mysqli_num_rows($chk) === 0) {
+			mysqli_query($conn, "ALTER TABLE petty_cash_line ADD COLUMN $col $def");
+		}
+	}
+
+}
+
+/** Resolve active petty_cash_id from voucher no (e.g. EMPC0001). */
+function petty_cash_id_by_voucher_no($conn, $voucher_no)
+{
+	petty_cash_ensure_schema($conn);
+	$voucher_no = trim((string) $voucher_no);
+	if ($voucher_no === '') {
+		return 0;
+	}
+	$esc = mysqli_real_escape_string($conn, $voucher_no);
+	$q = mysqli_query($conn, "SELECT petty_cash_id FROM petty_cash_voucher WHERE status=0 AND voucher_no='$esc' LIMIT 1");
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
+		return (int) ($row['petty_cash_id'] ?? 0);
+	}
+	return 0;
 }
 
 function petty_cash_format_money($val)
@@ -62,6 +145,301 @@ function petty_cash_entry_types()
 	);
 }
 
+function petty_cash_cash_types()
+{
+	return array(
+		'gcn_expense' => 'GCN Expense',
+		'general_expense' => 'General Expense',
+	);
+}
+
+function petty_cash_normalize_cash_type($type)
+{
+	$type = strtolower(trim((string) $type));
+	return ($type === 'gcn_expense') ? 'gcn_expense' : 'general_expense';
+}
+
+function petty_cash_cash_type_label($type)
+{
+	$map = petty_cash_cash_types();
+	$type = petty_cash_normalize_cash_type($type);
+	return $map[$type] ?? 'General Expense';
+}
+
+function petty_cash_parse_gcn_key($key)
+{
+	$key = trim((string) $key);
+	if ($key === '' || strpos($key, '|') === false) {
+		return null;
+	}
+	list($tbl, $id) = explode('|', $key, 2);
+	$tbl = preg_replace('/[^a-zA-Z0-9_]/', '', $tbl);
+	$id = (int) $id;
+	if ($tbl === '' || $id <= 0) {
+		return null;
+	}
+	return array('trans_table' => $tbl, 'transaction_id' => $id, 'key' => $tbl . '|' . $id);
+}
+
+/** Human-readable GCN (grn_no) for internal table|id key. */
+function petty_cash_grn_no_for_key($conn, $key)
+{
+	$key = trim((string) $key);
+	if ($key === '') {
+		return '';
+	}
+	$p = petty_cash_parse_gcn_key($key);
+	if (!$p) {
+		return '';
+	}
+	$tbl = $p['trans_table'];
+	$tid = (int) $p['transaction_id'];
+	$gq = @mysqli_query($conn, "SELECT grn_no FROM `$tbl` WHERE transaction_id='$tid' LIMIT 1");
+	if ($gq && ($g = mysqli_fetch_assoc($gq))) {
+		return trim((string) ($g['grn_no'] ?? ''));
+	}
+	return '';
+}
+
+/** All GCN numbers linked to a petty cash voucher (header links, then line keys). */
+function petty_cash_voucher_gcn_nos($conn, $petty_cash_id)
+{
+	$petty_cash_id = (int) $petty_cash_id;
+	$nos = array();
+	$q = mysqli_query(
+		$conn,
+		"SELECT grn_no, trans_table, transaction_id FROM petty_cash_gcn
+		WHERE petty_cash_id='$petty_cash_id'
+		ORDER BY sort_no ASC, link_id ASC"
+	);
+	if ($q) {
+		while ($row = mysqli_fetch_assoc($q)) {
+			$g = trim((string) ($row['grn_no'] ?? ''));
+			if ($g === '') {
+				$tbl = preg_replace('/[^a-zA-Z0-9_]/', '', $row['trans_table'] ?? '');
+				$key = $tbl . '|' . (int) ($row['transaction_id'] ?? 0);
+				$g = petty_cash_grn_no_for_key($conn, $key);
+			}
+			if ($g !== '') {
+				$nos[] = $g;
+			}
+		}
+	}
+	if (!$nos) {
+		$lq = mysqli_query(
+			$conn,
+			"SELECT DISTINCT gcn_key FROM petty_cash_line
+			WHERE petty_cash_id='$petty_cash_id' AND TRIM(gcn_key) <> ''"
+		);
+		if ($lq) {
+			while ($row = mysqli_fetch_assoc($lq)) {
+				$g = petty_cash_grn_no_for_key($conn, $row['gcn_key'] ?? '');
+				if ($g !== '') {
+					$nos[] = $g;
+				}
+			}
+		}
+	}
+	return array_values(array_unique($nos));
+}
+
+/**
+ * GCN value for petty cash labels: final tax-invoice line total (incl. GST), else booking total.
+ */
+function petty_cash_gcn_display_amount_raw($conn, $trans_table, $transaction_id)
+{
+	$trans_table = preg_replace('/[^a-zA-Z0-9_]/', '', $trans_table);
+	$transaction_id = (int) $transaction_id;
+	if ($trans_table === '' || $transaction_id <= 0) {
+		return 0.0;
+	}
+	$tbl_esc = mysqli_real_escape_string($conn, $trans_table);
+	$sql = "SELECT d.total_amount, d.taxable_value, d.gst_amount, m.grand_total, m.status,
+			(SELECT COUNT(*) FROM billing_invoice_details dx WHERE dx.billing_invoice_id = m.billing_invoice_id) AS line_cnt
+		FROM billing_invoice_details d
+		INNER JOIN billing_invoice_master m ON m.billing_invoice_id = d.billing_invoice_id
+		WHERE d.trans_table='$tbl_esc' AND d.transaction_id='$transaction_id'
+		ORDER BY FIELD(m.status, 'final', 'draft'), m.billing_invoice_id DESC
+		LIMIT 1";
+	$q = mysqli_query($conn, $sql);
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
+		$line_total = round((float) ($row['total_amount'] ?? 0), 2);
+		if ($line_total > 0.009) {
+			return $line_total;
+		}
+		$taxable = round((float) ($row['taxable_value'] ?? 0), 2);
+		$gst = round((float) ($row['gst_amount'] ?? 0), 2);
+		if ($taxable + $gst > 0.009) {
+			return round($taxable + $gst, 2);
+		}
+		$grand = round((float) ($row['grand_total'] ?? 0), 2);
+		$line_cnt = (int) ($row['line_cnt'] ?? 0);
+		if ($grand > 0.009 && $line_cnt <= 1) {
+			return $grand;
+		}
+	}
+
+	$bq = mysqli_query($conn, "SELECT total, taxable_value, gst_amount FROM `$trans_table`
+		WHERE transaction_id='$transaction_id'
+		AND (booking_status IS NULL OR booking_status='' OR booking_status!='1')
+		LIMIT 1");
+	if ($bq && ($b = mysqli_fetch_assoc($bq))) {
+		$total = round((float) ($b['total'] ?? 0), 2);
+		if ($total > 0.009) {
+			return $total;
+		}
+		return round((float) ($b['taxable_value'] ?? 0) + (float) ($b['gst_amount'] ?? 0), 2);
+	}
+	return 0.0;
+}
+
+function petty_cash_booking_amount_raw($conn, $trans_table, $transaction_id)
+{
+	return petty_cash_gcn_display_amount_raw($conn, $trans_table, $transaction_id);
+}
+
+/**
+ * GCN options for petty cash multi-select (GCN number only).
+ */
+function petty_cash_fetch_gcn_options($conn, $search = '')
+{
+	expense_type_ensure_schema($conn);
+	ensure_transaction_gst_columns($conn, 'transaction');
+	$search = trim((string) $search);
+	$search_filter = '';
+	if ($search !== '') {
+		$search_esc = mysqli_real_escape_string($conn, $search);
+		$search_filter = " AND t.grn_no LIKE '%$search_esc%'";
+	}
+	$rows = array();
+	$tables_q = mysqli_query($conn, 'SELECT table_name FROM transaction_tbls ORDER BY table_name DESC');
+	if (!$tables_q) {
+		return $rows;
+	}
+	while ($tbl = mysqli_fetch_assoc($tables_q)) {
+		$trans_table = 'transaction_' . preg_replace('/[^a-zA-Z0-9_]/', '', $tbl['table_name']);
+		$chk = @mysqli_query($conn, "SELECT 1 FROM `$trans_table` LIMIT 1");
+		if (!$chk) {
+			continue;
+		}
+		$sql = "SELECT t.transaction_id, t.grn_no, t.grn_date
+			FROM `$trans_table` t
+			WHERE (t.booking_status IS NULL OR t.booking_status='' OR t.booking_status!='1')
+			AND t.grn_no IS NOT NULL AND t.grn_no!=''
+			$search_filter
+			ORDER BY STR_TO_DATE(t.grn_date,'%d-%m-%Y') DESC, t.grn_no DESC
+			LIMIT 400";
+		$prev = mysqli_report(MYSQLI_REPORT_OFF);
+		$q = mysqli_query($conn, $sql);
+		mysqli_report($prev);
+		if (!$q) {
+			continue;
+		}
+		while ($row = mysqli_fetch_assoc($q)) {
+			$tid = (int) $row['transaction_id'];
+			$key = $trans_table . '|' . $tid;
+			$amt = petty_cash_booking_amount_raw($conn, $trans_table, $tid);
+			$rows[] = array(
+				'key' => $key,
+				'label' => trim($row['grn_no']),
+				'grn_no' => $row['grn_no'],
+				'grn_date' => $row['grn_date'],
+				'booking_amount' => petty_cash_format_money($amt),
+				'booking_amount_raw' => $amt,
+			);
+		}
+	}
+	return $rows;
+}
+
+function petty_cash_gcn_context($conn, $trans_table, $transaction_id)
+{
+	$ctx = expense_gcn_fetch_context($conn, $trans_table, $transaction_id);
+	if (empty($ctx['ok'])) {
+		return $ctx;
+	}
+	$amt = petty_cash_gcn_display_amount_raw($conn, $trans_table, $transaction_id);
+	$ctx['booking_amount'] = petty_cash_format_money($amt);
+	$ctx['booking_amount_raw'] = $amt;
+	$ctx['customer'] = $ctx['consignor'] ?? '—';
+	$ctx['route'] = $ctx['route_label'] ?? '—';
+	$ctx['freight'] = petty_cash_format_money($amt);
+	$ctx['invoice_total'] = petty_cash_format_money($amt);
+	$ctx['tax_invoice'] = $ctx['invoice_no'] ?? '—';
+	return $ctx;
+}
+
+function petty_cash_gcn_contexts_for_keys($conn, $keys)
+{
+	$out = array();
+	foreach ($keys as $key) {
+		$p = petty_cash_parse_gcn_key($key);
+		if (!$p) {
+			continue;
+		}
+		$ctx = petty_cash_gcn_context($conn, $p['trans_table'], $p['transaction_id']);
+		if (!empty($ctx['ok'])) {
+			$out[] = $ctx;
+		}
+	}
+	return $out;
+}
+
+function petty_cash_load_gcn_links($conn, $petty_cash_id)
+{
+	$petty_cash_id = (int) $petty_cash_id;
+	$rows = array();
+	$q = mysqli_query($conn, "SELECT * FROM petty_cash_gcn WHERE petty_cash_id='$petty_cash_id' ORDER BY sort_no ASC, link_id ASC");
+	if ($q) {
+		while ($row = mysqli_fetch_assoc($q)) {
+			$key = preg_replace('/[^a-zA-Z0-9_]/', '', $row['trans_table']) . '|' . (int) $row['transaction_id'];
+			$rows[] = array(
+				'key' => $key,
+				'grn_no' => $row['grn_no'] ?? '',
+				'trans_table' => $row['trans_table'],
+				'transaction_id' => (int) $row['transaction_id'],
+			);
+		}
+	}
+	return $rows;
+}
+
+function petty_cash_load_lines($conn, $petty_cash_id)
+{
+	$petty_cash_id = (int) $petty_cash_id;
+	$lines = array();
+	$q = mysqli_query($conn, "SELECT l.*, c.category_name
+		FROM petty_cash_line l
+		LEFT JOIN expense_category c ON c.category_id = l.category_id
+		WHERE l.petty_cash_id='$petty_cash_id'
+		ORDER BY l.line_no ASC, l.line_id ASC");
+	if ($q) {
+		while ($row = mysqli_fetch_assoc($q)) {
+			$lines[] = array(
+				'line_id' => (int) $row['line_id'],
+				'line_no' => (int) $row['line_no'],
+				'expense_date' => $row['expense_date'] ?? '',
+				'category_id' => (int) ($row['category_id'] ?? 0),
+				'category_name' => $row['category_name'] ?? '',
+				'vendor_id' => (int) ($row['vendor_id'] ?? 0),
+				'paid_to' => $row['paid_to'] ?? '',
+				'amount' => petty_cash_format_money($row['amount'] ?? 0),
+				'amount_raw' => round((float) ($row['amount'] ?? 0), 2),
+				'gst_percent' => round((float) ($row['gst_percent'] ?? 0), 2),
+				'gst_amount' => petty_cash_format_money($row['gst_amount'] ?? 0),
+				'gst_amount_raw' => round((float) ($row['gst_amount'] ?? 0), 2),
+				'tds_amount' => petty_cash_format_money($row['tds_amount'] ?? 0),
+				'tds_amount_raw' => round((float) ($row['tds_amount'] ?? 0), 2),
+				'net_amount' => petty_cash_format_money($row['net_amount'] ?? 0),
+				'net_amount_raw' => round((float) ($row['net_amount'] ?? 0), 2),
+				'remarks' => $row['remarks'] ?? '',
+				'gcn_key' => $row['gcn_key'] ?? '',
+			);
+		}
+	}
+	return $lines;
+}
+
 function petty_cash_normalize_entry_type($type)
 {
 	$type = strtolower(trim((string) $type));
@@ -74,21 +452,55 @@ function petty_cash_type_badge_label($entry_type)
 	return (petty_cash_normalize_entry_type($entry_type) === 'receipt') ? 'Received' : 'Sent';
 }
 
+function petty_cash_format_voucher_no($sequence)
+{
+	return 'EMPC' . sprintf('%04d', max(1, (int) $sequence));
+}
+
+/** Next display number for a new voucher (active vouchers + 1). */
+function petty_cash_preview_next_no($conn)
+{
+	$q = mysqli_query($conn, 'SELECT COUNT(*) AS c FROM petty_cash_voucher WHERE status=0');
+	$n = 0;
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
+		$n = (int) ($row['c'] ?? 0);
+	}
+	return petty_cash_format_voucher_no($n + 1);
+}
+
+/** Voucher no by position among active vouchers (1-based), not auto-increment id. */
 function petty_cash_next_no($conn, $petty_cash_id)
 {
 	$id = (int) $petty_cash_id;
-	return 'PC' . sprintf('%05d', $id);
+	if ($id <= 0) {
+		return petty_cash_preview_next_no($conn);
+	}
+	$seq = 1;
+	$q = mysqli_query($conn, "SELECT COUNT(*) AS c FROM petty_cash_voucher WHERE status=0 AND petty_cash_id <= $id");
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
+		$seq = max(1, (int) ($row['c'] ?? 1));
+	}
+	return petty_cash_format_voucher_no($seq);
 }
 
-function petty_cash_preview_next_no($conn)
+/** Keep EMPC0001, EMPC0002, … in petty_cash_id order (skips deleted status=1). */
+function petty_cash_renumber_active_vouchers($conn)
 {
-	petty_cash_ensure_schema($conn);
-	$next_id = 1;
-	$q = mysqli_query($conn, 'SELECT MAX(petty_cash_id) AS max_id FROM petty_cash_voucher');
-	if ($q && ($row = mysqli_fetch_assoc($q))) {
-		$next_id = (int) ($row['max_id'] ?? 0) + 1;
+	$q = mysqli_query($conn, 'SELECT petty_cash_id, voucher_no FROM petty_cash_voucher WHERE status=0 ORDER BY petty_cash_id ASC');
+	if (!$q) {
+		return;
 	}
-	return petty_cash_next_no($conn, $next_id);
+	$seq = 0;
+	while ($row = mysqli_fetch_assoc($q)) {
+		$seq++;
+		$want = petty_cash_format_voucher_no($seq);
+		if ((string) ($row['voucher_no'] ?? '') === $want) {
+			continue;
+		}
+		$id = (int) $row['petty_cash_id'];
+		$esc = mysqli_real_escape_string($conn, $want);
+		mysqli_query($conn, "UPDATE petty_cash_voucher SET voucher_no='$esc' WHERE petty_cash_id='$id'");
+	}
 }
 
 function petty_cash_validate_date($date_str)
@@ -139,6 +551,49 @@ function petty_cash_vendor_options($conn)
 		FROM vendor_master
 		WHERE status=0
 		ORDER BY vendor_name ASC");
+	if ($q) {
+		while ($row = mysqli_fetch_assoc($q)) {
+			$code = trim((string) ($row['vendor_code'] ?? ''));
+			$name = trim((string) ($row['vendor_name'] ?? ''));
+			$label = $name;
+			if ($code !== '' && $name !== '') {
+				$label = $code . ' — ' . $name;
+			} elseif ($code !== '') {
+				$label = $code;
+			}
+			$rows[] = array(
+				'vendor_id' => (int) $row['vendor_id'],
+				'vendor_code' => $code,
+				'vendor_name' => $name,
+				'label' => $label,
+			);
+		}
+	}
+	return $rows;
+}
+
+/** AJAX vendor pickers — type-to-search, capped result set. */
+function petty_cash_vendor_search($conn, $search)
+{
+	ew_vendor_ensure_table($conn);
+	$search = trim((string) $search);
+	$rows = array();
+	$limit = 80;
+	if ($search === '') {
+		$q = mysqli_query($conn, "SELECT vendor_id, vendor_code, vendor_name
+			FROM vendor_master
+			WHERE status=0
+			ORDER BY vendor_name ASC
+			LIMIT $limit");
+	} else {
+		$esc = mysqli_real_escape_string($conn, $search);
+		$q = mysqli_query($conn, "SELECT vendor_id, vendor_code, vendor_name
+			FROM vendor_master
+			WHERE status=0
+				AND (vendor_name LIKE '%$esc%' OR vendor_code LIKE '%$esc%')
+			ORDER BY vendor_name ASC
+			LIMIT 60");
+	}
 	if ($q) {
 		while ($row = mysqli_fetch_assoc($q)) {
 			$code = trim((string) ($row['vendor_code'] ?? ''));
@@ -249,12 +704,17 @@ function petty_cash_fetch_list($conn, $newest_first = true)
 				$vendor_label = ($v_code !== '' && $v_name !== '') ? ($v_code . ' — ' . $v_name) : ($v_name !== '' ? $v_name : $v_code);
 			}
 
+			$cash_type = petty_cash_normalize_cash_type($row['cash_type'] ?? 'general_expense');
+			$pc_id = (int) $row['petty_cash_id'];
+			$gcn_nos = ($cash_type === 'gcn_expense') ? petty_cash_voucher_gcn_nos($conn, $pc_id) : array();
 			$rows[] = array(
-				'petty_cash_id' => (int) $row['petty_cash_id'],
+				'petty_cash_id' => $pc_id,
 				'voucher_no' => $row['voucher_no'] ?? '',
 				'voucher_date' => $row['voucher_date'] ?? '',
 				'entry_type' => $entry_type,
 				'entry_type_label' => petty_cash_type_badge_label($entry_type),
+				'cash_type' => $cash_type,
+				'cash_type_label' => petty_cash_cash_type_label($cash_type),
 				'amount' => petty_cash_format_money($amount),
 				'amount_raw' => $amount,
 				'receipt' => petty_cash_format_money($receipt),
@@ -270,6 +730,8 @@ function petty_cash_fetch_list($conn, $newest_first = true)
 				'ref_no' => $row['ref_no'] ?? '',
 				'remarks' => $row['remarks'] ?? '',
 				'updated_at' => $row['updated_at'] ?? ($row['created_at'] ?? ''),
+				'gcn_nos' => $gcn_nos,
+				'gcn_display' => $gcn_nos ? implode(', ', $gcn_nos) : '',
 			);
 		}
 	}
@@ -312,12 +774,30 @@ function petty_cash_load($conn, $petty_cash_id)
 		$vendor_label = ($v_code !== '' && $v_name !== '') ? ($v_code . ' — ' . $v_name) : ($v_name !== '' ? $v_name : $v_code);
 	}
 
+	$cash_type = petty_cash_normalize_cash_type($row['cash_type'] ?? 'general_expense');
+	$pc_id = (int) $row['petty_cash_id'];
+	$gcn_links = petty_cash_load_gcn_links($conn, $pc_id);
+	foreach ($gcn_links as &$glnk) {
+		if (trim((string) ($glnk['grn_no'] ?? '')) === '') {
+			$glnk['grn_no'] = petty_cash_grn_no_for_key($conn, $glnk['key'] ?? '');
+		}
+	}
+	unset($glnk);
+	$lines = petty_cash_load_lines($conn, $pc_id);
+	foreach ($lines as &$line) {
+		$line['gcn_no'] = petty_cash_grn_no_for_key($conn, $line['gcn_key'] ?? '');
+	}
+	unset($line);
+	$gcn_nos = petty_cash_voucher_gcn_nos($conn, $pc_id);
+
 	return array(
 		'petty_cash_id' => (int) $row['petty_cash_id'],
 		'voucher_no' => $row['voucher_no'] ?? '',
 		'voucher_date' => $row['voucher_date'] ?? '',
 		'entry_type' => $entry_type,
 		'entry_type_label' => petty_cash_type_badge_label($entry_type),
+		'cash_type' => $cash_type,
+		'cash_type_label' => petty_cash_cash_type_label($cash_type),
 		'amount' => petty_cash_format_money($row['amount'] ?? 0),
 		'amount_raw' => round((float) ($row['amount'] ?? 0), 2),
 		'particulars' => $row['particulars'] ?? '',
@@ -328,8 +808,179 @@ function petty_cash_load($conn, $petty_cash_id)
 		'category_label' => $category_label,
 		'ref_no' => $row['ref_no'] ?? '',
 		'remarks' => $row['remarks'] ?? '',
+		'narration' => $row['narration'] ?? '',
+		'gcn_keys' => array_column($gcn_links, 'key'),
+		'gcn_nos' => $gcn_nos,
+		'gcn_display' => $gcn_nos ? implode(', ', $gcn_nos) : '',
+		'gcn_links' => $gcn_links,
+		'gst_percent' => round((float) ($row['gst_percent'] ?? 0), 2),
+		'tds_percent' => round((float) ($row['tds_percent'] ?? 0), 2),
+		'lines' => $lines,
 		'updated_at' => $row['updated_at'] ?? ($row['created_at'] ?? ''),
 	);
+}
+
+function petty_cash_calc_line_tax($conn, $vendor_id, $category_id, $expense_amount, $gst_percent_override = null, $tds_percent_override = null)
+{
+	$expense_amount = petty_cash_parse_money($expense_amount);
+	$suggested = expense_general_suggest_tax($conn, $vendor_id, $category_id, $expense_amount, $gst_percent_override);
+	$gst_amount = round((float) ($suggested['gst_amount'] ?? 0), 2);
+	$tds_amount = round((float) ($suggested['tds_amount'] ?? 0), 2);
+	if ($tds_percent_override !== null && $tds_percent_override !== '') {
+		$tds_pct = round((float) $tds_percent_override, 2);
+		$tds_amount = ($tds_pct > 0 && $expense_amount > 0)
+			? round($expense_amount * $tds_pct / 100, 2)
+			: 0;
+	}
+	$amounts = expense_general_calc_amounts($expense_amount, $gst_amount, $tds_amount, 0);
+	return array(
+		'gst_percent' => round((float) ($suggested['gst_percent'] ?? 0), 2),
+		'gst_amount' => $gst_amount,
+		'tds_amount' => $tds_amount,
+		'net_amount' => round((float) ($amounts['net_payable'] ?? 0), 2),
+		'vendor_tax' => $suggested['vendor'] ?? array(),
+		'category_tax' => $suggested['category'] ?? array(),
+		'suggested_tds_rate' => round((float) ($suggested['tds_rate'] ?? 0), 2),
+	);
+}
+
+function petty_cash_parse_lines_payload($payload)
+{
+	$raw = isset($payload['lines']) ? $payload['lines'] : '';
+	if (is_string($raw) && $raw !== '') {
+		$decoded = json_decode($raw, true);
+		if (is_array($decoded)) {
+			$raw = $decoded;
+		}
+	}
+	if (!is_array($raw)) {
+		return array();
+	}
+	$lines = array();
+	$n = 0;
+	foreach ($raw as $line) {
+		if (!is_array($line)) {
+			continue;
+		}
+		$amount = petty_cash_parse_money($line['amount'] ?? 0);
+		if ($amount <= 0) {
+			continue;
+		}
+		$n++;
+		$vendor_id = (int) ($line['vendor_id'] ?? 0);
+		$paid_to = trim((string) ($line['paid_to'] ?? ''));
+		$gst_amount = petty_cash_parse_money($line['gst_amount'] ?? 0);
+		$tds_amount = petty_cash_parse_money($line['tds_amount'] ?? 0);
+		$net_amount = petty_cash_parse_money($line['net_amount'] ?? 0);
+		if ($net_amount <= 0) {
+			$net_amount = round($amount + $gst_amount - $tds_amount, 2);
+		}
+		$lines[] = array(
+			'line_no' => $n,
+			'expense_date' => trim((string) ($line['expense_date'] ?? '')),
+			'category_id' => (int) ($line['category_id'] ?? 0),
+			'vendor_id' => $vendor_id,
+			'paid_to' => $paid_to,
+			'amount' => $amount,
+			'gst_percent' => round((float) ($line['gst_percent'] ?? 0), 2),
+			'gst_amount' => $gst_amount,
+			'tds_amount' => $tds_amount,
+			'net_amount' => $net_amount,
+			'remarks' => trim((string) ($line['remarks'] ?? '')),
+			'gcn_key' => trim((string) ($line['gcn_key'] ?? '')),
+		);
+	}
+	return $lines;
+}
+
+function petty_cash_gcn_refs_from_lines(array $lines)
+{
+	$refs = array();
+	foreach ($lines as $line) {
+		$key = trim((string) ($line['gcn_key'] ?? ''));
+		if ($key === '') {
+			continue;
+		}
+		$p = petty_cash_parse_gcn_key($key);
+		if ($p) {
+			$refs[$p['key']] = $p;
+		}
+	}
+	return array_values($refs);
+}
+
+function petty_cash_parse_gcn_keys_payload($payload)
+{
+	$raw = isset($payload['gcn_keys']) ? $payload['gcn_keys'] : array();
+	if (is_string($raw) && $raw !== '') {
+		$decoded = json_decode($raw, true);
+		if (is_array($decoded)) {
+			$raw = $decoded;
+		} else {
+			$raw = preg_split('/\s*,\s*/', $raw);
+		}
+	}
+	if (!is_array($raw)) {
+		return array();
+	}
+	$keys = array();
+	foreach ($raw as $k) {
+		$p = petty_cash_parse_gcn_key($k);
+		if ($p) {
+			$keys[$p['key']] = $p;
+		}
+	}
+	return array_values($keys);
+}
+
+function petty_cash_save_gcn_links($conn, $petty_cash_id, array $gcn_refs)
+{
+	$petty_cash_id = (int) $petty_cash_id;
+	mysqli_query($conn, "DELETE FROM petty_cash_gcn WHERE petty_cash_id='$petty_cash_id'");
+	$sort = 0;
+	foreach ($gcn_refs as $ref) {
+		$sort++;
+		$tbl_esc = mysqli_real_escape_string($conn, $ref['trans_table']);
+		$tid = (int) $ref['transaction_id'];
+		$grn = mysqli_real_escape_string($conn, '');
+		$gq = mysqli_query($conn, "SELECT grn_no FROM `$tbl_esc` WHERE transaction_id='$tid' LIMIT 1");
+		if ($gq && ($g = mysqli_fetch_assoc($gq))) {
+			$grn = mysqli_real_escape_string($conn, $g['grn_no'] ?? '');
+		}
+		mysqli_query($conn, "INSERT INTO petty_cash_gcn (petty_cash_id, trans_table, transaction_id, grn_no, sort_no)
+			VALUES ('$petty_cash_id', '$tbl_esc', '$tid', '$grn', '$sort')");
+	}
+}
+
+function petty_cash_save_lines($conn, $petty_cash_id, array $lines)
+{
+	$petty_cash_id = (int) $petty_cash_id;
+	mysqli_query($conn, "DELETE FROM petty_cash_line WHERE petty_cash_id='$petty_cash_id'");
+	foreach ($lines as $line) {
+		$vendor_id = (int) ($line['vendor_id'] ?? 0);
+		if ($vendor_id > 0) {
+			$resolved = petty_cash_vendor_label($conn, $vendor_id);
+			if ($resolved !== '') {
+				$line['paid_to'] = $resolved;
+			}
+		}
+		$date_esc = mysqli_real_escape_string($conn, $line['expense_date']);
+		$paid_esc = mysqli_real_escape_string($conn, $line['paid_to']);
+		$remarks_esc = mysqli_real_escape_string($conn, $line['remarks']);
+		$gcn_esc = mysqli_real_escape_string($conn, $line['gcn_key']);
+		$cat = (int) $line['category_id'];
+		$line_no = (int) $line['line_no'];
+		$amt = petty_cash_format_money($line['amount']);
+		$gst_pct = petty_cash_format_money($line['gst_percent'] ?? 0);
+		$gst_amt = petty_cash_format_money($line['gst_amount'] ?? 0);
+		$tds_amt = petty_cash_format_money($line['tds_amount'] ?? 0);
+		$net_amt = petty_cash_format_money($line['net_amount'] ?? 0);
+		mysqli_query($conn, "INSERT INTO petty_cash_line
+			(petty_cash_id, line_no, expense_date, category_id, vendor_id, paid_to, amount,
+			 gst_percent, gst_amount, tds_amount, net_amount, remarks, gcn_key)
+			VALUES ('$petty_cash_id', '$line_no', '$date_esc', '$cat', '$vendor_id', '$paid_esc', '$amt',
+			 '$gst_pct', '$gst_amt', '$tds_amt', '$net_amt', '$remarks_esc', '$gcn_esc')");
+	}
 }
 
 function petty_cash_save($conn, $payload, $user_id)
@@ -342,51 +993,107 @@ function petty_cash_save($conn, $payload, $user_id)
 		return array('status' => 1, 'message' => $date_check['message']);
 	}
 	$voucher_date = $date_check['date'];
-	$entry_type = petty_cash_normalize_entry_type($payload['entry_type'] ?? 'payment');
-	$amount = petty_cash_parse_money($payload['amount'] ?? 0);
-	$particulars = trim((string) ($payload['particulars'] ?? ''));
-	$paid_to = trim((string) ($payload['paid_to'] ?? ''));
-	$vendor_id = (int) ($payload['vendor_id'] ?? 0);
-	$category_id = (int) ($payload['category_id'] ?? 0);
-	$ref_no = trim((string) ($payload['ref_no'] ?? ''));
-	$remarks = trim((string) ($payload['remarks'] ?? ''));
+	$cash_type = petty_cash_normalize_cash_type($payload['cash_type'] ?? 'general_expense');
+	$narration = trim((string) ($payload['narration'] ?? ''));
+	$lines = petty_cash_parse_lines_payload($payload);
 	$user_id = (int) $user_id;
 	$now = date('d-m-Y H:i:s');
 
-	if ($amount <= 0) {
-		return array('status' => 1, 'message' => 'Amount must be greater than zero.');
+	if (empty($lines)) {
+		return array('status' => 1, 'message' => 'Add at least one expense line with amount.');
 	}
-	if ($particulars === '') {
-		return array('status' => 1, 'message' => 'Particulars are required.');
+
+	$gcn_refs = array();
+	if ($cash_type === 'gcn_expense') {
+		$gcn_refs = petty_cash_parse_gcn_keys_payload($payload);
+		if (empty($gcn_refs)) {
+			return array('status' => 1, 'message' => 'Select at least one GCN for GCN expense.');
+		}
 	}
-	if (strlen($particulars) > 500) {
-		$particulars = substr($particulars, 0, 500);
+	$gst_percent_hdr = round((float) ($payload['gst_percent'] ?? 0), 2);
+	$tds_percent_hdr = round((float) ($payload['tds_percent'] ?? 0), 2);
+
+	$total = 0.0;
+	foreach ($lines as &$line) {
+		if ($cash_type === 'general_expense') {
+			$tax = petty_cash_calc_line_tax(
+				$conn,
+				(int) ($line['vendor_id'] ?? 0),
+				(int) ($line['category_id'] ?? 0),
+				(float) ($line['amount'] ?? 0),
+				$gst_percent_hdr > 0 ? $gst_percent_hdr : null,
+				$tds_percent_hdr > 0 ? $tds_percent_hdr : null
+			);
+			$line['gst_percent'] = $tax['gst_percent'];
+			$line['gst_amount'] = $tax['gst_amount'];
+			$line['tds_amount'] = $tax['tds_amount'];
+			$line['net_amount'] = $tax['net_amount'];
+			$total += (float) $line['net_amount'];
+		} else {
+			$line['gst_percent'] = 0;
+			$line['gst_amount'] = 0;
+			$line['tds_amount'] = 0;
+			$line['net_amount'] = (float) $line['amount'];
+			$total += (float) $line['amount'];
+		}
 	}
-	if (strlen($paid_to) > 150) {
-		$paid_to = substr($paid_to, 0, 150);
+	unset($line);
+	$total = round($total, 2);
+	if ($total <= 0) {
+		return array('status' => 1, 'message' => 'Total petty cash must be greater than zero.');
 	}
-	if (strlen($ref_no) > 50) {
-		$ref_no = substr($ref_no, 0, 50);
+
+	$particulars = ($cash_type === 'gcn_expense')
+		? ('GCN petty cash — ' . count($gcn_refs) . ' GCN(s)')
+		: 'General petty cash';
+	if ($cash_type === 'gcn_expense' && count($gcn_refs) === 1) {
+		$particulars = 'GCN petty cash — ' . ($gcn_refs[0]['trans_table'] ?? '');
 	}
-	if (strlen($remarks) > 500) {
-		$remarks = substr($remarks, 0, 500);
+	$entry_type = 'payment';
+
+	foreach ($lines as &$line) {
+		if ($line['expense_date'] === '') {
+			$line['expense_date'] = $voucher_date;
+		}
+		$dc = petty_cash_validate_date($line['expense_date']);
+		if (empty($dc['ok'])) {
+			return array('status' => 1, 'message' => 'Invalid expense date on line ' . $line['line_no'] . '.');
+		}
+		$line['expense_date'] = $dc['date'];
+		if ($cash_type === 'general_expense') {
+			$line['gcn_key'] = '';
+		} elseif ($cash_type === 'gcn_expense') {
+			$lk = trim((string) ($line['gcn_key'] ?? ''));
+			if ($lk === '' && count($gcn_refs) === 1) {
+				$line['gcn_key'] = $gcn_refs[0]['key'];
+				$lk = $line['gcn_key'];
+			}
+			if ($lk === '') {
+				return array('status' => 1, 'message' => 'Select GCN on line ' . (int) $line['line_no'] . '.');
+			}
+			$ok_gcn = false;
+			foreach ($gcn_refs as $ref) {
+				if (($ref['key'] ?? '') === $lk) {
+					$ok_gcn = true;
+					break;
+				}
+			}
+			if (!$ok_gcn) {
+				return array('status' => 1, 'message' => 'Invalid GCN on line ' . (int) $line['line_no'] . '.');
+			}
+		}
 	}
-	if ($vendor_id > 0 && petty_cash_vendor_label($conn, $vendor_id) === '') {
-		return array('status' => 1, 'message' => 'Selected vendor is invalid.');
-	}
-	if ($entry_type === 'receipt') {
-		$paid_to = '';
-		$category_id = 0;
-	}
+	unset($line);
 
 	$voucher_date_esc = mysqli_real_escape_string($conn, $voucher_date);
 	$entry_type_esc = mysqli_real_escape_string($conn, $entry_type);
-	$particulars_esc = mysqli_real_escape_string($conn, $particulars);
-	$paid_to_esc = mysqli_real_escape_string($conn, $paid_to);
-	$ref_no_esc = mysqli_real_escape_string($conn, $ref_no);
-	$remarks_esc = mysqli_real_escape_string($conn, $remarks);
+	$cash_type_esc = mysqli_real_escape_string($conn, $cash_type);
+	$particulars_esc = mysqli_real_escape_string($conn, substr($particulars, 0, 500));
+	$narration_esc = mysqli_real_escape_string($conn, $narration);
 	$now_esc = mysqli_real_escape_string($conn, $now);
-	$amount_esc = petty_cash_format_money($amount);
+	$amount_esc = petty_cash_format_money($total);
+	$gst_pct_esc = petty_cash_format_money($gst_percent_hdr);
+	$tds_pct_esc = petty_cash_format_money($tds_percent_hdr);
 
 	if ($petty_cash_id > 0) {
 		$existing = petty_cash_load($conn, $petty_cash_id);
@@ -396,32 +1103,38 @@ function petty_cash_save($conn, $payload, $user_id)
 		$ok = mysqli_query($conn, "UPDATE petty_cash_voucher SET
 			voucher_date='$voucher_date_esc',
 			entry_type='$entry_type_esc',
+			cash_type='$cash_type_esc',
+			gst_percent='$gst_pct_esc',
+			tds_percent='$tds_pct_esc',
 			amount='$amount_esc',
 			particulars='$particulars_esc',
-			paid_to='$paid_to_esc',
-			vendor_id='$vendor_id',
-			category_id='$category_id',
-			ref_no='$ref_no_esc',
-			remarks='$remarks_esc',
+			paid_to='',
+			vendor_id=0,
+			category_id=0,
+			ref_no='',
+			remarks='',
+			narration='$narration_esc',
 			updated_at='$now_esc',
 			updated_by='$user_id'
 			WHERE petty_cash_id='$petty_cash_id' AND status=0");
 		if (!$ok) {
 			return array('status' => 1, 'message' => 'Could not update voucher.');
 		}
+		petty_cash_save_gcn_links($conn, $petty_cash_id, $gcn_refs);
+		petty_cash_save_lines($conn, $petty_cash_id, $lines);
 		return array(
 			'status' => 0,
-			'message' => 'Petty cash voucher updated.',
+			'message' => 'Petty cash saved.',
 			'petty_cash_id' => $petty_cash_id,
 			'voucher_no' => $existing['voucher_no'],
 		);
 	}
 
 	$ok = mysqli_query($conn, "INSERT INTO petty_cash_voucher
-		(voucher_no, voucher_date, entry_type, amount, particulars, paid_to, vendor_id, category_id, ref_no, remarks,
+		(voucher_no, voucher_date, entry_type, cash_type, gst_percent, tds_percent, amount, particulars, paid_to, vendor_id, category_id, ref_no, remarks, narration,
 		 status, created_at, created_by, updated_at, updated_by)
-		VALUES ('', '$voucher_date_esc', '$entry_type_esc', '$amount_esc', '$particulars_esc', '$paid_to_esc',
-		 '$vendor_id', '$category_id', '$ref_no_esc', '$remarks_esc', 0, '$now_esc', '$user_id', '$now_esc', '$user_id')");
+		VALUES ('', '$voucher_date_esc', '$entry_type_esc', '$cash_type_esc', '$gst_pct_esc', '$tds_pct_esc', '$amount_esc', '$particulars_esc',
+		 '', 0, 0, '', '', '$narration_esc', 0, '$now_esc', '$user_id', '$now_esc', '$user_id')");
 	if (!$ok) {
 		return array('status' => 1, 'message' => 'Could not save voucher.');
 	}
@@ -429,10 +1142,12 @@ function petty_cash_save($conn, $payload, $user_id)
 	$voucher_no = petty_cash_next_no($conn, $new_id);
 	$voucher_no_esc = mysqli_real_escape_string($conn, $voucher_no);
 	mysqli_query($conn, "UPDATE petty_cash_voucher SET voucher_no='$voucher_no_esc' WHERE petty_cash_id='$new_id'");
+	petty_cash_save_gcn_links($conn, $new_id, $cash_type === 'gcn_expense' ? $gcn_refs : array());
+	petty_cash_save_lines($conn, $new_id, $lines);
 
 	return array(
 		'status' => 0,
-		'message' => 'Petty cash voucher saved.',
+		'message' => 'Petty cash saved.',
 		'petty_cash_id' => $new_id,
 		'voucher_no' => $voucher_no,
 	);
@@ -470,6 +1185,7 @@ function petty_cash_delete($conn, $petty_cash_id, $user_id)
 	if (!$ok) {
 		return array('status' => 1, 'message' => 'Could not delete voucher.');
 	}
+	petty_cash_renumber_active_vouchers($conn);
 	return array(
 		'status' => 0,
 		'message' => 'Petty cash voucher deleted.',
