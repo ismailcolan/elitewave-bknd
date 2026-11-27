@@ -1,6 +1,9 @@
 <?php
 require_once("include/connect.php");
 require_once("include/function.php");
+require_once("include/client_tally_helpers.php");
+
+client_tally_ensure_schema($conn);
 
 $key = $_REQUEST['key'] ?? '';
 $row = array(
@@ -21,6 +24,7 @@ $row = array(
     'multiple_branches' => 0,
     'automation' => 0,
 );
+$row = client_tally_merge_row($row);
 $is_edit = ($key != '');
 if (!$is_edit && empty($_GET['create'])) {
     header('Location:client_list.php');
@@ -64,6 +68,7 @@ if ($is_edit) {
             margin: 0;
             line-height: 1.4;
         }
+
     </style>
 </head>
 
@@ -200,6 +205,60 @@ if ($is_edit) {
                                             <input type="checkbox" name="transit_automation" id="transit_automation" <?php if ($row['automation'] == 1) echo 'checked'; ?> />
                                             <label for="transit_automation" class="client-check-text control-label">In Transit Automation, Not Required.:</label>
                                         </div>
+                                    </div>
+
+                                    <div class="ew-section-label">Ledger &amp; credit</div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Under :</label>
+                                        <select name="ledger_under" id="ledger_under" class="form-control">
+                                            <?php foreach (client_tally_ledger_under_options() as $opt) { ?>
+                                                <option value="<?php echo htmlspecialchars($opt); ?>"<?php echo ($row['ledger_under'] ?? '') === $opt ? ' selected' : ''; ?>><?php echo htmlspecialchars($opt); ?></option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Alias :</label>
+                                        <input type="text" name="client_alias" id="client_alias" value="<?php echo htmlspecialchars($row['client_alias'] ?? ''); ?>" class="form-control" autocomplete="off" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Bill-by-bill :</label>
+                                        <select name="bill_by_bill" class="form-control"><?php echo client_tally_yesno_options($row['bill_by_bill'] ?? 1, true); ?></select>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Credit period (days) :</label>
+                                        <input type="number" min="0" name="credit_period_days" value="<?php echo (int) ($row['credit_period_days'] ?? 0); ?>" class="form-control" autocomplete="off" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Check credit days on entry :</label>
+                                        <select name="check_credit_days" class="form-control"><?php echo client_tally_yesno_options($row['check_credit_days'] ?? 0, false); ?></select>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Start date :</label>
+                                        <?php echo ew_date_input(array('id' => 'ledger_start_date', 'name' => 'ledger_start_date', 'value' => $row['ledger_start_date'] ?? '', 'required' => false)); ?>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">GST registration type :</label>
+                                        <select name="gst_registration_type" class="form-control">
+                                            <?php foreach (client_tally_gst_registration_options() as $opt) { ?>
+                                                <option value="<?php echo htmlspecialchars($opt); ?>"<?php echo ($row['gst_registration_type'] ?? 'Regular') === $opt ? ' selected' : ''; ?>><?php echo htmlspecialchars($opt); ?></option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Station :</label>
+                                        <input type="text" name="station" value="<?php echo htmlspecialchars($row['station'] ?? ''); ?>" class="form-control" autocomplete="off" placeholder="Booking / delivery station" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Follower :</label>
+                                        <input type="text" name="follower_name" value="<?php echo htmlspecialchars($row['follower_name'] ?? ''); ?>" class="form-control" autocomplete="off" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Opening balance (₹) :</label>
+                                        <input type="text" name="opening_balance" value="<?php echo htmlspecialchars($row['opening_balance'] ?? '0.00'); ?>" class="form-control text-right" autocomplete="off" />
+                                    </div>
+                                    <div class="ew-field">
+                                        <label class="control-label">Opening balance as on :</label>
+                                        <?php echo ew_date_input(array('id' => 'opening_balance_as_on', 'name' => 'opening_balance_as_on', 'value' => $row['opening_balance_as_on'] ?? '', 'required' => false)); ?>
                                     </div>
                                 </div>
                             </form>

@@ -948,6 +948,11 @@ if ($form_name == 'inacv_mode') {
         echo 0;
 }
 if ($form_name == 'add_client') {
+    require_once __DIR__ . '/include/client_tally_helpers.php';
+    client_tally_ensure_schema($conn);
+    $client_tally = client_tally_from_post($_POST);
+    $client_tally_sql = client_tally_sql_assignments($conn, $client_tally);
+
     $company_name = $_POST['company_name'];
     $contact_person = $_POST['contact_person'];
     $address1 = $_POST['address1'];
@@ -971,7 +976,7 @@ $contact_no1 = $_POST['contact_no1'];
     // $automation = $_POST['transit_automation'];
     $automation = isset($_POST['automation']) ? 1 : 0;
     if ($_POST['edit_id'] != '') {
-        $query = "update client set client_company_name='" . $company_name . "',contact_person='" . $contact_person . "',address1='" . $address1 . "',address2='" . $address2 . "',state='" . $state . "',city='" . $city . "',pincode='" . $pincode . "',billing_code='" . $billing_code . "',email='" . $email . "',email1='" . $email1 . "',contact_no='" . $contact_no . "',contact_no1='" . $contact_no1 . "',gst_no='" . $gst_no . "',pan_no='" . $pan_no . "',multiple_branches='" . $multiple_branches . "',automation='" . $automation . "',updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where md5(client_id)='" . $_POST['edit_id'] . "'";
+        $query = "update client set client_company_name='" . $company_name . "',contact_person='" . $contact_person . "',address1='" . $address1 . "',address2='" . $address2 . "',state='" . $state . "',city='" . $city . "',pincode='" . $pincode . "',billing_code='" . $billing_code . "',email='" . $email . "',email1='" . $email1 . "',contact_no='" . $contact_no . "',contact_no1='" . $contact_no1 . "',gst_no='" . $gst_no . "',pan_no='" . $pan_no . "',multiple_branches='" . $multiple_branches . "',automation='" . $automation . "'," . $client_tally_sql . ",updated_at='" . $updated_at . "',updated_by='" . $updated_by . "' where md5(client_id)='" . $_POST['edit_id'] . "'";
         // $result = mysqli_query($conn, $query);
         $result = mysqli_query($conn, $query);
 
@@ -980,6 +985,12 @@ $contact_no1 = $_POST['contact_no1'];
         }
     } else {
         if ($_SESSION['role'] == 'AD') {
+            $tally_cols = '';
+            $tally_vals = '';
+            foreach ($client_tally as $col => $val) {
+                $tally_cols .= ",$col";
+                $tally_vals .= ",'" . mysqli_real_escape_string($conn, (string) $val) . "'";
+            }
             $query = "insert into client(
                 client_company_name,
                 contact_person,
@@ -996,7 +1007,7 @@ $contact_no1 = $_POST['contact_no1'];
                 gst_no,
                 pan_no,
                 multiple_branches,
-                automation,
+                automation" . $tally_cols . ",
                 created_at,
                 created_by,
                 status,
@@ -1011,14 +1022,13 @@ $contact_no1 = $_POST['contact_no1'];
                 '" . $pincode . "',
                 '" . $billing_code . "',
                 '" . $email . "',
-                
                  '" . $email1 . "',
                  '" . $contact_no . "',
                 '" . $contact_no1 . "',
                 '" . $gst_no . "',
                 '" . $pan_no . "',
                 '" . $multiple_branches . "',
-                '" . $automation . "',
+                '" . $automation . "'" . $tally_vals . ",
                 '" . $created_at . "',
                 '" . $created_by . "',
                 '0',
@@ -1032,6 +1042,12 @@ $contact_no1 = $_POST['contact_no1'];
             }
         } else {
 
+            $tally_cols = '';
+            $tally_vals = '';
+            foreach ($client_tally as $col => $val) {
+                $tally_cols .= ",$col";
+                $tally_vals .= ",'" . mysqli_real_escape_string($conn, (string) $val) . "'";
+            }
             $query = "insert into client(
                 client_company_name,
                 contact_person,
@@ -1048,7 +1064,7 @@ $contact_no1 = $_POST['contact_no1'];
                 gst_no,
                 pan_no,
                 multiple_branches,
-                automation,
+                automation" . $tally_cols . ",
                 created_at,
                 created_by,
                 status,
@@ -1069,7 +1085,7 @@ $contact_no1 = $_POST['contact_no1'];
                 '" . $gst_no . "',
                 '" . $pan_no . "',
                 '" . $multiple_branches . "',
-                '" . $automation . "',
+                '" . $automation . "'" . $tally_vals . ",
                 '" . $created_at . "',
                 '" . $created_by . "',
                 '0',

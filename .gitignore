@@ -20,6 +20,7 @@ pod_uploads/
 web/qrcode/
 
 # Runtime PDF outputs & uploads (GCN, tax invoice, e-way, receipt attachments, etc.)
+web/eway/
 web/transaction_pdf/
 web/digital_invoice/
 web/receipt_attachments/

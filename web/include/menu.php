@@ -31,10 +31,11 @@ $page_module_map = array(
   'chatbot_qa_list.php' => 'marketing',
   'chatbot_quote_request_list.php' => 'marketing',
   'chatbot_quote_request_view.php' => 'marketing',
+  'chatbot_quote_request_forward.php' => 'marketing',
   'client.php' => 'party', 'client_list.php' => 'party',
   'client_branch.php' => 'party', 'client_branch_list.php' => 'party',
   'vendor.php' => 'party', 'vendor_list.php' => 'party',
-  'gst_tax_master.php' => 'invoice', 'gst_tax_form.php' => 'invoice',
+  'gst_tax_master.php' => 'setup', 'gst_tax_form.php' => 'setup',
   'consigner_payment_form.php' => 'portal', 'consigner_payment_list.php' => 'portal',
   'rate_calculator_form.php' => 'portal', 'rate_calc_list.php' => 'portal',
   'expected_delivery_form.php' => 'portal', 'expected_delivery_list.php' => 'portal',
@@ -46,7 +47,7 @@ $page_module_map = array(
   'expense_bill.php' => 'expense', 'expense_bill_list.php' => 'expense',
   'purchase_voucher.php' => 'expense', 'purchase_voucher_list.php' => 'expense',
   'petty_cash.php' => 'expense', 'petty_cash_list.php' => 'expense',
-  'qrcode_master.php' => 'tools', 'bulkmail.php' => 'tools', 'users.php' => 'tools', 'user_list.php' => 'tools',
+  'qrcode_master.php' => 'tools', 'bulkmail.php' => 'portal', 'users.php' => 'tools', 'user_list.php' => 'tools',
   'database_backup.php' => 'tools',
   'pod_list.php' => 'portal', 'pod_master.php' => 'portal', 'edit_pod_list.php' => 'portal',
   'user-draftconsignment.php' => 'portal', 'user-inquiry.php' => 'portal',
@@ -62,11 +63,17 @@ $page_module_map = array(
   'create_invoice.php' => 'invoice', 'invoice_list.php' => 'invoice',
   'create_proforma_invoice.php' => 'invoice', 'proforma_invoice_list.php' => 'invoice',
   'credit_note_list.php' => 'invoice', 'create_credit_note.php' => 'invoice',
-  'debit_note_list.php' => 'invoice', 'create_debit_note.php' => 'invoice',
+  'debit_note_list.php' => 'expense', 'create_debit_note.php' => 'expense',
   'receipt_list.php' => 'invoice', 'create_receipt.php' => 'invoice',
   'consignment_report.php' => 'mis', 'client_arrival_report.php' => 'mis',
   'cargo_booking_report.php' => 'mis', 'pending_delivery_report.php' => 'mis',
-  'gst_tax_report.php' => 'mis',
+  'gst_tax_report.php' => 'gst',
+  'gstr1.php' => 'gst',
+  'gstr1_statistics.php' => 'gst',
+  'gstr1_not_relevant.php' => 'gst',
+  'gstr1_voucher_register.php' => 'gst',
+  'gstr1_b2b.php' => 'gst',
+  'gstr1_hsn.php' => 'gst',
   'invoice_register.php' => 'mis',
   'proforma_invoice_register.php' => 'mis',
   'pending_invoice_ageing.php' => 'mis',
@@ -75,10 +82,10 @@ $page_module_map = array(
   'bill_registration_register.php' => 'mis',
   'expense_register.php' => 'mis',
   'petty_cash_register.php' => 'mis',
-  'gst_output_register.php' => 'mis',
-  'gst_input_register.php' => 'mis',
-  'tds_output_register.php' => 'mis',
-  'tds_input_register.php' => 'mis',
+  'gst_output_register.php' => 'gst',
+  'gst_input_register.php' => 'gst',
+  'tds_output_register.php' => 'gst',
+  'tds_input_register.php' => 'gst',
   'statement_of_account.php' => 'mis',
   'day_book.php' => 'mis',
   'receipt_register.php' => 'mis',
@@ -123,6 +130,7 @@ function ew_rail_icon($name) {
     'dashboard' => '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
     'bookings' => '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
     'invoicing' => '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    'gst' => '<path d="M4 7h16"/><path d="M6 7V5a2 2 0 0 1 2-2h1"/><path d="M18 7V5a2 2 0 0 0-2-2h-1"/><path d="M8 11h8"/><path d="M8 15h5"/><rect x="3" y="7" width="18" height="13" rx="2"/>',
     'marketing' => '',
     'mis' => '<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
     'general' => '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
@@ -528,9 +536,9 @@ function ew_panel_head($title) {
     justify-content: space-between;
     gap: 8px;
     width: 100%;
-    padding: 10px 12px;
+    padding: 8px 8px;
     border: 1px solid #E2E8F0;
-    border-radius: 10px;
+    border-radius: 7px;
     background: #F1F5F9;
     color: #334155;
     font-size: 13px;
@@ -651,14 +659,26 @@ function ew_panel_head($title) {
       <span class="rail-label">Marketing</span>
     </button>
     <?php endif; ?>
-    <button type="button" class="rail-item<?php echo ew_module_active('consignment', $active_module); ?>" data-module="consignment" data-tooltip="Consignment" title="Consignment">
+    <button type="button" class="rail-item<?php echo ew_module_active('consignment', $active_module); ?>" data-module="consignment" data-tooltip="Booking" title="Booking">
       <?php echo ew_rail_icon('bookings'); ?>
-      <span class="rail-label">Bookings</span>
+      <span class="rail-label">Booking</span>
     </button>
+    <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
+    <button type="button" class="rail-item<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice" data-tooltip="Billing" title="Billing">
+      <?php echo ew_rail_icon('invoicing'); ?>
+      <span class="rail-label">Billing</span>
+    </button>
+    <?php endif; ?>
     <?php if ($_SESSION['role'] == 'AD'): ?>
     <button type="button" class="rail-item<?php echo ew_module_active('expense', $active_module); ?>" data-module="expense" data-tooltip="Expense" title="Expense">
       <?php echo ew_rail_icon('expense'); ?>
       <span class="rail-label">Expense</span>
+    </button>
+    <?php endif; ?>
+    <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
+    <button type="button" class="rail-item<?php echo ew_module_active('gst', $active_module); ?>" data-module="gst" data-tooltip="GST &amp; TDS" title="GST &amp; TDS">
+      <?php echo ew_rail_icon('gst'); ?>
+      <span class="rail-label">GST &amp; TDS</span>
     </button>
     <?php endif; ?>
     <?php if ($_SESSION['role'] != 'DR'): ?>
@@ -668,11 +688,7 @@ function ew_panel_head($title) {
     </button>
     <?php endif; ?>
     <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
-    <button type="button" class="rail-item<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice" data-tooltip="Invoice" title="Invoice">
-      <?php echo ew_rail_icon('invoicing'); ?>
-      <span class="rail-label">Accounting</span>
-    </button>
-    <button type="button" class="rail-item<?php echo ew_module_active('party', $active_module); ?>" data-module="party" data-tooltip="Customer Masters" title="Customer Masters">
+    <button type="button" class="rail-item<?php echo ew_module_active('party', $active_module); ?>" data-module="party" data-tooltip="Partners" title="Partners">
       <?php echo ew_rail_icon('customers'); ?>
       <span class="rail-label">Partners</span>
     </button>
@@ -743,14 +759,36 @@ function ew_panel_head($title) {
             <a class="panel-link panel-link--nested<?php echo ew_menu_active('hub.php', $current_page); ?>" href="hub.php">Warehouse Details</a>
           </div>
         </div>
-        <a class="panel-link<?php echo ew_menu_active('package_type.php', $current_page); ?>" href="package_type.php">Package Type Master</a>
-        <a class="panel-link<?php echo ew_menu_active('mode_of_transportation.php', $current_page); ?>" href="mode_of_transportation.php">Mode of Transport Master</a>
-        <a class="panel-link<?php echo ew_menu_active('consignment_mode.php', $current_page); ?>" href="consignment_mode.php">Consignment Mode Master</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('vehicle_list.php', 'vehicle.php'), $current_page); ?>" href="vehicle_list.php">EW360 Vehicles</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('vehicle_type_master.php', 'vehicle_type.php'), $current_page); ?>" href="vehicle_type_master.php">Vehicle Type Master</a>
-        <a class="panel-link<?php echo ew_menu_active('train.php', $current_page); ?>" href="train.php">Train Master</a>
-        <a class="panel-link<?php echo ew_menu_active('flight.php', $current_page); ?>" href="flight.php">Airlines Master</a>
-        <?php $expense_group_masters_open = in_array($current_page, array('expense_group_master.php', 'expense_type_master.php', 'expense_type_form.php'), true); ?>
+        <?php
+        $transport_masters_open = in_array($current_page, array(
+          'package_type.php',
+          'mode_of_transportation.php',
+          'consignment_mode.php',
+          'vehicle_list.php',
+          'vehicle.php',
+          'vehicle_type_master.php',
+          'vehicle_type.php',
+          'train.php',
+          'flight.php',
+        ), true);
+        $expense_group_masters_open = in_array($current_page, array('expense_group_master.php', 'expense_type_master.php', 'expense_type_form.php'), true);
+        $tax_masters_open = in_array($current_page, array('gst_tax_master.php', 'gst_tax_form.php'), true);
+        ?>
+        <div class="panel-accordion<?php echo $transport_masters_open ? ' is-open' : ''; ?>" data-accordion-id="general-transport-masters" data-accordion-label="Transport Masters">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $transport_masters_open ? 'true' : 'false'; ?>">
+            <span>Transport Masters</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('package_type.php', $current_page); ?>" href="package_type.php">Package Type Master</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('mode_of_transportation.php', $current_page); ?>" href="mode_of_transportation.php">Mode of Transport Master</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('consignment_mode.php', $current_page); ?>" href="consignment_mode.php">Consignment Mode Master</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('vehicle_list.php', 'vehicle.php'), $current_page); ?>" href="vehicle_list.php">EW360 Vehicles</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('vehicle_type_master.php', 'vehicle_type.php'), $current_page); ?>" href="vehicle_type_master.php">Vehicle Type Master</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('train.php', $current_page); ?>" href="train.php">Train Master</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('flight.php', $current_page); ?>" href="flight.php">Airlines Master</a>
+          </div>
+        </div>
         <div class="panel-accordion<?php echo $expense_group_masters_open ? ' is-open' : ''; ?>" data-accordion-id="general-expense-group-masters" data-accordion-label="Expense Group Masters">
           <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $expense_group_masters_open ? 'true' : 'false'; ?>">
             <span>Expense Group Masters</span>
@@ -761,13 +799,175 @@ function ew_panel_head($title) {
             <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('expense_type_master.php', 'expense_type_form.php'), $current_page); ?>" href="expense_type_master.php">Expense Type GCN Master</a>
           </div>
         </div>
+        <div class="panel-accordion<?php echo $tax_masters_open ? ' is-open' : ''; ?>" data-accordion-id="general-tax-masters" data-accordion-label="Tax Masters">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $tax_masters_open ? 'true' : 'false'; ?>">
+            <span>Tax Masters</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('gst_tax_master.php', 'gst_tax_form.php'), $current_page); ?>" href="gst_tax_master.php">GST Tax Master</a>
+          </div>
+        </div>
       </div>
     </div>
 
+    <div class="panel-module<?php echo ew_module_active('tools', $active_module); ?>" data-module="tools">
+      <?php ew_panel_head('Tools &amp; Users'); ?>
+      <div class="panel-scroll">
+        <a class="panel-link<?php echo ew_menu_active('qrcode_master.php', $current_page); ?>" href="qrcode_master.php">Print QR Code</a>
+        <a class="panel-link<?php echo ew_menu_active('user_list.php', $current_page); ?>" href="user_list.php">Users</a>
+        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'AD') { ?>
+        <a class="panel-link<?php echo ew_menu_active('database_backup.php', $current_page); ?>" href="database_backup.php">Database Backup</a>
+        <?php } ?>
+      </div>
+    </div>
+
+    <div class="panel-module<?php echo ew_module_active('portal', $active_module); ?>" data-module="portal">
+      <?php ew_panel_head('User Portal'); ?>
+      <div class="panel-scroll">
+        <a class="panel-link<?php echo ew_menu_active('user-draftconsignment.php', $current_page); ?>" href="user-draftconsignment.php">Draft Consignment List</a>
+        <a class="panel-link<?php echo ew_menu_active('user-inquiry.php', $current_page); ?>" href="user-inquiry.php">User Inquiry List</a>
+        <a class="panel-link<?php echo ew_menu_active('user-approval.php', $current_page); ?>" href="user-approval.php">User Approval</a>
+        <a class="panel-link<?php echo ew_menu_active('user-requestpickup-list.php', $current_page); ?>" href="user-requestpickup-list.php">Request For Pickup List</a>
+        <a class="panel-link<?php echo ew_menu_active('user_ftl_list.php', $current_page); ?>" href="user_ftl_list.php">Pending FTL Quotation</a>
+        <a class="panel-link<?php echo ew_menu_active('pod_list.php', $current_page); ?>" href="pod_list.php">Proof of Delivery</a>
+        <a class="panel-link<?php echo ew_menu_active('pod_master.php', $current_page); ?>" href="pod_master.php">Upload Proof of Delivery</a>
+        <a class="panel-link<?php echo ew_menu_active('user_registration_request.php', $current_page); ?>" href="user_registration_request.php">
+          Registration Request
+          <?php if ($count_read > 0): ?><span class="panel-badge"><?php echo $count_read; ?></span><?php endif; ?>
+        </a>
+        <a class="panel-link<?php echo ew_menu_active('bulkmail.php', $current_page); ?>" href="bulkmail.php">Bulk Email</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('consigner_payment_list.php', 'consigner_payment_form.php'), $current_page); ?>" href="consigner_payment_list.php">Client Charges</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('rate_calc_list.php', 'rate_calculator_form.php'), $current_page); ?>" href="rate_calc_list.php">Rate List</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('expected_delivery_list.php', 'expected_delivery_form.php'), $current_page); ?>" href="expected_delivery_list.php">Expected Delivery</a>
+        <a class="panel-link<?php echo ew_menu_active('request_for_new_pickup.php', $current_page); ?>" href="request_for_new_pickup.php">Request For Pickup</a>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
+    <div class="panel-module<?php echo ew_module_active('party', $active_module); ?>" data-module="party">
+      <?php ew_panel_head('Partners'); ?>
+      <div class="panel-scroll">
+        <?php if ($_SESSION['role'] == 'AD'): ?>
+        <?php
+        $party_customers_open = in_array($current_page, array(
+          'client_list.php',
+          'client.php',
+          'client_branch_list.php',
+          'client_branch.php',
+          'customer_mapping.php',
+          'customer_mapping_form.php',
+        ), true);
+        $party_vendor_open = in_array($current_page, array(
+          'vendor_list.php',
+          'vendor.php',
+        ), true);
+        ?>
+        <div class="panel-accordion<?php echo $party_customers_open ? ' is-open' : ''; ?>" data-accordion-id="party-customers" data-accordion-label="Customers">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $party_customers_open ? 'true' : 'false'; ?>">
+            <span>Customers</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('client_list.php', 'client.php'), $current_page); ?>" href="client_list.php">Customer</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('client_branch_list.php', 'client_branch.php'), $current_page); ?>" href="client_branch_list.php">Customer Branch</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('customer_mapping.php', 'customer_mapping_form.php'), $current_page); ?>" href="customer_mapping.php">Customer Mapping</a>
+          </div>
+        </div>
+        <div class="panel-accordion<?php echo $party_vendor_open ? ' is-open' : ''; ?>" data-accordion-id="party-vendor" data-accordion-label="Vendor">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $party_vendor_open ? 'true' : 'false'; ?>">
+            <span>Vendor</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('vendor_list.php', 'vendor.php'), $current_page); ?>" href="vendor_list.php">Vendor</a>
+          </div>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <div class="panel-module<?php echo ew_module_active('consignment', $active_module); ?>" data-module="consignment">
+      <?php ew_panel_head('Booking'); ?>
+      <div class="panel-scroll">
+        <?php
+        $consignment_book_open = in_array($current_page, array(
+          'transactions.php',
+          'transactions_manual.php',
+          'transaction_list.php',
+        ), true);
+        $consignment_dispatch_open = in_array($current_page, array(
+          'trip_summary_list.php',
+          'trip_summary.php',
+          'trip_summary_print.php',
+          'status_sheet_list.php',
+          'status_sheet.php',
+          'edit_status_sheet.php',
+          'transaction_status.php',
+        ), true);
+        $consignment_track_open = ($current_page === 'track_consignment.php');
+        $show_consignment_book = ($_SESSION['role'] != 'DR');
+        $show_consignment_dispatch = ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER');
+        ?>
+        <?php if ($show_consignment_book): ?>
+        <div class="panel-accordion<?php echo $consignment_book_open ? ' is-open' : ''; ?>" data-accordion-id="consignment-book" data-accordion-label="Book">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $consignment_book_open ? 'true' : 'false'; ?>">
+            <span>Book</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('transactions.php', $current_page); ?>" href="transactions.php">Book a Consignment</a>
+            <?php if ($_SESSION['role'] == 'AD'): ?>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('transactions_manual.php', $current_page); ?>" href="transactions_manual.php">Book Manual Consignment</a>
+            <?php endif; ?>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('transaction_list.php', $current_page); ?>" href="transaction_list.php">List of Consignments</a>
+          </div>
+        </div>
+        <?php endif; ?>
+        <?php if ($show_consignment_dispatch): ?>
+        <div class="panel-accordion<?php echo $consignment_dispatch_open ? ' is-open' : ''; ?>" data-accordion-id="consignment-dispatch" data-accordion-label="Dispatch">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $consignment_dispatch_open ? 'true' : 'false'; ?>">
+            <span>Dispatch</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('trip_summary_list.php', 'trip_summary.php', 'trip_summary_print.php'), $current_page); ?>" href="trip_summary_list.php">Trip Summary Sheet</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('status_sheet_list.php', 'status_sheet.php', 'edit_status_sheet.php'), $current_page); ?>" href="status_sheet_list.php">Consignment Status Sheet</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('transaction_status.php', $current_page); ?>" href="transaction_status.php">GCN Transit Update</a>
+          </div>
+        </div>
+        <?php endif; ?>
+        <div class="panel-accordion<?php echo $consignment_track_open ? ' is-open' : ''; ?>" data-accordion-id="consignment-track-deliver" data-accordion-label="Track &amp; Deliver">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $consignment_track_open ? 'true' : 'false'; ?>">
+            <span>Track &amp; Deliver</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('track_consignment.php', $current_page); ?>" href="track_consignment.php">Track Consignment</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
+    <div class="panel-module<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice">
+      <?php ew_panel_head('Billing'); ?>
+      <div class="panel-scroll">
+        <a class="panel-link<?php echo ew_menu_active_any(array('proforma_invoice_list.php', 'create_proforma_invoice.php'), $current_page); ?>" href="proforma_invoice_list.php">Proforma Invoice</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('invoice_list.php', 'create_invoice.php'), $current_page); ?>" href="invoice_list.php">Tax Invoice</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('credit_note_list.php', 'create_credit_note.php'), $current_page); ?>" href="credit_note_list.php">Customer Credit Note</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('receipt_list.php', 'create_receipt.php'), $current_page); ?>" href="receipt_list.php">Payment Receipt</a>
+      </div>
+    </div>
+    <?php endif; ?>
+    <?php if ($_SESSION['role'] == 'AD'): ?>
     <div class="panel-module<?php echo ew_module_active('expense', $active_module); ?>" data-module="expense">
       <?php ew_panel_head('Expense'); ?>
       <div class="panel-scroll">
         <a class="panel-link<?php echo ew_menu_active_any(array('petty_cash_list.php', 'petty_cash.php'), $current_page); ?>" href="petty_cash_list.php">Petty Cash</a>
+        <a class="panel-link<?php echo ew_menu_active_any(array('debit_note_list.php', 'create_debit_note.php'), $current_page); ?>" href="debit_note_list.php">Vendor Debit Note</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('expense_bill_list.php', 'expense_bill.php'), $current_page); ?>" href="expense_bill_list.php">Purchase Bill Registration</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('expense_general_list.php', 'expense_general.php'), $current_page); ?>" href="expense_general_list.php">Payment Voucher</a>
         <a class="panel-link<?php echo ew_menu_active_any(array('expense_gcn_list.php', 'expense_gcn.php'), $current_page); ?>" href="expense_gcn_list.php">GCN Profit &amp; Loss</a>
@@ -793,102 +993,114 @@ function ew_panel_head($title) {
         </div>
       </div>
     </div>
-
-    <div class="panel-module<?php echo ew_module_active('tools', $active_module); ?>" data-module="tools">
-      <?php ew_panel_head('Tools &amp; Users'); ?>
-      <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active('qrcode_master.php', $current_page); ?>" href="qrcode_master.php">Print QR Code</a>
-        <a class="panel-link<?php echo ew_menu_active('bulkmail.php', $current_page); ?>" href="bulkmail.php">Bulk Email</a>
-        <a class="panel-link<?php echo ew_menu_active('user_list.php', $current_page); ?>" href="user_list.php">Users</a>
-        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'AD') { ?>
-        <a class="panel-link<?php echo ew_menu_active('database_backup.php', $current_page); ?>" href="database_backup.php">Database Backup</a>
-        <?php } ?>
-      </div>
-    </div>
-
-    <div class="panel-module<?php echo ew_module_active('portal', $active_module); ?>" data-module="portal">
-      <?php ew_panel_head('User Portal'); ?>
-      <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active('user-draftconsignment.php', $current_page); ?>" href="user-draftconsignment.php">Draft Consignment List</a>
-        <a class="panel-link<?php echo ew_menu_active('user-inquiry.php', $current_page); ?>" href="user-inquiry.php">User Inquiry List</a>
-        <a class="panel-link<?php echo ew_menu_active('user-approval.php', $current_page); ?>" href="user-approval.php">User Approval</a>
-        <a class="panel-link<?php echo ew_menu_active('user-requestpickup-list.php', $current_page); ?>" href="user-requestpickup-list.php">Request For Pickup List</a>
-        <a class="panel-link<?php echo ew_menu_active('user_ftl_list.php', $current_page); ?>" href="user_ftl_list.php">Pending FTL Quotation</a>
-        <a class="panel-link<?php echo ew_menu_active('pod_list.php', $current_page); ?>" href="pod_list.php">Proof of Delivery</a>
-        <a class="panel-link<?php echo ew_menu_active('user_registration_request.php', $current_page); ?>" href="user_registration_request.php">
-          Registration Request
-          <?php if ($count_read > 0): ?><span class="panel-badge"><?php echo $count_read; ?></span><?php endif; ?>
-        </a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('consigner_payment_list.php', 'consigner_payment_form.php'), $current_page); ?>" href="consigner_payment_list.php">Client Charges</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('rate_calc_list.php', 'rate_calculator_form.php'), $current_page); ?>" href="rate_calc_list.php">Rate List</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('expected_delivery_list.php', 'expected_delivery_form.php'), $current_page); ?>" href="expected_delivery_list.php">Expected Delivery</a>
-        <a class="panel-link<?php echo ew_menu_active('request_for_new_pickup.php', $current_page); ?>" href="request_for_new_pickup.php">Request For Pickup</a>
-      </div>
-    </div>
     <?php endif; ?>
-
-    <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
-    <div class="panel-module<?php echo ew_module_active('party', $active_module); ?>" data-module="party">
-      <?php ew_panel_head('Customer Masters'); ?>
-      <div class="panel-scroll">
-        <?php if ($_SESSION['role'] == 'AD'): ?>
-        <a class="panel-link<?php echo ew_menu_active_any(array('client_list.php', 'client.php'), $current_page); ?>" href="client_list.php">Customer</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('client_branch_list.php', 'client_branch.php'), $current_page); ?>" href="client_branch_list.php">Customer Branch</a>
-        
-        <a class="panel-link<?php echo ew_menu_active_any(array('customer_mapping.php', 'customer_mapping_form.php'), $current_page); ?>" href="customer_mapping.php">Customer Mapping</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('vendor_list.php', 'vendor.php'), $current_page); ?>" href="vendor_list.php">Vendor</a>
-        <?php endif; ?>
-      </div>
-    </div>
-    <?php endif; ?>
-
-    <div class="panel-module<?php echo ew_module_active('consignment', $active_module); ?>" data-module="consignment">
-      <?php ew_panel_head('Consignment'); ?>
-      <div class="panel-scroll">
-        <?php if ($_SESSION['role'] != 'DR'): ?>
-          <a class="panel-link<?php echo ew_menu_active('transactions.php', $current_page); ?>" href="transactions.php">Book a Consignment</a>
-          <a class="panel-link<?php echo ew_menu_active('transaction_list.php', $current_page); ?>" href="transaction_list.php">List of Consignments</a>
-         
-        <?php endif; ?>
-        <a class="panel-link<?php echo ew_menu_active('track_consignment.php', $current_page); ?>" href="track_consignment.php">Track Consignment</a>
-        <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
-          <a class="panel-link<?php echo ew_menu_active_any(array('status_sheet_list.php', 'status_sheet.php', 'edit_status_sheet.php'), $current_page); ?>" href="status_sheet_list.php">Consignment Status Sheet</a>
-          <a class="panel-link<?php echo ew_menu_active_any(array('trip_summary_list.php', 'trip_summary.php', 'trip_summary_print.php'), $current_page); ?>" href="trip_summary_list.php">Trip Summary Sheet</a>
-          <a class="panel-link<?php echo ew_menu_active('transaction_status.php', $current_page); ?>" href="transaction_status.php">GCN Transit Update</a>
-        <?php endif; ?>
-        <?php if ($_SESSION['role'] == 'AD'): ?>
-          <a class="panel-link<?php echo ew_menu_active('transactions_manual.php', $current_page); ?>" href="transactions_manual.php">Book Manual Consignment</a>
-        <?php endif; ?>
-        <?php if ($_SESSION['role'] == 'DR'): ?>
-          <a class="panel-link<?php echo ew_menu_active('pod_master.php', $current_page); ?>" href="pod_master.php">Upload Proof of Delivery</a>
-        <?php endif; ?>
-      </div>
-    </div>
 
     <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
     <div class="panel-module<?php echo ew_module_active('marketing', $active_module); ?>" data-module="marketing">
       <?php ew_panel_head('Marketing'); ?>
       <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active_any(array('quotation_list.php', 'quotation.php'), $current_page); ?>" href="quotation_list.php">Single Quotation</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('quotation_all_modes_list.php', 'quotation_all_modes.php'), $current_page); ?>" href="quotation_all_modes_list.php">Multi Mode Quotation</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('quotation_consignor_multi_dest_list.php', 'quotation_consignor_multi_dest.php'), $current_page); ?>" href="quotation_consignor_multi_dest_list.php">Multi Destination Quotation</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('quotation_destination_master_list.php', 'quotation_destination_master.php'), $current_page); ?>" href="quotation_destination_master.php">Master Quotation</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('marketing_bulk_email_list.php', 'marketing_bulk_email.php'), $current_page); ?>" href="marketing_bulk_email_list.php">Bulk Email</a>
-        <a class="panel-link<?php echo ew_menu_active('chatbot_qa_list.php', $current_page); ?>" href="chatbot_qa_list.php">ELWA360 Chat Log</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('chatbot_quote_request_list.php', 'chatbot_quote_request_view.php'), $current_page); ?>" href="chatbot_quote_request_list.php">Quote Requests</a>
+        <?php
+        $marketing_leads_open = in_array($current_page, array(
+          'chatbot_quote_request_list.php',
+          'chatbot_quote_request_view.php',
+          'chatbot_quote_request_forward.php',
+          'chatbot_qa_list.php',
+        ), true);
+        $marketing_quotations_open = in_array($current_page, array(
+          'quotation_list.php',
+          'quotation.php',
+          'quotation_pdf.php',
+          'quotation_all_modes_list.php',
+          'quotation_all_modes.php',
+          'quotation_consignor_multi_dest_list.php',
+          'quotation_consignor_multi_dest.php',
+          'quotation_destination_master_list.php',
+          'quotation_destination_master.php',
+        ), true);
+        $marketing_campaigns_open = in_array($current_page, array(
+          'marketing_bulk_email_list.php',
+          'marketing_bulk_email.php',
+        ), true);
+        ?>
+        <div class="panel-accordion<?php echo $marketing_quotations_open ? ' is-open' : ''; ?>" data-accordion-id="marketing-quotations" data-accordion-label="Quotations">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $marketing_quotations_open ? 'true' : 'false'; ?>">
+            <span>Quotations</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('quotation_list.php', 'quotation.php', 'quotation_pdf.php'), $current_page); ?>" href="quotation_list.php">Single Quotation</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('quotation_all_modes_list.php', 'quotation_all_modes.php'), $current_page); ?>" href="quotation_all_modes_list.php">Multi Mode Quotation</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('quotation_consignor_multi_dest_list.php', 'quotation_consignor_multi_dest.php'), $current_page); ?>" href="quotation_consignor_multi_dest_list.php">Multi Destination Quotation</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('quotation_destination_master_list.php', 'quotation_destination_master.php'), $current_page); ?>" href="quotation_destination_master_list.php">Master Quotation</a>
+          </div>
+        </div>
+        <div class="panel-accordion<?php echo $marketing_campaigns_open ? ' is-open' : ''; ?>" data-accordion-id="marketing-campaigns" data-accordion-label="Campaigns">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $marketing_campaigns_open ? 'true' : 'false'; ?>">
+            <span>Campaigns</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('marketing_bulk_email_list.php', 'marketing_bulk_email.php'), $current_page); ?>" href="marketing_bulk_email_list.php">Bulk Email</a>
+          </div>
+        </div>
+        <div class="panel-accordion<?php echo $marketing_leads_open ? ' is-open' : ''; ?>" data-accordion-id="marketing-leads" data-accordion-label="Leads">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $marketing_leads_open ? 'true' : 'false'; ?>">
+            <span>Leads</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active_any(array('chatbot_quote_request_list.php', 'chatbot_quote_request_view.php', 'chatbot_quote_request_forward.php'), $current_page); ?>" href="chatbot_quote_request_list.php">Quote Requests</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('chatbot_qa_list.php', $current_page); ?>" href="chatbot_qa_list.php">ELWA360 Chat Log</a>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="panel-module<?php echo ew_module_active('invoice', $active_module); ?>" data-module="invoice">
-      <?php ew_panel_head('Invoicing'); ?>
+    <?php endif; ?>
+
+    <?php if ($_SESSION['role'] == 'AD' || $_SESSION['role'] == 'USER'): ?>
+    <div class="panel-module<?php echo ew_module_active('gst', $active_module); ?>" data-module="gst">
+      <?php ew_panel_head('GST &amp; TDS'); ?>
       <div class="panel-scroll">
-        <a class="panel-link<?php echo ew_menu_active_any(array('proforma_invoice_list.php', 'create_proforma_invoice.php'), $current_page); ?>" href="proforma_invoice_list.php">Proforma Invoice</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('invoice_list.php', 'create_invoice.php'), $current_page); ?>" href="invoice_list.php">Tax Invoice</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('pending_payments.php', 'pending_payments_ledger_pdf.php'), $current_page); ?>" href="pending_payments.php">Bill Wise</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('credit_note_list.php', 'create_credit_note.php'), $current_page); ?>" href="credit_note_list.php">Credit Note</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('debit_note_list.php', 'create_debit_note.php'), $current_page); ?>" href="debit_note_list.php">Debit Note</a>
-        <a class="panel-link<?php echo ew_menu_active_any(array('receipt_list.php', 'create_receipt.php'), $current_page); ?>" href="receipt_list.php">Payment Receipt</a>
-        <span class="panel-link" title="Screen coming soon">Payment History</span>
-        <a class="panel-link<?php echo ew_menu_active_any(array('gst_tax_master.php', 'gst_tax_form.php'), $current_page); ?>" href="gst_tax_master.php">GST Tax Master</a>
+        <?php
+        $gst_returns_open = in_array($current_page, array(
+          'gstr1.php',
+          'gstr1_statistics.php',
+          'gstr1_not_relevant.php',
+          'gstr1_voucher_register.php',
+          'gstr1_b2b.php',
+          'gstr1_hsn.php',
+        ), true);
+        $gst_registers_open = in_array($current_page, array(
+          'gst_tax_report.php',
+          'gst_output_register.php',
+          'gst_input_register.php',
+          'tds_output_register.php',
+          'tds_input_register.php',
+        ), true);
+        ?>
+        <div class="panel-accordion<?php echo $gst_returns_open ? ' is-open' : ''; ?>" data-accordion-id="gst-returns" data-accordion-label="Returns">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $gst_returns_open ? 'true' : 'false'; ?>">
+            <span>Returns</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('gstr1.php', $current_page); ?>" href="gstr1.php">GSTR-1</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('gstr1_statistics.php', $current_page); ?>" href="gstr1_statistics.php">Statistics</a>
+          </div>
+        </div>
+        <div class="panel-accordion<?php echo $gst_registers_open ? ' is-open' : ''; ?>" data-accordion-id="gst-registers" data-accordion-label="Registers">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $gst_registers_open ? 'true' : 'false'; ?>">
+            <span>Registers</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('gst_tax_report.php', $current_page); ?>" href="gst_tax_report.php">GST Tax Report</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('gst_output_register.php', $current_page); ?>" href="gst_output_register.php">GST Output Register</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('gst_input_register.php', $current_page); ?>" href="gst_input_register.php">GST Input Register</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('tds_output_register.php', $current_page); ?>" href="tds_output_register.php">TDS Output Register</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('tds_input_register.php', $current_page); ?>" href="tds_input_register.php">TDS Input Register</a>
+          </div>
+        </div>
       </div>
     </div>
     <?php endif; ?>
@@ -897,63 +1109,94 @@ function ew_panel_head($title) {
     <div class="panel-module<?php echo ew_module_active('mis', $active_module); ?>" data-module="mis">
       <?php ew_panel_head('MIS'); ?>
       <div class="panel-scroll">
+        <?php
+        $mis_operations_open = in_array($current_page, array(
+          'consignment_report.php',
+          'cargo_booking_report.php',
+          'pending_delivery_report.php',
+        ), true);
+        $mis_sales_open = in_array($current_page, array(
+          'proforma_invoice_register.php',
+          'invoice_register.php',
+          'pending_invoice_ageing.php',
+          'credit_note_report.php',
+          'receipt_register.php',
+          'pending_receipt_ageing.php',
+        ), true);
+        $mis_purchases_open = in_array($current_page, array(
+          'bill_registration_register.php',
+          'expense_register.php',
+          'petty_cash_register.php',
+          'debit_note_report.php',
+        ), true);
+        $mis_books_open = in_array($current_page, array(
+          'statement_of_account.php',
+          'day_book.php',
+        ), true);
+        $mis_client_open = in_array($current_page, array(
+          'consignment_report.php',
+          'client_arrival_report.php',
+        ), true);
+        ?>
         <?php if ($_SESSION['role'] == 'CL'): ?>
-          <a class="panel-link<?php echo ew_menu_active('consignment_report.php', $current_page); ?>" href="consignment_report.php">My Booking Report</a>
-          <a class="panel-link<?php echo ew_menu_active('client_arrival_report.php', $current_page); ?>" href="client_arrival_report.php">My Arrival Report</a>
-        <?php else: ?>
-          <a class="panel-link<?php echo ew_menu_active('consignment_report.php', $current_page); ?>" href="consignment_report.php">Booking Status Report</a>
-          <a class="panel-link<?php echo ew_menu_active('gst_tax_report.php', $current_page); ?>" href="gst_tax_report.php">GST Tax Report</a>
-          <a class="panel-link<?php echo ew_menu_active('client_payment_transactions.php', $current_page); ?>" href="client_payment_transactions.php">Payment History</a>
-          <?php
-          // Reports sub-module. Add next new reports here.
-          $mis_new_report_pages = array(
-            'cargo_booking_report.php',
-            'pending_delivery_report.php',
-            'proforma_invoice_register.php',
-            'invoice_register.php',
-            'pending_invoice_ageing.php',
-            'credit_note_report.php',
-            'debit_note_report.php',
-            'bill_registration_register.php',
-            'expense_register.php',
-            'petty_cash_register.php',
-            'gst_output_register.php',
-            'gst_input_register.php',
-            'tds_output_register.php',
-            'tds_input_register.php',
-            'statement_of_account.php',
-            'day_book.php',
-            'receipt_register.php',
-            'pending_receipt_ageing.php',
-          );
-          $mis_new_reports_open = in_array($current_page, $mis_new_report_pages, true);
-          ?>
-          <div class="panel-accordion<?php echo $mis_new_reports_open ? ' is-open' : ''; ?>" data-accordion-id="mis-reports" data-accordion-label="Reports">
-            <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $mis_new_reports_open ? 'true' : 'false'; ?>">
-              <span>Reports</span>
-              <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
-            </button>
-            <div class="panel-accordion-body">
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('cargo_booking_report.php', $current_page); ?>" href="cargo_booking_report.php">Cargo Booking Report</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_delivery_report.php', $current_page); ?>" href="pending_delivery_report.php">Pending Delivery Report</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('proforma_invoice_register.php', $current_page); ?>" href="proforma_invoice_register.php">Proforma Invoice Register</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('invoice_register.php', $current_page); ?>" href="invoice_register.php">Invoice Register</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_invoice_ageing.php', $current_page); ?>" href="pending_invoice_ageing.php">Pending Invoice Register / Ageing</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('credit_note_report.php', $current_page); ?>" href="credit_note_report.php">Credit Note Report (From Customer)</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('debit_note_report.php', $current_page); ?>" href="debit_note_report.php">Debit Note Report (To Vendor)</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('bill_registration_register.php', $current_page); ?>" href="bill_registration_register.php">Purchase Bill Registration Register</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('expense_register.php', $current_page); ?>" href="expense_register.php">Expense Register</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('petty_cash_register.php', $current_page); ?>" href="petty_cash_register.php">Petty Cash Register</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('gst_output_register.php', $current_page); ?>" href="gst_output_register.php">GST Output Register</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('gst_input_register.php', $current_page); ?>" href="gst_input_register.php">GST Input Register</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('tds_output_register.php', $current_page); ?>" href="tds_output_register.php">TDS Output Register</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('tds_input_register.php', $current_page); ?>" href="tds_input_register.php">TDS Input Register</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('statement_of_account.php', $current_page); ?>" href="statement_of_account.php">Statement of Account (Customer / Vendor)</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('day_book.php', $current_page); ?>" href="day_book.php">Day Book</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('receipt_register.php', $current_page); ?>" href="receipt_register.php">Receipt Register</a>
-              <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_receipt_ageing.php', $current_page); ?>" href="pending_receipt_ageing.php">Pending Receipt Register / Ageing</a>
-            </div>
+        <div class="panel-accordion<?php echo $mis_client_open ? ' is-open' : ''; ?>" data-accordion-id="mis-client-login" data-accordion-label="Client login only">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $mis_client_open ? 'true' : 'false'; ?>">
+            <span>Client login only</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('consignment_report.php', $current_page); ?>" href="consignment_report.php">My Booking Report</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('client_arrival_report.php', $current_page); ?>" href="client_arrival_report.php">My Arrival Report</a>
           </div>
+        </div>
+        <?php else: ?>
+        <div class="panel-accordion<?php echo $mis_operations_open ? ' is-open' : ''; ?>" data-accordion-id="mis-operations" data-accordion-label="Operations">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $mis_operations_open ? 'true' : 'false'; ?>">
+            <span>Operations</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('consignment_report.php', $current_page); ?>" href="consignment_report.php">Booking Status Report</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('cargo_booking_report.php', $current_page); ?>" href="cargo_booking_report.php">Cargo Booking Report</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_delivery_report.php', $current_page); ?>" href="pending_delivery_report.php">Pending Delivery Report</a>
+          </div>
+        </div>
+        <div class="panel-accordion<?php echo $mis_sales_open ? ' is-open' : ''; ?>" data-accordion-id="mis-sales-receivables" data-accordion-label="Sales &amp; Receivables">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $mis_sales_open ? 'true' : 'false'; ?>">
+            <span>Sales &amp; Receivables</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('proforma_invoice_register.php', $current_page); ?>" href="proforma_invoice_register.php">Proforma Invoice Register</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('invoice_register.php', $current_page); ?>" href="invoice_register.php">Invoice Register</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_invoice_ageing.php', $current_page); ?>" href="pending_invoice_ageing.php">Pending Invoice Register / Ageing</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('credit_note_report.php', $current_page); ?>" href="credit_note_report.php">Credit Note Report (From Customer)</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('receipt_register.php', $current_page); ?>" href="receipt_register.php">Receipt Register</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('pending_receipt_ageing.php', $current_page); ?>" href="pending_receipt_ageing.php">Pending Receipt Register / Ageing</a>
+          </div>
+        </div>
+        <div class="panel-accordion<?php echo $mis_purchases_open ? ' is-open' : ''; ?>" data-accordion-id="mis-purchases-expenses" data-accordion-label="Purchases &amp; Expenses">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $mis_purchases_open ? 'true' : 'false'; ?>">
+            <span>Purchases &amp; Expenses</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('bill_registration_register.php', $current_page); ?>" href="bill_registration_register.php">Purchase Bill Registration Register</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('expense_register.php', $current_page); ?>" href="expense_register.php">Expense Register</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('petty_cash_register.php', $current_page); ?>" href="petty_cash_register.php">Petty Cash Register</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('debit_note_report.php', $current_page); ?>" href="debit_note_report.php">Debit Note Report (To Vendor)</a>
+          </div>
+        </div>
+        <div class="panel-accordion<?php echo $mis_books_open ? ' is-open' : ''; ?>" data-accordion-id="mis-books-statements" data-accordion-label="Books &amp; Statements">
+          <button type="button" class="panel-accordion-toggle" aria-expanded="<?php echo $mis_books_open ? 'true' : 'false'; ?>">
+            <span>Books &amp; Statements</span>
+            <i class="fa fa-chevron-down panel-accordion-chevron" aria-hidden="true"></i>
+          </button>
+          <div class="panel-accordion-body">
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('statement_of_account.php', $current_page); ?>" href="statement_of_account.php">Statement of Account (Customer / Vendor)</a>
+            <a class="panel-link panel-link--nested<?php echo ew_menu_active('day_book.php', $current_page); ?>" href="day_book.php">Day Book</a>
+          </div>
+        </div>
         <?php endif; ?>
       </div>
     </div>

@@ -1261,11 +1261,11 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                 if (type === 'party_invoice') {
                     return 'attach_fields_party';
                 }
-                return 'attach_fields_' + (type || 'eway');
+                return 'attach_fields_' + (type || 'gcn');
             }
 
             function applyAttachmentTypeUi() {
-                var type = $('#attachment_type').val() || 'eway';
+                var type = $('#attachment_type').val() || 'gcn';
                 $('.attach-type-panel').removeClass('is-active');
                 $('#' + attachmentTypePanelId(type)).addClass('is-active');
                 var $ewayNo = $('input[name="eway_bill_no"]');
@@ -1314,7 +1314,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                 if ($('#eway_form').length && $('#eway_form')[0]) {
                     $('#eway_form')[0].reset();
                 }
-                $('#attachment_type').val('eway');
+                $('#attachment_type').val('gcn');
                 resetEwayUploadUi();
                 $('#eway_issue_date, #eway_expire_date, #gcn_delivery_date').each(function() {
                     var $inp = $(this);
@@ -1452,7 +1452,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
             });
 
             function validateBookingAttachmentForm() {
-                var type = $('#attachment_type').val() || 'eway';
+                var type = $('#attachment_type').val() || 'gcn';
                 var $file = $('#eway_upload_file')[0];
                 if (!$file || !$file.files || !$file.files.length) {
                     if (typeof ewFormToast === 'function') {
@@ -2014,14 +2014,14 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                             <label class="control-label">Attachment type</label>
                             <div class="ew-attach-select-wrap">
                                 <select class="form-control ew-attach-select" name="attachment_type" id="attachment_type" aria-label="Attachment type">
+                                    <option value="gcn" selected>GCN - Proof Of Delivery</option>
                                     <option value="eway">E-Way</option>
-                                    <option value="gcn">GCN - Proof Of Delivery</option>
                                     <option value="party_invoice">Party Invoice</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div id="attach_fields_eway" class="attach-type-panel is-active">
+                        <div id="attach_fields_eway" class="attach-type-panel">
                             <div class="form-group">
                                 <label class="control-label">E-Way Bill No</label>
                                 <input type="text" class="form-control" name="eway_bill_no" placeholder="Enter e-way bill number">
@@ -2038,7 +2038,7 @@ ORDER BY t.grn_date DESC, t.grn_no DESC
                             </div>
                         </div>
 
-                        <div id="attach_fields_gcn" class="attach-type-panel">
+                        <div id="attach_fields_gcn" class="attach-type-panel is-active">
                             <div class="form-group">
                                 <label class="control-label">GCN No</label>
                                 <input type="text" class="form-control ew-field-locked" id="attach_grn_no" name="grn_no" readonly tabindex="-1" aria-disabled="true">

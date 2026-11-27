@@ -667,7 +667,8 @@ $(document).ready(function(){
     }
     return blob.indexOf('sessions_check.php') !== -1
       || blob.indexOf('get_notification') !== -1
-      || blob.indexOf('petty_cash_data.php') !== -1;
+      || blob.indexOf('petty_cash_data.php') !== -1
+      || blob.indexOf('gstr1_data.php') !== -1;
   }
   $(document).ajaxSend(function (event, xhr, settings) {
     if (ewLoaderSkip(settings)) {

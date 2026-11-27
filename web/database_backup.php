@@ -50,15 +50,15 @@ $backupCount = count($backups);
                         </div>
 
                         <div class="ew-table-wrap widget-content padded clearfix">
-                            <table class="table table-bordered table-striped ew-db-backup-table" id="ew_db_backup_table">
+                            <table class="table ew-table ew-db-backup-table" id="ew_db_backup_table">
                                 <thead>
                                 <tr>
-                                    <th class="ew-db-backup-date-col text-center" style="width:18%">Database Backup</th>
-                                    <th style="width:22%">Description</th>
-                                    <th style="width:12%">Size</th>
-                                    <th class="text-center ew-db-backup-fromto-col" style="width:14%">From</th>
-                                    <th class="text-center ew-db-backup-fromto-col" style="width:14%">To</th>
-                                    <th class="sorting_disabled text-center" style="width:10%">Action</th>
+                                    <th class="ew-db-backup-date-col col-center">Database Backup</th>
+                                    <th class="ew-db-backup-desc-col">Description</th>
+                                    <th class="ew-db-backup-size-col num">Size</th>
+                                    <th class="ew-db-backup-fromto-col col-center">From</th>
+                                    <th class="ew-db-backup-fromto-col col-center">To</th>
+                                    <th class="sorting_disabled col-actions ew-db-backup-actions-col">Action</th>
                                 </tr>
                                 </thead>
                                 <tbody id="ewDbBackupBody">
@@ -69,17 +69,17 @@ $backupCount = count($backups);
                                 <?php } else { ?>
                                     <?php foreach ($backups as $row) { ?>
                                         <tr data-date="<?php echo htmlspecialchars($row['date']); ?>">
-                                            <td class="ew-db-backup-date-col text-center col-center">
+                                            <td class="ew-db-backup-date-col col-center">
                                                 <span class="ew-db-backup-date-inner">
                                                     <span class="ew-db-backup-date-text ew-db-backup-date-text--primary"><?php echo htmlspecialchars($row['label']); ?></span>
                                                     <span class="ew-db-backup-dot-slot"><?php if (!empty($row['is_latest'])) { ?><span class="ew-db-backup-dot ew-db-backup-dot--live" title="Latest backup"></span><?php } ?></span>
                                                 </span>
                                             </td>
-                                            <td><?php echo htmlspecialchars($row['description']); ?></td>
-                                            <td><?php echo htmlspecialchars($row['size_label']); ?></td>
-                                            <td class="text-center ew-db-backup-fromto-col"><span class="ew-db-backup-date-text"><?php echo htmlspecialchars($row['from']); ?></span></td>
-                                            <td class="text-center ew-db-backup-fromto-col"><span class="ew-db-backup-date-text"><?php echo htmlspecialchars($row['to']); ?></span></td>
-                                            <td class="text-center">
+                                            <td class="ew-db-backup-desc-col"><?php echo htmlspecialchars($row['description']); ?></td>
+                                            <td class="ew-db-backup-size-col num"><?php echo htmlspecialchars($row['size_label']); ?></td>
+                                            <td class="ew-db-backup-fromto-col col-center"><span class="ew-db-backup-date-text"><?php echo htmlspecialchars($row['from']); ?></span></td>
+                                            <td class="ew-db-backup-fromto-col col-center"><span class="ew-db-backup-date-text"><?php echo htmlspecialchars($row['to']); ?></span></td>
+                                            <td class="col-actions ew-db-backup-actions-col">
                                                 <a class="ew-db-backup-dl table-actions" title="Download"
                                                    href="database_backup_download.php?date=<?php echo urlencode($row['date']); ?>">
                                                     <i class="fa fa-cloud-download"></i>
@@ -164,9 +164,11 @@ $backupCount = count($backups);
       aoColumnDefs: [
         { sSortDataType: 'ewDbBackupRunDate', aTargets: [0] },
         { bSortable: false, aTargets: [1, 2, 3, 4, 5] },
-        { sClass: 'text-center ew-db-backup-date-col col-center', aTargets: [0] },
-        { sClass: 'text-center ew-db-backup-fromto-col col-center', aTargets: [3, 4] },
-        { sClass: 'text-center col-center', aTargets: [5] }
+        { sClass: 'ew-db-backup-date-col col-center', aTargets: [0] },
+        { sClass: 'ew-db-backup-desc-col', aTargets: [1] },
+        { sClass: 'ew-db-backup-size-col num', aTargets: [2] },
+        { sClass: 'ew-db-backup-fromto-col col-center', aTargets: [3, 4] },
+        { sClass: 'col-actions ew-db-backup-actions-col', aTargets: [5] }
       ],
       oLanguage: {
         sEmptyTable: 'No backups yet. The daily job runs at 11:30 AM IST.',
@@ -193,14 +195,14 @@ $backupCount = count($backups);
     rows.forEach(function (r) {
       var dot = (r.is_latest || r.is_today) ? '<span class="ew-db-backup-dot ew-db-backup-dot--live" title="Latest backup"></span>' : '';
       html += '<tr data-date="' + r.date + '">'
-        + '<td class="ew-db-backup-date-col text-center col-center">'
+        + '<td class="ew-db-backup-date-col col-center">'
         + '<span class="ew-db-backup-date-inner"><span class="ew-db-backup-date-text ew-db-backup-date-text--primary">' + $('<div>').text(r.label).html() + '</span>'
         + '<span class="ew-db-backup-dot-slot">' + dot + '</span></span></td>'
-        + '<td>' + $('<div>').text(r.description).html() + '</td>'
-        + '<td>' + $('<div>').text(r.size_label).html() + '</td>'
-        + '<td class="text-center ew-db-backup-fromto-col"><span class="ew-db-backup-date-text">' + $('<div>').text(r.from).html() + '</span></td>'
-        + '<td class="text-center ew-db-backup-fromto-col"><span class="ew-db-backup-date-text">' + $('<div>').text(r.to).html() + '</span></td>'
-        + '<td class="text-center"><a class="ew-db-backup-dl table-actions" title="Download" href="database_backup_download.php?date=' + encodeURIComponent(r.date) + '"><i class="fa fa-cloud-download"></i></a></td>'
+        + '<td class="ew-db-backup-desc-col">' + $('<div>').text(r.description).html() + '</td>'
+        + '<td class="ew-db-backup-size-col num">' + $('<div>').text(r.size_label).html() + '</td>'
+        + '<td class="ew-db-backup-fromto-col col-center"><span class="ew-db-backup-date-text">' + $('<div>').text(r.from).html() + '</span></td>'
+        + '<td class="ew-db-backup-fromto-col col-center"><span class="ew-db-backup-date-text">' + $('<div>').text(r.to).html() + '</span></td>'
+        + '<td class="col-actions ew-db-backup-actions-col"><a class="ew-db-backup-dl table-actions" title="Download" href="database_backup_download.php?date=' + encodeURIComponent(r.date) + '"><i class="fa fa-cloud-download"></i></a></td>'
         + '</tr>';
     });
     $('#ewDbBackupBody').html(html);
@@ -242,40 +244,91 @@ $backupCount = count($backups);
 .ew-db-backup-card .ew-card-toolbar > div:first-child h2 {
   margin-bottom: 0;
 }
-.ew-db-backup-table th.ew-db-backup-date-col,
-table.dataTable#ew_db_backup_table thead th.ew-db-backup-date-col,
-.ew-db-backup-card #ew_db_backup_table th.ew-db-backup-date-col,
-.ew-db-backup-table th.ew-db-backup-fromto-col,
-table.dataTable#ew_db_backup_table thead th.ew-db-backup-fromto-col {
+
+#ew_db_backup_table {
+  table-layout: fixed;
+  width: 100% !important;
+  margin-bottom: 0;
+  border: none !important;
+}
+#ew_db_backup_table th,
+#ew_db_backup_table td {
+  border-left: none !important;
+  border-right: none !important;
+  vertical-align: middle !important;
+}
+#ew_db_backup_table tbody tr:nth-child(even) td {
+  background: #f9fafb;
+}
+
+#ew_db_backup_table th.ew-db-backup-date-col,
+#ew_db_backup_table td.ew-db-backup-date-col { width: 14%; min-width: 7.5rem; }
+#ew_db_backup_table th.ew-db-backup-desc-col,
+#ew_db_backup_table td.ew-db-backup-desc-col { width: auto; }
+#ew_db_backup_table th.ew-db-backup-size-col,
+#ew_db_backup_table td.ew-db-backup-size-col { width: 9rem; }
+#ew_db_backup_table th.ew-db-backup-fromto-col,
+#ew_db_backup_table td.ew-db-backup-fromto-col { width: 7.5rem; }
+#ew_db_backup_table th.ew-db-backup-actions-col,
+#ew_db_backup_table td.ew-db-backup-actions-col { width: 5.5rem; }
+
+.ew-db-backup-page #ew_db_backup_table thead th.ew-db-backup-date-col,
+.ew-db-backup-page #ew_db_backup_table thead th.ew-db-backup-fromto-col,
+.ew-db-backup-page table.dataTable#ew_db_backup_table thead th.ew-db-backup-date-col.col-center,
+.ew-db-backup-page table.dataTable#ew_db_backup_table thead th.ew-db-backup-fromto-col.col-center,
+.ew-db-backup-page #ew_db_backup_table tbody td.ew-db-backup-date-col,
+.ew-db-backup-page #ew_db_backup_table tbody td.ew-db-backup-fromto-col,
+.ew-db-backup-page table.dataTable#ew_db_backup_table tbody td.ew-db-backup-date-col.col-center,
+.ew-db-backup-page table.dataTable#ew_db_backup_table tbody td.ew-db-backup-fromto-col.col-center {
   text-align: center !important;
 }
-.ew-db-backup-table td.ew-db-backup-date-col,
-table.dataTable#ew_db_backup_table tbody td.ew-db-backup-date-col,
-table.dataTable#ew_db_backup_table tbody td.text-center,
-.ew-db-backup-card #ew_db_backup_table td.ew-db-backup-date-col,
-.ew-db-backup-table td.ew-db-backup-fromto-col,
-table.dataTable#ew_db_backup_table tbody td.ew-db-backup-fromto-col {
+
+.ew-db-backup-page #ew_db_backup_table thead th.ew-db-backup-size-col,
+.ew-db-backup-page #ew_db_backup_table tbody td.ew-db-backup-size-col.num,
+.ew-db-backup-page table.dataTable#ew_db_backup_table thead th.ew-db-backup-size-col,
+.ew-db-backup-page table.dataTable#ew_db_backup_table tbody td.ew-db-backup-size-col.num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ew-db-backup-page #ew_db_backup_table thead th.ew-db-backup-desc-col,
+.ew-db-backup-page #ew_db_backup_table tbody td.ew-db-backup-desc-col,
+.ew-db-backup-page table.dataTable#ew_db_backup_table thead th.ew-db-backup-desc-col,
+.ew-db-backup-page table.dataTable#ew_db_backup_table tbody td.ew-db-backup-desc-col {
   text-align: left !important;
 }
+
+.ew-db-backup-page #ew_db_backup_table thead th.ew-db-backup-actions-col,
+.ew-db-backup-page #ew_db_backup_table tbody td.ew-db-backup-actions-col,
+.ew-db-backup-page table.dataTable#ew_db_backup_table tbody td.ew-db-backup-actions-col.col-actions {
+  text-align: center !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+.ew-db-backup-page table.dataTable#ew_db_backup_table thead th.ew-db-backup-date-col.sorting,
+.ew-db-backup-page table.dataTable#ew_db_backup_table thead th.ew-db-backup-date-col.sorting_asc,
+.ew-db-backup-page table.dataTable#ew_db_backup_table thead th.ew-db-backup-date-col.sorting_desc {
+  text-align: center !important;
+  padding-right: 24px !important;
+}
+
 .ew-db-backup-date-inner {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin: 0 auto;
+  max-width: 100%;
 }
 .ew-db-backup-date-text {
   display: inline-block;
-  text-align: center;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
   line-height: 1.35;
-}
-.ew-db-backup-fromto-col .ew-db-backup-date-text {
-  width: 5.85rem;
+  white-space: nowrap;
 }
 .ew-db-backup-date-text--primary {
-  width: auto;
   font-weight: 600;
   color: #06416F;
 }
@@ -294,7 +347,6 @@ table.dataTable#ew_db_backup_table tbody td.ew-db-backup-fromto-col {
   border-radius: 50%;
   background: #DD111E;
   flex-shrink: 0;
-  vertical-align: middle;
 }
 .ew-db-backup-dot--live {
   animation: ew-db-backup-blink 1.15s ease-in-out infinite;
@@ -313,9 +365,7 @@ table.dataTable#ew_db_backup_table tbody td.ew-db-backup-fromto-col {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ew-db-backup-dot--live {
-    animation: none;
-  }
+  .ew-db-backup-dot--live { animation: none; }
 }
 .ew-db-backup-dl {
   display: inline-flex;
@@ -326,6 +376,7 @@ table.dataTable#ew_db_backup_table tbody td.ew-db-backup-fromto-col {
   border-radius: 50%;
   background: #eef1f4;
   color: #06416F;
+  text-decoration: none !important;
 }
 .ew-db-backup-dl:hover {
   background: #dde7f0;

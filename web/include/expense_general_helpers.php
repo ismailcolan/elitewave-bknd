@@ -188,8 +188,8 @@ function expense_general_allocate_voucher_no($conn, $voucher_type, $existing_no 
 		$id = (int) mysqli_insert_id($conn);
 	}
 	if ($id <= 0) {
-		$q = mysqli_query($conn, 'SELECT MAX(general_expense_id) AS max_id FROM general_expense_header');
-		if ($q && ($row = mysqli_fetch_assoc($q))) {
+	$q = mysqli_query($conn, 'SELECT MAX(general_expense_id) AS max_id FROM general_expense_header');
+	if ($q && ($row = mysqli_fetch_assoc($q))) {
 			$id = (int) ($row['max_id'] ?? 0);
 		}
 	}
